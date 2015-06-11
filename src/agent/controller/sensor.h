@@ -16,14 +16,22 @@ class RobotPlugin;
 class Sensor
 {
 private:
-
+    // Current sensor update delay, in seconds (should match controller frequency).
+    double sensor_step_length_;
 public:
     // Constructor.
     Sensor(ros::NodeHandle& n);
     // Destructor.
     virtual ~Sensor();
     // Update the sensor (called every tick).
-    virtual void update(RobotPlugin *plugin);
+    // plugin is used to query robot-specific information (such as forward kinematics).
+    // sec_elapsed is used to estimate time -- this specifies how much time elapsed since the last update.
+    // is_controller_step -- this specifies whether this update coincides with a linear-Gaussian or neural network controller update.
+    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    // Set sensor update delay.
+    virtual void set_update(double new_sensor_step_length);
+    // Configure the sensor (for sensor-specific trial settings).
+    virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
 };
 
 }
@@ -31,7 +39,6 @@ public:
 /*
 TODO: figure out what type of information sensor needs to advertise about itself to be packed into the state assembler...
 */
-
 
 /*
 How the sensor objects are supposed to work:
