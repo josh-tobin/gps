@@ -1,4 +1,39 @@
 /*
+This is the base class for the sensor object. The sensor object encapsulates
+anything that produces state (X) or observation (phi) information.
+*/
+#pragma once
+
+// Headers.
+#include <ros/ros.h>
+
+namespace GPSControl
+{
+
+// Forward declarations.
+class RobotPlugin;
+
+class Sensor
+{
+private:
+
+public:
+    // Constructor.
+    Sensor(ros::NodeHandle& n);
+    // Destructor.
+    virtual ~Sensor();
+    // Update the sensor (called every tick).
+    virtual void update(RobotPlugin *plugin);
+};
+
+}
+
+/*
+TODO: figure out what type of information sensor needs to advertise about itself to be packed into the state assembler...
+*/
+
+
+/*
 How the sensor objects are supposed to work:
 - each sensor object may include subscribers
 - each sensor object has an update function

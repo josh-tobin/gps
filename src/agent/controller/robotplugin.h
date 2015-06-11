@@ -9,6 +9,8 @@ with the robot.
 #include <boost/scoped_ptr.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
+#include <kdl/chain.hpp>
+#include <kdl/chainjnttojacsolver.hpp>
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -39,6 +41,12 @@ private:
     boost::scoped_ptr<TrialController> trial_controller_;
     // Sensors.
     std::vector<Sensor> sensors_;
+    // KDL chains for the end-effectors.
+    KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
+    // KDL solvers for the end-effectors.
+    boost::scoped_ptr<KDL::ChainFkSolverPos> passive_arm_fk_solver_, active_arm_fk_solver_;
+    // KDL solvers for end-effector Jacobians.
+    boost::scoped_ptr<KDL::ChainJntToJacSolver> passive_arm_jac_solver_, active_arm_jac_solver_;
     // Subscribers.
     // Subscriber for position control commands.
     ros::Subscriber position_subscriber_;
@@ -64,7 +72,7 @@ public:
     virtual void initialize_ros(ros::NodeHandle& n);
     // Initialize all of the position controllers.
     virtual void initialize_position_controllers(ros::NodeHandle& n);
-    // Initialize all of the sensors.
+    // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
     // Reply with current sensor readings.
     virtual void publish_sensor_readings(/* TODO: implement */);
@@ -81,6 +89,11 @@ public:
     virtual void trial_subscriber_callback(const RelaxCommandMsg::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+    // Accessors.
+    // Get current encoder readings (robot-dependent).
+    virtual void get_joint_encoder_readings(std::vector<double> &angles) = 0;
+    // Get forward kinematics solver.
+    // TODO: implement.
 };
 
 }

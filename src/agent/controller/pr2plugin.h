@@ -20,7 +20,6 @@ class Pr2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
 private:
     // This is a pointer to the robot state, which we get when initialized and have to keep after that.
     pr2_mechanism_model::RobotState* robot_;
-    /* any PR2-specific variables go here */
 public:
     // Constructor (this should do nothing).
     Pr2Plugin();
@@ -46,6 +45,11 @@ public:
          that at the end -- it will typically be a completion message that
          includes the recorded robot state for the controller's execution.
      */
+    // Accessors.
+    // Get current encoder readings (robot-dependent).
+    virtual void get_joint_encoder_readings(std::vector<double> &angles);
+    // Get forward kinematics solver.
+    // TODO: implement.
 };
 
 }
