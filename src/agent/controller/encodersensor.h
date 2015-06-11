@@ -27,6 +27,9 @@ public:
     virtual ~EncoderSensor();
     // Update the sensor (called every tick).
     virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    // Configure the sensor (for sensor-specific trial settings).
+    // The settings include the configuration for the Kalman filter.
+    virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
 };
 
 }
