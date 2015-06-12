@@ -1,11 +1,8 @@
 /*
-Kalman filter for joint angles.
+Kalman filter for encoder data. Each filter filters one degree of freedom at
+a time.
 */
 #pragma once
-
-/*
-TODO: this thing needs a Kalman filter.
-*/
 
 namespace GPSControl
 {
@@ -24,6 +21,8 @@ public:
     virtual void update(double sec_elapsed, std::vector<double> state);
     // Configure the Kalman filter.
     virtual void configure(/* TODO: decide how to do this part */);
+    // Return filtered state and velocity.
+    virtual void get_state(double &state, double &velocity);
 };
 
 }
