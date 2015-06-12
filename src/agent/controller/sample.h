@@ -10,23 +10,12 @@ from it.
 // Headers.
 #include <vector>
 
+// This contains the list of data types.
+#define RUN_ON_ROBOT
+#include "sample_data/sample_types.h"
+
 namespace GPSControl
 {
-
-// List of data types.
-enum DataType
-{
-    Actions = 0,
-    JointAngles,
-    JointVelocities,
-    EndEffectorPoints,
-    EndEffectorVelocities,
-    EndEffectorPosition,
-    EndEffectorRotation,
-    EndEffectorJacobian,
-    RGBImage,
-    TotalDataTypes
-};
 
 class State
 {
