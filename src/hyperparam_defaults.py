@@ -5,10 +5,9 @@ common = {
     'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(),'%m-%d-%y_%H-%M'),
 }
 
-# Also have one for observation?
 sample = {
-    'state_include': ['fk'],
-    'obs_include': [],
+    'state_include': ['JointAngle', 'JointVelocity', 'EndEffectorPose', 'EndEffectorVelocity'],
+    'obs_include': [], # Input to policy
 }
 
 agent = {}
@@ -28,7 +27,7 @@ policy_opt = {}
 
 defaults = {
     'common': common,
-    'state': state,
+    'sample': sample,
     'agent': agent,
     'sample_data': sample_data,
     'algorithm': {

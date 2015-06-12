@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
-
-import _sample
+from gps_sample_types import *
 
 class Sample():
     """Class that handles the representation of a trajectory and stores a single trajectory
@@ -20,7 +19,7 @@ class Sample():
         self._data = []
 
         # To be populated in by the C++ object, maps sensor name to index
-        self._sensor_idx = {}
+        self._sensor_idx = {} # Actually now just DataType object
 
         self._X = np.nan([self.T,self.dX]);
         self._U = np.nan([self.T,self.dU]);

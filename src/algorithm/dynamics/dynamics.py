@@ -11,3 +11,7 @@ class Dynamics():
     def update(self):
         """ Update dynamics. """
         raise NotImplementedError("Must be implemented in subclass");
+
+    def eval(self):
+        """ Evaluate dynamics. """
+        raise NotImplementedError("Must be implemented in subclass");
