@@ -4,6 +4,8 @@ between the C++ and Python code.
 */
 #pragma once
 
+#include <boost/python.hpp>
+
 // List of data types.
 enum DataType
 {
