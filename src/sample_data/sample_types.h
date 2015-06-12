@@ -33,7 +33,7 @@ using namespace boost::python;
 // Python implementation.
 BOOST_PYTHON_MODULE(gps_sample_types)
 {
-    enum_<DataType>("DataType")
+    enum_<DataType>("data_type")
         .value("action",action)
         .value("joint_angle",joint_angle)
         .value("joint_velocity",joint_velocity)
