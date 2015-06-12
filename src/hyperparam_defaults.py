@@ -13,6 +13,7 @@ agent = {}
 
 sample_data = {
     'filename': 'sample_data.pkl',
+    'T': 100,
 }
 
 cost = {}
