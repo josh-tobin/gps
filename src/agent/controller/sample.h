@@ -2,18 +2,26 @@
 The state object maintains the state, assembles state and observation vectors,
 and keeps track of what is and is not included in the state. This object is
 used both by the controller, to incrementally assemble the state during a
-trial, and by the rest of the code, to keep track of sample data and get the
-state and observation vectors from it.
+trial, to keep track of sample data and get the state and observation vectors
+from it.
 */
 #pragma once
 
 // Headers.
 #include <vector>
 
-namespace GPSLearning
+namespace GPSControl
 {
 
-// TODO: define sensors enum here.
+// List of sensor types.
+enum SensorType
+{
+    EncoderSensorType = 0,
+    FKSensorType,
+    JacobianSensorType,
+    CameraSensorType,
+    TotalSensorTypes
+};
 
 class State
 {
@@ -25,8 +33,9 @@ private:
     // Sensor metadata.
     /* TODO: figure out how to deal with formats here */
     // State definition.
-    std::vector<StateType> state_definition_;
-    // 
+    std::vector<SensorType> state_definition_;
+    // Observation definition.
+    std::vector<SensorType> obs_definition_;
 public:
     // Constructor.
     State(int T);
@@ -38,7 +47,12 @@ public:
     virtual void set_data(int t, SensorType sensor /* TODO: figure out how to deal with formats here */);
     // Get sensor data for given timestep.
     virtual void get_data(int t, SensorType sensor /* TODO: figure out how to deal with formats here */) const;
-
+    // Get the state representation.
+    virtual void get_state(int t, Eigen::VectorXd &x);
+    // Get the observation.
+    virtual void get_obs(int t, Eigen::VectorXd &obs);
+    // Get the action.
+    virtual void get_action(int, Eigen::VectorXd &u);
 };
 
 }
