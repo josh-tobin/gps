@@ -17,9 +17,10 @@ class GPSMain():
         # TODO - need to make sure these initialize the right type of agent
         # and algorithm objects: either change code to use switch statement or
         # put in respective constructors, or do something fancier.
-        self.sample_data = SampleData();
-        self.algorithm = Algorithm(hyperparams['algorithm'], sample_data);
-        self.agent = Agent(hyperparams['agent'], sample_data);
+        state_assembler = StateAssembler(hyperparams['state'])
+        self.sample_data = SampleData(hyperparams['sample_data'], hyperparams['common'], state_assembler);
+        self.algorithm = Algorithm(hyperparams['algorithm'], hyperparams['common'], sample_data, state_assembler);
+        self.agent = Agent(hyperparams['agent'], hyperparams['common'], sample_data, state_assembler);
 
     def run(self):
         """
