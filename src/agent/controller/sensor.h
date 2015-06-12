@@ -7,6 +7,10 @@ anything that produces state (X) or observation (phi) information.
 // Headers.
 #include <ros/ros.h>
 
+// This header defines the main enum that lists the available sensors, which
+// is also used by the state assembler.
+#include "sample_data/state/state.h"
+
 namespace GPSControl
 {
 
