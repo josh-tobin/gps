@@ -5,8 +5,10 @@ common = {
     'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(),'%m-%d-%y_%H-%M'),
 }
 
-state = {
-    'include_fk': True,
+# Also have one for observation?
+sample = {
+    'state_include': ['fk'],
+    'obs_include': [],
 }
 
 agent = {}
