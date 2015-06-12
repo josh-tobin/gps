@@ -22,7 +22,7 @@ public:
     // Configure the Kalman filter.
     virtual void configure(/* TODO: decide how to do this part */);
     // Return filtered state and velocity.
-    virtual void get_state(double &state, double &velocity);
+    virtual void get_state(double &state, double &velocity) const;
 };
 
 }

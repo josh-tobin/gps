@@ -47,7 +47,7 @@ public:
      */
     // Accessors.
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles);
+    virtual void get_joint_encoder_readings(std::vector<double> &angles) const;
     // Get forward kinematics solver.
     // TODO: implement.
 };

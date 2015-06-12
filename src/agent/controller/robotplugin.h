@@ -91,7 +91,7 @@ public:
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Accessors.
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles) = 0;
+    virtual void get_joint_encoder_readings(std::vector<double> &angles) const = 0;
     // Get forward kinematics solver.
     // TODO: implement.
 };

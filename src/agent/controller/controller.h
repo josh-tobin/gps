@@ -24,9 +24,9 @@ public:
     // Update the controller (take an action).
     virtual void update(robot_plugin *plugin, double sec_elapsed, std::vector<sensor> &sensors) = 0;
     // Check if controller is finished with its current task.
-    virtual bool is_finished() = 0;
+    virtual bool is_finished() const = 0;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<sample> get_sample() = 0;
+    virtual boost::scoped_ptr<sample> get_sample() const = 0;
 };
 
 }

@@ -43,11 +43,11 @@ public:
     // Get sensor data for given timestep.
     virtual void get_data(int t, data_type sensor /* TODO: figure out how to deal with formats here */) const;
     // Get the state representation.
-    virtual void get_state(int t, Eigen::VectorXd &x);
+    virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.
-    virtual void get_obs(int t, Eigen::VectorXd &obs);
+    virtual void get_obs(int t, Eigen::VectorXd &obs) const;
     // Get the action.
-    virtual void get_action(int, Eigen::VectorXd &u);
+    virtual void get_action(int, Eigen::VectorXd &u) const;
 };
 
 }
