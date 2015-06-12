@@ -4,19 +4,20 @@ between the C++ and Python code.
 */
 #pragma once
 
+/* TODO: find a way to have just one enum and automatically create the Python wrapper */
 // List of data types.
-enum DataType
+enum data_type
 {
-    Actions = 0,
-    JointAngles,
-    JointVelocities,
-    EndEffectorPoints,
-    EndEffectorVelocities,
-    EndEffectorPosition,
-    EndEffectorRotation,
-    EndEffectorJacobian,
-    RGBImage,
-    TotalDataTypes
+    action = 0,
+    joint_angle,
+    joint_velocity,
+    end_effector_point,
+    end_effector_point_velocity,
+    end_effector_position,
+    end_effector_rotation,
+    end_effector_jacobian,
+    rbg_image,
+    total_data_types
 };
 
 // Check if this is running on the robot.
@@ -32,16 +33,16 @@ using namespace boost::python;
 BOOST_PYTHON_MODULE(gps_sample_types)
 {
     enum_<DataType>("DataType")
-        .value("Actions",Actions)
-        .value("JointAngles",JointAngles)
-        .value("JointVelocities",JointVelocities)
-        .value("EndEffectorPoints",EndEffectorPoints)
-        .value("EndEffectorVelocities",EndEffectorVelocities)
-        .value("EndEffectorPosition",EndEffectorPosition)
-        .value("EndEffectorRotation",EndEffectorRotation)
-        .value("EndEffectorJacobian",EndEffectorJacobian)
-        .value("RGBImage",RGBImage)
-        .value("TotalDataTypes",TotalDataTypes)
+        .value("action",action)
+        .value("joint_angle",joint_angle)
+        .value("joint_velocity",joint_velocity)
+        .value("end_effector_point",end_effector_point)
+        .value("end_effector_point_velocity",end_effector_point_velocity)
+        .value("end_effector_position",end_effector_position)
+        .value("end_effector_rotation",end_effector_rotation)
+        .value("end_effector_jacobian",end_effector_jacobian)
+        .value("rbg_image",RGBImage)
+        .value("total_data_types",total_data_types)
         ;
 }
 

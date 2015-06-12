@@ -28,9 +28,9 @@ private:
     /* TODO: figure out how to deal with formats here */
     // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
-    std::vector<std::pair<DataType,int> > state_definition_;
+    std::vector<std::pair<data_type,int> > state_definition_;
     // Observation definition.
-    std::vector<std::pair<DataType,int> > obs_definition_;
+    std::vector<std::pair<data_type,int> > obs_definition_;
 public:
     // Constructor.
     State(int T);
@@ -39,9 +39,9 @@ public:
     // Destructor.
     virtual ~State();
     // Add sensor data for given timestep.
-    virtual void set_data(int t, DataType sensor /* TODO: figure out how to deal with formats here */);
+    virtual void set_data(int t, data_type sensor /* TODO: figure out how to deal with formats here */);
     // Get sensor data for given timestep.
-    virtual void get_data(int t, DataType sensor /* TODO: figure out how to deal with formats here */) const;
+    virtual void get_data(int t, data_type sensor /* TODO: figure out how to deal with formats here */) const;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x);
     // Get the observation.
