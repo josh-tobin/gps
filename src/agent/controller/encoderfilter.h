@@ -14,7 +14,7 @@ private:
     // This should also contain the Kalman filter state information.
 public:
     // Constructor.
-    encoder_filter(ros::NodeHandle& n);
+    encoder_filter(ros::NodeHandle& n, robot_plugin *plugin);
     // Destructor.
     virtual ~encoder_filter();
     // Update the Kalman filter.

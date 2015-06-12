@@ -38,7 +38,7 @@ private:
     double previous_pose_time_;
 public:
     // Constructor.
-    fk_sensor(ros::NodeHandle& n);
+    fk_sensor(ros::NodeHandle& n, robot_plugin *plugin);
     // Destructor.
     virtual ~fk_sensor();
     // Update the sensor (called every tick).
@@ -46,6 +46,10 @@ public:
     // Configure the sensor (for sensor-specific trial settings).
     // This function is used to pass the end-effector points.
     virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
+    // Populate the array of sensor data size and format based on what the sensor wants.
+    virtual void get_data_format(std::vector<int> &data_size, std::vector<sample_data_format> &data_format, std::vector<sample_data_meta> &data_meta) const;
+    // Populate the array of sensor data with whatever data this sensor measures.
+    virtual void get_data(std::vector<void*> &data, const std::vector<int> &data_size, const std::vector<sample_data_format> &data_format) const;
 };
 
 }

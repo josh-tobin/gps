@@ -11,6 +11,9 @@ anything that produces state (X) or observation (phi) information.
 // is also used by the state assembler.
 #include "sample_data/state/state.h"
 
+// This header contains additional defines for communicating with the sample object.
+#include "agent/controller/sample.h"
+
 namespace gps_control
 {
 
@@ -34,7 +37,7 @@ private:
     double sensor_step_length_;
 public:
     // Constructor.
-    sensor(ros::NodeHandle& n);
+    sensor(ros::NodeHandle& n, robot_plugin *plugin);
     // Destructor.
     virtual ~sensor();
     // Update the sensor (called every tick).
@@ -46,6 +49,10 @@ public:
     virtual void set_update(double new_sensor_step_length);
     // Configure the sensor (for sensor-specific trial settings).
     virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
+    // Populate the array of sensor data size and format based on what the sensor wants.
+    virtual void get_data_format(std::vector<int> &data_size, std::vector<sample_data_format> &data_format, std::vector<sample_data_meta> &data_meta) const = 0;
+    // Populate the array of sensor data with whatever data this sensor measures.
+    virtual void get_data(std::vector<void*> &data, const std::vector<int> &data_size, const std::vector<sample_data_format> &data_format) const = 0;
 };
 
 }

@@ -30,7 +30,9 @@ public:
     // Compute the action at the current time step.
     virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U) = 0;
     // Update the controller (take an action).
-    virtual void update(robot_plugin *plugin, double sec_elapsed, std::vector<sensor> &sensors);
+    virtual void update(robot_plugin *plugin, double sec_elapsed, std::scopted_ptr<sample> sample);
+    // Configure the controller.
+    virtual void configure_controller(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.

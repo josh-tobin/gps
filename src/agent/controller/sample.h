@@ -9,6 +9,7 @@ from it.
 
 // Headers.
 #include <vector>
+#include <boost/variant.hpp>
 
 // This contains the list of data types.
 #define RUN_ON_ROBOT
@@ -17,15 +18,37 @@ from it.
 namespace gps_control
 {
 
+// Types of data supported for internal data storage.
+enum sample_data_format
+{
+    data_format_bool,
+    data_format_uint8,
+    data_format_int,
+    data_format_double
+};
+
+/* TODO: create a utility header and include this map as a definition there */
+/* TODO: provide a utility function that makes it easy to convert one of these maps to a ROS message */
+/* TODO: provide a utility function that makes it easy to convert a Python dictionary to one of these */
+
+// Meta data definition: map from properties to values.
+typedef sample_data_variant boost::variant<bool,uint8_t,int,double>;
+typedef sample_data_meta std::map<std::string,sample_data_variant>;
+
 class sample
 {
 private:
     // Length of sample.
     int T_;
     // sensor data for all time steps.
-    /* TODO: figure out how to deal with formats here */
-    // sensor metadata.
-    /* TODO: figure out how to deal with formats here */
+    // IMPORTANT: data management on the internal data is done manually, be sure to allocate and free as necessary.
+    std::vector<void*> internal_data_;
+    // sensor metadata: size of each field (in number of entries, not bytes).
+    std::vector<int> internal_data_size_;
+    // sensor metadata: format of each field.
+    std::vector<sample_data_format> internal_data_format_;
+    // sensor metadata: additional information about each field.
+    std::vector<sample_data_meta> meta_data_;
     // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
     std::vector<std::pair<data_type,int> > state_definition_;
@@ -38,10 +61,16 @@ public:
     sample(gps_control::state_msg::ConstPtr &msg);
     // Destructor.
     virtual ~sample();
+    // Get pointer to internal data for given time step.
+    virtual void *get_data_pointer(int t, data_type sensor);
     // Add sensor data for given timestep.
-    virtual void set_data(int t, data_type sensor /* TODO: figure out how to deal with formats here */);
+    virtual void set_data(int t, data_type sensor, const void *data, int data_size, sample_data_format data_format);
     // Get sensor data for given timestep.
-    virtual void get_data(int t, data_type sensor /* TODO: figure out how to deal with formats here */) const;
+    virtual void get_data(int t, data_type sensor, void *data, int data_size, sample_data_format data_format) const;
+    // Set sensor meta-data.
+    virtual void set_meta_data(data_type sensor, int data_size, sample_data_format data_format, sample_data_meta meta_data_);
+    // Get sensor meta-data.
+    virtual void get_meta_data(data_type sensor, int &data_size, sample_data_format &data_format, sample_data_meta &meta_data_) = 0;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.
