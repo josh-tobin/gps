@@ -15,6 +15,13 @@ or does it? should we instead have a Kalman filter on the points themselves?
 probably best to see how ddp_controller.cpp does it, and mimic the same behavior for now
 */
 
+// This sensor writes to the following data types:
+// EndEffectorPoints
+// EndEffectorVelocities
+// EndEffectorPosition
+// EndEffectorRotation
+// EndEffectorJacobian
+
 namespace GPSControl
 {
 
@@ -25,6 +32,8 @@ private:
     MatrixXd end_effector_points_;
     // Previous end-effector transform.
     Matrix4d previous_transform_;
+    // Previous end-effector Jacobian.
+    MatrixXd previous_jacobian_;
     // Time from last update when the previous end-effector pose was recorded (necessary to compute velocities).
     double previous_pose_time_;
 public:

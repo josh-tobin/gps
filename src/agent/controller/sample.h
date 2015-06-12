@@ -13,14 +13,19 @@ from it.
 namespace GPSControl
 {
 
-// List of sensor types.
-enum SensorType
+// List of data types.
+enum DataType
 {
-    EncoderSensorType = 0,
-    FKSensorType,
-    JacobianSensorType,
-    CameraSensorType,
-    TotalSensorTypes
+    Actions = 0,
+    JointAngles,
+    JointVelocities,
+    EndEffectorPoints,
+    EndEffectorVelocities,
+    EndEffectorPosition,
+    EndEffectorRotation,
+    EndEffectorJacobian,
+    RGBImage,
+    TotalDataTypes
 };
 
 class State
@@ -32,10 +37,11 @@ private:
     /* TODO: figure out how to deal with formats here */
     // Sensor metadata.
     /* TODO: figure out how to deal with formats here */
+    // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
-    std::vector<SensorType> state_definition_;
+    std::vector<std::pair<DataType,int> > state_definition_;
     // Observation definition.
-    std::vector<SensorType> obs_definition_;
+    std::vector<std::pair<DataType,int> > obs_definition_;
 public:
     // Constructor.
     State(int T);
@@ -44,9 +50,9 @@ public:
     // Destructor.
     virtual ~State();
     // Add sensor data for given timestep.
-    virtual void set_data(int t, SensorType sensor /* TODO: figure out how to deal with formats here */);
+    virtual void set_data(int t, DataType sensor /* TODO: figure out how to deal with formats here */);
     // Get sensor data for given timestep.
-    virtual void get_data(int t, SensorType sensor /* TODO: figure out how to deal with formats here */) const;
+    virtual void get_data(int t, DataType sensor /* TODO: figure out how to deal with formats here */) const;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x);
     // Get the observation.

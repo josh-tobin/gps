@@ -10,6 +10,10 @@ Joint encoder sensor: returns joint angles and, optionally, their velocities.
 TODO: this thing needs a Kalman filter.
 */
 
+// This sensor writes to the following data types:
+// JointAngles
+// JointVelocities
+
 namespace GPSControl
 {
 

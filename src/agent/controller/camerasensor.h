@@ -6,6 +6,9 @@ Camera sensor: records latest images from camera.
 // Superclass.
 #include "agent/controller/sensor.h"
 
+// This sensor writes to the following data types:
+// RGBImage
+
 namespace GPSControl
 {
 

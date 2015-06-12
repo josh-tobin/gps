@@ -14,6 +14,16 @@ anything that produces state (X) or observation (phi) information.
 namespace GPSControl
 {
 
+// List of sensor types.
+// Note that each sensor might produce multiple data types!
+enum SensorType
+{
+    EncoderSensorType = 0,
+    FKSensorType,
+    CameraSensorType,
+    TotalSensorTypes
+};
+
 // Forward declarations.
 class RobotPlugin;
 
