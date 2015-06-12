@@ -14,10 +14,10 @@ TODO: this thing needs a Kalman filter.
 // JointAngles
 // JointVelocities
 
-namespace GPSControl
+namespace gps_control
 {
 
-class EncoderSensor: public Sensor
+class encoder_sensor: public sensor
 {
 private:
     // Previous joint angles.
@@ -26,11 +26,11 @@ private:
     double previous_angles_time_;
 public:
     // Constructor.
-    EncoderSensor(ros::NodeHandle& n);
+    encoder_sensor(ros::NodeHandle& n);
     // Destructor.
-    virtual ~EncoderSensor();
+    virtual ~encoder_sensor();
     // Update the sensor (called every tick).
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(robot_plugin *plugin, double sec_elapsed, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
     // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);

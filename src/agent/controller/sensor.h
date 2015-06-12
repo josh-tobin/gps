@@ -11,37 +11,37 @@ anything that produces state (X) or observation (phi) information.
 // is also used by the state assembler.
 #include "sample_data/state/state.h"
 
-namespace GPSControl
+namespace gps_control
 {
 
 // List of sensor types.
 // Note that each sensor might produce multiple data types!
-enum SensorType
+enum sensor_type
 {
-    EncoderSensorType = 0,
-    FKSensorType,
-    CameraSensorType,
-    TotalSensorTypes
+    encoder_sensor_type = 0,
+    fk_sensor_type,
+    camera_sensor_type,
+    total_sensor_types
 };
 
 // Forward declarations.
-class RobotPlugin;
+class robot_plugin;
 
-class Sensor
+class sensor
 {
 private:
     // Current sensor update delay, in seconds (should match controller frequency).
     double sensor_step_length_;
 public:
     // Constructor.
-    Sensor(ros::NodeHandle& n);
+    sensor(ros::NodeHandle& n);
     // Destructor.
-    virtual ~Sensor();
+    virtual ~sensor();
     // Update the sensor (called every tick).
     // plugin is used to query robot-specific information (such as forward kinematics).
     // sec_elapsed is used to estimate time -- this specifies how much time elapsed since the last update.
     // is_controller_step -- this specifies whether this update coincides with a linear-Gaussian or neural network controller update.
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(declarations *plugin, double sec_elapsed, bool is_controller_step);
     // Set sensor update delay.
     virtual void set_update(double new_sensor_step_length);
     // Configure the sensor (for sensor-specific trial settings).
@@ -66,5 +66,5 @@ How the sensor objects are supposed to work:
 - be sure to add warnings if a subscriber-based sensor has not updated recently
 - this is done by storing time stamps, and checking how old the newest message is
 - note that updates will happen at up to 1000 Hz, so we won't get messages for each update
-- however, we can have the RobotPlugin tell us the frequency of the current controller, and check we have at least that frequency
+- however, we can have the robot_plugin tell us the frequency of the current controller, and check we have at least that frequency
 */

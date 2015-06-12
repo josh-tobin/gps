@@ -15,32 +15,32 @@ with the robot.
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
 
-namespace GPSControl
+namespace gps_control
 {
 
 // Forward declarations.
 // Controllers.
-class PositionController;
-class TrialController;
-// Sensors.
-class Sensor;
+class position_controller;
+class trial_controller;
+// sensors.
+class sensor;
 // Custom ROS messages.
-class TrialResultMsg;
-class PositionCommandMsg;
-class TrialCommandMsg;
-class RelaxCommandMsg;
+class trial_result_msg;
+class position_command_msg;
+class trial_command_msg;
+class relax_command_msg;
 
-class RobotPlugin
+class robot_plugin
 {
 private:
     // Position controller for passive arm.
-    boost::scoped_ptr<PositionController> passive_arm_controller_;
+    boost::scoped_ptr<position_controller> passive_arm_controller_;
     // Position controller for active arm.
-    boost::scoped_ptr<PositionController> active_arm_controller_;
+    boost::scoped_ptr<position_controller> active_arm_controller_;
     // Current trial controller (if any).
-    boost::scoped_ptr<TrialController> trial_controller_;
-    // Sensors.
-    std::vector<Sensor> sensors_;
+    boost::scoped_ptr<trial_controller> trial_controller_;
+    // sensors.
+    std::vector<sensor> sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
@@ -58,14 +58,14 @@ private:
     ros::Subscriber report_subscriber_;
     // Publishers.
     // Publish result of a trial (also indicates completion of position command).
-    ros_publisher_ptr(TrialResultMsg) trial_publisher_;
+    ros_publisher_ptr(trial_result_msg) trial_publisher_;
     // Publish state report.
-    ros_publisher_ptr(TrialResultMsg) report_publisher_;
+    ros_publisher_ptr(trial_result_msg) report_publisher_;
 public:
     // Constructor (this should do nothing).
-    RobotPlugin();
+    robot_plugin();
     // Destructor.
-    virtual ~RobotPlugin();
+    virtual ~robot_plugin();
     // Initialize everything.
     virtual void initialize(ros::NodeHandle& n);
     // Initialize all of the ROS subscribers and publishers.
@@ -82,11 +82,11 @@ public:
     virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
     // Subscriber callbacks.
     // Position command callback.
-    virtual void position_subscriber_callback(const PositionCommandMsg::ConstPtr& msg);
+    virtual void position_subscriber_callback(const position_command_msg::ConstPtr& msg);
     // Trial command callback.
-    virtual void trial_subscriber_callback(const TrialCommandMsg::ConstPtr& msg);
+    virtual void trial_subscriber_callback(const trial_command_msg::ConstPtr& msg);
     // Relax command callback.
-    virtual void trial_subscriber_callback(const RelaxCommandMsg::ConstPtr& msg);
+    virtual void trial_subscriber_callback(const relax_command_msg::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Accessors.

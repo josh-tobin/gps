@@ -14,17 +14,17 @@ from it.
 #define RUN_ON_ROBOT
 #include "sample_data/sample_types.h"
 
-namespace GPSControl
+namespace gps_control
 {
 
-class State
+class sample
 {
 private:
     // Length of sample.
     int T_;
-    // Sensor data for all time steps.
+    // sensor data for all time steps.
     /* TODO: figure out how to deal with formats here */
-    // Sensor metadata.
+    // sensor metadata.
     /* TODO: figure out how to deal with formats here */
     // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
@@ -33,11 +33,11 @@ private:
     std::vector<std::pair<data_type,int> > obs_definition_;
 public:
     // Constructor.
-    State(int T);
+    sample(int T);
     // Construct state from message.
-    State(GPSLearning::StateMsg::ConstPtr &msg);
+    sample(gps_control::state_msg::ConstPtr &msg);
     // Destructor.
-    virtual ~State();
+    virtual ~sample();
     // Add sensor data for given timestep.
     virtual void set_data(int t, data_type sensor /* TODO: figure out how to deal with formats here */);
     // Get sensor data for given timestep.
@@ -72,7 +72,7 @@ Here is how I think the state assembler should work at a high level:
 // To create a new sensor:
 // 1. add it to the enum
 // 2. create corresponding sensor object
-// 3. Add a call to the constructor of this object in the RobotPlugin
+// 3. Add a call to the constructor of this object in the robot_plugin
 // This should be sufficient, because the number of sensors will be obtained
 // automatically from this enum, and the state assembler will automatically
 // assemble the state (X and phi) from what is in these enums.

@@ -9,10 +9,10 @@ Camera sensor: records latest images from camera.
 // This sensor writes to the following data types:
 // RGBImage
 
-namespace GPSControl
+namespace gps_control
 {
 
-class CameraSensor: public Sensor
+class camera_sensor: public sensor
 {
 private:
     // Latest image.
@@ -23,11 +23,11 @@ private:
     /* TODO: add ROS variables, subscriber, etc */
 public:
     // Constructor.
-    CameraSensor(ros::NodeHandle& n);
+    camera_sensor(ros::NodeHandle& n);
     // Destructor.
-    virtual ~CameraSensor();
+    virtual ~camera_sensor();
     // Update the sensor (called every tick).
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(robot_plugin *plugin, double sec_elapsed, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
     // This function is used to set resolution, cropping, topic to listen to...
     virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);

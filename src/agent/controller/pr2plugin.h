@@ -10,21 +10,21 @@ This is the PR2-specific version of the robot plugin.
 #include <pr2_mechanism_model/robot.h>
 
 // Superclass.
-#include "agent/controller/robotplugin.h"
+#include "agent/controller/robot_plugin.h"
 
-namespace GPSControl
+namespace gps_control
 {
 
-class Pr2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
+class pr2_plugin: public robot_plugin, public pr2_controller_interface::Controller
 {
 private:
     // This is a pointer to the robot state, which we get when initialized and have to keep after that.
     pr2_mechanism_model::RobotState* robot_;
 public:
     // Constructor (this should do nothing).
-    Pr2Plugin();
+    pr2_plugin();
     // Destructor.
-    virtual ~Pr2Plugin();
+    virtual ~pr2_plugin();
     // Functions inherited from superclass.
     // This called by the superclass to allow us to initialize all the PR2-specific stuff.
     /* IMPORTANT: note that some sensors require a KDL chain to do FK, which we need the RobotState to get... */

@@ -5,7 +5,6 @@ between the C++ and Python code.
 #pragma once
 
 /* TODO: find a way to have just one enum and automatically create the Python wrapper */
-#include <boost/python.hpp>
 
 // List of data types.
 enum data_type

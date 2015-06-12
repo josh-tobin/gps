@@ -4,19 +4,19 @@ a time.
 */
 #pragma once
 
-namespace GPSControl
+namespace gps_control
 {
 
-class EncoderFilter
+class encoder_filter
 {
 private:
     // This should contain Kalman filter settings (precomputed matrices).
     // This should also contain the Kalman filter state information.
 public:
     // Constructor.
-    EncoderFilter(ros::NodeHandle& n);
+    encoder_filter(ros::NodeHandle& n);
     // Destructor.
-    virtual ~EncoderFilter();
+    virtual ~encoder_filter();
     // Update the Kalman filter.
     virtual void update(double sec_elapsed, std::vector<double> state);
     // Configure the Kalman filter.
