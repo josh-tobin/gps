@@ -48,18 +48,14 @@ public:
     // Set sensor update delay.
     virtual void set_update(double new_sensor_step_length);
     // Configure the sensor (for sensor-specific trial settings).
-    virtual void configure_sensor(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
+    virtual void configure_sensor(const options_map &options);
     // Populate the array of sensor data size and format based on what the sensor wants.
-    virtual void get_data_format(std::vector<int> &data_size, std::vector<sample_data_format> &data_format, std::vector<sample_data_meta> &data_meta) const = 0;
+    virtual void get_data_format(std::vector<int> &data_size, std::vector<sample_data_format> &data_format, std::vector<options_map> &data_meta) const = 0;
     // Populate the array of sensor data with whatever data this sensor measures.
     virtual void get_data(std::vector<void*> &data, const std::vector<int> &data_size, const std::vector<sample_data_format> &data_format) const = 0;
 };
 
 }
-
-/*
-TODO: figure out what type of information sensor needs to advertise about itself to be packed into the state assembler...
-*/
 
 /*
 How the sensor objects are supposed to work:
