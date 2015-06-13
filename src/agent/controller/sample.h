@@ -15,6 +15,9 @@ from it.
 #define RUN_ON_ROBOT
 #include "sample_data/sample_types.h"
 
+// This allows us to use options.
+#include "options.h"
+
 namespace gps_control
 {
 
@@ -26,14 +29,6 @@ enum sample_data_format
     data_format_int,
     data_format_double
 };
-
-/* TODO: create a utility header and include this map as a definition there */
-/* TODO: provide a utility function that makes it easy to convert one of these maps to a ROS message */
-/* TODO: provide a utility function that makes it easy to convert a Python dictionary to one of these */
-
-// Meta data definition: map from properties to values.
-typedef sample_data_variant boost::variant<bool,uint8_t,int,double>;
-typedef sample_data_meta std::map<std::string,sample_data_variant>;
 
 class sample
 {
@@ -48,7 +43,7 @@ private:
     // sensor metadata: format of each field.
     std::vector<sample_data_format> internal_data_format_;
     // sensor metadata: additional information about each field.
-    std::vector<sample_data_meta> meta_data_;
+    std::vector<options_map> meta_data_;
     // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
     std::vector<std::pair<data_type,int> > state_definition_;
@@ -68,9 +63,9 @@ public:
     // Get sensor data for given timestep.
     virtual void get_data(int t, data_type sensor, void *data, int data_size, sample_data_format data_format) const;
     // Set sensor meta-data.
-    virtual void set_meta_data(data_type sensor, int data_size, sample_data_format data_format, sample_data_meta meta_data_);
+    virtual void set_meta_data(data_type sensor, int data_size, sample_data_format data_format, options_map meta_data_);
     // Get sensor meta-data.
-    virtual void get_meta_data(data_type sensor, int &data_size, sample_data_format &data_format, sample_data_meta &meta_data_) = 0;
+    virtual void get_meta_data(data_type sensor, int &data_size, sample_data_format &data_format, options_map &meta_data_) = 0;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.

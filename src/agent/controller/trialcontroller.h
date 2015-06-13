@@ -20,11 +20,13 @@ private:
     int t_;
     // Counter for time step increment.
     int step_counter_;
-    // Current sample.
+    // Current time step.
+    boost::scoped_ptr<sample> current_step_;
+    // Trajectory sample.
     boost::scoped_ptr<sample> sample_;
 public:
     // Constructor.
-    position_controller();
+    position_controller(ros::NodeHandle& n);
     // Destructor.
     virtual ~position_controller();
     // Compute the action at the current time step.
@@ -32,7 +34,7 @@ public:
     // Update the controller (take an action).
     virtual void update(robot_plugin *plugin, double sec_elapsed, std::scopted_ptr<sample> sample);
     // Configure the controller.
-    virtual void configure_controller(/* TODO: figure out the format of the configuration... some map from strings to options?? */);
+    virtual void configure_controller(const options_map &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
