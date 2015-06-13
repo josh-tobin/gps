@@ -11,6 +11,7 @@ with the robot.
 #include <std_msgs/Empty.h>
 #include <kdl/chain.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -22,8 +23,10 @@ namespace gps_control
 // Controllers.
 class position_controller;
 class trial_controller;
-// sensors.
+// Sensors.
 class sensor;
+// Sample.
+class sample;
 // Custom ROS messages.
 class trial_result_msg;
 class position_command_msg;
@@ -57,9 +60,7 @@ private:
     // Subscriber for current state report request.
     ros::Subscriber report_subscriber_;
     // Publishers.
-    // Publish result of a trial (also indicates completion of position command).
-    ros_publisher_ptr(trial_result_msg) trial_publisher_;
-    // Publish state report.
+    // Publish result of a trial, completion of position command, or just a report.
     ros_publisher_ptr(trial_result_msg) report_publisher_;
 public:
     // Constructor (this should do nothing).
@@ -74,8 +75,8 @@ public:
     virtual void initialize_position_controllers(ros::NodeHandle& n);
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
-    // Reply with current sensor readings.
-    virtual void publish_sensor_readings(/* TODO: implement */);
+    // Publish the specified sample in a report.
+    virtual void publish_report(boost::scoped_ptr<sample> sample);
     // Run a trial.
     virtual void run_trial(/* TODO: receive all of the trial parameters here */);
     // Move the arm.
@@ -86,7 +87,7 @@ public:
     // Trial command callback.
     virtual void trial_subscriber_callback(const trial_command_msg::ConstPtr& msg);
     // Relax command callback.
-    virtual void trial_subscriber_callback(const relax_command_msg::ConstPtr& msg);
+    virtual void relax_subscriber_callback(const relax_command_msg::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Accessors.

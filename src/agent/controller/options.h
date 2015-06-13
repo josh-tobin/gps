@@ -33,3 +33,4 @@ typedef options_map std::map<std::string,options_variant>;
 
 /* TODO: provide a utility function that makes it easy to convert one of these maps to a ROS message */
 /* TODO: provide a utility function that makes it easy to convert a Python dictionary to one of these */
+/* TODO: in the future, might want to move it to some other directory where it will be shared with other C++ components */
