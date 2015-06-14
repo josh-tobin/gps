@@ -2,7 +2,7 @@
 import cPickle
 import numpy as np
 
-class SampleData():
+class SampleData(object):
     """Class that handles writes and reads to sample data.
 
     """

@@ -1,7 +1,7 @@
 import numpy as np
 from gps_sample_types import *
 
-class Sample():
+class Sample(object):
     """Class that handles the representation of a trajectory and stores a single trajectory
 
     Note: must be serializable for easy saving - no C++ object references!
