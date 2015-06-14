@@ -27,7 +27,7 @@ class GPSMain():
         Run training by iteratively sampling and taking an iteration step.
         """
         for itr in range(self._iterations):
-            self.agent.sample(self.sample_data)
+            self.agent.sample()
             self.algorithm.iteration()
 
     def resume(self, itr):

@@ -64,3 +64,4 @@ class CostState(Cost):
         lxx += ilxx;
 
         return l, lx, lu, lxx, luu, lux
+

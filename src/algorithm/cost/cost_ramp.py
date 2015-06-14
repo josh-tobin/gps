@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 class CostRamp(Cost):
     """
     A wrapper cost function that applies a ramping multiplier over time
@@ -15,4 +13,5 @@ class CostRamp(Cost):
 
     def update(self):
         """ Update cost values and derivatives. """
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError();
+

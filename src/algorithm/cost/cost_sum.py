@@ -14,4 +14,5 @@ class CostSum(Cost):
 
     def update(self):
         """ Update cost values and derivatives. """
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError();
+
