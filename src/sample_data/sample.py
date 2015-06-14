@@ -1,8 +1,7 @@
-#!/usr/bin/env python
 import numpy as np
 from gps_sample_types import *
 
-class Sample():
+class Sample(object):
     """Class that handles the representation of a trajectory and stores a single trajectory
 
     Note: must be serializable for easy saving - no C++ object references!
@@ -21,9 +20,12 @@ class Sample():
         # To be populated in by the C++ object, maps sensor name to index
         self._sensor_idx = {} # Actually now just DataType object
 
-        self._X = np.nan([self.T,self.dX]);
-        self._U = np.nan([self.T,self.dU]);
-        self._phi = np.nan([self.T,dPhi]);
+        self._X = np.empty([self.T, self.dX])
+        self._X.fill(np.nan)
+        self._U = np.empty([self.T, self.dU])
+        self._U.fill(np.nan)
+        self._phi = np.empty([self.T, self.dPhi])
+        self._phi.fill(np.nan)
 
     def set(self, sensor_name, sensor_data):
         """Set trajectory data for a particular sensor"""
@@ -41,7 +43,7 @@ class Sample():
 
     def get_U(self):
         """Get the action. Put it together if not already precomputed."""
-        if np.any(np.isnan(self._X)):
+        if np.any(np.isnan(self._U)):
             raise NotImplementedError("TODO - Compute _U by calling C++ code");
         return self._U
 

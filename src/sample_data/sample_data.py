@@ -2,14 +2,15 @@
 import cPickle
 import numpy as np
 
-class SampleData():
+class SampleData(object):
     """Class that handles writes and reads to sample data.
 
     """
-    def __init__(self, hyperparams, common_hyperparams, state_assembler):
+    def __init__(self, hyperparams, common_hyperparams, state_assembler, sample_writer=None):
         self._hyperparams = hyperparams
-        self._experiment_dir = common_hyperparams['experiment_dir']
-        self._data_file = self._experiment_dir + hyperparams['filename']
+        #self._experiment_dir = common_hyperparams['experiment_dir']
+        #self._data_file = self._experiment_dir + hyperparams['filename']
+        self.sample_writer = sample_writer
 
         # List of trajectory samples (roll-outs)
         self._samples = []
@@ -35,5 +36,14 @@ class SampleData():
 
         self._samples.extend(samples)
 
+        if self.sample_writer:
+            self.sample_writer.write(self._samples)
+
+class PickleSampleWriter(object):
+    """ Pickles samples into data_file """
+    def __init__(self, data_file):
+        self._data_file = data_file
+
+    def write(self, samples):
         with open(self._data_file, 'wb') as data_file:
             cPickle.dump(data_file, self._samples)
