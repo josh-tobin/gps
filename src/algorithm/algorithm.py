@@ -23,4 +23,4 @@ class Algorithm(object):
     @abc.abstractmethod
     def update_vars(self):
         """ Update variables the algorithm. """
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError("Must be implemented in subclass")
