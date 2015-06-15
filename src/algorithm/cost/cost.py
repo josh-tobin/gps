@@ -8,7 +8,7 @@ class Cost(object):
 
     def __init__(self, hyperparams, sample_data):
         self._hyperparams = hyperparams
-        self.sample_data = sample_data
+        self._sample_data = sample_data
 
     @abc.abstractmethod
     def update(self):

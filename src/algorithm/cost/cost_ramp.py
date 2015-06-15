@@ -16,7 +16,7 @@ class CostRamp(Cost):
         ramp_option: CONSTANT, LINEAR, QUADRATIC, or FINAL_ONLY. Default CONSTANT
     """
     def __init__(self, cost, ramp_option=CONSTANT):
-        super(CostRamp, self).__init__(cost._hyperparams, cost.sample_data)
+        Cost.__init__(self, cost._hyperparams, cost.sample_data)
         self.cost = cost
         self.ramp_option = ramp_option
 

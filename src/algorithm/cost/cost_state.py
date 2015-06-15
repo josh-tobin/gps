@@ -17,10 +17,10 @@ class CostState(Cost):
             set its weight to 0.
     """
     def __init__(self, hyperparams, sample_data, desired_state, wp):
-        super(CostState, self).__init__(hyperparams, sample_data)
+        Cost.__init__(self, hyperparams, sample_data)
         self.desired_state = desired_state
         self.wp = wp
-        
+
         #TODO: Hold off on storing defaults
         self.l1 = 0.0
         self.l2 = 1.0

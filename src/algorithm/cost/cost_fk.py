@@ -15,7 +15,7 @@ class CostFK(Cost):
     """
 
     def __init__(self, hyperparams, sample_data, wp):
-        super(CostFK, self).__init__(hyperparams, sample_data)
+        Cost.__init__(self, hyperparams, sample_data)
 
         # TODO: Discuss how to init parameters
         self.wp = wp
