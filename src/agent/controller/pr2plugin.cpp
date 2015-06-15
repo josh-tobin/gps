@@ -122,6 +122,12 @@ void PR2Plugin::update()
     update_controllers(last_update_time_,is_controller_step);
 }
 
+// Get current time.
+ros::Time PR2Plugin::get_current_time() const
+{
+    return last_update_time_;
+}
+
 // Get current encoder readings (robot-dependent).
 void PR2Plugin::get_joint_encoder_readings(std::vector<double> &angles) const
 {

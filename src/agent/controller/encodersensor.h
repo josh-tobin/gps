@@ -22,15 +22,19 @@ class EncoderSensor: public Sensor
 private:
     // Previous joint angles.
     std::vector<double> previous_angles_;
+    // Previous joint velocities.
+    std::vector<double> previous_velocities_;
+    // Temporary storage for joint angles.
+    std::vector<double> temp_joint_angles_;
     // Time from last update when the previous angles were recorded (necessary to compute velocities).
-    double previous_angles_time_;
+    ros::Time previous_angles_time_;
 public:
     // Constructor.
     EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin);
     // Destructor.
-    virtual ~EncoderSensor();
+    virtual void ~EncoderSensor();
     // Update the sensor (called every tick).
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
     // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(const OptionsMap &options);

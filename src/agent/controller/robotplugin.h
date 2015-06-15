@@ -98,6 +98,8 @@ public:
     // Update the controllers at each time step.
     virtual void update_controllers(ros::Time current_time, bool is_controller_step);
     // Accessors.
+    // Get current time.
+    virtual ros::Time get_current_time() const = 0;
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(std::vector<double> &angles) const = 0;
     // Get forward kinematics solver.

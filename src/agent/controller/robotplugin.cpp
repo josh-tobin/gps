@@ -105,5 +105,11 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     else active_arm_controller_->update(this,last_update_time_,is_controller_step);
 
     // Check if the trial controller finished and delete it.
-    if (trial_controller_->is_finished()) trial_controller_.reset(NULL);
+    if (trial_controller_->is_finished())
+    {
+        // Clear the trial controller.
+        trial_controller_.reset(NULL);
+        // TODO: VERY IMPORTANT -- need to set the sensor frequencies down to the PD control frequency, otherwise PD controller will be very wonky!
+        ROS_ERROR("Not implemented (see TODO above)!");
+    }
 }
