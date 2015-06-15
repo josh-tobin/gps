@@ -1,5 +1,8 @@
 import datetime
 
+from algorithm.cost import CostFK
+from algorithm.dynamics import
+
 COMMON = 'common'
 SAMPLE = 'sample'
 AGENT = 'agent'
@@ -24,7 +27,9 @@ sample_data = {
     'T': 100,
 }
 
-cost = {}
+cost = {
+    'type': CostFK
+}
 
 dynamics = {}
 
