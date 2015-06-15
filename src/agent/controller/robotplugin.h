@@ -42,7 +42,9 @@ private:
     boost::scoped_ptr<position_controller> active_arm_controller_;
     // Current trial controller (if any).
     boost::scoped_ptr<trial_controller> trial_controller_;
-    // sensors.
+    // Sensor data for the current time step.
+    boost::scoped_ptr<sample> current_time_step_sample_;
+    // Sensors.
     std::vector<sensor> sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
@@ -90,6 +92,11 @@ public:
     virtual void relax_subscriber_callback(const relax_command_msg::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+    // Update functions.
+    // Update the sensors at each time step.
+    virtual void update_sensors(ros::Time current_time, bool is_controller_step);
+    // Update the controllers at each time step.
+    virtual void update_controllers(ros::Time current_time, bool is_controller_step);
     // Accessors.
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(std::vector<double> &angles) const = 0;

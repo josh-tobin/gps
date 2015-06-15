@@ -62,10 +62,10 @@ public:
     virtual void set_data(int t, data_type sensor, const void *data, int data_size, sample_data_format data_format);
     // Get sensor data for given timestep.
     virtual void get_data(int t, data_type sensor, void *data, int data_size, sample_data_format data_format) const;
-    // Set sensor meta-data.
+    // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
     virtual void set_meta_data(data_type sensor, int data_size, sample_data_format data_format, options_map meta_data_);
     // Get sensor meta-data.
-    virtual void get_meta_data(data_type sensor, int &data_size, sample_data_format &data_format, options_map &meta_data_) = 0;
+    virtual void get_meta_data(data_type sensor, int &data_size, sample_data_format &data_format, options_map &meta_data_) const;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.

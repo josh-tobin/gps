@@ -12,6 +12,7 @@ The options object is used to list a map from strings to parameters.
 namespace gps_control
 {
 
+/* TODO: can we do this with protobuffers instead? */
 // Types of data supported for internal data storage.
 enum options_data_format
 {

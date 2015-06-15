@@ -22,9 +22,6 @@ bool pr2_plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n
     // Variables.
     std::string root_name, active_tip_name, passive_tip_name;
 
-    // Initialize ROS subscribers/publishers, sensors, and position controllers.
-    initialize(n);
-
     // Store the robot state.
     robot_ = robot;
 
@@ -70,6 +67,11 @@ bool pr2_plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n
     passive_arm_jac_solver_.reset(new KDL::ChainJntToJacSolver(passive_arm_fk_chain_));
     active_arm_jac_solver_.reset(new KDL::ChainJntToJacSolver(active_arm_fk_chain_));
 
+    // Initialize ROS subscribers/publishers, sensors, and position controllers.
+    // Note that this must be done after the FK solvers are created, because the sensors
+    // will ask to use these FK solvers!
+    initialize(n);
+
     // Tell the PR2 controller manager that we initialized everything successfully.
     return true;
 }
@@ -113,22 +115,11 @@ void pr2_plugin::update()
     if (controller_counter_ >= controller_step_length_) controller_counter = 0;
     bool is_controller_step = (controller_counter == 0);
 
-    // Update all of the sensors.
-    for (sensor_type sensor = 0; sensor < sensor_type.total_sensor_types; sensor++)
-    {
-        sensors_[sensor].reset(this,last_update_time_,is_controller_step);
-    }
+    // Update the sensors and fill in the current step sample.
+    update_sensors(last_update_time_,is_controller_step);
 
-    // Fill in the sensor data for this step.
-    ROS_ERROR("Not implemented!");
-
-    // Update the controller.
-    // If we have a trial controller, update that, otherwise update position controller.
-    if (trial_controller_ != NULL) trial_controller_->update(this,last_update_time_,is_controller_step);
-    else active_arm_controller_->update(this,last_update_time_,is_controller_step);
-
-    // Check if the trial controller finished and delete it.
-    if (trial_controller_->is_finished()) trial_controller_.reset(NULL);
+    // Update the controllers.
+    update_controllers(last_update_time_,is_controller_step);
 }
 
 // Get current encoder readings (robot-dependent).

@@ -31,10 +31,10 @@ public:
     // Configure the sensor (for sensor-specific trial settings).
     // This function is used to set resolution, cropping, topic to listen to...
     virtual void configure_sensor(const options_map &options);
-    // Populate the array of sensor data size and format based on what the sensor wants.
-    virtual void get_data_format(std::vector<int> &data_size, std::vector<sample_data_format> &data_format, std::vector<options_map> &data_meta) const;
-    // Populate the array of sensor data with whatever data this sensor measures.
-    virtual void get_data(std::vector<void*> &data, const std::vector<int> &data_size, const std::vector<sample_data_format> &data_format) const;
+    // Set data format and meta data on the provided sample.
+    virtual boost::scoped_ptr<sample> set_sample_data_format(boost::scoped_ptr<sample> sample) const;
+    // Set data on the provided sample.
+    virtual boost::scoped_ptr<sample> set_sample_data(boost::scoped_ptr<sample> sample) const;
 };
 
 }

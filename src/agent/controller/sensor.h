@@ -28,12 +28,13 @@ enum sensor_type
 };
 
 // Forward declarations.
+class sample;
 class robot_plugin;
 
 class sensor
 {
 private:
-    // Current sensor update delay, in seconds (should match controller frequency).
+    // Current sensor update delay, in seconds (should match controller step length).
     double sensor_step_length_;
 public:
     // Factory function.
@@ -53,10 +54,10 @@ public:
     virtual void set_update(double new_sensor_step_length);
     // Configure the sensor (for sensor-specific trial settings).
     virtual void configure_sensor(const options_map &options);
-    // Populate the array of sensor data size and format based on what the sensor wants.
-    virtual void get_data_format(std::vector<int> &data_size, std::vector<sample_data_format> &data_format, std::vector<options_map> &data_meta) const = 0;
-    // Populate the array of sensor data with whatever data this sensor measures.
-    virtual void get_data(std::vector<void*> &data, const std::vector<int> &data_size, const std::vector<sample_data_format> &data_format) const = 0;
+    // Set data format and meta data on the provided sample.
+    virtual boost::scoped_ptr<sample> set_sample_data_format(boost::scoped_ptr<sample> sample) const = 0;
+    // Set data on the provided sample.
+    virtual boost::scoped_ptr<sample> set_sample_data(boost::scoped_ptr<sample> sample) const = 0;
 };
 
 }
