@@ -1,15 +1,20 @@
-#!/usr/bin/env python
+import abc
 
-class Agent():
+class Agent(object):
     """Agent superclass
 
     """
-    def __init__(self, hyperparams, sample_data):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, hyperparams, common_hyperparams, sample_data, state_assembler):
         self._hyperparams = hyperparams
         self.sample_data = sample_data
+        self.state_assembler = state_assembler
 
-    def sample(self):
+    @abc.abstractmethod
+    def sample(self, N):
         raise NotImplementedError("Must be implemented in subclass");
 
+    @abc.abstractmethod
     def test(self):
         raise NotImplementedError("Must be implemented in subclass");
