@@ -16,12 +16,13 @@ class CostState(Cost):
         wp: 1 x dX weight vector along each dimension. To ignore a dimension,
             set its weight to 0.
     """
+
     def __init__(self, hyperparams, sample_data, desired_state, wp):
         super(CostState, self).__init__(hyperparams, sample_data)
         self.desired_state = desired_state
         self.wp = wp
-        
-        #TODO: Hold off on storing defaults
+
+        # TODO: Hold off on storing defaults
         self.l1 = 0.0
         self.l2 = 1.0
         self.wu = 1e-4
@@ -30,7 +31,7 @@ class CostState(Cost):
     def update(self):
         """ Update cost values and derivatives. """
         # Compute and add state penalty.
-        #TODO: Need a way to select samples to evaluated
+        # TODO: Need a way to select samples to evaluated
         sample_X = self.sample_data.get_X([-1])[0]  # Gets the latest sample from sample_data
         sample_U = self.sample_data.get_U([-1])[0]
 
@@ -42,10 +43,10 @@ class CostState(Cost):
         _, Du = sample_u.shape
 
         # Compute torque penalty and initialize terms.
-        l = 0.5*self.wu*np.sum(sample_u**2, axis=1, keepdims=True)
-        lu = self.wu*sample_u
+        l = 0.5 * self.wu * np.sum(sample_u ** 2, axis=1, keepdims=True)
+        lu = self.wu * sample_u
         lx = np.zeros((T, Dx))
-        luu = self.wu*np.tile(np.eye(Du), [T, 1, 1])
+        luu = self.wu * np.tile(np.eye(Du), [T, 1, 1])
         lxx = np.zeros((T, Dx, Dx))
         lux = np.zeros((T, Du, Dx))
 
@@ -57,7 +58,7 @@ class CostState(Cost):
             np.tile(self.wp, [T, 1]),
             dist,
             np.tile(np.eye(Dx), [T, 1, 1]),
-            np.zeros((T,Dx,Dx,Dx)),
+            np.zeros((T, Dx, Dx, Dx)),
             self.l1,
             self.l2,
             self.alpha)

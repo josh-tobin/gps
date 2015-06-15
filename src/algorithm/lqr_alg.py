@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+from algorithm.algorithm import Algorithm
+from algorithm.traj_opt.traj_opt_lqr import TrajOptLQR
+
 
 class LQRAlgorithm(Algorithm):
     """Sample-based trajectory optimization with LQR
@@ -18,4 +20,4 @@ class LQRAlgorithm(Algorithm):
             self.traj_opt.update()
 
     def update_vars(self):
-        raise NotImplementedError("TODO");
+        raise NotImplementedError("TODO")

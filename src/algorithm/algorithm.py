@@ -1,5 +1,6 @@
 import abc
 
+
 class Algorithm(object):
     """Algorithm superclass
 
@@ -17,11 +18,11 @@ class Algorithm(object):
     @abc.abstractmethod
     def iteration(self):
         """ Run iteration of the algorithm. """
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod
     def update_vars(self):
         """ Update variables the algorithm. """
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError("Must be implemented in subclass")
 
 

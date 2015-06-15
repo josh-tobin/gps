@@ -1,5 +1,6 @@
 import abc
 
+
 class Cost(object):
     """Cost superclass
 

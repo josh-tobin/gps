@@ -1,5 +1,6 @@
 import abc
 
+
 class Agent(object):
     """Agent superclass
 
@@ -13,8 +14,8 @@ class Agent(object):
 
     @abc.abstractmethod
     def sample(self, N):
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod
     def test(self):
-        raise NotImplementedError("Must be implemented in subclass");
+        raise NotImplementedError("Must be implemented in subclass")

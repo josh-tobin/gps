@@ -15,6 +15,7 @@ class CostRamp(Cost):
         cost: Cost function to ramp
         ramp_option: CONSTANT, LINEAR, QUADRATIC, or FINAL_ONLY. Default CONSTANT
     """
+
     def __init__(self, cost, ramp_option=CONSTANT):
         super(CostRamp, self).__init__(cost._hyperparams, cost.sample_data)
         self.cost = cost
@@ -36,9 +37,9 @@ class CostRamp(Cost):
         if self.ramp_option == CONSTANT:
             wpm = np.ones((T, 1))
         elif self.ramp_option == LINEAR:
-            wpm = np.arange(T, dtype=np.float32)/T
+            wpm = np.arange(T, dtype=np.float32) / T
         elif self.ramp_option == QUADRATIC:
-            wpm = (np.arange(T, dtype=np.float32)/T)**2
+            wpm = (np.arange(T, dtype=np.float32) / T) ** 2
         elif self.ramp_option == FINAL_ONLY:
             wpm = np.zeros((T, 1))
         else:

@@ -3,6 +3,7 @@ import numpy as np
 from agent import Agent
 from sample_data.sample import Sample
 
+
 class DummyAgent(Agent):
     """
     A dummy agent that generates fake, unrealistic samples.
@@ -31,4 +32,4 @@ class DummyAgent(Agent):
         return sample
 
     def test(self):
-        raise NotImplementedError();
+        raise NotImplementedError()

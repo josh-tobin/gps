@@ -81,7 +81,7 @@ class CostFK(Cost):
                          (Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4], Jxx.shape[3]))
         dist = pt - tgt
 
-        #TODO: Remove transposes
+        # TODO: Remove transposes
         dist = dist.T
         Jx = np.transpose(Jx, [2, 0, 1])
         Jxx = np.transpose(Jxx, [3, 0, 1, 2])
