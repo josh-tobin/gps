@@ -18,8 +18,16 @@ namespace gps_control
 class pr2_plugin: public robot_plugin, public pr2_controller_interface::Controller
 {
 private:
+    // PR2-specific chain object necessary to construct the KDL chain.
+    pr2_mechanism_model::Chain passive_arm_chain_, active_arm_chain_;
     // This is a pointer to the robot state, which we get when initialized and have to keep after that.
     pr2_mechanism_model::RobotState* robot_;
+    // Time of last state update.
+    ros::Time last_update_time_;
+    // Counter for keeping track of controller steps.
+    int controller_counter_;
+    // Length of controller steps in ms.
+    int controller_step_length_;
 public:
     // Constructor (this should do nothing).
     pr2_plugin();
