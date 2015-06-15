@@ -19,7 +19,7 @@ class DummyAgent(Agent):
         Args:
             N: Number of samples to take
         """
-        samples = [self.__generate_random_sample() for i in range(N)]
+        samples = [self.__generate_random_sample() for _ in range(N)]
         self.sample_data.add_samples(samples)
 
     def __generate_random_sample(self):
@@ -27,7 +27,7 @@ class DummyAgent(Agent):
         sample = Sample(self._hyperparams)
         sample._X = self.filler(sample.T, sample.dX)
         sample._U = self.filler(sample.T, sample.dU)
-        sample._phi = self.filler(sample.T, sample.dPhi)
+        sample._obs = self.filler(sample.T, sample.dObs)
         return sample
 
     def test(self):

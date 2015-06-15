@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def approx_equal(a, b, threshold=1e-5):
     """
     Return whether two numbers are equal within an absolute threshold
@@ -13,6 +14,14 @@ def approx_equal(a, b, threshold=1e-5):
         True if a and b are equal within threshold. 
     """
     return np.abs(a-b) < threshold
+
+
+def finite_differences_test(cost, x, u, obs, sample_meta, epsilon=1e-5, threshold=1e-5):
+    """
+    Placeholder for a finite-differences cost function checker
+    """
+    raise NotImplementedError()
+
 
 def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     """
@@ -53,11 +62,11 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     #TODO: Don't transpose everything in the beginning to match the matlab code
     d = d.T
     wp = wp.T
-    Jd = np.transpose(Jd,(1,2,0))
-    Jdd = np.transpose(Jdd,(1,2,3,0))
+    Jd = np.transpose(Jd, (1, 2, 0))
+    Jdd = np.transpose(Jdd, (1, 2, 3, 0))
 
     # Get trajectory length.
-    _, T = d.shape;
+    _, T = d.shape
 
     # Compute scaled quantities.
     sqrtwp = np.sqrt(wp)
@@ -84,9 +93,9 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     d1_expand = np.expand_dims(np.expand_dims(d1.T, axis=0), axis=0)
     sec = np.sum(d1_expand*np.transpose(Jdd,[0,1,3,2]),axis=3)
 
-    Jd_expand_1 = np.expand_dims(np.expand_dims(np.transpose(Jd,[0,2,1]), axis=1),axis=4) #permute(Jd,[1 4 3 2])
-    Jd_expand_2 = np.expand_dims(np.expand_dims(np.transpose(Jd,[0,2,1]), axis=2), axis=0) #permute(Jd,[4 1 3 5 2]))
-    d2_expand = np.expand_dims(np.expand_dims(np.transpose(d2,[2,0,1]),axis=0),axis=0) #permute(d2,[4 5 3 1 2])
+    Jd_expand_1 = np.expand_dims(np.expand_dims(np.transpose(Jd, [0, 2, 1]), axis=1), axis=4)
+    Jd_expand_2 = np.expand_dims(np.expand_dims(np.transpose(Jd, [0, 2, 1]), axis=2), axis=0)
+    d2_expand = np.expand_dims(np.expand_dims(np.transpose(d2, [2, 0, 1]), axis=0), axis=0)
     lxx = np.sum(np.sum((Jd_expand_1*Jd_expand_2)*d2_expand,axis=3, keepdims=True),axis=4, keepdims=True)
     assert lxx.shape[3:5] == (1,1)
     lxx = lxx[:,:,:,0,0]
@@ -94,4 +103,3 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     lxx += 0.5*sec + 0.5*np.transpose(sec,[1,0,2])
 
     return l.T, lx.T, np.transpose(lxx, [2,0,1])
-
