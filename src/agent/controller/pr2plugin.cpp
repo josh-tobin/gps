@@ -5,7 +5,9 @@ using namespace gps_control;
 // Plugin constructor.
 pr2_plugin::pr2_plugin()
 {
-    // Nothing to do here, since all variables are initialized in initialize(...)
+    // Some basic variable initialization.
+    controller_counter_ = 0;
+    controller_step_length_ = 50;
 }
 
 // Destructor.
@@ -72,5 +74,68 @@ bool pr2_plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n
     return true;
 }
 
-// 
+// This is called by the controller manager before starting the controller.
+void pr2_plugin::starting()
+{
+    // Get current time.
+    last_update_time_ = robot_->getTime();
+    controller_counter_ = 0;
 
+    // Reset all the sensors. This is important for sensors that try to keep
+    // track of the previous state somehow.
+    for (sensor_type sensor = 0; sensor < sensor_type.total_sensor_types; sensor++)
+    {
+        sensors_[sensor].reset(this,last_update_time_);
+    }
+
+    // Reset position controllers.
+    passive_arm_controller_->reset(last_update_time_);
+    active_arm_controller_->reset(last_update_time_);
+
+    // Reset trial controller, if any.
+    if (trial_controller_ != NULL) trial_controller_->reset(this,last_update_time_);
+}
+
+// This is called by the controller manager before stopping the controller.
+void pr2_plugin::stopping()
+{
+    // Nothing to do here.
+}
+
+// This is the main update function called by the realtime thread when the controller is running.
+void pr2_plugin::update()
+{
+    // Get current time.
+    last_update_time_ = robot_->getTime();
+
+    // Check if this is a controller step based on the current controller frequency.
+    controller_counter_++;
+    if (controller_counter_ >= controller_step_length_) controller_counter = 0;
+    bool is_controller_step = (controller_counter == 0);
+
+    // Update all of the sensors.
+    for (sensor_type sensor = 0; sensor < sensor_type.total_sensor_types; sensor++)
+    {
+        sensors_[sensor].reset(this,last_update_time_,is_controller_step);
+    }
+
+    // Fill in the sensor data for this step.
+    ROS_ERROR("Not implemented!");
+
+    // Update the controller.
+    // If we have a trial controller, update that, otherwise update position controller.
+    if (trial_controller_ != NULL) trial_controller_->update(this,last_update_time_,is_controller_step);
+    else active_arm_controller_->update(this,last_update_time_,is_controller_step);
+
+    // Check if the trial controller finished and delete it.
+    if (trial_controller_->is_finished()) trial_controller_.reset(NULL);
+}
+
+// Get current encoder readings (robot-dependent).
+void pr2_plugin::get_joint_encoder_readings(std::vector<double> &angles) const
+{
+    // TODO: check that the angles vector is the same length as the vector in the robot object.
+
+
+    // TODO: copy over the joint angles.
+}

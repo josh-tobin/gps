@@ -36,15 +36,19 @@ private:
     // Current sensor update delay, in seconds (should match controller frequency).
     double sensor_step_length_;
 public:
+    // Factory function.
+    static sensor create_sensor(sensor_type type, ros::NodeHandle& n, robot_plugin *plugin);
     // Constructor.
     sensor(ros::NodeHandle& n, robot_plugin *plugin);
     // Destructor.
-    virtual ~sensor();
+    virtual void ~sensor();
+    // Reset the sensor, clearing any previous state and setting it to the current state.
+    virtual void reset(robot_plugin *plugin, ros::Time current_time);
     // Update the sensor (called every tick).
     // plugin is used to query robot-specific information (such as forward kinematics).
     // sec_elapsed is used to estimate time -- this specifies how much time elapsed since the last update.
     // is_controller_step -- this specifies whether this update coincides with a linear-Gaussian or neural network controller update.
-    virtual void update(declarations *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(robot_plugin *plugin, ros::Time current_time, bool is_controller_step);
     // Set sensor update delay.
     virtual void set_update(double new_sensor_step_length);
     // Configure the sensor (for sensor-specific trial settings).
