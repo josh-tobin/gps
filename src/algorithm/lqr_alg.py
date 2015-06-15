@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
+from algorithm import Algorithm
+
 class LQRAlgorithm(Algorithm):
     """Sample-based trajectory optimization with LQR
 
     """
     def __init__(self, hyperparams, sample_data):
         # TODO - need to add a helper to initialize traj distributions.
-        super(LQRAlgorithm,self).__init__(hyperparams,sample_data)
+        Algorithm.__init__(self, hyperparams, sample_data)
         self.traj_opt = TrajOptLQR(hyperparams['traj_opt'])
 
     def iteration(self):

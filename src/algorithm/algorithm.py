@@ -1,5 +1,6 @@
 import abc
 
+
 class Algorithm(object):
     """Algorithm superclass
 
@@ -8,9 +9,9 @@ class Algorithm(object):
 
     def __init__(self, hyperparams, sample_data):
         self._hyperparams = hyperparams
-        self.sample_data = sample_data
-        self.cost = Cost(hyperparams['cost'], sample_data)
-        self.dynamics = Dynamics(hyperparams['dynamics'], sample_data)
+        self._sample_data = sample_data
+        self.cost = hyperparams['cost']['type'](hyperparams['cost'], sample_data)
+        self.dynamics = hyperparams['dynamics']['type'](hyperparams['dynamics'], sample_data)
         self.policy_opt = None
         self.traj_opt = None
 
@@ -23,5 +24,3 @@ class Algorithm(object):
     def update_vars(self):
         """ Update variables the algorithm. """
         raise NotImplementedError("Must be implemented in subclass");
-
-
