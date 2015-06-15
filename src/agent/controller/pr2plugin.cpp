@@ -3,7 +3,7 @@
 using namespace gps_control;
 
 // Plugin constructor.
-pr2_plugin::pr2_plugin()
+PR2Plugin::PR2Plugin()
 {
     // Some basic variable initialization.
     controller_counter_ = 0;
@@ -11,13 +11,13 @@ pr2_plugin::pr2_plugin()
 }
 
 // Destructor.
-void pr2_plugin::~pr2_plugin()
+void PR2Plugin::~PR2Plugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
 
 // Initialize the object and store the robot state.
-bool pr2_plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
+bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 {
     // Variables.
     std::string root_name, active_tip_name, passive_tip_name;
@@ -77,7 +77,7 @@ bool pr2_plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n
 }
 
 // This is called by the controller manager before starting the controller.
-void pr2_plugin::starting()
+void PR2Plugin::starting()
 {
     // Get current time.
     last_update_time_ = robot_->getTime();
@@ -85,7 +85,7 @@ void pr2_plugin::starting()
 
     // Reset all the sensors. This is important for sensors that try to keep
     // track of the previous state somehow.
-    for (sensor_type sensor = 0; sensor < sensor_type.total_sensor_types; sensor++)
+    for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
     {
         sensors_[sensor].reset(this,last_update_time_);
     }
@@ -99,13 +99,13 @@ void pr2_plugin::starting()
 }
 
 // This is called by the controller manager before stopping the controller.
-void pr2_plugin::stopping()
+void PR2Plugin::stopping()
 {
     // Nothing to do here.
 }
 
 // This is the main update function called by the realtime thread when the controller is running.
-void pr2_plugin::update()
+void PR2Plugin::update()
 {
     // Get current time.
     last_update_time_ = robot_->getTime();
@@ -123,10 +123,12 @@ void pr2_plugin::update()
 }
 
 // Get current encoder readings (robot-dependent).
-void pr2_plugin::get_joint_encoder_readings(std::vector<double> &angles) const
+void PR2Plugin::get_joint_encoder_readings(std::vector<double> &angles) const
 {
     // TODO: check that the angles vector is the same length as the vector in the robot object.
 
 
     // TODO: copy over the joint angles.
+
+    ROS_ERROR("Not implemented!");
 }

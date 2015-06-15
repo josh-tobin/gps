@@ -14,21 +14,21 @@ namespace gps_control
 
 /* TODO: can we do this with protobuffers instead? */
 // Types of data supported for internal data storage.
-enum options_data_format
+enum OptionsDataFormat
 {
-    data_format_bool,
-    data_format_uint8,
-    data_format_int,
-    data_format_double,
-    data_format_matrix,
-    data_format_string
+    DataFormatBool,
+    DataFormatUInt8,
+    DataFormatInt,
+    DataFormatDouble,
+    DataFormatMatrix,
+    DataFormatString
 };
 
 // This is a parameter entry. Note that the arguments should match the enum.
-typedef options_variant boost::variant<bool,uint8_t,int,double,MatrixXd,std::string>;
+typedef OptionsVariant boost::variant<bool,uint8_t,int,double,MatrixXd,std::string>;
 
 // This is the options map.
-typedef options_map std::map<std::string,options_variant>;
+typedef OptionsMap std::map<std::string,OptionsVariant>;
 
 }
 

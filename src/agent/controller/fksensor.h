@@ -10,7 +10,7 @@ Forward kinematics sensor: returns end-effector point positions and, optionally,
 #include "agent/controller/sensor.h"
 
 /*
-TODO: this thing needs access to the filtered joint angles from encoder_sensor...
+TODO: this thing needs access to the filtered joint angles from EncoderSensor...
 or does it? should we instead have a Kalman filter on the points themselves?
 probably best to see how ddp_controller.cpp does it, and mimic the same behavior for now
 */
@@ -25,7 +25,7 @@ probably best to see how ddp_controller.cpp does it, and mimic the same behavior
 namespace gps_control
 {
 
-class fk_sensor: public sensor
+class FKSensor: public Sensor
 {
 private:
     // End-effector points in the space of the end-effector.
@@ -38,20 +38,20 @@ private:
     double previous_pose_time_;
 public:
     // Constructor.
-    fk_sensor(ros::NodeHandle& n, robot_plugin *plugin);
+    FKSensor(ros::NodeHandle& n, RobotPlugin *plugin);
     // Destructor.
-    virtual void ~fk_sensor();
+    virtual void ~FKSensor();
     // Reset the sensor, clearing any previous state and setting it to the current state.
-    virtual void reset(robot_plugin *plugin, ros::Time current_time);
+    virtual void reset(RobotPlugin *plugin, ros::Time current_time);
     // Update the sensor (called every tick).
-    virtual void update(robot_plugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
     // This function is used to pass the end-effector points.
-    virtual void configure_sensor(const options_map &options);
+    virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual boost::scoped_ptr<sample> set_sample_data_format(boost::scoped_ptr<sample> sample) const;
+    virtual boost::scoped_ptr<Sample> set_sample_data_format(boost::scoped_ptr<Sample> sample) const;
     // Set data on the provided sample.
-    virtual boost::scoped_ptr<sample> set_sample_data(boost::scoped_ptr<sample> sample) const;
+    virtual boost::scoped_ptr<Sample> set_sample_data(boost::scoped_ptr<Sample> sample) const;
 };
 
 }

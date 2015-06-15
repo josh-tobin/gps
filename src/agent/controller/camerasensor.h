@@ -12,7 +12,7 @@ Camera sensor: records latest images from camera.
 namespace gps_control
 {
 
-class camera_sensor: public sensor
+class CameraSensor: public Sensor
 {
 private:
     // Latest image.
@@ -23,18 +23,18 @@ private:
     /* TODO: add ROS variables, subscriber, etc */
 public:
     // Constructor.
-    camera_sensor(ros::NodeHandle& n, robot_plugin *plugin);
+    CameraSensor(ros::NodeHandle& n, RobotPlugin *plugin);
     // Destructor.
-    virtual ~camera_sensor();
+    virtual ~CameraSensor();
     // Update the sensor (called every tick).
-    virtual void update(robot_plugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
     // This function is used to set resolution, cropping, topic to listen to...
-    virtual void configure_sensor(const options_map &options);
+    virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual boost::scoped_ptr<sample> set_sample_data_format(boost::scoped_ptr<sample> sample) const;
+    virtual boost::scoped_ptr<Sample> set_sample_data_format(boost::scoped_ptr<Sample> sample) const;
     // Set data on the provided sample.
-    virtual boost::scoped_ptr<sample> set_sample_data(boost::scoped_ptr<sample> sample) const;
+    virtual boost::scoped_ptr<Sample> set_sample_data(boost::scoped_ptr<Sample> sample) const;
 };
 
 }

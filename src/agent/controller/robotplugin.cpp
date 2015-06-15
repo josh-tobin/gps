@@ -6,19 +6,19 @@
 using namespace gps_control;
 
 // Plugin constructor.
-robot_plugin::robot_plugin()
+RobotPlugin::RobotPlugin()
 {
     // Nothing to do here, since all variables are initialized in initialize(...)
 }
 
 // Destructor.
-void robot_plugin::~robot_plugin()
+void RobotPlugin::~RobotPlugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
 
 // Initialize everything.
-void robot_plugin::initialize(ros::NodeHandle& n)
+void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
@@ -37,28 +37,28 @@ void robot_plugin::initialize(ros::NodeHandle& n)
 }
 
 // Initialize ROS communication infrastructure.
-void robot_plugin::initialize_ros(ros::NodeHandle& n)
+void RobotPlugin::initialize_ros(ros::NodeHandle& n)
 {
     // Create subscribers.
-    position_subscriber_ = n.subscribe("/gps_controller_position_command", 1, &robot_plugin::position_subscriber_callback, this);
-    trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &robot_plugin::trial_subscriber_callback, this);
-    relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &robot_plugin::relax_subscriber_callback, this);
-    report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &robot_plugin::report_subscriber_callback, this);
+    position_subscriber_ = n.subscribe("/gps_controller_position_command", 1, &RobotPlugin::position_subscriber_callback, this);
+    trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
+    relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
+    report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
     // Create publishers.
     report_publisher_.reset(new realtime_tools::RealtimePublisher<report_msg>(n, "/gps_controller_report", 1));
 }
 
 // Initialize all sensors.
-void robot_plugin::initialize_sensors(ros::NodeHandle& n)
+void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 {
     // Clear out the old sensors.
     sensors_.clear();
 
     // Create all sensors.
-    for (sensor_type i = 0; i < sensor_type::total_sensor_types; i++)
+    for (SensorType i = 0; i < SensorType::TotalSensorTypes; i++)
     {
-        sensors_.push_back(sensor::create_sensor(i,n,this));
+        sensors_.push_back(Sensor::create_sensor(i,n,this));
     }
 
     // Create current state sample and populate it using the sensors.
@@ -67,30 +67,30 @@ void robot_plugin::initialize_sensors(ros::NodeHandle& n)
 }
 
 // Initialize position controllers.
-void robot_plugin::initialize_position_controllers(n)
+void RobotPlugin::initialize_position_controllers(n)
 {
     // Create passive arm position controller.
-    passive_arm_controller_.reset(new position_controller(n));
+    passive_arm_controller_.reset(new PositionController(n));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new position_controller(n));
+    active_arm_controller_.reset(new PositionController(n));
 }
 
 // Helper function to initialize a sample from the current sensors.
-void robot_plugin::initialize_sample(boost::scoped_ptr<sample> sample)
+void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample> sample)
 {
     // Go through all of the sensors and initialize metadata.
-    for (sensor_type i = 0; i < sensor_type::total_sensor_types; i++)
+    for (SensorType i = 0; i < SensorType::TotalSensorTypes; i++)
     {
         current_time_step_sample_ = sensors_[i].set_sample_data_format(current_time_step_sample_);
     }
 }
 
 // Update the sensors at each time step.
-void robot_plugin::update_sensors(ros::Time current_time, bool is_controller_step)
+void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
     // Update all of the sensors and fill in the sample.
-    for (sensor_type sensor = 0; sensor < sensor_type.total_sensor_types; sensor++)
+    for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
     {
         sensors_[sensor].update(this,last_update_time_,is_controller_step);
         current_time_step_sample_ = sensors_[i].set_sample_data(current_time_step_sample_);
@@ -98,7 +98,7 @@ void robot_plugin::update_sensors(ros::Time current_time, bool is_controller_ste
 }
 
 // Update the controllers at each time step.
-void robot_plugin::update_controllers(ros::Time current_time, bool is_controller_step)
+void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
     // If we have a trial controller, update that, otherwise update position controller.
     if (trial_controller_ != NULL) trial_controller_->update(this,last_update_time_,is_controller_step);

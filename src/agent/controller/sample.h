@@ -22,15 +22,15 @@ namespace gps_control
 {
 
 // Types of data supported for internal data storage.
-enum sample_data_format
+enum SampleDataFormat
 {
-    data_format_bool,
-    data_format_uint8,
-    data_format_int,
-    data_format_double
+    DataFormatBool,
+    DataFormatUInt8,
+    DataFormatInt,
+    DataFormatDouble
 };
 
-class sample
+class Sample
 {
 private:
     // Length of sample.
@@ -41,31 +41,31 @@ private:
     // sensor metadata: size of each field (in number of entries, not bytes).
     std::vector<int> internal_data_size_;
     // sensor metadata: format of each field.
-    std::vector<sample_data_format> internal_data_format_;
+    std::vector<SampleDataFormat> internal_data_format_;
     // sensor metadata: additional information about each field.
-    std::vector<options_map> meta_data_;
+    std::vector<OptionsMap> meta_data_;
     // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
-    std::vector<std::pair<data_type,int> > state_definition_;
+    std::vector<std::pair<DataType,int> > state_definition_;
     // Observation definition.
-    std::vector<std::pair<data_type,int> > obs_definition_;
+    std::vector<std::pair<DataType,int> > obs_definition_;
 public:
     // Constructor.
-    sample(int T);
+    Sample(int T);
     // Construct state from message.
-    sample(gps_control::state_msg::ConstPtr &msg);
+    Sample(gps_control::state_msg::ConstPtr &msg);
     // Destructor.
-    virtual ~sample();
+    virtual ~Sample();
     // Get pointer to internal data for given time step.
-    virtual void *get_data_pointer(int t, data_type sensor);
+    virtual void *get_data_pointer(int t, DataType type);
     // Add sensor data for given timestep.
-    virtual void set_data(int t, data_type sensor, const void *data, int data_size, sample_data_format data_format);
+    virtual void set_data(int t, DataType type, const void *data, int data_size, SampleDataFormat data_format);
     // Get sensor data for given timestep.
-    virtual void get_data(int t, data_type sensor, void *data, int data_size, sample_data_format data_format) const;
+    virtual void get_data(int t, DataType type, void *data, int data_size, SampleDataFormat data_format) const;
     // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
-    virtual void set_meta_data(data_type sensor, int data_size, sample_data_format data_format, options_map meta_data_);
+    virtual void set_meta_data(DataType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_);
     // Get sensor meta-data.
-    virtual void get_meta_data(data_type sensor, int &data_size, sample_data_format &data_format, options_map &meta_data_) const;
+    virtual void get_meta_data(DataType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.
@@ -96,7 +96,7 @@ Here is how I think the state assembler should work at a high level:
 // To create a new sensor:
 // 1. add it to the enum
 // 2. create corresponding sensor object
-// 3. Add a call to the constructor of this object in the robot_plugin
+// 3. Add a call to the constructor of this object in the RobotPlugin
 // This should be sufficient, because the number of sensors will be obtained
 // automatically from this enum, and the state assembler will automatically
 // assemble the state (X and phi) from what is in these enums.
