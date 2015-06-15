@@ -40,7 +40,9 @@ public:
     // Constructor.
     fk_sensor(ros::NodeHandle& n, robot_plugin *plugin);
     // Destructor.
-    virtual ~fk_sensor();
+    virtual void ~fk_sensor();
+    // Reset the sensor, clearing any previous state and setting it to the current state.
+    virtual void reset(robot_plugin *plugin, ros::Time current_time);
     // Update the sensor (called every tick).
     virtual void update(robot_plugin *plugin, double sec_elapsed, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
