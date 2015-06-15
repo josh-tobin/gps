@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+from dynamics.dynamics import Dynamics
 
 class DynamicsLR(Dynamics):
     """Dynamics with linear regression, with constant prior.
 
     """
     def __init__(self,hyperparams,sample_data):
-        Dynamics.__init__(self,hyperparams,sample_data)
+        super(DynamicsLR, self).__init__(hyperparams, sample_data)
 
     def update_prior(self):
         """ Update dynamics prior. """
@@ -13,7 +13,7 @@ class DynamicsLR(Dynamics):
         pass
 
     def eval_prior(self):
-        raise NotImplementedError("TODO");
+        raise NotImplementedError("TODO")
 
     def fit(self, sample_idx):
         """ Fit dynamics. """
@@ -24,4 +24,4 @@ class DynamicsLR(Dynamics):
         dU = U.shape[-1]
 
         sig = np.eye(dX+dU)
-        raise NotImplementedError("TODO - Fit dynamics");
+        raise NotImplementedError("TODO - Fit dynamics")

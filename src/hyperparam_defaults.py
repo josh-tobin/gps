@@ -1,13 +1,20 @@
 import datetime
 
+COMMON = 'common'
+SAMPLE = 'sample'
+AGENT = 'agent'
+SAMPLE_DATA = 'sample_data'
+ALGORITHM = 'algorithm'
+COST = 'cost'
+
 common = {
     'experiment_dir': 'experiments/default_experiment/',
-    'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(),'%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
 sample = {
     'state_include': ['JointAngle', 'JointVelocity', 'EndEffectorPose', 'EndEffectorVelocity'],
-    'obs_include': [], # Input to policy
+    'obs_include': [],  # Input to policy
 }
 
 agent = {}
@@ -26,12 +33,12 @@ traj_opt = {}
 policy_opt = {}
 
 defaults = {
-    'common': common,
-    'sample': sample,
-    'agent': agent,
-    'sample_data': sample_data,
-    'algorithm': {
-        'cost': cost,
+    COMMON: common,
+    SAMPLE: sample,
+    AGENT: agent,
+    SAMPLE_DATA: sample_data,
+    ALGORITHM: {
+        COST: cost,
         'dynamics': dynamics,
         'traj_opt': traj_opt,
         'policy_opt': policy_opt,
