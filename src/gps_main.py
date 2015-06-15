@@ -18,9 +18,9 @@ class GPSMain():
         # and algorithm objects: either change code to use switch statement or
         # put in respective constructors, or do something fancier.
         state_assembler = StateAssembler(hyperparams['state'])
-        self.sample_data = SampleData(hyperparams['sample_data'], hyperparams['common'], state_assembler);
-        self.algorithm = Algorithm(hyperparams['algorithm'], hyperparams['common'], sample_data, state_assembler);
-        self.agent = Agent(hyperparams['agent'], hyperparams['common'], sample_data, state_assembler);
+        self.sample_data = SampleData(hyperparams['sample_data'], hyperparams['common'], state_assembler)
+        self.algorithm = Algorithm(hyperparams['algorithm'], hyperparams['common'], sample_data, state_assembler)
+        self.agent = Agent(hyperparams['agent'], hyperparams['common'], sample_data, state_assembler)
 
     def run(self):
         """
@@ -34,4 +34,4 @@ class GPSMain():
         """
         Resume from iteration specified.
         """
-        raise NotImplementedError("TODO");
+        raise NotImplementedError("TODO")

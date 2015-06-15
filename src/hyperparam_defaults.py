@@ -12,12 +12,12 @@ COST = 'cost'
 
 common = {
     'experiment_dir': 'experiments/default_experiment/',
-    'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(),'%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
 sample = {
     'state_include': ['JointAngle', 'JointVelocity', 'EndEffectorPose', 'EndEffectorVelocity'],
-    'obs_include': [], # Input to policy
+    'obs_include': [],  # Input to policy
 }
 
 agent = {}
