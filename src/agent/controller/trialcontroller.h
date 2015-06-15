@@ -13,7 +13,7 @@ a subclass.
 namespace gps_control
 {
 
-class position_controller : public controller
+class PositionController : public Controller
 {
 private:
     // Current time step.
@@ -21,24 +21,24 @@ private:
     // Counter for time step increment.
     int step_counter_;
     // Current time step.
-    boost::scoped_ptr<sample> current_step_;
+    boost::scoped_ptr<Sample> current_step_;
     // Trajectory sample.
-    boost::scoped_ptr<sample> sample_;
+    boost::scoped_ptr<Sample> sample_;
 public:
     // Constructor.
-    position_controller(ros::NodeHandle& n);
+    PositionController(ros::NodeHandle& n);
     // Destructor.
-    virtual ~position_controller();
+    virtual ~PositionController();
     // Compute the action at the current time step.
     virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U) = 0;
     // Update the controller (take an action).
-    virtual void update(robot_plugin *plugin, double sec_elapsed, std::scopted_ptr<sample> sample);
+    virtual void update(RobotPlugin *plugin, double sec_elapsed, std::scopted_ptr<Sample> sample);
     // Configure the controller.
-    virtual void configure_controller(const options_map &options);
+    virtual void configure_controller(const OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<sample> get_sample() const;
+    virtual boost::scoped_ptr<Sample> get_sample() const;
 };
 
 }
