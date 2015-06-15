@@ -1,5 +1,6 @@
 from algorithm.cost.cost import Cost
 
+
 class CostSum(Cost):
     """
     A wrapper cost function that adds other cost functions
@@ -17,8 +18,8 @@ class CostSum(Cost):
         """ Update cost values and derivatives. """
         raise NotImplementedError()
 
-    def eval(self, X, U, phi):
-        [l, lx, lu, lxx, luu, lux] = self.costs[0].eval(X, U, phi)
+    def eval(self, x, u, obs):
+        l, lx, lu, lxx, luu, lux = self.costs[0].eval(x, u, obs)
         l = l*self.weights[0]
         lx = lx*self.weights[0]
         lu = lu*self.weights[0]
@@ -26,7 +27,7 @@ class CostSum(Cost):
         luu = luu*self.weights[0]
         lux = lux*self.weights[0]
         for i in range(2, len(self.costs)):
-            [pl, plx, plu, plxx, pluu, plux] = self.costs[0].eval(X, U, phi)
+            pl, plx, plu, plxx, pluu, plux = self.costs[0].eval(x, u, obs)
             l = l + pl*self.weights[i]
             lx = lx + plx*self.weights[i]
             lu = lu + plu*self.weights[i]

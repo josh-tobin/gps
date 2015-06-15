@@ -1,6 +1,7 @@
 import numpy as np
 from gps_sample_types import *
 
+
 class Sample(object):
     """Class that handles the representation of a trajectory and stores a single trajectory
 
@@ -12,7 +13,7 @@ class Sample(object):
         self.T = self._hyperparams['T']
         self.dX = self._hyperparams['dX']
         self.dU = self._hyperparams['dU']
-        self.dPhi = self._hyperparams['dPhi']
+        self.dObs = self._hyperparams['dObs']
 
         # list of numpy arrays containing the sample data from various sensors
         self._data = []
@@ -24,8 +25,8 @@ class Sample(object):
         self._X.fill(np.nan)
         self._U = np.empty([self.T, self.dU])
         self._U.fill(np.nan)
-        self._phi = np.empty([self.T, self.dPhi])
-        self._phi.fill(np.nan)
+        self._obs = np.empty([self.T, self.dPhi])
+        self._obs.fill(np.nan)
 
     def set(self, sensor_name, sensor_data):
         """Set trajectory data for a particular sensor"""
@@ -47,8 +48,8 @@ class Sample(object):
             raise NotImplementedError("TODO - Compute _U by calling C++ code");
         return self._U
 
-    def get_phi(self):
+    def get_obs(self):
         """Get the feature representation. Put it together if not already precomputed."""
-        if np.any(np.isnan(self._phi)):
-            raise NotImplementedError("TODO - Compute _phi by calling C++ code");
-        return self._phi
+        if np.any(np.isnan(self._obs)):
+            raise NotImplementedError("TODO - Compute _obs by calling C++ code");
+        return self._obs

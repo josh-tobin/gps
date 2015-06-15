@@ -26,7 +26,7 @@ class SampleData(object):
 
     def get_phi(self, idx):
         """Returns NxTxdPhi numpy array of feature representations"""
-        return np.asarray([self._samples[i].get_phi() for i in idx])
+        return np.asarray([self._samples[i].get_obs() for i in idx])
 
     def add_samples(self, samples):
         """ Add newly collected samples. Save out new samples."""
