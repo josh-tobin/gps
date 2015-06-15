@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-class DynamicsLR(Dynamics):
+class LRDynamics(Dynamics):
     """Dynamics with linear regression, with constant prior.
 
     """
     def __init__(self,hyperparams,sample_data):
-        Dynamics.__init__(self,hyperparams,sample_data)
+        Dynamics.__init__(self, hyperparams, sample_data)
 
     def update_prior(self):
         """ Update dynamics prior. """
@@ -17,8 +17,8 @@ class DynamicsLR(Dynamics):
 
     def fit(self, sample_idx):
         """ Fit dynamics. """
-        X = self.sample_data.get_X(sample_idx)
-        U = self.sample_data.get_U(sample_idx)
+        X = self._sample_data.get_X(sample_idx)
+        U = self._sample_data.get_U(sample_idx)
 
         dX = X.shape[-1]
         dU = U.shape[-1]
