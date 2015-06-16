@@ -114,7 +114,7 @@ public:
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.
-    // TODO: implement.
+    virtual void get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
 };
 
 }

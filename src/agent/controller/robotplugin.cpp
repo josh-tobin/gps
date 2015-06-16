@@ -120,3 +120,22 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
         }
     }
 }
+
+// Get forward kinematics solver.
+void RobotPlugin::get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm)
+{
+    if (arm == ArmType.PassiveArm)
+    {
+        fk_solver = passive_arm_fk_solver_;
+        jac_solver = passive_arm_jac_solver_;
+    }
+    else if (arm == ArmType.ActiveArm)
+    {
+        fk_solver = active_arm_fk_solver_;
+        jac_solver = active_arm_jac_solver_;
+    }
+    else
+    {
+        ROS_ERROR("Unknown ArmType %i requested for joint encoder readings!",arm);
+    }
+}
