@@ -2,6 +2,8 @@
 
 using namespace gps_control;
 
+/* TODO: need to add Kalman filter, set up Kalman filter parameters, and configure everything correctly with filter */
+
 // Constructor.
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin)
 {
@@ -27,7 +29,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     if (is_controller_step)
     {
         // Get new vector of joint angles from plugin.
-        plugin->get_joint_encoder_readings(temp_joint_angles_);
+        plugin->get_joint_encoder_readings(temp_joint_angles_,ArmType.ActiveArm);
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.

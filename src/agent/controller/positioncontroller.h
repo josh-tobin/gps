@@ -34,7 +34,7 @@ private:
     double start_time_;
 public:
     // Constructor.
-    PositionController(ros::NodeHandle& n);
+    PositionController(ros::NodeHandle& n, ArmType arm);
     // Destructor.
     virtual ~PositionController();
     // Update the controller (take an action).

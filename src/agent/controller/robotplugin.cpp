@@ -70,10 +70,10 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 void RobotPlugin::initialize_position_controllers(n)
 {
     // Create passive arm position controller.
-    passive_arm_controller_.reset(new PositionController(n));
+    passive_arm_controller_.reset(new PositionController(n,ArmType.PassiveArm));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new PositionController(n));
+    active_arm_controller_.reset(new PositionController(n,ArmType.ActiveArm));
 }
 
 // Helper function to initialize a sample from the current sensors.
@@ -101,8 +101,11 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
     // If we have a trial controller, update that, otherwise update position controller.
-    if (trial_controller_ != NULL) trial_controller_->update(this,last_update_time_,is_controller_step);
-    else active_arm_controller_->update(this,last_update_time_,is_controller_step);
+    if (trial_controller_ != NULL) trial_controller_->update(this,last_update_time_,is_controller_step,active_arm_torques_);
+    else active_arm_controller_->update(this,last_update_time_,is_controller_step,active_arm_torques_);
+
+    // Update passive arm controller.
+    passive_arm_controller_->update(this,last_update_time_,is_controller_step,passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
     if (trial_controller_->is_finished())

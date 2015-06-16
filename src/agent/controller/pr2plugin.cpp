@@ -67,6 +67,59 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     passive_arm_jac_solver_.reset(new KDL::ChainJntToJacSolver(passive_arm_fk_chain_));
     active_arm_jac_solver_.reset(new KDL::ChainJntToJacSolver(active_arm_fk_chain_));
 
+    // Pull out joint states.
+    int joint_index;
+
+    // Put together joint states for the active arm.
+    joint_index = 1;
+    while (true)
+    {
+        // Check if the parameter for this active joint exists.
+        std::string joint_name;
+        if(!n.getParam((std::string("active_arm_joint_name_" + int_to_string(joint_index)).c_str(), joint_name))
+            break;
+
+        // Push back the joint state and name.
+        active_arm_joint_state_.push_back(robot_->getJointState(joint_name));
+        active_arm_joint_names_.push_back(joint_name);
+
+        // Increment joint index.
+        joint_index++;
+    }
+    // Validate that the number of joints in the chain equals the length of the active arm joint state.
+    if (active_arm_fk_chain_.getNrOfJoints() != active_arm_joint_state_.size())
+    {
+        ROS_ERROR("Number of joints in the active arm FK chain does not match the number of joints in the active arm joint state!");
+        return false;
+    }
+
+    // Put together joint states for the passive arm.
+    joint_index = 1;
+    while (true)
+    {
+        // Check if the parameter for this passive joint exists.
+        std::string joint_name;
+        if(!n.getParam((std::string("passive_arm_joint_name_" + int_to_string(joint_index)).c_str(), joint_name))
+            break;
+
+        // Push back the joint state and name.
+        passive_arm_joint_state_.push_back(robot_->getJointState(joint_name));
+        passive_arm_joint_names_.push_back(joint_name);
+
+        // Increment joint index.
+        joint_index++;
+    }
+    // Validate that the number of joints in the chain equals the length of the active arm joint state.
+    if (passive_arm_fk_chain_.getNrOfJoints() != passive_arm_joint_state_.size())
+    {
+        ROS_ERROR("Number of joints in the passive arm FK chain does not match the number of joints in the passive arm joint state!");
+        return false;
+    }
+
+    // Allocate torques array.
+    active_arm_torques_.resize(active_arm_fk_chain_.getNrOfJoints(),0.0);
+    passive_arm_torques_.resize(passive_arm_fk_chain_.getNrOfJoints(),0.0);
+
     // Initialize ROS subscribers/publishers, sensors, and position controllers.
     // Note that this must be done after the FK solvers are created, because the sensors
     // will ask to use these FK solvers!
@@ -120,6 +173,12 @@ void PR2Plugin::update()
 
     // Update the controllers.
     update_controllers(last_update_time_,is_controller_step);
+
+    // Store the torques.
+    for (unsigned i = 0; i < active_arm_joint_state_.size(); i++)
+        active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
+    for (unsigned i = 0; i < passive_arm_joint_state_.size(); i++)
+        passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
 }
 
 // Get current time.
@@ -129,12 +188,22 @@ ros::Time PR2Plugin::get_current_time() const
 }
 
 // Get current encoder readings (robot-dependent).
-void PR2Plugin::get_joint_encoder_readings(std::vector<double> &angles) const
+void PR2Plugin::get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const
 {
-    // TODO: check that the angles vector is the same length as the vector in the robot object.
-
-
-    // TODO: copy over the joint angles.
-
-    ROS_ERROR("Not implemented!");
+    if (arm == ArmType.PassiveArm)
+    {
+        assert(passive_arm_joint_state_.size() == angles.size());
+        for (unsigned i = 0; i < angles.size(); i++)
+            angles[i] = passive_arm_joint_state_[i]->position;
+    }
+    else if (arm == ArmType.ActiveArm)
+    {
+        assert(active_arm_joint_state_.size() == angles.size());
+        for (unsigned i = 0; i < angles.size(); i++)
+            angles[i] = active_arm_joint_state_[i]->position;
+    }
+    else
+    {
+        ROS_ERROR("Unknown ArmType %i requested for joint encoder readings!",arm);
+    }
 }

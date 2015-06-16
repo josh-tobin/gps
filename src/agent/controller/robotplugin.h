@@ -19,6 +19,13 @@ with the robot.
 namespace gps_control
 {
 
+// List of possive arms.
+enum ArmType
+{
+    PassiveArm,
+    ActiveArm
+}
+
 // Forward declarations.
 // Controllers.
 class PositionController;
@@ -36,6 +43,10 @@ class RelaxCommandMsg;
 class RobotPlugin
 {
 private:
+    // Temporary storage for active arm torques to be applied at each step.
+    std::vector<double> active_arm_torques_;
+    // Temporary storage for passive arm torques to be applied at each step.
+    std::vector<double> passive_arm_torques_;
     // Position controller for passive arm.
     boost::scoped_ptr<PositionController> passive_arm_controller_;
     // Position controller for active arm.
@@ -101,7 +112,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const = 0;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles) const = 0;
+    virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.
     // TODO: implement.
 };
