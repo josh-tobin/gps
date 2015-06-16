@@ -34,16 +34,16 @@ using namespace boost::python;
 BOOST_PYTHON_MODULE(gps_sample_types)
 {
     enum_<DataType>("data_type")
-        .value("action", Action)
-        .value("joint_angle", JointAngle)
-        .value("joint_velocity", JointVelocity)
-        .value("end_effector_point", EndEffectorPoint)
-        .value("end_effector_point_velocity", EndEffectorPointVelocity)
-        .value("end_effector_position", EndEffectorPosition)
-        .value("end_effector_rotation", EndEffectorRotation)
-        .value("end_effector_jacobian", EndEffectorJacobian)
-        .value("rbg_image",RBGImage)
-        .value("total_data_types", TotalDataTypes)
+        .value("Action", Action)
+        .value("JointAngle", JointAngle)
+        .value("JointVelocity", JointVelocity)
+        .value("EndEffectorPoint", EndEffectorPoint)
+        .value("EndEffectorPoint_velocity", EndEffectorPointVelocity)
+        .value("EndEffectorPosition", EndEffectorPosition)
+        .value("EndEffectorRotation", EndEffectorRotation)
+        .value("EndEffectorJacobian", EndEffectorJacobian)
+        .value("RGBImage",RGBImage)
+        .value("TotalDataTypes", TotalDataTypes)
         ;
 }
 
