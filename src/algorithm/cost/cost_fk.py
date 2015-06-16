@@ -14,27 +14,24 @@ class CostFK(Cost):
         wp: 100x9 weight vector
     """
 
-    def __init__(self, hyperparams, sample_data, wp):
+    def __init__(self, hyperparams, sample_data):
         Cost.__init__(self, hyperparams, sample_data)
 
+        config.update(hyperparams)
         # TODO: Discuss how to init parameters
-        self.wp = wp
+        self.wp = config['wp']
         self.wacc = 1
         self.wprevu = 1
         self.wvel = 1
         self.env_target = True
         self.analytic_jacobian = True
 
-        self.l1 = 0.0
-        self.l2 = 1.0
-        self.wu = 1e-4
-        self.alpha = 1e-2
+        self.l1 = config['l1']
+        self.l2 = config['l2']
+        self.wu = config['wu']
+        self.alpha = config['alpha']
 
         self.evalnorm = evall1l2term
-
-    def update(self):
-        """ Update cost values and derivatives. """
-        raise NotImplementedError()
 
     # TODO: Currently, sample_meta takes the place of cost_infos. Discuss how to pass these around.
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):

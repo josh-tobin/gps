@@ -15,10 +15,6 @@ class CostSum(Cost):
         self.costs = costs
         self.weights = weights
 
-    def update(self):
-        """ Update cost values and derivatives. """
-        raise NotImplementedError()
-
     def eval(self, x, u, obs, sample_meta):
         l, lx, lu, lxx, luu, lux = self.costs[0].eval(x, u, obs)
         l = l * self.weights[0]

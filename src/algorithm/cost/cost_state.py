@@ -1,7 +1,8 @@
 import numpy as np
 
-from algorithm.cost.cost import Cost
-from algorithm.cost.cost_utils import evall1l2term
+from cost import Cost
+from cost_utils import evall1l2term
+from config import cost_state as config
 
 
 class CostState(Cost):
@@ -17,38 +18,28 @@ class CostState(Cost):
             set its weight to 0.
     """
 
-    def __init__(self, hyperparams, sample_data, desired_state, wp):
+    def __init__(self, hyperparams, sample_data):
         Cost.__init__(self, hyperparams, sample_data)
-        self.desired_state = desired_state
-        self.wp = wp
 
-        # TODO: Hold off on storing defaults
-        self.l1 = 0.0
-        self.l2 = 1.0
-        self.wu = 1e-4
-        self.alpha = 1e-2
-
-    def update(self):
-        """ Update cost values and derivatives. """
-        # Compute and add state penalty.
-        # TODO: Need a way to select samples to evaluated
-        sample_X = self.sample_data.get_X([-1])[0]  # Gets the latest sample from sample_data
-        sample_U = self.sample_data.get_U([-1])[0]
-
-        self.eval(sample_X, sample_U, None)
-        #TODO: Where to store/return loss+derivatives after they are evaluated?
+        config.update(hyperparams)
+        self.desired_state = config['desired_state']
+        self.wp = config['wp']
+        self.l1 = config['l1']
+        self.l2 = config['l2']
+        self.wu = config['wu']
+        self.alpha = config['alpha']
 
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
-        T, Dx = sample_x.shape
-        _, Du = sample_u.shape
+        T, dX = sample_x.shape
+        _, dU = sample_u.shape
 
         # Compute torque penalty and initialize terms.
         l = 0.5 * self.wu * np.sum(sample_u ** 2, axis=1, keepdims=True)
         lu = self.wu * sample_u
-        lx = np.zeros((T, Dx))
-        luu = self.wu * np.tile(np.eye(Du), [T, 1, 1])
-        lxx = np.zeros((T, Dx, Dx))
-        lux = np.zeros((T, Du, Dx))
+        lx = np.zeros((T, dX))
+        luu = self.wu * np.tile(np.eye(dU), [T, 1, 1])
+        lxx = np.zeros((T, dX, dX))
+        lux = np.zeros((T, dU, dX))
 
         # Compute state penalty
         dist = sample_x - self.desired_state
@@ -57,8 +48,8 @@ class CostState(Cost):
         il, ilx, ilxx = evall1l2term(
             np.tile(self.wp, [T, 1]),
             dist,
-            np.tile(np.eye(Dx), [T, 1, 1]),
-            np.zeros((T, Dx, Dx, Dx)),
+            np.tile(np.eye(dX), [T, 1, 1]),
+            np.zeros((T, dX, dX, dX)),
             self.l1,
             self.l2,
             self.alpha)
