@@ -38,7 +38,7 @@ class CostState(Cost):
         self.eval(sample_X, sample_U, None)
         #TODO: Where to store/return loss+derivatives after they are evaluated?
 
-    def eval(self, sample_x, sample_u, sample_obs):
+    def eval(self, sample_x, sample_u, sample_obs, sample_meta):
         T, Dx = sample_x.shape
         _, Du = sample_u.shape
 
@@ -69,3 +69,20 @@ class CostState(Cost):
 
         return l, lx, lu, lxx, luu, lux
 
+
+def __finite_differences_doctest():
+    """
+    >>> import numpy as np
+    >>> import algorithm.cost.cost_utils as cost_utils
+    >>> T=30; Dx = 7; Du = 3; Dobs=2
+    >>> wp = np.ones((1, Dx))
+    >>> desired_state = np.ones((1, Dx))
+    >>> X = np.random.randn(T, Dx)
+    >>> U = np.random.randn(T, Du)
+    >>> Obs = np.random.randn(T, Dobs)
+    >>> metadata = [None]*T  # CostState uses no metadata
+    >>> cost = CostState(None, None, desired_state, wp)
+    >>> cost_utils.finite_differences_cost_test(cost, X, U, Obs, metadata)
+    True
+    """
+    pass
