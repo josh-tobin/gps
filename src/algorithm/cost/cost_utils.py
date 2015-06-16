@@ -26,9 +26,10 @@ def approx_equal(a, b, threshold=1e-5):
 def finite_differences_cost_test(cost, x, u, obs, sample_meta, epsilon=1e-5, threshold=1e-5):
     """
     Finite-differences cost function checker
-    TODO: More docstrings
+
+    -- Broken for now, since this will not update things like Jacobians when it
+    tweaks the state (relevant for CostFK)
     """
-    # TODO: Have some tests for the tester
     # TODO: Lots of repeated code blocks here - can make this a bit cleaner
 
     l, lx, lu, lxx, luu, lux = cost.eval(x, u, obs, sample_meta)
@@ -44,7 +45,7 @@ def finite_differences_cost_test(cost, x, u, obs, sample_meta, epsilon=1e-5, thr
     for idx, _ in np.ndenumerate(lx):
         equal = approx_equal(lx_test[idx], lx[idx], threshold=threshold)
         if not equal:
-            raise ValueError("lx not equal")
+            raise ValueError("lx not equal: %f vs %f" % (lx_test[idx], lx[idx]))
 
     #Check lu
     lu_test = np.zeros_like(lu)
@@ -147,6 +148,34 @@ def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
     return gradient
 
 
+RAMP_CONSTANT = 1
+RAMP_LINEAR = 2
+RAMP_QUADRATIC = 3
+RAMP_FINAL_ONLY = 4
+
+
+def get_ramp_multiplier(ramp_option, T, wp_final_multiplier=1.0):
+    """
+    Returns a time-varying multiplier
+
+    Returns:
+        A (T,) float vector containing weights for each timestep
+    """
+    if ramp_option == RAMP_CONSTANT:
+        wpm = np.ones((T,))
+    elif ramp_option == RAMP_LINEAR:
+        wpm = (np.arange(T, dtype=np.float32)+1) / T
+    elif ramp_option == RAMP_QUADRATIC:
+        wpm = ((np.arange(T, dtype=np.float32)+1) / T) ** 2
+    elif ramp_option == RAMP_FINAL_ONLY:
+        wpm = np.zeros((T,))
+        wpm[T-1] = 1.0
+    else:
+        raise ValueError('Unknown cost ramp requested!')
+    wpm[-1] *= wp_final_multiplier
+    return wpm
+
+
 def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     """
     Evaluate and compute derivatives for combined l1/l2 norm penalty.
@@ -164,23 +193,10 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
         l2: l2 loss weight
         alpha:
 
-
-    # Perform a quick sanity check
-    >>> import numpy as np
-    >>> wp = np.ones((100,39))
-    >>> d = np.ones((100,39))
-    >>> Jd = np.ones((100,39,39))
-    >>> Jdd = np.ones((100,39,39,39))
-    >>> l1 = 0.5
-    >>> l2 = 0.5
-    >>> alpha = 0.5
-    >>> l,lx,lxx = evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha)
-    >>> approx_equal(np.sum(l),1289.2451272494118)
-    True
-    >>> approx_equal(np.sum(lx),88150.426292309843)
-    True
-    >>> approx_equal(np.sum(lxx),6409790.2535816655, threshold=1e-2)
-    True
+    Returns:
+        l: Tx1 Evaluated loss
+        lx: TxD First derivative
+        lxx: TxDxD Second derivative
     """
     # Evaluate a combined L1/L2 norm penalty.
     # TODO: Don't transpose everything in the beginning to match the matlab code
@@ -226,6 +242,7 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
 
     lxx += 0.5 * sec + 0.5 * np.transpose(sec, [1, 0, 2])
 
+    import pdb; pdb.set_trace()
     return l.T, lx.T, np.transpose(lxx, [2, 0, 1])
 
 
@@ -259,7 +276,7 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
     # Second order terms.
     psq = np.expand_dims((alpha + np.sum(dscl ** 2, axis=0, keepdims=True)), axis=0)
     d2 = l1 * ((np.expand_dims(np.eye(wp.shape[0]), axis=2) * (np.expand_dims(wp ** 2, axis=1) / psq)) -
-               ((np.expand_dims(dscls, axis=1) * np.expand_dims(dscls, axis=0)) / psq ** 3))
+               ((np.expand_dims(dscls, axis=1) * np.expand_dims(dscls, axis=0)) / psq ** 2))
     d2 += l2 * (np.expand_dims(wp, axis=1) * np.transpose(np.tile(np.eye(wp.shape[0]), [T, 1, 1]), [1, 2, 0]))
 
     d1_expand = np.expand_dims(np.expand_dims(d1.T, axis=0), axis=0)

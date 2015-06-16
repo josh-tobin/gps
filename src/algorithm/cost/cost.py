@@ -12,11 +12,6 @@ class Cost(object):
         self.sample_data = sample_data
 
     @abc.abstractmethod
-    def update(self):
-        """ Update cost values and derivatives. """
-        raise NotImplementedError("Must be implemented in subclass")
-
-    @abc.abstractmethod
     def eval(self, x, u, obs, sample_meta):
         """
         Evaluate cost function and derivatives
@@ -27,5 +22,7 @@ class Cost(object):
             obs: A T x Dobs observation matrix
             sample_meta: List of cost_info objects
                 (temporary placeholder until we discuss how to pass these around)
+        Return:
+            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
         """
         raise NotImplementedError("Must be implemented in subclass")

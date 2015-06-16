@@ -1,4 +1,4 @@
-from algorithm.cost.cost import Cost
+from cost import Cost
 
 
 class CostSum(Cost):
@@ -14,10 +14,6 @@ class CostSum(Cost):
         # super(self, CostSum).__init__(cost._hyperparams, cost.sample_data)
         self.costs = costs
         self.weights = weights
-
-    def update(self):
-        """ Update cost values and derivatives. """
-        raise NotImplementedError()
 
     def eval(self, x, u, obs, sample_meta):
         l, lx, lu, lxx, luu, lux = self.costs[0].eval(x, u, obs)
