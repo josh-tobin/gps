@@ -25,7 +25,7 @@ class CostRamp(Cost):
         """ Update cost values and derivatives. """
         raise NotImplementedError()
 
-    def eval(self, x, u, obs):
+    def eval(self, x, u, obs, sample_meta):
         """
         Evaluate time-ramped cost function
         """

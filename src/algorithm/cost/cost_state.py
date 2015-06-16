@@ -38,7 +38,7 @@ class CostState(Cost):
         self.eval(sample_X, sample_U, None)
         #TODO: Where to store/return loss+derivatives after they are evaluated?
 
-    def eval(self, sample_x, sample_u, sample_obs):
+    def eval(self, sample_x, sample_u, sample_obs, sample_meta):
         T, Dx = sample_x.shape
         _, Du = sample_u.shape
 
