@@ -1,7 +1,7 @@
 from algorithm import Algorithm
 
-class LQRAlgorithm(Algorithm):
-    """Sample-based trajectory optimization with LQR
+class AlgorithmTrajOpt(Algorithm):
+    """Sample-based trajectory optimization.
 
     """
     def __init__(self, hyperparams, sample_data):
