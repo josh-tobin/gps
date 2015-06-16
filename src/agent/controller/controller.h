@@ -21,13 +21,17 @@ private:
 
 public:
     // Constructor.
-    Controller(ros::NodeHandle& n);
+    Controller(ros::NodeHandle& n, ArmType arm);
     // Destructor.
     virtual ~Controller();
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, double sec_elapsed, std::scopted_ptr<Sample> sample) = 0;
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
+    // Set update delay on the controller.
+    virtual void set_update_delay(double new_step_length);
+    // Get update delay on the controller.
+    virtual double get_update_delay();
     // Check if controller is finished with its current task.
     virtual bool is_finished() const = 0;
     // Ask the controller to return the sample collected from its latest execution.

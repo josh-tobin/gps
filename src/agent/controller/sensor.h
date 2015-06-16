@@ -22,7 +22,6 @@ namespace gps_control
 enum SensorType
 {
     EncoderSensorType = 0,
-    FKSensorType,
     CameraSensorType,
     TotalSensorTypes
 };
