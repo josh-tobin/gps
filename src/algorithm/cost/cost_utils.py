@@ -90,6 +90,8 @@ def finite_differences_cost_test(cost, x, u, obs, sample_meta, epsilon=1e-5, thr
         if not equal:
             raise ValueError("lux not equal")
 
+    return True
+
 
 def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
     """
