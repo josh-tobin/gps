@@ -10,18 +10,26 @@ This is the PR2-specific version of the robot plugin.
 #include <pr2_mechanism_model/robot.h>
 
 // Superclass.
-#include "agent/controller/robot_plugin.h"
+#include "agent/controller/RobotPlugin.h"
 
 namespace gps_control
 {
 
-class pr2_plugin: public robot_plugin, public pr2_controller_interface::Controller
+class PR2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
 {
 private:
     // PR2-specific chain object necessary to construct the KDL chain.
     pr2_mechanism_model::Chain passive_arm_chain_, active_arm_chain_;
     // This is a pointer to the robot state, which we get when initialized and have to keep after that.
     pr2_mechanism_model::RobotState* robot_;
+    // Passive arm joint states.
+    std::vector<pr2_mechanism_model::JointState*> passive_arm_joint_state_;
+    // Active arm joint states.
+    std::vector<pr2_mechanism_model::JointState*> active_arm_joint_state_;
+    // Passive arm joint names.
+    std::vector<std::string> passive_arm_joint_names_;
+    // Active arm joint names.
+    std::vector<std::string> active_arm_joint_names_;
     // Time of last state update.
     ros::Time last_update_time_;
     // Counter for keeping track of controller steps.
@@ -30,9 +38,9 @@ private:
     int controller_step_length_;
 public:
     // Constructor (this should do nothing).
-    pr2_plugin();
+    PR2Plugin();
     // Destructor.
-    virtual ~pr2_plugin();
+    virtual ~PR2Plugin();
     // Functions inherited from superclass.
     // This called by the superclass to allow us to initialize all the PR2-specific stuff.
     /* IMPORTANT: note that some sensors require a KDL chain to do FK, which we need the RobotState to get... */
@@ -54,10 +62,10 @@ public:
          includes the recorded robot state for the controller's execution.
      */
     // Accessors.
+    // Get current time.
+    virtual ros::Time get_current_time() const;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles) const;
-    // Get forward kinematics solver.
-    // TODO: implement.
+    virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const;
 };
 
 }

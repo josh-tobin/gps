@@ -3,56 +3,51 @@
 using namespace gps_control;
 
 // Factory function.
-static sensor sensor::create_sensor(sensor_type type, ros::NodeHandle& n, robot_plugin *plugin)
+static Sensor Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin)
 {
     switch (type)
     {
-    case encoder_sensor_type:
-        sensor = encoder_sensor(n,plugin);
-        break;
-    case fk_sensor_type:
-        sensor = fk_sensor(n,plugin);
-        break;
-    case camera_sensor_type:
-        sensor = camera_sensor(n,plugin);
-        break;
+    case EncoderSensorType:
+        return EncoderSensor(n,plugin);
+    case CameraSensorType:
+        return CameraSensor(n,plugin);
     default:
         ROS_ERROR("Unknown sensor type %i requested from sensor constructor!",type);
     }
 }
 
 // Constructor.
-sensor::sensor(ros::NodeHandle& n, robot_plugin *plugin)
+Sensor::Sensor(ros::NodeHandle& n, RobotPlugin *plugin)
 {
     // Nothing to do.
 }
 
 // Destructor.
-void sensor::~sensor()
+void Sensor::~Sensor()
 {
     // Nothing to do.
 }
 
 // Reset the sensor, clearing any previous state and setting it to the current state.
-void sensor::reset(robot_plugin *plugin, ros::Time current_time)
+void Sensor::reset(RobotPlugin *plugin, ros::Time current_time)
 {
     // Nothing to do.
 }
 
 // Update the sensor (called every tick).
-void sensor::update(robot_plugin *plugin, ros::Time current_time, bool is_controller_step)
+void Sensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
 {
     // Nothing to do.
 }
 
 // Set sensor update delay.
-void sensor::set_update(double new_sensor_step_length)
+void Sensor::set_update(double new_sensor_step_length)
 {
     sensor_step_length_ = new_sensor_step_length;
 }
 
 // Configure the sensor (for sensor-specific trial settings).
-void sensor::configure_sensor(const options_map &options)
+void Sensor::configure_sensor(const OptionsMap &options)
 {
     // Nothing to do.
 }

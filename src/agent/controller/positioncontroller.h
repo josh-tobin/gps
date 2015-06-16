@@ -14,14 +14,14 @@ namespace gps_control
 {
 
 // Current motion type.
-enum position_control_mode
+enum PositionControlMode
 {
-    no_control,
-    joint_space_control,
-    task_space_control
+    NoControl,
+    JointSpaceControl,
+    TaskSpaceControl
 };
 
-class position_controller : public controller
+class PositionController : public Controller
 {
 private:
     // Current target (joint space).
@@ -34,17 +34,17 @@ private:
     double start_time_;
 public:
     // Constructor.
-    position_controller(ros::NodeHandle& n);
+    PositionController(ros::NodeHandle& n, ArmType arm);
     // Destructor.
-    virtual ~position_controller();
+    virtual ~PositionController();
     // Update the controller (take an action).
-    virtual void update(robot_plugin *plugin, double sec_elapsed, std::scopted_ptr<sample> sample);
+    virtual void update(RobotPlugin *plugin, double sec_elapsed, std::scopted_ptr<Sample> sample);
     // Configure the controller.
-    virtual void configure_controller(const options_map &options);
+    virtual void configure_controller(const OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<sample> get_sample() const;
+    virtual boost::scoped_ptr<Sample> get_sample() const;
 };
 
 }

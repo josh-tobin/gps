@@ -1,7 +1,7 @@
 import numpy as np
 
 from cost import Cost
-from cost_utils import evallogl2term, get_ramp_multiplier, RAMP_CONSTANT
+from cost_utils import get_ramp_multiplier
 
 
 class CostFK(Cost):
@@ -14,21 +14,19 @@ class CostFK(Cost):
         wp: 1x9 weight vector for each end-effector point
     """
 
-    def __init__(self, hyperparams, sample_data, wp):
+    def __init__(self, hyperparams, sample_data):
         super(CostFK, self).__init__(hyperparams, sample_data)
+        self.wp = hyperparams['wp']
+        self.env_target = hyperparams['env_target']
+        self.analytic_jacobian = hyperparams['analytic_jacobian']
+        self.ramp_option = hyperparams['ramp_option']
 
-        # TODO: Discuss how to init parameters
-        self.wp = wp
-        self.env_target = True
-        self.analytic_jacobian = True
-        self.ramp_option = RAMP_CONSTANT
+        self.l1 = hyperparams['l1']
+        self.l2 = hyperparams['l2']
+        self.alpha = hyperparams['alpha']
 
-        self.l1 = 0.1
-        self.l2 = 0.0001
-        self.alpha = 1e-5
-
-        self.evalnorm = evallogl2term
-        self.wp_final_multiplier = 100
+        self.evalnorm = hyperparams['evalnorm']
+        self.wp_final_multiplier = hyperparams['wp_final_multiplier']
 
     # TODO: Currently, sample_meta takes the place of cost_infos. Discuss how to pass these around.
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):

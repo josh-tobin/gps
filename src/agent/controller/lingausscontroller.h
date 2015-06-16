@@ -13,7 +13,7 @@ control law.
 namespace gps_control
 {
 
-class linear_gaussian_controller : public trial_controller
+class LinearGaussianController : public TrialController
 {
 private:
     // Nominal trajectory states.
@@ -24,13 +24,13 @@ private:
     MatrixXd &K_;
 public:
     // Constructor.
-    linear_gaussian_controller(ros::NodeHandle& n);
+    LinearGaussianController(ros::NodeHandle& n);
     // Destructor.
-    virtual ~linear_gaussian_controller();
+    virtual ~LinearGaussianController();
     // Compute the action at the current time step.
     virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U);
     // Configure the controller.
-    virtual void configure_controller(const options_map &options);
+    virtual void configure_controller(const OptionsMap &options);
 };
 
 }

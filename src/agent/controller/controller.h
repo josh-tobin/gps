@@ -13,25 +13,29 @@ namespace gps_control
 {
 
 // Forward declarations.
-class sample;
+class Sample;
 
-class controller
+class Controller
 {
 private:
 
 public:
     // Constructor.
-    controller(ros::NodeHandle& n);
+    Controller(ros::NodeHandle& n, ArmType arm);
     // Destructor.
-    virtual ~controller();
+    virtual ~Controller();
     // Update the controller (take an action).
-    virtual void update(robot_plugin *plugin, double sec_elapsed, std::scopted_ptr<sample> sample) = 0;
+    virtual void update(RobotPlugin *plugin, double sec_elapsed, std::scopted_ptr<Sample> sample) = 0;
     // Configure the controller.
-    virtual void configure_controller(const options_map &options);
+    virtual void configure_controller(const OptionsMap &options);
+    // Set update delay on the controller.
+    virtual void set_update_delay(double new_step_length);
+    // Get update delay on the controller.
+    virtual double get_update_delay();
     // Check if controller is finished with its current task.
     virtual bool is_finished() const = 0;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<sample> get_sample() const = 0;
+    virtual boost::scoped_ptr<Sample> get_sample() const = 0;
 };
 
 }

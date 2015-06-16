@@ -19,31 +19,44 @@ with the robot.
 namespace gps_control
 {
 
+// List of possive arms.
+enum ArmType
+{
+    PassiveArm,
+    ActiveArm
+}
+
 // Forward declarations.
 // Controllers.
-class position_controller;
-class trial_controller;
+class PositionController;
+class TrialController;
 // Sensors.
-class sensor;
+class Sensor;
 // Sample.
-class sample;
+class Sample;
 // Custom ROS messages.
-class trial_result_msg;
-class position_command_msg;
-class trial_command_msg;
-class relax_command_msg;
+class TrialResultMsg;
+class PositionCommandMsg;
+class TrialCommandMsg;
+class RelaxCommandMsg;
 
-class robot_plugin
+class RobotPlugin
 {
 private:
+    // Temporary storage for active arm torques to be applied at each step.
+    std::vector<double> active_arm_torques_;
+    // Temporary storage for passive arm torques to be applied at each step.
+    std::vector<double> passive_arm_torques_;
     // Position controller for passive arm.
-    boost::scoped_ptr<position_controller> passive_arm_controller_;
+    boost::scoped_ptr<PositionController> passive_arm_controller_;
     // Position controller for active arm.
-    boost::scoped_ptr<position_controller> active_arm_controller_;
+    boost::scoped_ptr<PositionController> active_arm_controller_;
     // Current trial controller (if any).
-    boost::scoped_ptr<trial_controller> trial_controller_;
-    // sensors.
-    std::vector<sensor> sensors_;
+    boost::scoped_ptr<TrialController> trial_controller_;
+    // Sensor data for the current time step.
+    boost::scoped_ptr<Sample> current_time_step_sample_;
+    // Sensors.
+    std::vector<Sensor> sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
@@ -61,12 +74,12 @@ private:
     ros::Subscriber report_subscriber_;
     // Publishers.
     // Publish result of a trial, completion of position command, or just a report.
-    ros_publisher_ptr(trial_result_msg) report_publisher_;
+    ros_publisher_ptr(TrialResultMsg) report_publisher_;
 public:
     // Constructor (this should do nothing).
-    robot_plugin();
+    RobotPlugin();
     // Destructor.
-    virtual ~robot_plugin();
+    virtual ~RobotPlugin();
     // Initialize everything.
     virtual void initialize(ros::NodeHandle& n);
     // Initialize all of the ROS subscribers and publishers.
@@ -76,25 +89,34 @@ public:
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
     // Publish the specified sample in a report.
-    virtual void publish_report(boost::scoped_ptr<sample> sample);
+    virtual void publish_report(boost::scoped_ptr<Sample> sample);
     // Run a trial.
     virtual void run_trial(/* TODO: receive all of the trial parameters here */);
     // Move the arm.
     virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
     // Subscriber callbacks.
     // Position command callback.
-    virtual void position_subscriber_callback(const position_command_msg::ConstPtr& msg);
+    virtual void position_subscriber_callback(const PositionCommandMsg::ConstPtr& msg);
     // Trial command callback.
-    virtual void trial_subscriber_callback(const trial_command_msg::ConstPtr& msg);
+    virtual void trial_subscriber_callback(const TrialCommandMsg::ConstPtr& msg);
     // Relax command callback.
-    virtual void relax_subscriber_callback(const relax_command_msg::ConstPtr& msg);
+    virtual void relax_subscriber_callback(const RelaxCommandMsg::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+    // Update functions.
+    // Update the sensors at each time step.
+    virtual void update_sensors(ros::Time current_time, bool is_controller_step);
+    // Update the controllers at each time step.
+    virtual void update_controllers(ros::Time current_time, bool is_controller_step);
     // Accessors.
+    // Get current time.
+    virtual ros::Time get_current_time() const = 0;
+    // Get sensor.
+    virtual Sensor *get_sensor(SensorType sensor);
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles) const = 0;
+    virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.
-    // TODO: implement.
+    virtual void get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
 };
 
 }

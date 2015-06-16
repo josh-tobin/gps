@@ -1,7 +1,7 @@
 import numpy as np
 
 from cost import Cost
-from cost_utils import evall1l2term, get_ramp_multiplier, RAMP_CONSTANT
+from cost_utils import evall1l2term, get_ramp_multiplier
 
 
 class CostState(Cost):
@@ -17,18 +17,17 @@ class CostState(Cost):
             set its weight to 0.
     """
 
-    def __init__(self, hyperparams, sample_data, desired_state, wp):
+    def __init__(self, hyperparams, sample_data):
         super(CostState, self).__init__(hyperparams, sample_data)
-        self.desired_state = desired_state
-        self.wp = wp
-        self.ramp_option = RAMP_CONSTANT
+        self.desired_state = hyperparams['desired_state']
+        self.wp = hyperparams['wp']
+        self.ramp_option = hyperparams['ramp_option']
 
-        # TODO: Hold off on storing defaults
-        self.l1 = 0.0
-        self.l2 = 1.0
-        self.wu = 1e-4
-        self.alpha = 1e-2
-        self.wp_final_multiplier = 1.0
+        self.l1 = hyperparams['l1']
+        self.l2 = hyperparams['l2']
+        self.wu = hyperparams['wu']
+        self.alpha = hyperparams['alpha']
+        self.wp_final_multiplier = hyperparams['wp_final_multiplier']
 
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
         T, Dx = sample_x.shape
