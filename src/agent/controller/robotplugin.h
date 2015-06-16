@@ -111,6 +111,8 @@ public:
     // Accessors.
     // Get current time.
     virtual ros::Time get_current_time() const = 0;
+    // Get sensor.
+    virtual Sensor *get_sensor(SensorType sensor);
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.

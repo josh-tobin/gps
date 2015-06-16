@@ -11,8 +11,8 @@ TODO: this thing needs a Kalman filter.
 */
 
 // This sensor writes to the following data types:
-// JointAngles
-// JointVelocities
+// JointAngle
+// JointVelocity
 
 namespace gps_control
 {

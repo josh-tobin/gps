@@ -121,6 +121,13 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     }
 }
 
+// Get sensor.
+Sensor *RobotPlugin::get_sensor(SensorType sensor)
+{
+    assert(sensor < SensorType.TotalSensors);
+    return &sensors_[sensor];
+}
+
 // Get forward kinematics solver.
 void RobotPlugin::get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm)
 {

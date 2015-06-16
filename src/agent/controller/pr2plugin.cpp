@@ -192,13 +192,15 @@ void PR2Plugin::get_joint_encoder_readings(std::vector<double> &angles, ArmType 
 {
     if (arm == ArmType.PassiveArm)
     {
-        assert(passive_arm_joint_state_.size() == angles.size());
+        if (angles.size() != passive_arm_joint_state_.size())
+            angles.resize(passive_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
             angles[i] = passive_arm_joint_state_[i]->position;
     }
     else if (arm == ArmType.ActiveArm)
     {
-        assert(active_arm_joint_state_.size() == angles.size());
+        if (angles.size() != active_arm_joint_state_.size())
+            angles.resize(active_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
             angles[i] = active_arm_joint_state_[i]->position;
     }

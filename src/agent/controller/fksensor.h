@@ -16,8 +16,8 @@ probably best to see how ddp_controller.cpp does it, and mimic the same behavior
 */
 
 // This sensor writes to the following data types:
-// EndEffectorPoints
-// EndEffectorVelocities
+// EndEffectorPoint
+// EndEffectorPointVelocity
 // EndEffectorPosition
 // EndEffectorRotation
 // EndEffectorJacobian
@@ -28,10 +28,26 @@ namespace gps_control
 class FKSensor: public Sensor
 {
 private:
+    // Temporary storage for joint angles (used to obtain joint angles from encoder sensor).
+    std::vector<double> temp_joint_angles_;
+    // Temporary storage for KDL joint angle array.
+    KDL::JntArray temp_joint_array_;
+    // Temporary storage for KDL tip pose.
+    KDL::Frame temp_tip_pose_;
+    // Temporary storage for KDL Jacobian.
+    KDL::Jacobian temp_jacobian_;
     // End-effector points in the space of the end-effector.
     MatrixXd end_effector_points_;
-    // Previous end-effector transform.
-    Matrix4d previous_transform_;
+    // Previous end-effector points.
+    MatrixXd previous_end_effector_points_;
+    // Velocities of points.
+    MatrixXd previous_end_effector_point_velocities_;
+    // Temporary storage.
+    MatrixXd temp_end_effector_points_;
+    // Previous end-effector position.
+    Vector3d previous_position_;
+    // Previous end-effector rotation.
+    Matrix3d previous_rotation_;
     // Previous end-effector Jacobian.
     MatrixXd previous_jacobian_;
     // Time from last update when the previous end-effector pose was recorded (necessary to compute velocities).
