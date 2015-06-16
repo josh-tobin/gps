@@ -109,7 +109,11 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     {
         // Clear the trial controller.
         trial_controller_.reset(NULL);
-        // TODO: VERY IMPORTANT -- need to set the sensor frequencies down to the PD control frequency, otherwise PD controller will be very wonky!
-        ROS_ERROR("Not implemented (see TODO above)!");
+
+        // Switch the sensors to run at full frequency.
+        for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
+        {
+            sensors_[sensor].set_update(active_arm_controller_->get_update_delay());
+        }
     }
 }

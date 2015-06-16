@@ -13,7 +13,7 @@ enum DataType
     JointAngle,
     JointVelocity,
     EndEffectorPoint,
-    EndEffectorPoint_velocity,
+    EndEffectorPointVelocity,
     EndEffectorPosition,
     EndEffectorRotation,
     EndEffectorJacobian,
