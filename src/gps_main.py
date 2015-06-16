@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+from hyperparams_defaults import defaults
 
 class GPSMain():
     """Main class to run algorithms and experiments.
@@ -8,19 +8,13 @@ class GPSMain():
     hyperparams: nested dictionary of hyperparameters, indexed by the type
         of hyperparameter
     """
-    def __init__(self, hyperparams):
-        self._hyperparams = hyperparams
-        self._iterations = hyperparams['algorithm']['iterations']
+    def __init__(self):
+        self._hyperparams = defaults
+        self._iterations = defaults['algorithm']['iterations']
 
-        # TODO - keep track of experiment name, sample data, etc.
-
-        # TODO - need to make sure these initialize the right type of agent
-        # and algorithm objects: either change code to use switch statement or
-        # put in respective constructors, or do something fancier.
-        state_assembler = StateAssembler(hyperparams['state'])
-        self.sample_data = SampleData(hyperparams['sample_data'], hyperparams['common'], state_assembler)
-        self.algorithm = Algorithm(hyperparams['algorithm'], hyperparams['common'], sample_data, state_assembler)
-        self.agent = Agent(hyperparams['agent'], hyperparams['common'], sample_data, state_assembler)
+        self.sample_data = SampleData(defaults['sample_data'], defaults['common'])
+        self.algorithm = defaults['algorithm']['type'](defaults['algorithm'], defaults['common'], sample_data)
+        self.agent = defaults['agent']['type'](defaults['agent'], defaults['common'], sample_data)
 
     def run(self):
         """
