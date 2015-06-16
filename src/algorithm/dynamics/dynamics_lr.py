@@ -1,6 +1,6 @@
-from dynamics.dynamics import Dynamics
+from dynamics import Dynamics
 
-class LRDynamics(Dynamics):
+class DynamicsLR(Dynamics):
     """Dynamics with linear regression, with constant prior.
 
     """

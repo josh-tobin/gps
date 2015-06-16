@@ -1,14 +1,9 @@
 import datetime
 
-from algorithm.cost import CostFK
-from algorithm.dynamics import
-
-COMMON = 'common'
-SAMPLE = 'sample'
-AGENT = 'agent'
-SAMPLE_DATA = 'sample_data'
-ALGORITHM = 'algorithm'
-COST = 'cost'
+from algorithm.lqr_alg import LQRAlgorithm
+from algorithm.cost.cost_fk import CostFK
+from algorithm.dynamics.dynamics_lr import DynamicsLR
+from algorithm.traj_opt.traj_opt_lqr import TrajOptLQR
 
 common = {
     'experiment_dir': 'experiments/default_experiment/',
@@ -20,32 +15,36 @@ sample = {
     'obs_include': [],  # Input to policy
 }
 
-agent = {}
-
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
 }
 
-cost = {
-    'type': CostFK
+agent = {}
+
+algorithm = {
+    'type': LQRAlgorithm,
+    'iterations': 10,
 }
 
-dynamics = {}
+algorithm['cost'] = {
+    'type': CostFK,
+}
 
-traj_opt = {}
+algorithm['dynamics'] = {
+    'type': DynamicsLR,
+}
 
-policy_opt = {}
+algorithm['traj_opt'] = {
+    'type': TrajOptLQR,
+}
+
+algorithm['policy_opt'] = {}
 
 defaults = {
-    COMMON: common,
-    SAMPLE: sample,
-    AGENT: agent,
-    SAMPLE_DATA: sample_data,
-    ALGORITHM: {
-        COST: cost,
-        'dynamics': dynamics,
-        'traj_opt': traj_opt,
-        'policy_opt': policy_opt,
-    },
+    'common': common,
+    'sample': sample,
+    'sample_data': sample_data,
+    'agent': agent,
+    'algorithm': algorithm,
 }
