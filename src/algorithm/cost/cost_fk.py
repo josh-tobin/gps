@@ -6,14 +6,9 @@ from cost_utils import get_ramp_multiplier
 
 class CostFK(Cost):
     """
-    Forward kinematics cost function
-
-    Args:
-        hyperparams:
-        sample_data:
-        wp: 1x9 weight vector for each end-effector point
+    Forward kinematics cost function. Used for costs involving the
+    end effector position.
     """
-
     def __init__(self, hyperparams, sample_data):
         super(CostFK, self).__init__(hyperparams, sample_data)
         self.wp = hyperparams['wp']
@@ -31,7 +26,7 @@ class CostFK(Cost):
     # TODO: Currently, sample_meta takes the place of cost_infos. Discuss how to pass these around.
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
         """
-        Evaluate forward kinematics cost.
+        Evaluate forward kinematics (end-effector penalties) cost.
 
         Temporary note: This implements the 'joint' penalty type from the matlab code,
             with the velocity/velocity diff/etc. penalties remove (use CostState instead)
@@ -42,6 +37,8 @@ class CostFK(Cost):
             sample_Obs: A T x Dobs observation matrix
             sample_meta: List of cost_info objects
                 (temporary placeholder until we discuss how to pass these around)
+        Return:
+            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
         """
         T, Dx = sample_x.shape
         _, Du = sample_u.shape

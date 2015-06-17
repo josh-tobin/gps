@@ -180,15 +180,17 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     """
     Evaluate and compute derivatives for combined l1/l2 norm penalty.
 
+    loss = (0.5 * l2 * X^2) + (l1 * sqrt(alpha + d^2))
+
     Args:
         wp:
             T x D matrix containing weights for each dimension and timestep
         d:
-            T x D
+            T x D states to evaluate norm on
         Jd:
-            T x Dx x D
+            T x Dx x D Jacobian
         Jdd:
-            T x Dx x Dx x D
+            T x Dx x Dx x D Jacobian 2nd derivative
         l1: l1 loss weight
         l2: l2 loss weight
         alpha:
@@ -235,7 +237,29 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
 
 
 def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
-    """ Evaluate and compute derivatives for combined l1/l2 norm penalty. """
+    """
+    Evaluate and compute derivatives for combined l1/l2 norm penalty.
+
+    loss = (0.5 * l2 * X^2) + (0.5 * l1 * log(alpha + d^2))
+
+    Args:
+        wp:
+            T x D matrix containing weights for each dimension and timestep
+        d:
+            T x D states to evaluate norm on
+        Jd:
+            T x Dx x D Jacobian
+        Jdd:
+            T x Dx x Dx x D Jacobian 2nd derivative
+        l1: l1 loss weight
+        l2: l2 loss weight
+        alpha:
+
+    Returns:
+        l: T x 1 Evaluated loss
+        lx: T x Dx First derivative
+        lxx: T x Dx x Dx Second derivative
+    """
     # Get trajectory length.
     T, _ = d.shape
 
