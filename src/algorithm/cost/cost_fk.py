@@ -63,7 +63,6 @@ class CostFK(Cost):
             tgt = np.concatenate([sample_meta[i].tgt for i in range(len(sample_meta))], axis=1)
             tgt = np.transpose(tgt, [1, 0, 2])
             tgt = np.reshape(tgt, (T, dim1*dim2))
-            tgt = tgt.T  # TODO: remove extra tranposes
         else:
             raise NotImplementedError("Must use env_target option")
 
@@ -73,16 +72,11 @@ class CostFK(Cost):
         Jxx = np.concatenate([sample_meta[i].Jxx for i in range(len(sample_meta))], axis=3)
 
         # Rearrange the points and matrices.
-        pt = np.reshape(np.transpose(pt, [0, 2, 1]), (pt.shape[0] * pt.shape[2], pt.shape[1]))
-        Jx = np.reshape(np.transpose(Jx, [0, 1, 3, 2]), (Jx.shape[0], Jx.shape[1] * Jx.shape[3], Jx.shape[2]))
-        Jxx = np.reshape(np.transpose(Jxx, [0, 1, 2, 4, 3]),
-                         (Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4], Jxx.shape[3]))
+        pt = np.reshape(np.transpose(pt, [1, 0, 2]), (pt.shape[1], pt.shape[0] * pt.shape[2]))
+        Jx = np.reshape(np.transpose(Jx, [2, 0, 1, 3]), (Jx.shape[2], Jx.shape[0], Jx.shape[1] * Jx.shape[3]))
+        Jxx = np.reshape(np.transpose(Jxx, [3, 0, 1, 2, 4]),
+                         (Jxx.shape[3], Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4]))
         dist = pt - tgt
-
-        # TODO: Remove transposes
-        dist = dist.T
-        Jx = np.transpose(Jx, [2, 0, 1])
-        Jxx = np.transpose(Jxx, [3, 0, 1, 2])
 
         # Evaluate penalty term.
         if self.analytic_jacobian:
