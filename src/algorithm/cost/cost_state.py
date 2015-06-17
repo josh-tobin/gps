@@ -11,58 +11,57 @@ class CostState(Cost):
 
     def __init__(self, hyperparams, sample_data):
         super(CostState, self).__init__(hyperparams, sample_data)
-        self.desired_state = hyperparams['desired_state']
-        self.wp = hyperparams['wp']
-        self.ramp_option = hyperparams['ramp_option']
 
-        self.l1 = hyperparams['l1']
-        self.l2 = hyperparams['l2']
-        self.wu = hyperparams['wu']
-        self.alpha = hyperparams['alpha']
-        self.wp_final_multiplier = hyperparams['wp_final_multiplier']
-
-    def eval(self, sample_x, sample_u, sample_obs, sample_meta):
+    def eval(self, sample):
         """
-        Evaluate cost function and derivatives
+        Evaluate cost function and derivatives on a sample
 
         Args:
-            x: A T x Dx state matrix
-            u: A T x Du action matrix
-            obs: A T x Dobs observation matrix
-            sample_meta: List of cost_info objects
-                (temporary placeholder until we discuss how to pass these around)
+            sample: A Sample object
         Return:
-            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
+            l, lx, lu, lxx, luu, lux:
+                Loss (Tx1 float) and derivatives with respect to states (x) and/or actions (u).
         """
-        T, Dx = sample_x.shape
-        _, Du = sample_u.shape
+        T = sample.get_T()
+        Du = sample.get_Du()
+        Dx = sample.get_Dx()
+        Jx = np.tile(np.eye(Dx), [T, 1, 1])
+        Jxx = np.zeros((T, Dx, Dx, Dx))
 
-        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=self.wp_final_multiplier)
-        wp = self.wp*np.expand_dims(wpm, axis=-1)
+        final_l = np.zeros(T)
+        final_lu = np.zeros((T, Du))
+        final_lx = np.zeros((T, Dx))
+        final_luu = np.zeros((T, Du, Du))
+        final_lxx = np.zeros((T, Dx, Dx))
+        final_lux = np.zeros((T, Du, Dx))
 
-        # Compute torque penalty and initialize terms.
-        l = 0.5 * self.wu * np.sum(sample_u ** 2, axis=1, keepdims=True)
-        lu = self.wu * sample_u
-        lx = np.zeros((T, Dx))
-        luu = self.wu * np.tile(np.eye(Du), [T, 1, 1])
-        lxx = np.zeros((T, Dx, Dx))
-        lux = np.zeros((T, Du, Dx))
+        for data_type_name in self._hyperparams['data_types']:
+            config = self._hyperparams['data_types'][data_type_name]
+            wp = config['wp']
+            tgt = config['desired_state']
+            x = sample.get_X(data_type_name)
+            _, dim_sensor = x.shape
 
-        # Compute state penalty
-        dist = sample_x - self.desired_state
+            wpm = get_ramp_multiplier(self._hyperparams['ramp_option'],
+                                      T,
+                                      wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
+            wp = wp*np.expand_dims(wpm, axis=-1)
 
-        # Evaluate penalty term.
-        il, ilx, ilxx = evall1l2term(
-            wp,
-            dist,
-            np.tile(np.eye(Dx), [T, 1, 1]),
-            np.zeros((T, Dx, Dx, Dx)),
-            self.l1,
-            self.l2,
-            self.alpha)
+            # Compute state penalty
+            dist = x - tgt
 
-        l += il
-        lx += ilx
-        lxx += ilxx
+            # Evaluate penalty term.
+            l, ls, lss = evall1l2term(
+                wp,
+                dist,
+                sample.slice_data_x(Jx, data_type_name, axis=1),
+                sample.slice_data_x(Jxx, data_type_name, axis=1),
+                self._hyperparams['l1'],
+                self._hyperparams['l2'],
+                self._hyperparams['alpha'])
 
-        return l, lx, lu, lxx, luu, lux
+            final_l += l
+            sample.pack_data_x(final_lx, data_type_name, ls)
+            sample.pack_data_x(final_lxx, data_type_name, lss)
+
+        return final_l, final_lx, final_lu, final_lxx, final_luu, final_lux

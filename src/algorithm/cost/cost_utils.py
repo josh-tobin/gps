@@ -180,7 +180,7 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     """
     Evaluate and compute derivatives for combined l1/l2 norm penalty.
 
-    loss = (0.5 * l2 * X^2) + (l1 * sqrt(alpha + d^2))
+    loss = (0.5 * l2 * d^2) + (l1 * sqrt(alpha + d^2))
 
     Args:
         wp:
@@ -188,9 +188,9 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
         d:
             T x D states to evaluate norm on
         Jd:
-            T x Dx x D Jacobian
+            T x D x Dx Jacobian - derivative of d with respect to state
         Jdd:
-            T x Dx x Dx x D Jacobian 2nd derivative
+            T x D x Dx x Dx Jacobian - 2nd derivative of d with respect to state
         l1: l1 loss weight
         l2: l2 loss weight
         alpha:
@@ -215,7 +215,7 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
 
     # First order derivative terms.
     d1 = dscl * l2 + (dscls / np.sqrt(alpha + np.sum(dscl ** 2, axis=1, keepdims=True)) * l1)
-    lx = np.sum(Jd * np.expand_dims(d1, axis=1), axis=2)
+    lx = np.sum(Jd * np.expand_dims(d1, axis=2), axis=1)
 
     # Second order terms.
     psq = np.expand_dims(np.sqrt(alpha + np.sum(dscl ** 2, axis=1, keepdims=True)), axis=1)
@@ -224,12 +224,12 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
     d2 += l2 * (np.expand_dims(wp, axis=2) * np.tile(np.eye(wp.shape[1]), [T, 1, 1]))
 
     d1_expand = np.expand_dims(np.expand_dims(d1, axis=-1), axis=-1)
-    sec = np.sum(d1_expand * np.transpose(Jdd, [0, 3, 1, 2]), axis=1)
+    sec = np.sum(d1_expand * Jdd, axis=1)
 
     Jd_expand_1 = np.expand_dims(np.expand_dims(Jd, axis=2), axis=4)
     Jd_expand_2 = np.expand_dims(np.expand_dims(Jd, axis=1), axis=3)
-    d2_expand = np.expand_dims(np.expand_dims(d2, axis=1), axis=1)
-    lxx = np.sum(np.sum((Jd_expand_1 * Jd_expand_2) * d2_expand, axis=-1), axis=-1)
+    d2_expand = np.expand_dims(np.expand_dims(d2, axis=-1), axis=-1)
+    lxx = np.sum(np.sum((Jd_expand_1 * Jd_expand_2) * d2_expand, axis=1), axis=1)
 
     lxx += 0.5 * sec + 0.5 * np.transpose(sec, [0,2,1])
 
@@ -240,7 +240,7 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
     """
     Evaluate and compute derivatives for combined l1/l2 norm penalty.
 
-    loss = (0.5 * l2 * X^2) + (0.5 * l1 * log(alpha + d^2))
+    loss = (0.5 * l2 * d^2) + (0.5 * l1 * log(alpha + d^2))
 
     Args:
         wp:
@@ -248,9 +248,9 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
         d:
             T x D states to evaluate norm on
         Jd:
-            T x Dx x D Jacobian
+            T x D x Dx Jacobian - derivative of d with respect to state
         Jdd:
-            T x Dx x Dx x D Jacobian 2nd derivative
+            T x D x Dx x Dx Jacobian - 2nd derivative of d with respect to state
         l1: l1 loss weight
         l2: l2 loss weight
         alpha:
@@ -275,7 +275,7 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
 
     # First order derivative terms.
     d1 = dscl * l2 + (dscls / (alpha + np.sum(dscl ** 2, axis=1, keepdims=True)) * l1)
-    lx = np.sum(Jd * np.expand_dims(d1, axis=1), axis=2)
+    lx = np.sum(Jd * np.expand_dims(d1, axis=2), axis=1)
 
     # Second order terms.
     psq = np.expand_dims((alpha + np.sum(dscl ** 2, axis=1, keepdims=True)), axis=1)
@@ -284,12 +284,12 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
     d2 += l2 * (np.expand_dims(wp, axis=2) * np.tile(np.eye(wp.shape[1]), [T, 1, 1]))
 
     d1_expand = np.expand_dims(np.expand_dims(d1, axis=-1), axis=-1)
-    sec = np.sum(d1_expand * np.transpose(Jdd, [0, 3, 1, 2]), axis=1)
+    sec = np.sum(d1_expand * Jdd, axis=1)
 
     Jd_expand_1 = np.expand_dims(np.expand_dims(Jd, axis=2), axis=4)
     Jd_expand_2 = np.expand_dims(np.expand_dims(Jd, axis=1), axis=3)
-    d2_expand = np.expand_dims(np.expand_dims(d2, axis=1), axis=1)
-    lxx = np.sum(np.sum((Jd_expand_1 * Jd_expand_2) * d2_expand, axis=-1), axis=-1)
+    d2_expand = np.expand_dims(np.expand_dims(d2, axis=-1), axis=-1)
+    lxx = np.sum(np.sum((Jd_expand_1 * Jd_expand_2) * d2_expand, axis=1), axis=1)
 
     lxx += 0.5 * sec + 0.5 * np.transpose(sec, [0,2,1])
 

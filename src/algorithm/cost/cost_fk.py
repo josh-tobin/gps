@@ -23,7 +23,7 @@ class CostFK(Cost):
         self.evalnorm = hyperparams['evalnorm']
         self.wp_final_multiplier = hyperparams['wp_final_multiplier']
 
-    # TODO: Currently, sample_meta takes the place of cost_infos. Discuss how to pass these around.
+    # TODO: Use the sample class along with slicing/packing
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
         """
         Evaluate forward kinematics (end-effector penalties) cost.
@@ -70,9 +70,9 @@ class CostFK(Cost):
 
         # Rearrange the points and matrices.
         pt = np.reshape(np.transpose(pt, [1, 0, 2]), (pt.shape[1], pt.shape[0] * pt.shape[2]))
-        Jx = np.reshape(np.transpose(Jx, [2, 0, 1, 3]), (Jx.shape[2], Jx.shape[0], Jx.shape[1] * Jx.shape[3]))
-        Jxx = np.reshape(np.transpose(Jxx, [3, 0, 1, 2, 4]),
-                         (Jxx.shape[3], Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4]))
+        Jx = np.reshape(np.transpose(Jx, [2, 1, 3, 0]), (Jx.shape[2], Jx.shape[1] * Jx.shape[3], Jx.shape[0]))
+        Jxx = np.reshape(np.transpose(Jxx, [3, 1, 2, 0, 4]),
+                         (Jxx.shape[3], Jxx.shape[2] * Jxx.shape[4], Jxx.shape[0], Jxx.shape[1]))
         dist = pt - tgt
 
         # Evaluate penalty term.

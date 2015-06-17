@@ -22,8 +22,11 @@ cost_state = {
     'l1': 0.0,
     'l2': 1.0,
     'alpha': 1e-2,
-    'wu': 0,  # Torque penalty weight
     'wp_final_multiplier': 1.0,  # Weight multiplier on final timestep
-    'desired_state': None,  # Target state - must be set
-    'wp': None  # State weights - must be set
+    'data_types': {
+        'JointAngle': {
+            'desired_state': None,  # Target state - must be set
+            'wp': None  # State weights - must be set
+        }
+    }
 }
