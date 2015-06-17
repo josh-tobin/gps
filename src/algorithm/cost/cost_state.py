@@ -7,14 +7,6 @@ from cost_utils import evall1l2term, get_ramp_multiplier
 class CostState(Cost):
     """
     Computes l1/l2 distance to a fixed target state
-
-    Args:
-        hyperparams:
-        sample_data:
-        desired_state: 1 x dX target state vector. Penalties will
-            be applied based on difference between measured state and this state.
-        wp: 1 x dX weight vector along each dimension. To ignore a dimension,
-            set its weight to 0.
     """
 
     def __init__(self, hyperparams, sample_data):
@@ -30,6 +22,18 @@ class CostState(Cost):
         self.wp_final_multiplier = hyperparams['wp_final_multiplier']
 
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
+        """
+        Evaluate cost function and derivatives
+
+        Args:
+            x: A T x Dx state matrix
+            u: A T x Du action matrix
+            obs: A T x Dobs observation matrix
+            sample_meta: List of cost_info objects
+                (temporary placeholder until we discuss how to pass these around)
+        Return:
+            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
+        """
         T, Dx = sample_x.shape
         _, Du = sample_u.shape
 
