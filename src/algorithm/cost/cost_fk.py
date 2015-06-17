@@ -1,7 +1,7 @@
 import numpy as np
 
-from algorithm.cost.cost import Cost
-from algorithm.cost.cost_utils import evall1l2term
+from cost import Cost
+from cost_utils import get_ramp_multiplier
 
 
 class CostFK(Cost):
@@ -11,30 +11,22 @@ class CostFK(Cost):
     Args:
         hyperparams:
         sample_data:
-        wp: 100x9 weight vector
+        wp: 1x9 weight vector for each end-effector point
     """
 
-    def __init__(self, hyperparams, sample_data, wp):
-        Cost.__init__(self, hyperparams, sample_data)
+    def __init__(self, hyperparams, sample_data):
+        super(CostFK, self).__init__(hyperparams, sample_data)
+        self.wp = hyperparams['wp']
+        self.env_target = hyperparams['env_target']
+        self.analytic_jacobian = hyperparams['analytic_jacobian']
+        self.ramp_option = hyperparams['ramp_option']
 
-        # TODO: Discuss how to init parameters
-        self.wp = wp
-        self.wacc = 1
-        self.wprevu = 1
-        self.wvel = 1
-        self.env_target = True
-        self.analytic_jacobian = True
+        self.l1 = hyperparams['l1']
+        self.l2 = hyperparams['l2']
+        self.alpha = hyperparams['alpha']
 
-        self.l1 = 0.0
-        self.l2 = 1.0
-        self.wu = 1e-4
-        self.alpha = 1e-2
-
-        self.evalnorm = evall1l2term
-
-    def update(self):
-        """ Update cost values and derivatives. """
-        raise NotImplementedError()
+        self.evalnorm = hyperparams['evalnorm']
+        self.wp_final_multiplier = hyperparams['wp_final_multiplier']
 
     # TODO: Currently, sample_meta takes the place of cost_infos. Discuss how to pass these around.
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
@@ -54,6 +46,9 @@ class CostFK(Cost):
         T, Dx = sample_x.shape
         _, Du = sample_u.shape
 
+        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=self.wp_final_multiplier)
+        wp = self.wp*np.expand_dims(wpm, axis=-1)
+
         # Initialize terms.
         l = np.zeros((T, 1))
         lu = np.zeros((T, Du))
@@ -64,8 +59,10 @@ class CostFK(Cost):
 
         # Choose target.
         if self.env_target:
-            tgt = np.reshape(np.concatenate([sample_meta[i].tgt for i in range(len(sample_meta))], axis=1),
-                             (sample_meta[0].tgt.shape[0], T))
+            dim1, _, dim2 = sample_meta[0].tgt.shape
+            tgt = np.concatenate([sample_meta[i].tgt for i in range(len(sample_meta))], axis=1)
+            tgt = np.transpose(tgt, [1, 0, 2])
+            tgt = np.reshape(tgt, (T, dim1*dim2))
         else:
             raise NotImplementedError("Must use env_target option")
 
@@ -75,25 +72,20 @@ class CostFK(Cost):
         Jxx = np.concatenate([sample_meta[i].Jxx for i in range(len(sample_meta))], axis=3)
 
         # Rearrange the points and matrices.
-        pt = np.reshape(np.transpose(pt, [0, 2, 1]), (pt.shape[0] * pt.shape[2], pt.shape[1]))
-        Jx = np.reshape(np.transpose(Jx, [0, 1, 3, 2]), (Jx.shape[0], Jx.shape[1] * Jx.shape[3], Jx.shape[2]))
-        Jxx = np.reshape(np.transpose(Jxx, [0, 1, 2, 4, 3]),
-                         (Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4], Jxx.shape[3]))
+        pt = np.reshape(np.transpose(pt, [1, 0, 2]), (pt.shape[1], pt.shape[0] * pt.shape[2]))
+        Jx = np.reshape(np.transpose(Jx, [2, 0, 1, 3]), (Jx.shape[2], Jx.shape[0], Jx.shape[1] * Jx.shape[3]))
+        Jxx = np.reshape(np.transpose(Jxx, [3, 0, 1, 2, 4]),
+                         (Jxx.shape[3], Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4]))
         dist = pt - tgt
-
-        # TODO: Remove transposes
-        dist = dist.T
-        Jx = np.transpose(Jx, [2, 0, 1])
-        Jxx = np.transpose(Jxx, [3, 0, 1, 2])
 
         # Evaluate penalty term.
         if self.analytic_jacobian:
             # Use analytic Jacobians from cost_infos.
-            il, ilx, ilxx = self.evalnorm(self.wp, dist, Jx, Jxx, self.l1, self.l2, self.alpha)
+            il, ilx, ilxx = self.evalnorm(wp, dist, Jx, Jxx, self.l1, self.l2, self.alpha)
         else:
             # Use estimated Jacobians and no higher order terms.
             Jxx_zerod = np.zeros((T, Dx, Dx, dist.shape[0]))
-            il, ilx, ilxx = self.evalnorm(self.wp, dist, Jx, Jxx_zerod, self.l1, self.l2, self.alpha)
+            il, ilx, ilxx = self.evalnorm(wp, dist, Jx, Jxx_zerod, self.l1, self.l2, self.alpha)
 
         # Add to current terms.
         l = l + il
@@ -101,34 +93,3 @@ class CostFK(Cost):
         lxx = lxx + ilxx
 
         return l, lx, lu, lxx, luu, lux
-
-
-def __doctest():
-    """
-    Quick doctest just to make sure this runs.
-
-    >>> wp = np.ones((100, 9))
-    >>> c = CostFK(None, None, wp)
-    >>> X = np.ones((100,39))
-    >>> U = np.ones((100,7))
-    >>> sample_meta = [lambda x: None for _ in range(100)]
-    >>> for i in range(len(sample_meta)):
-    ...    sample_meta[i].pt = np.ones((3, 1, 3))*2
-    ...    sample_meta[i].tgt = np.ones((9, 1))
-    ...    sample_meta[i].Jx = np.ones((39, 3, 1, 3))
-    ...    sample_meta[i].Jxx = np.ones((39, 39, 3, 1, 3))
-    >>> l, lx, lu, lxx, luu, lux = c.eval(X, U, None, sample_meta)
-    >>> np.sum(l)
-    450.0
-    >>> np.sum(lx)
-    35100.0
-    >>> np.sum(lu)
-    0.0
-    >>> np.sum(lxx)
-    2737800.0
-    >>> np.sum(luu)
-    0.0
-    >>> np.sum(lux)
-    0.0
-    """
-    pass

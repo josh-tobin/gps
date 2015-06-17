@@ -1,7 +1,7 @@
 import numpy as np
 
-from algorithm.cost.cost import Cost
-from algorithm.cost.cost_utils import evall1l2term
+from cost import Cost
+from cost_utils import evall1l2term, get_ramp_multiplier
 
 
 class CostState(Cost):
@@ -17,30 +17,24 @@ class CostState(Cost):
             set its weight to 0.
     """
 
-    def __init__(self, hyperparams, sample_data, desired_state, wp):
-        Cost.__init__(self, hyperparams, sample_data)
-        self.desired_state = desired_state
-        self.wp = wp
+    def __init__(self, hyperparams, sample_data):
+        super(CostState, self).__init__(hyperparams, sample_data)
+        self.desired_state = hyperparams['desired_state']
+        self.wp = hyperparams['wp']
+        self.ramp_option = hyperparams['ramp_option']
 
-        # TODO: Hold off on storing defaults
-        self.l1 = 0.0
-        self.l2 = 1.0
-        self.wu = 1e-4
-        self.alpha = 1e-2
-
-    def update(self):
-        """ Update cost values and derivatives. """
-        # Compute and add state penalty.
-        # TODO: Need a way to select samples to evaluated
-        sample_X = self.sample_data.get_X([-1])[0]  # Gets the latest sample from sample_data
-        sample_U = self.sample_data.get_U([-1])[0]
-
-        self.eval(sample_X, sample_U, None)
-        #TODO: Where to store/return loss+derivatives after they are evaluated?
+        self.l1 = hyperparams['l1']
+        self.l2 = hyperparams['l2']
+        self.wu = hyperparams['wu']
+        self.alpha = hyperparams['alpha']
+        self.wp_final_multiplier = hyperparams['wp_final_multiplier']
 
     def eval(self, sample_x, sample_u, sample_obs, sample_meta):
         T, Dx = sample_x.shape
         _, Du = sample_u.shape
+
+        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=self.wp_final_multiplier)
+        wp = self.wp*np.expand_dims(wpm, axis=-1)
 
         # Compute torque penalty and initialize terms.
         l = 0.5 * self.wu * np.sum(sample_u ** 2, axis=1, keepdims=True)
@@ -55,7 +49,7 @@ class CostState(Cost):
 
         # Evaluate penalty term.
         il, ilx, ilxx = evall1l2term(
-            np.tile(self.wp, [T, 1]),
+            wp,
             dist,
             np.tile(np.eye(Dx), [T, 1, 1]),
             np.zeros((T, Dx, Dx, Dx)),
@@ -68,21 +62,3 @@ class CostState(Cost):
         lxx += ilxx
 
         return l, lx, lu, lxx, luu, lux
-
-
-def __finite_differences_doctest():
-    """
-    >>> import numpy as np
-    >>> import algorithm.cost.cost_utils as cost_utils
-    >>> T=30; Dx = 7; Du = 3; Dobs=2
-    >>> wp = np.ones((1, Dx))
-    >>> desired_state = np.ones((1, Dx))
-    >>> X = np.random.randn(T, Dx)
-    >>> U = np.random.randn(T, Du)
-    >>> Obs = np.random.randn(T, Dobs)
-    >>> metadata = [None]*T  # CostState uses no metadata
-    >>> cost = CostState(None, None, desired_state, wp)
-    >>> cost_utils.finite_differences_cost_test(cost, X, U, Obs, metadata)
-    True
-    """
-    pass
