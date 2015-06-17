@@ -101,17 +101,20 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
     // If we have a trial controller, update that, otherwise update position controller.
-    if (trial_controller_ != NULL) trial_controller_->update(this,last_update_time_,is_controller_step,active_arm_torques_);
-    else active_arm_controller_->update(this,last_update_time_,is_controller_step,active_arm_torques_);
+    if (trial_controller_ != NULL) trial_controller_->update(this,current_time,is_controller_step,active_arm_torques_);
+    else active_arm_controller_->update(this,current_time,is_controller_step,active_arm_torques_);
 
     // Update passive arm controller.
-    passive_arm_controller_->update(this,last_update_time_,is_controller_step,passive_arm_torques_);
+    passive_arm_controller_->update(this,current_time,is_controller_step,passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
     if (trial_controller_->is_finished())
     {
         // Clear the trial controller.
         trial_controller_.reset(NULL);
+
+        // Reset the active arm controller.
+        active_arm_controller_->reset(current_time);
 
         // Switch the sensors to run at full frequency.
         for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)

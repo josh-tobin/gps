@@ -188,21 +188,21 @@ ros::Time PR2Plugin::get_current_time() const
 }
 
 // Get current encoder readings (robot-dependent).
-void PR2Plugin::get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const
+void PR2Plugin::get_joint_encoder_readings(VectorXd &angles, ArmType arm) const
 {
     if (arm == ArmType.PassiveArm)
     {
-        if (angles.size() != passive_arm_joint_state_.size())
+        if (angles.rows() != passive_arm_joint_state_.size())
             angles.resize(passive_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
-            angles[i] = passive_arm_joint_state_[i]->position;
+            angles(i) = passive_arm_joint_state_[i]->position;
     }
     else if (arm == ArmType.ActiveArm)
     {
-        if (angles.size() != active_arm_joint_state_.size())
+        if (angles.rows() != active_arm_joint_state_.size())
             angles.resize(active_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
-            angles[i] = active_arm_joint_state_[i]->position;
+            angles(i) = active_arm_joint_state_[i]->position;
     }
     else
     {

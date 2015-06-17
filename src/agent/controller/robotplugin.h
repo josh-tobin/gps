@@ -40,6 +40,8 @@ class PositionCommandMsg;
 class TrialCommandMsg;
 class RelaxCommandMsg;
 
+/* TODO: at some point, need to go through and convert all std::vector<double> to VectorXd! */
+
 class RobotPlugin
 {
 private:
@@ -114,7 +116,7 @@ public:
     // Get sensor.
     virtual Sensor *get_sensor(SensorType sensor);
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const = 0;
+    virtual void get_joint_encoder_readings(VectorXd &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.
     virtual void get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
 };

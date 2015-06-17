@@ -24,27 +24,53 @@ enum PositionControlMode
 class PositionController : public Controller
 {
 private:
+    // P gains.
+    VectorXd pd_gains_p_;
+    // D gains.
+    VectorXd pd_gains_d_;
+    // I gains.
+    VectorXd pd_gains_i_;
+    // Integral terms.
+    VectorXd pd_integral_;
+    // Maximum joint velocities.
+    VectorXd max_velocities_;
+    // Temporary storage for Jacobian.
+    MatrixXd temp_jacobian_;
+    // Temporary storage for joint angle offset.
+    VectorXd temp_angles_;
     // Current target (joint space).
     VectorXd target_angles_;
     // Current target (task space).
-    MatrixXd target_pose_;
+    VectorXd target_pose_;
+    // Latest joint angles.
+    VectorXd current_angles_;
+    // Latest joint angle velocities.
+    VectorXd current_angle_velocities_;
+    // Latest pose.
+    VectorXd current_pose_;
     // Current mode.
-    position_control_mode mode_;
+    PositionControlMode mode_;
+    // Current arm.
+    ArmType arm_;
     // Time since motion start.
-    double start_time_;
+    ros::Time start_time_;
+    // Time of last update.
+    ros::Time last_update_time_;
 public:
     // Constructor.
     PositionController(ros::NodeHandle& n, ArmType arm);
     // Destructor.
-    virtual ~PositionController();
+    virtual void ~PositionController();
     // Update the controller (take an action).
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, std::scopted_ptr<Sample> sample);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, std::scopted_ptr<Sample> sample, std::vector<double> &torques);
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
     virtual boost::scoped_ptr<Sample> get_sample() const;
+    // Reset the controller -- this is typically called when the controller is turned on.
+    virtual void reset();
 };
 
 }
