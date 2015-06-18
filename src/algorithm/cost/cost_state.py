@@ -22,11 +22,9 @@ class CostState(Cost):
             l, lx, lu, lxx, luu, lux:
                 Loss (Tx1 float) and derivatives with respect to states (x) and/or actions (u).
         """
-        T = sample.get_T()
-        Du = sample.get_Du()
-        Dx = sample.get_Dx()
-        Jx = np.tile(np.eye(Dx), [T, 1, 1])
-        Jxx = np.zeros((T, Dx, Dx, Dx))
+        T = sample.T
+        Du = sample.dU
+        Dx = sample.dX
 
         final_l = np.zeros(T)
         final_lu = np.zeros((T, Du))
@@ -39,14 +37,12 @@ class CostState(Cost):
             config = self._hyperparams['data_types'][data_type_name]
             wp = config['wp']
             tgt = config['desired_state']
-            x = sample.get_X(data_type_name)
+            x = sample.get(data_type_name)
             _, dim_sensor = x.shape
 
-            wpm = get_ramp_multiplier(self._hyperparams['ramp_option'],
-                                      T,
+            wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
                                       wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
             wp = wp*np.expand_dims(wpm, axis=-1)
-
             # Compute state penalty
             dist = x - tgt
 
@@ -54,14 +50,14 @@ class CostState(Cost):
             l, ls, lss = evall1l2term(
                 wp,
                 dist,
-                sample.slice_data_x(Jx, data_type_name, axis=1),
-                sample.slice_data_x(Jxx, data_type_name, axis=1),
+                np.tile(np.eye(dim_sensor), [T, 1, 1]),
+                np.zeros((T, dim_sensor, dim_sensor, dim_sensor)),
                 self._hyperparams['l1'],
                 self._hyperparams['l2'],
                 self._hyperparams['alpha'])
 
             final_l += l
-            sample.pack_data_x(final_lx, data_type_name, ls)
-            sample.pack_data_x(final_lxx, data_type_name, lss)
+            sample.pack_data_x(final_lx, ls, data_types=[data_type_name])
+            sample.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
 
         return final_l, final_lx, final_lu, final_lxx, final_luu, final_lux
