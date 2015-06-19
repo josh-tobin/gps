@@ -17,7 +17,6 @@ cost_fk = {
 }
 
 """ CostState """
-# TODO - Desired state is also needed.
 cost_state = {
     'ramp_option': RAMP_CONSTANT,  # How target cost increases over time.
     'l1': 0.0,
