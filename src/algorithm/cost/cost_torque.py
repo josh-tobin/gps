@@ -1,6 +1,6 @@
 import numpy as np
 
-from config import cost_torque as config
+from config import cost_torque
 from cost import Cost
 
 
@@ -10,6 +10,7 @@ class CostTorque(Cost):
     """
 
     def __init__(self, hyperparams):
+        config = cost_torque.copy()
         config.update(hyperparams)
         Cost.__init__(self, config)
 
