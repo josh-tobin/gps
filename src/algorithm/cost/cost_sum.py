@@ -5,9 +5,15 @@ class CostSum(Cost):
     """
     A wrapper cost function that adds other cost functions
     """
-    def __init__(self, hyperparams, sample_data):
-        # TODO - properly initialize this.
-        super(CostSum, self).__init__(hyperparams, sample_data)
+    def __init__(self, hyperparams):
+
+        assert len(hyperparams['costs']) == len(hyperparams['weights'])
+
+        self._costs = []
+
+        for cost in hyperparams['costs']:
+            self._costs.append(cost['type'](cost['hyperparams']))
+
 
     def eval(self, sample):
         """
@@ -19,7 +25,7 @@ class CostSum(Cost):
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        l, lx, lu, lxx, luu, lux = self._hyperparams['costs'][0].eval(sample)
+        l, lx, lu, lxx, luu, lux = self._costs[0].eval(sample)
         weights = self._hyperparams['weights'][0]
         l = l * weights
         lx = lx * weights
@@ -27,8 +33,8 @@ class CostSum(Cost):
         lxx = lxx * weights
         luu = luu * weights
         lux = lux * weights
-        for i in range(2, len(self._hyperparams['costs'])):
-            pl, plx, plu, plxx, pluu, plux = self._hyperparams['costs'][i].eval(sample)
+        for i in range(1, len(self._costs)):
+            pl, plx, plu, plxx, pluu, plux = self._costs[i].eval(sample)
             weights = self._hyperparams['weights'][i]
             l = l + pl * weights
             lx = lx + plx * weights

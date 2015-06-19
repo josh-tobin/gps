@@ -30,3 +30,15 @@ cost_state = {
         }
     }
 }
+
+""" CostSum """
+# Below is the structure of the hyperparams - just a template, code not used.
+cost_sum = {
+    'costs': [],  # A list of hyperparam dictionaries for each cost
+    'weights: [],  # Weight multipliers for each cost
+}
+
+""" CostTorque """
+cost_torque = {
+    'wu': 1e-4,  # Weight of torque penalty
+}

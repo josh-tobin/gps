@@ -1,5 +1,6 @@
 import numpy as np
 
+from config import cost_torque as config
 from cost import Cost
 
 
@@ -8,8 +9,9 @@ class CostTorque(Cost):
     Computes torque penalties
     """
 
-    def __init__(self, hyperparams, sample_data):
-        super(CostTorque, self).__init__(hyperparams, sample_data)
+    def __init__(self, hyperparams):
+        config.update(hyperparams)
+        Cost.__init__(self, config)
 
     def eval(self, sample):
         """
