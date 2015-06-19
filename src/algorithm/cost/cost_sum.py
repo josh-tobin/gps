@@ -16,7 +16,8 @@ class CostSum(Cost):
         Args:
             sample: A Sample object
         Return:
-            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
+            l, lx, lu, lxx, luu, lux:
+                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         l, lx, lu, lxx, luu, lux = self._hyperparams['costs'][0].eval(sample)
         weights = self._hyperparams['weights'][0]

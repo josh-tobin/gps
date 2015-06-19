@@ -13,7 +13,7 @@ class Agent(object):
         self.state_assembler = state_assembler
 
     @abc.abstractmethod
-    def sample(self, N):
+    def sample(self, policy, T):
         raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod

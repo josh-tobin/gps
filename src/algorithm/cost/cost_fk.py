@@ -23,13 +23,11 @@ class CostFK(Cost):
             with the velocity/velocity diff/etc. penalties remove (use CostState instead)
 
         Args:
-            sample_X: A T x Dx state matrix
-            sample_U: A T x Du action matrix
-            sample_Obs: A T x Dobs observation matrix
-            sample_meta: List of cost_info objects
-                (temporary placeholder until we discuss how to pass these around)
+            sample: A Sample object
+
         Return:
-            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
+            l, lx, lu, lxx, luu, lux:
+                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         T = sample.T
         dX = sample.dX
@@ -66,7 +64,7 @@ class CostFK(Cost):
                                                           self._hyperparams['alpha'])
         else:
             # Use estimated Jacobians and no higher order terms
-            jxx_zeros = np.zeros((T, dX, dX, dist.shape[0]))
+            jxx_zeros = np.zeros((T, dist.shape[0], dX, dX))
             il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],

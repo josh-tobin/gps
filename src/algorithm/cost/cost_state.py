@@ -22,7 +22,7 @@ class CostState(Cost):
             sample: A Sample object
         Return:
             l, lx, lu, lxx, luu, lux:
-                Loss (Tx1 float) and derivatives with respect to states (x) and/or actions (u).
+                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         T = sample.T
         Du = sample.dU
