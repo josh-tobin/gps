@@ -1,6 +1,6 @@
 import datetime
 
-from algorithm.lqr_alg import LQRAlgorithm
+from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from algorithm.cost.cost_fk import CostFK
 from algorithm.dynamics.dynamics_lr import DynamicsLR
 from algorithm.traj_opt.traj_opt_lqr import TrajOptLQR
@@ -23,8 +23,7 @@ sample_data = {
 agent = {}
 
 algorithm = {
-    'type': LQRAlgorithm,
-    'iterations': 10,
+    'type': AlgorithmTrajOpt,
 }
 
 algorithm['cost'] = {
@@ -42,6 +41,7 @@ algorithm['traj_opt'] = {
 algorithm['policy_opt'] = {}
 
 defaults = {
+    'iterations': 10,
     'common': common,
     'sample': sample,
     'sample_data': sample_data,

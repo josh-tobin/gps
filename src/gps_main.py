@@ -10,7 +10,7 @@ class GPSMain():
     """
     def __init__(self):
         self._hyperparams = defaults
-        self._iterations = defaults['algorithm']['iterations']
+        self._iterations = defaults['iterations']
 
         self.sample_data = SampleData(defaults['sample_data'], defaults['common'])
         self.algorithm = defaults['algorithm']['type'](defaults['algorithm'], defaults['common'], sample_data)

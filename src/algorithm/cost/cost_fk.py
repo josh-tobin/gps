@@ -11,7 +11,9 @@ class CostFK(Cost):
     """
 
     def __init__(self, hyperparams, sample_data):
-        super(CostFK, self).__init__(hyperparams, sample_data)
+        config.update(hyperparams)
+
+        Cost.__init__(self, config, sample_data)
 
     def eval(self, sample):
         """

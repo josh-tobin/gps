@@ -6,6 +6,7 @@ class CostSum(Cost):
     A wrapper cost function that adds other cost functions
     """
     def __init__(self, hyperparams, sample_data):
+        # TODO - properly initialize this.
         super(CostSum, self).__init__(hyperparams, sample_data)
 
     def eval(self, sample):

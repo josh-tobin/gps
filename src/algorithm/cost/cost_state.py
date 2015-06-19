@@ -1,6 +1,7 @@
 import numpy as np
 
 from cost import Cost
+from config import cost_state as config
 from cost_utils import evall1l2term, get_ramp_multiplier
 
 
@@ -10,7 +11,8 @@ class CostState(Cost):
     """
 
     def __init__(self, hyperparams, sample_data):
-        super(CostState, self).__init__(hyperparams, sample_data)
+        config.update(hyperparams)
+        Cost.__init__(self, config, sample_data)
 
     def eval(self, sample):
         """
