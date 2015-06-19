@@ -13,7 +13,7 @@ enum DataType
     JointAngle,
     JointVelocity,
     EndEffectorPoint,
-    EndEffectorPoint_velocity,
+    EndEffectorPointVelocity,
     EndEffectorPosition,
     EndEffectorRotation,
     EndEffectorJacobian,
@@ -33,16 +33,16 @@ using namespace boost::python;
 // Python implementation.
 BOOST_PYTHON_MODULE(gps_sample_types)
 {
-    enum_<DataType>("data_type")
+    enum_<DataType>("DataType")
         .value("Action", Action)
         .value("JointAngle", JointAngle)
         .value("JointVelocity", JointVelocity)
         .value("EndEffectorPoint", EndEffectorPoint)
-        .value("EndEffectorPoint_velocity", EndEffectorPointVelocity)
+        .value("EndEffectorPointVelocity", EndEffectorPointVelocity)
         .value("EndEffectorPosition", EndEffectorPosition)
         .value("EndEffectorRotation", EndEffectorRotation)
         .value("EndEffectorJacobian", EndEffectorJacobian)
-        .value("RGBImage",RGBImage)
+        .value("RBGImage",RBGImage)
         .value("TotalDataTypes", TotalDataTypes)
         ;
 }

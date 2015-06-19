@@ -1,42 +1,23 @@
 import numpy as np
 
-from algorithm.cost.cost import Cost
-from algorithm.cost.cost_utils import evall1l2term
+from cost import Cost
+from cost_utils import get_ramp_multiplier
 
 
 class CostFK(Cost):
     """
-    Forward kinematics cost function
-
-    Args:
-        hyperparams:
-        sample_data:
-        wp: 100x9 weight vector
+    Forward kinematics cost function. Used for costs involving the
+    end effector position.
     """
 
     def __init__(self, hyperparams, sample_data):
-        Cost.__init__(self, hyperparams, sample_data)
-
         config.update(hyperparams)
-        # TODO: Discuss how to init parameters
-        self.wp = config['wp']
-        self.wacc = 1
-        self.wprevu = 1
-        self.wvel = 1
-        self.env_target = True
-        self.analytic_jacobian = True
 
-        self.l1 = config['l1']
-        self.l2 = config['l2']
-        self.wu = config['wu']
-        self.alpha = config['alpha']
+        Cost.__init__(self, config, sample_data)
 
-        self.evalnorm = evall1l2term
-
-    # TODO: Currently, sample_meta takes the place of cost_infos. Discuss how to pass these around.
-    def eval(self, sample_x, sample_u, sample_obs, sample_meta):
+    def eval(self, sample):
         """
-        Evaluate forward kinematics cost.
+        Evaluate forward kinematics (end-effector penalties) cost.
 
         Temporary note: This implements the 'joint' penalty type from the matlab code,
             with the velocity/velocity diff/etc. penalties remove (use CostState instead)
@@ -47,85 +28,52 @@ class CostFK(Cost):
             sample_Obs: A T x Dobs observation matrix
             sample_meta: List of cost_info objects
                 (temporary placeholder until we discuss how to pass these around)
+        Return:
+            l, lx, lu, lxx, luu, lux: Loss (Tx1 float) and 1st/2nd derivatives.
         """
-        T, Dx = sample_x.shape
-        _, Du = sample_u.shape
+        T = sample.T
+        dX = sample.dX
+        dU = sample.dU
+
+        wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
+                                  wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
+        wp = self._hyperparams['wp'] * np.expand_dims(wpm, axis=-1)
 
         # Initialize terms.
-        l = np.zeros((T, 1))
-        lu = np.zeros((T, Du))
-        lx = np.zeros((T, Dx))
-        luu = np.zeros((T, Du, Du))
-        lxx = np.zeros((T, Dx, Dx))
-        lux = np.zeros((T, Du, Dx))
+        l = np.zeros((T,))
+        lu = np.zeros((T, dU))
+        lx = np.zeros((T, dX))
+        luu = np.zeros((T, dU, dU))
+        lxx = np.zeros((T, dX, dX))
+        lux = np.zeros((T, dU, dX))
 
         # Choose target.
-        if self.env_target:
-            tgt = np.reshape(np.concatenate([sample_meta[i].tgt for i in range(len(sample_meta))], axis=1),
-                             (sample_meta[0].tgt.shape[0], T))
+        if self._hyperparams['env_target']:
+            tgt = sample.get('EndEffectorTarget')
         else:
-            raise NotImplementedError("Must use env_target option")
+            raise NotImplementedError('Must use env_target option')
 
-        # Compute and add FK penalties.
-        pt = np.concatenate([sample_meta[i].pt for i in range(len(sample_meta))], axis=1)
-        Jx = np.concatenate([sample_meta[i].Jx for i in range(len(sample_meta))], axis=2)
-        Jxx = np.concatenate([sample_meta[i].Jxx for i in range(len(sample_meta))], axis=3)
-
-        # Rearrange the points and matrices.
-        pt = np.reshape(np.transpose(pt, [0, 2, 1]), (pt.shape[0] * pt.shape[2], pt.shape[1]))
-        Jx = np.reshape(np.transpose(Jx, [0, 1, 3, 2]), (Jx.shape[0], Jx.shape[1] * Jx.shape[3], Jx.shape[2]))
-        Jxx = np.reshape(np.transpose(Jxx, [0, 1, 2, 4, 3]),
-                         (Jxx.shape[0], Jxx.shape[1], Jxx.shape[2] * Jxx.shape[4], Jxx.shape[3]))
+        pt = sample.get('EndEffectorPoint')
         dist = pt - tgt
-
-        # TODO: Remove transposes
-        dist = dist.T
-        Jx = np.transpose(Jx, [2, 0, 1])
-        Jxx = np.transpose(Jxx, [3, 0, 1, 2])
+        jx = sample.get('EndEffectorJacobian')
 
         # Evaluate penalty term.
-        if self.analytic_jacobian:
-            # Use analytic Jacobians from cost_infos.
-            il, ilx, ilxx = self.evalnorm(self.wp, dist, Jx, Jxx, self.l1, self.l2, self.alpha)
+        if self._hyperparams['analytic_jacobian']:
+            jxx = sample.get('EndEffector2ndJacobian')
+            il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
+                                                          self._hyperparams['l1'],
+                                                          self._hyperparams['l2'],
+                                                          self._hyperparams['alpha'])
         else:
-            # Use estimated Jacobians and no higher order terms.
-            Jxx_zerod = np.zeros((T, Dx, Dx, dist.shape[0]))
-            il, ilx, ilxx = self.evalnorm(self.wp, dist, Jx, Jxx_zerod, self.l1, self.l2, self.alpha)
-
+            # Use estimated Jacobians and no higher order terms
+            jxx_zeros = np.zeros((T, dX, dX, dist.shape[0]))
+            il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
+                                                          self._hyperparams['l1'],
+                                                          self._hyperparams['l2'],
+                                                          self._hyperparams['alpha'])
         # Add to current terms.
         l = l + il
         lx = lx + ilx
         lxx = lxx + ilxx
 
         return l, lx, lu, lxx, luu, lux
-
-
-def __doctest():
-    """
-    Quick doctest just to make sure this runs.
-
-    >>> wp = np.ones((100, 9))
-    >>> c = CostFK(None, None, wp)
-    >>> X = np.ones((100,39))
-    >>> U = np.ones((100,7))
-    >>> sample_meta = [lambda x: None for _ in range(100)]
-    >>> for i in range(len(sample_meta)):
-    ...    sample_meta[i].pt = np.ones((3, 1, 3))*2
-    ...    sample_meta[i].tgt = np.ones((9, 1))
-    ...    sample_meta[i].Jx = np.ones((39, 3, 1, 3))
-    ...    sample_meta[i].Jxx = np.ones((39, 39, 3, 1, 3))
-    >>> l, lx, lu, lxx, luu, lux = c.eval(X, U, None, sample_meta)
-    >>> np.sum(l)
-    450.0
-    >>> np.sum(lx)
-    35100.0
-    >>> np.sum(lu)
-    0.0
-    >>> np.sum(lxx)
-    2737800.0
-    >>> np.sum(luu)
-    0.0
-    >>> np.sum(lux)
-    0.0
-    """
-    pass

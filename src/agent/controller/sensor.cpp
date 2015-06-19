@@ -9,8 +9,6 @@ static Sensor Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPl
     {
     case EncoderSensorType:
         return EncoderSensor(n,plugin);
-    case FKSensorType:
-        return FKSensor(n,plugin);
     case CameraSensorType:
         return CameraSensor(n,plugin);
     default:

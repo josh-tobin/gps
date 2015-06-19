@@ -22,6 +22,14 @@ private:
     pr2_mechanism_model::Chain passive_arm_chain_, active_arm_chain_;
     // This is a pointer to the robot state, which we get when initialized and have to keep after that.
     pr2_mechanism_model::RobotState* robot_;
+    // Passive arm joint states.
+    std::vector<pr2_mechanism_model::JointState*> passive_arm_joint_state_;
+    // Active arm joint states.
+    std::vector<pr2_mechanism_model::JointState*> active_arm_joint_state_;
+    // Passive arm joint names.
+    std::vector<std::string> passive_arm_joint_names_;
+    // Active arm joint names.
+    std::vector<std::string> active_arm_joint_names_;
     // Time of last state update.
     ros::Time last_update_time_;
     // Counter for keeping track of controller steps.
@@ -54,10 +62,10 @@ public:
          includes the recorded robot state for the controller's execution.
      */
     // Accessors.
+    // Get current time.
+    virtual ros::Time get_current_time() const;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles) const;
-    // Get forward kinematics solver.
-    // TODO: implement.
+    virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const;
 };
 
 }

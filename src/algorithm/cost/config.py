@@ -1,23 +1,33 @@
 """Default configuration and hyperparameter values for cost objects
 
 """
+from cost_utils import RAMP_CONSTANT, evallogl2term
 
 """ CostFK """
 cost_fk = {
-    'wu': 1e-4,  # Action penalty
-    'wp': 1.0,  # Multiplier on each dimension of target deviation vector.
-    'l1': 0.0,  # Multiplier for L1 component of cost.
-    'l2': 1.0,  # Multiplier for L2 component of cost.
-    'cost_ramp': 'quadratic',  # How target cost increases over time.
+    'ramp_option': RAMP_CONSTANT,  # How target cost increases over time.
+    'wp': None,  # State weights - must be set
+    'wp_final_multiplier': 1.0,  # Weight multiplier on final timestep
+    'env_target': True,
+    'analytic_jacobian': True,
+    'l1': 0.0,
+    'l2': 1.0,
+    'alpha': 1e-2,
+    'evalnorm': evallogl2term
 }
 
 """ CostState """
 # TODO - Desired state is also needed.
 cost_state = {
-    'wu': 1e-4,  # Action penalty
-    # TODO - will the below wp work? Does it need to be 1xdX?
-    'wp': 1.0,  # Multiplier on each dimension of target deviation vector.
-    'l1': 1.0,  # Multiplier for L1 component of cost.
-    'l2': 1.0,  # Multiplier for L2 component of cost.
-    'alpha': 1e-2,  # Smoothing constant for smooth pseudo-L1 norm.
+    'ramp_option': RAMP_CONSTANT,  # How target cost increases over time.
+    'l1': 0.0,
+    'l2': 1.0,
+    'alpha': 1e-2,
+    'wp_final_multiplier': 1.0,  # Weight multiplier on final timestep
+    'data_types': {
+        'JointAngle': {
+            'desired_state': None,  # Target state - must be set
+            'wp': None  # State weights - must be set
+        }
+    }
 }
