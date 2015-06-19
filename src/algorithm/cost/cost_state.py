@@ -11,7 +11,7 @@ class CostState(Cost):
     """
 
     def __init__(self, hyperparams):
-        config = cost_state.copy()
+        config = cost_state.deepcopy()
         config.update(hyperparams)
         Cost.__init__(self, config)
 
