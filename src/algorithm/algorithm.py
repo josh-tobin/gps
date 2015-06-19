@@ -10,7 +10,7 @@ class Algorithm(object):
     def __init__(self, hyperparams, sample_data):
         self._hyperparams = hyperparams
         self._sample_data = sample_data
-        self.cost = hyperparams['cost']['type'](hyperparams['cost'], sample_data)
+        self.cost = hyperparams['cost']['type'](hyperparams['cost'])
         self.dynamics = hyperparams['dynamics']['type'](hyperparams['dynamics'], sample_data)
         self.policy_opt = None
         self.traj_opt = None
