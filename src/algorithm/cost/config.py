@@ -35,7 +35,7 @@ cost_state = {
 # Below is the structure of the hyperparams - just a template, code not used.
 cost_sum = {
     'costs': [],  # A list of hyperparam dictionaries for each cost
-    'weights: [],  # Weight multipliers for each cost
+    'weights': [],  # Weight multipliers for each cost
 }
 
 """ CostTorque """
