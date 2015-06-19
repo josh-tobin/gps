@@ -1,7 +1,7 @@
 import numpy as np
 
-from cost import Cost
 from config import cost_state as config
+from cost import Cost
 from cost_utils import evall1l2term, get_ramp_multiplier
 
 
@@ -10,9 +10,10 @@ class CostState(Cost):
     Computes l1/l2 distance to a fixed target state
     """
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         config.update(hyperparams)
-        Cost.__init__(self, config, sample_data)
+
+        Cost.__init__(self, config)
 
     def eval(self, sample):
         """

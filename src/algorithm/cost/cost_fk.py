@@ -1,5 +1,6 @@
 import numpy as np
 
+from config import cost_fk as config
 from cost import Cost
 from cost_utils import get_ramp_multiplier
 
@@ -10,10 +11,10 @@ class CostFK(Cost):
     end effector position.
     """
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         config.update(hyperparams)
 
-        Cost.__init__(self, config, sample_data)
+        Cost.__init__(self, config)
 
     def eval(self, sample):
         """
