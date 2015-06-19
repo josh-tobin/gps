@@ -10,6 +10,7 @@ class CostSum(Cost):
         assert len(hyperparams['costs']) == len(hyperparams['weights'])
 
         self._costs = []
+        self._weights = hyperparams['weights']
 
         for cost in hyperparams['costs']:
             self._costs.append(cost['type'](cost['hyperparams']))
@@ -26,20 +27,20 @@ class CostSum(Cost):
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         l, lx, lu, lxx, luu, lux = self._costs[0].eval(sample)
-        weights = self._hyperparams['weights'][0]
-        l = l * weights
-        lx = lx * weights
-        lu = lu * weights
-        lxx = lxx * weights
-        luu = luu * weights
-        lux = lux * weights
+        weight = self._weights[0]
+        l = l * weight
+        lx = lx * weight
+        lu = lu * weight
+        lxx = lxx * weight
+        luu = luu * weight
+        lux = lux * weight
         for i in range(1, len(self._costs)):
             pl, plx, plu, plxx, pluu, plux = self._costs[i].eval(sample)
-            weights = self._hyperparams['weights'][i]
-            l = l + pl * weights
-            lx = lx + plx * weights
-            lu = lu + plu * weights
-            lxx = lxx + plxx * weights
-            luu = luu + pluu * weights
-            lux = lux + plux * weights
+            weight = self._weights[i]
+            l = l + pl * weight
+            lx = lx + plx * weight
+            lu = lu + plu * weight
+            lxx = lxx + plxx * weight
+            luu = luu + pluu * weight
+            lux = lux + plux * weight
         return l, lx, lu, lxx, luu, lux
