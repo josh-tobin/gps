@@ -35,10 +35,10 @@ class Sensor;
 // Sample.
 class Sample;
 // Custom ROS messages.
-class TrialResultMsg;
-class PositionCommandMsg;
-class TrialCommandMsg;
-class RelaxCommandMsg;
+class SampleResult;
+class PositionCommand;
+class TrialCommand;
+class RelaxCommand;
 
 class RobotPlugin
 {
@@ -96,11 +96,11 @@ public:
     virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
     // Subscriber callbacks.
     // Position command callback.
-    virtual void position_subscriber_callback(const PositionCommandMsg::ConstPtr& msg);
+    virtual void position_subscriber_callback(const PositionCommand::ConstPtr& msg);
     // Trial command callback.
-    virtual void trial_subscriber_callback(const TrialCommandMsg::ConstPtr& msg);
+    virtual void trial_subscriber_callback(const TrialCommand::ConstPtr& msg);
     // Relax command callback.
-    virtual void relax_subscriber_callback(const RelaxCommandMsg::ConstPtr& msg);
+    virtual void relax_subscriber_callback(const RelaxCommand::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Update functions.
