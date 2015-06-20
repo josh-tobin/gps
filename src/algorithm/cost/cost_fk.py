@@ -12,7 +12,7 @@ class CostFK(Cost):
     """
 
     def __init__(self, hyperparams):
-        config = cost_fk.copy()
+        config = cost_fk.deepcopy()
         config.update(hyperparams)
         Cost.__init__(self, config)
 

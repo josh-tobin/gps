@@ -10,7 +10,7 @@ class CostTorque(Cost):
     """
 
     def __init__(self, hyperparams):
-        config = cost_torque.copy()
+        config = cost_torque.deepcopy()
         config.update(hyperparams)
         Cost.__init__(self, config)
 
