@@ -27,4 +27,4 @@ class LinearGaussianPolicy(Policy):
         """
         # Compute noise - this is executed once and thrown away
         noise = self.chol_pol_covar.T.dot(np.random.randn(self.T, self.dU))
-        return self.u_hat + noise - self.K.dot(self.x_hat)
+        return self.u_hat + noise - self.K.dot(self.x_hat) + self.k
