@@ -13,13 +13,10 @@ class DynamicsLR(Dynamics):
         # Nothing to do - constant prior.
         pass
 
-    def eval_prior(self):
-        raise NotImplementedError("TODO")
-
-    def fit(self, sample_idx):
+    def fit(self):
         """ Fit dynamics. """
-        X = self._sample_data.get_X(sample_idx)
-        U = self._sample_data.get_U(sample_idx)
+        X = self._sample_data.get_X()
+        U = self._sample_data.get_U()
 
         dX = X.shape[-1]
         dU = U.shape[-1]
