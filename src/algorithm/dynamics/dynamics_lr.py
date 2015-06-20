@@ -8,6 +8,9 @@ class DynamicsLR(Dynamics):
         Dynamics.__init__(self, hyperparams, sample_data)
         super(DynamicsLR, self).__init__(hyperparams, sample_data)
 
+        self._ref_traj_X = np.zeros(T, dX)
+        self._ref_traj_U = np.zeros(T, dU)
+
     def update_prior(self):
         """ Update dynamics prior. """
         # Nothing to do - constant prior.
@@ -18,8 +21,19 @@ class DynamicsLR(Dynamics):
         X = self._sample_data.get_X()
         U = self._sample_data.get_U()
 
-        dX = X.shape[-1]
-        dU = U.shape[-1]
+        N, T, dX = X.shape
+        dU = U.shape[2]
 
-        sig = np.eye(dX+dU)
+        fd = np.empty(T, dX+dU, dX)
+
+        # Subtract reference trajectory
+        X = np.asarray([X[i, :, :] - self._ref_traj for i in range(N)])
+        U = np.asarray([U[i, :, :] - self._ref_traj for i in range(N)])
+
+        # Fit dynamics wih least squares regression
+        # TODO - deal with fc (add ones and slice result?)
+        for t in range(T-1):
+            fd(t,:,:), _, _, _ = np.linalg.lstsq(np.c_[X(:,t,:),U(:,t,:)], X(:,t+1,:))
+
+        dyn_covar = np.eye(dX+dU)
         raise NotImplementedError("TODO - Fit dynamics")
