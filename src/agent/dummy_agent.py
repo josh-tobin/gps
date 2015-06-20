@@ -9,27 +9,19 @@ class DummyAgent(Agent):
     A dummy agent that generates fake, unrealistic samples.
     Useful for checking if code runs.
     """
-    def __init__(self, hyperparams, common_hyperparams, sample_data, state_assembler):
-        super(DummyAgent, self).__init__(hyperparams, common_hyperparams, sample_data, state_assembler)
+    def __init__(self, hyperparams, sample_data, state_assembler):
+        super(DummyAgent, self).__init__(hyperparams, sample_data, state_assembler)
         self.filler = np.random.randn
 
-    def sample(self, N):
+    def sample(self, policy, T):
         """
-        Add samples to sample_data
-
-        Args:
-            N: Number of samples to take
+        Returns a random sample.
         """
-        samples = [self.__generate_random_sample() for _ in range(N)]
-        self.sample_data.add_samples(samples)
-
-    def __generate_random_sample(self):
-        """ Fill X, U, and Phi with random data """
         sample = Sample(self._hyperparams)
-        sample._X = self.filler(sample.T, sample.dX)
-        sample._U = self.filler(sample.T, sample.dU)
-        sample._obs = self.filler(sample.T, sample.dObs)
+        sample._X = self.filler(T, sample.dX)
+        sample._U = self.filler(T, sample.dU)
+        sample._obs = self.filler(T, sample.dObs)
         return sample
 
-    def test(self):
-        raise NotImplementedError()
+    def reset(self, condition):
+        pass

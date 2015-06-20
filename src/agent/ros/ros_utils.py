@@ -2,6 +2,7 @@ import rospy
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
 
+
 def construct_sample_from_ros_msg(ros_msg):
     """
     Convert a SampleResult ROS message into a Sample python object
@@ -39,14 +40,11 @@ class ServiceEmulator(object):
         pub_type (class): Publisher message type
         sub_topic (string): Subscriber topic
         sub_type (class): Subscriber message type
-        timeout (float, optional): Timeout in seconds. Default 5
     """
-    def __init__(self, pub_topic, pub_type,
-                        sub_topic, sub_type, timeout=5.0):
+    def __init__(self, pub_topic, pub_type, sub_topic, sub_type):
         self._pub = rospy.Publisher(pub_topic, pub_type)
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
 
-        self.timeout = timeout
         self._waiting = False
         self._subscriber_msg = None
 
@@ -58,14 +56,15 @@ class ServiceEmulator(object):
     def publish(self, pub_msg):
         self._pub.publish(pub_msg)
 
-    def publish_and_wait(self, pub_msg):
+    def publish_and_wait(self, pub_msg, timeout=5.0):
         """
         Publish a message and wait for the response.
 
         Args:
-            pub_msg: Message to publish
+            pub_msg (pub_type): Message to publish
+            timeout (float, optional): Timeout in seconds. Default 5.0
         Returns:
-            sub_msg: Subscriber message
+            sub_msg (sub_type): Subscriber message
         """
         self._waiting = True
         self.publish(pub_msg)
@@ -74,6 +73,6 @@ class ServiceEmulator(object):
         while self._waiting:
             rospy.sleep(0.01)
             time_waited += 0.01
-            if time_waited > self.timeout:
+            if time_waited > timeout:
                 raise TimeoutException(time_waited)
         return self._subscriber_msg
