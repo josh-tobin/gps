@@ -29,7 +29,11 @@ class AgentROS(Agent):
         self._relax_service = ServiceEmulator(self._hyperparams('relax_command_topic'), RelaxCommand,
                                               self._hyperparams('relax_result_topic'), Empty)
         self._data_service = ServiceEmulator(self._hyperparams('data_command_topic'), RelaxCommand,
+<<<<<<< HEAD
                                              self._hyperparams('data_result_topic'), Empty)
+=======
+                                              self._hyperparams('data_result_topic'), Empty)
+>>>>>>> 079fb8ac9dd570bf018e512551258e9f4a59ce37
 
     def get_data(self, data_type):
         """
