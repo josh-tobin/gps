@@ -7,7 +7,7 @@ class Agent(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, hyperparams, common_hyperparams, sample_data, state_assembler):
+    def __init__(self, hyperparams, sample_data, state_assembler):
         self._hyperparams = hyperparams
         self.sample_data = sample_data
         self.state_assembler = state_assembler
@@ -17,5 +17,11 @@ class Agent(object):
         raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod
-    def test(self):
+    def reset(self, condition):
+        """
+        Reset the agent to be ready for a particular experiment condition.
+
+        Args:
+            condition (int): Integer code for which experiment condition to set up.
+        """
         raise NotImplementedError("Must be implemented in subclass")
