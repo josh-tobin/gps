@@ -31,7 +31,6 @@ class AgentROS(Agent):
         self._data_service = ServiceEmulator(self._hyperparams('data_command_topic'), RelaxCommand,
                                              self._hyperparams('data_result_topic'), Empty)
 
-
     def get_data(self, data_type):
         """
         Request for the most recent value for data/sensor readings.

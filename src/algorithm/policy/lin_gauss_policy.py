@@ -13,18 +13,24 @@ class LinearGaussianPolicy(Policy):
         self.T = K.shape[0]
         self.dU = k.shape[1]
 
-    def act(self, x, obs, t):
+    def act(self, x, obs, t, noise=None):
         u = self.K[t].dot(x - self.x_hat[t]) + self.u_hat[t] + self.k[t]
-        noise = np.random.randn(1, self.dU)
+        if noise is None:
+            noise = np.random.randn(1, self.dU)
         u += self.chol_pol_covar[t].T.dot(noise)
         return u
 
-    def fold_k(self):
+    def fold_k(self, noise=None):
         """
         Fold x_hat, u_hat, and covariance into k
+        Args:
+            noise (optional): A T x Du noise vector. If None, drawn from
+                a normal distribution.
         Returns:
             k: A T x dU bias vector
         """
         # Compute noise - this is executed once and thrown away
-        noise = self.chol_pol_covar.T.dot(np.random.randn(self.T, self.dU))
+        if noise is None:
+            noise = np.random.randn(self.T, self.dU)
+        noise = self.chol_pol_covar.T.dot(noise)
         return self.u_hat + noise - self.K.dot(self.x_hat) + self.k
