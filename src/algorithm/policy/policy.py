@@ -11,13 +11,14 @@ class Policy(object):
         pass
 
     @abc.abstractmethod
-    def act(self, x, obs, t):
+    def act(self, x, obs, t, noise=None):
         """
 
         Args:
             x: State vector
             obs: Observation vector
             t: timestep
+            noise: A U-dimensional noise vector. If none, initialized depending on subclass.
 
         Returns:
             A Du-dimensional action vector
