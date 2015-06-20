@@ -1,11 +1,27 @@
 import rospy
+from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
+from gps_agent_pkg.msg import ControllerParams, LinGaussParams
 
 def construct_sample_from_ros_msg(ros_msg):
+    """
+    Convert a SampleResult ROS message into a Sample python object
+    """
     raise NotImplementedError()
 
 
 def policy_object_to_ros_msg(policy_object):
-    raise NotImplementedError()
+    """
+    Convert a policy object to a ROS ControllerParams message
+    """
+    msg = ControllerParams()
+    if isinstance(policy_object, LinearGaussianPolicy):
+        msg.controller_to_execute = ControllerParams.LIN_GAUSS_CONTROLLER
+        msg.lingauss = LinGaussParams()
+        msg.lingauss.K_t = policy_object.K
+        msg.lingauss.k_t = policy_object.fold_k()
+    else:
+        raise NotImplementedError("Unknown policy object: %s" % policy_object)
+    return msg
 
 
 class TimeoutException(Exception):
