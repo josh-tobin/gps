@@ -7,10 +7,9 @@ class Agent(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, hyperparams, sample_data, state_assembler):
+    def __init__(self, hyperparams, sample_data):
         self._hyperparams = hyperparams
         self.sample_data = sample_data
-        self.state_assembler = state_assembler
 
     @abc.abstractmethod
     def sample(self, policy, T):
