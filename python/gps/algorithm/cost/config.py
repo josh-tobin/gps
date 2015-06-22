@@ -3,6 +3,8 @@
 """
 from cost_utils import RAMP_CONSTANT, evallogl2term
 
+import numpy as np
+
 """ CostFK """
 cost_fk = {
     'ramp_option': RAMP_CONSTANT,  # How target cost increases over time.
@@ -40,5 +42,5 @@ cost_sum = {
 
 """ CostTorque """
 cost_torque = {
-    'wu': 1e-4,  # Weight of torque penalty
+    'wu': np.array([]),  # Torque penalties, must be 1 x dU numpy array
 }
