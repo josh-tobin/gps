@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 from config import cost_fk
@@ -12,7 +13,7 @@ class CostFK(Cost):
     """
 
     def __init__(self, hyperparams):
-        config = cost_fk.deepcopy()
+        config = deepcopy(cost_fk)
         config.update(hyperparams)
         Cost.__init__(self, config)
 

@@ -6,7 +6,6 @@ class DynamicsLR(Dynamics):
     """
     def __init__(self,hyperparams,sample_data):
         Dynamics.__init__(self, hyperparams, sample_data)
-        super(DynamicsLR, self).__init__(hyperparams, sample_data)
 
         self._ref_traj_X = np.zeros(T, dX)
         self._ref_traj_U = np.zeros(T, dU)

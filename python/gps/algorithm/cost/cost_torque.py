@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 from config import cost_torque
@@ -10,7 +11,7 @@ class CostTorque(Cost):
     """
 
     def __init__(self, hyperparams):
-        config = cost_torque.deepcopy()
+        config = deepcopy(cost_torque)
         config.update(hyperparams)
         Cost.__init__(self, config)
 
