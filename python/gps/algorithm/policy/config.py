@@ -14,5 +14,5 @@ init_lg = {
     'init_gains': [],  # numpy vector of dU gains, ones if not specified
     'init_final_weight': 1.0,
     # Used for pd initialization only, optional
-    'init_action_offset',NaN,
+    'init_action_offset': None,
 }

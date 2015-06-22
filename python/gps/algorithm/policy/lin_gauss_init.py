@@ -4,6 +4,7 @@ Initializations for Linear-gaussian controllers
 from algorithm.dynamics.dynamics_util import guess_dynamics
 from config import init_lg
 
+from copy import deepcopy
 import numpy as np
 
 # TODO - put other arguments into a dictionary? include in hyperparams?
@@ -15,11 +16,11 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_lqr(x0, 8, 3, 0.1, 5, np.ones(3), np.ones(3), 1.0,1.0,1.0,1.0)
+    >>> ref, K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
     >>> K.shape
     (5, 3, 8)
     """
-    config = init_lg.deepcopy()
+    config = deepcopy(init_lg)
     config.update(hyperparams)
     #TODO: Use packing instead of assuming which indices are the joint angles.
     #TODO: Comment on variables.
@@ -36,7 +37,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         config['init_gains'] = np.ones(dU)
 
     # Set up simple linear dynamics model.
-    fd, fc = guess_dynamics(gains, config['init_acc'], dX, dU, dt)
+    fd, fc = guess_dynamics(config['init_gains'], config['init_acc'], dX, dU, dt)
     # Set up cost function.
     Cm = np.diag(np.hstack([config['init_stiffness']*np.ones(dU),
                             config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
@@ -98,11 +99,11 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_pd(x0, 3, 3, 8, 5, 1.0, 1.0, 1.0)
+    >>> ref, K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
     >>> K.shape
     (5, 3, 8)
     """
-    config = init_lg.deepcopy()
+    config = deepcopy(init_lg)
     config.update(hyperparams)
     ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
 
