@@ -1,11 +1,13 @@
 """
 Initializations for Linear-gaussian controllers
 """
-import numpy as np
 from algorithm.dynamics.dynamics_util import guess_dynamics
+from config import init_lg
 
+import numpy as np
 
-def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, init_var, init_final_weight):
+# TODO - put other arguments into a dictionary? include in hyperparams?
+def init_lqr(hyperparams, x0, dX, dU, dt, T):
     """
     Return initial gains for a time-varying linear gaussian controller.
 
@@ -17,6 +19,8 @@ def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, 
     >>> K.shape
     (5, 3, 8)
     """
+    config = init_lg.deepcopy()
+    config.update(hyperparams)
     #TODO: Use packing instead of assuming which indices are the joint angles.
     #TODO: Comment on variables.
     ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
@@ -25,14 +29,20 @@ def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, 
     ix = slice(dX)
     iu = slice(dX, dX + dU)
 
+    if len(config['init_acc']) == 0:
+        config['init_acc'] = np.ones(dU)
+
+    if len(config['init_gains']) == 0:
+        config['init_gains'] = np.ones(dU)
+
     # Set up simple linear dynamics model.
-    fd, fc = guess_dynamics(gains, acc, dX, dU, dt)
+    fd, fc = guess_dynamics(gains, config['init_acc'], dX, dU, dt)
     # Set up cost function.
-    Cm = np.diag(np.hstack([init_stiffness*np.ones(dU),
-                            init_stiffness*init_stiffness_vel*np.ones(dU),
+    Cm = np.diag(np.hstack([config['init_stiffness']*np.ones(dU),
+                            config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
                             np.zeros(dX-dU*2),
                             np.ones(dU)]))
-    Cm = Cm / init_var
+    Cm = Cm / config['init_var']
     cv = np.zeros(dX + dU)  # Derivative of cost
     # Perform dynamic programming.
     K = np.zeros((dU, dX, T))
@@ -45,8 +55,8 @@ def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, 
     for t in range(T-1, -1, -1):
         # Compute Q function at this step.
         if t == T:
-            Cmt = init_final_weight * Cm
-            cvt = init_final_weight * cv
+            Cmt = config['init_final_weight'] * Cm
+            cvt = config['init_final_weight'] * cv
         else:
             Cmt = Cm
             cvt = cv
@@ -74,7 +84,7 @@ def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, 
     return ref, K, k, PSig, cholPSig, invPSig
 
 
-def init_pd(x0, dU, dQ, dX, T, init_stiffness, init_stiffness_vel, init_var, init_action_offset=None):
+def init_pd(hyperparams, x0, dU, dQ, dX, T):
     """
     Return initial gains for a time-varying linear gaussian controller.
 
@@ -92,21 +102,23 @@ def init_pd(x0, dU, dQ, dX, T, init_stiffness, init_stiffness_vel, init_var, ini
     >>> K.shape
     (5, 3, 8)
     """
+    config = init_lg.deepcopy()
+    config.update(hyperparams)
     ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
 
     # Choose initialization mode.
     Kp = 1.0
-    Kv = init_stiffness_vel
+    Kv = config['init_stiffness_vel']
     if dU < dQ:
-        K = -init_stiffness * np.tile(
+        K = -config['init_stiffness'] * np.tile(
             [np.eye(dU) * Kp, np.zeros(dU, dQ - dU), np.eye(dU) * Kv, np.zeros((dU, dQ - dU))], [T, 1, 1])
     else:
-        K = -init_stiffness * np.tile(np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
+        K = -config['init_stiffness'] * np.tile(np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
     k = np.zeros((T, dU))
-    if init_action_offset:
-        ref[dX:, :] = np.tile(init_action_offset, [T, 1])
-    PSig = init_var * np.tile(np.eye(dU), [T, 1, 1])
-    cholPSig = np.sqrt(init_var) * np.tile(np.eye(dU), [T, 1, 1])
-    invPSig = (1. / init_var) * np.tile(np.eye(dU), [T, 1, 1])
+    if config['init_action_offset']:
+        ref[dX:, :] = np.tile(config['init_action_offset'], [T, 1])
+    PSig = config['init_var'] * np.tile(np.eye(dU), [T, 1, 1])
+    cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
+    invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
 
     return ref, K, k, PSig, cholPSig, invPSig
