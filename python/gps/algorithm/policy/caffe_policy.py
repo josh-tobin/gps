@@ -7,14 +7,14 @@ from policy import Policy
 class CaffePolicy(Policy):
     """
     A neural network policy implemented in Caffe.
-    The network output is taken to be the mean, and noise is added on top of it.
+    The network output is taken to be the mean, and gaussian noise is added on top of it.
 
-    U = net.forward(obs) + diag(var)*noise
+    U = net.forward(obs) + noise
 
     Args:
         model_proto (string): Filename of model .prototxt file
         caffemodel (string): Filename of .caffemodel file
-        var (float vector): Du-dimensional variance vector.
+        var (float vector): Du-dimensional noise variance vector.
         cpu_mode (bool, optional): If true, use the CPU, else use GPU. Default False.
     """
     def __init__(self, model_proto, caffemodel, var, cpu_mode=False):

@@ -24,11 +24,10 @@ class AgentROS(Agent):
 
     def _init_pubs_and_subs(self):
         self._trial_service = ServiceEmulator(self._hyperparams('trial_command_topic'), TrialCommand,
-                                              self._hyperparams('trial_result_topic'), SampleResult)
+                                              self._hyperparams('sample_result_topic'), SampleResult)
         self._reset_service = ServiceEmulator(self._hyperparams('reset_command_topic'), PositionCommand,
-                                              self._hyperparams('reset_result_topic'), SampleResult)
-        self._relax_service = ServiceEmulator(self._hyperparams('relax_command_topic'), RelaxCommand,
-                                              self._hyperparams('relax_result_topic'), Empty)
+                                              self._hyperparams('sample_result_topic'), SampleResult)
+        self._relax_pub = rospy.Publisher(self._hyperparams('relax_command_topic'), RelaxCommand)
         self._data_service = ServiceEmulator(self._hyperparams('data_command_topic'), RelaxCommand,
                                              self._hyperparams('data_result_topic'), Empty)
 
@@ -84,6 +83,7 @@ class AgentROS(Agent):
         Args:
             condition (int): An index into hyperparams['reset_conditions']
         """
+        #TODO: Discuss reset + implement reset
         condition_data = self._hyperparams['reset_conditions'][condition]
         self.reset_arm('trial_arm',
                        condition_data['trial_arm']['mode'],
