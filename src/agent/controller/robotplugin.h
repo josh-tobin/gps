@@ -19,11 +19,11 @@ with the robot.
 namespace gps_control
 {
 
-// List of possive arms.
+// List of arm types.
 enum ArmType
 {
-    PassiveArm,
-    ActiveArm
+    AuxiliaryArm,
+    TrialArm
 }
 
 // Forward declarations.

@@ -17,8 +17,8 @@ agent_ros = {
     'data_command_topic': 'gps/data_command',
     'data_result_topic': 'gps/data_result',
     'trial_arm': ARM_RIGHT,
-    'auxillary_arm': ARM_LEFT,
-    'reset_conditions': []  # Defines reset modes + positions for trial and auxillary arms
+    'auxiliary_arm': ARM_LEFT,
+    'reset_conditions': []  # Defines reset modes + positions for trial and auxiliary arms
 }
 
 """ AgentMuJoCo """

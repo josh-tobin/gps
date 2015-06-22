@@ -5,6 +5,18 @@ from policy import Policy
 
 
 class CaffePolicy(Policy):
+    """
+    A neural network policy implemented in Caffe.
+    The network output is taken to be the mean, and noise is added on top of it.
+
+    U = net.forward(obs) + diag(var)*noise
+
+    Args:
+        model_proto (string): Filename of model .prototxt file
+        caffemodel (string): Filename of .caffemodel file
+        var (float vector): Du-dimensional variance vector.
+        cpu_mode (bool, optional): If true, use the CPU, else use GPU. Default False.
+    """
     def __init__(self, model_proto, caffemodel, var, cpu_mode=False):
         Policy.__init__(self)
         if cpu_mode:
@@ -14,11 +26,17 @@ class CaffePolicy(Policy):
         self.net = caffe.Net(model_proto, caffemodel, caffe.TEST)
         self.chol_pol_covar = np.diag(np.sqrt(var))
 
-    def act(self, x, obs, t, noise=None):
+    def act(self, x, obs, t, noise):
+        """
+        Return an action for a state.
+
+        Args:
+            x: State vector
+            obs: Observation vector
+            t: timestep
+            noise: Action noise vector. This will be scaled by the variance.
+        """
         self.net.blobs['data'] = obs
         action_mean = self.net.forward()
-        if noise is None:
-            dU = action_mean.shape[0]
-            noise = np.random.randn(1, dU)
         u = action_mean + self.chol_pol_covar.T.dot(noise)
         return u
