@@ -1,3 +1,4 @@
+from copy import deepcopy
 import rospy
 
 from agent.agent import Agent
@@ -16,7 +17,7 @@ class AgentROS(Agent):
     All communication between the algorithms and ROS is done through this class.
     """
     def __init__(self, hyperparams, sample_data, state_assembler):
-        config = agent_ros.deepcopy()
+        config = deepcopy(agent_ros)
         config.update(hyperparams)
         Agent.__init__(self, config, sample_data, state_assembler)
         self._init_pubs_and_subs()

@@ -27,6 +27,8 @@ class CostSum(Cost):
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         l, lx, lu, lxx, luu, lux = self._costs[0].eval(sample)
+
+        # Compute weighted sum of each evaluated cost value and derivative
         weight = self._weights[0]
         l = l * weight
         lx = lx * weight
