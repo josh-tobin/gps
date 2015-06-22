@@ -21,4 +21,12 @@ agent_ros = {
 
 """ AgentMuJoCo """
 agent_mujoco = {
+    'dH': 0,
+    'frozen_steps': 0,
+    'frozen_state': np.array([]),
+    'x0var': 0,
+    'noisy_body_idx': np.array([]),
+    'noisy_body_var': np.array([]),
+    'pos_body_idx': np.array([]),
+    'pos_body_offset': np.array([]),
 }
