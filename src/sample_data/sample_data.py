@@ -8,8 +8,9 @@ class SampleData(object):
 
     """
 
-    def __init__(self, hyperparams, common_hyperparams, state_assembler, sample_writer=None):
+    def __init__(self, hyperparams, common_hyperparams, sample_writer=None):
         self._hyperparams = hyperparams
+
         if sample_writer is None:
             experiment_dir = common_hyperparams['experiment_dir']
             data_file = os.path.join(experiment_dir, hyperparams['filename'])
@@ -43,7 +44,6 @@ class SampleData(object):
 
         if self.sample_writer:
             self.sample_writer.write(self._samples)
-
 
 class PickleSampleWriter(object):
     """ Pickles samples into data_file """
