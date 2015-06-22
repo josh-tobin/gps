@@ -42,11 +42,11 @@ def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, 
     Ltt = Ltt / init_var
     lt = np.zeros(dX + dU)  # lt = (dX+dU) - first derivative of loss with respect to trajectory at a single timestep
     # Perform dynamic programming.
-    K = np.zeros((dU, dX, T))  # Controller gains matrix
-    k = np.zeros((dU, T))  # Controller bias term
-    PSig = np.zeros((dU, dU, T))  # Covariance of noise
-    cholPSig = np.zeros((dU, dU, T))  # Cholesky decomposition of covariance
-    invPSig = np.zeros((dU, dU, T))  # Inverse of covariance
+    K = np.zeros((T, dU, dX))  # Controller gains matrix
+    k = np.zeros((T, dU))  # Controller bias term
+    PSig = np.zeros((T, dU, dU))  # Covariance of noise
+    cholPSig = np.zeros((T, dU, dU))  # Cholesky decomposition of covariance
+    invPSig = np.zeros((T, dU, dU))  # Inverse of covariance
     Vxx = np.zeros((dX, dX))  # Vxx = ddV/dXdX. Second deriv of value function at some timestep.
     vx = np.zeros(dX)  # Vx = dV/dX. Derivative of value function at some timestep.
     for t in range(T-1, -1, -1):
@@ -64,21 +64,15 @@ def init_lqr(x0, dX, dU, dt, T, gains, acc, init_stiffness, init_stiffness_vel, 
 
         # Compute preceding value function.
         L = np.linalg.cholesky(Qtt[idx_u, idx_u])
-        invPSig[:, :, t] = Qtt[idx_u, idx_u]
-        PSig[:, :, t] = np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(np.eye(dU)))
-        cholPSig[:, :, t] = np.linalg.cholesky(PSig[:, :, t])
-        K[:, :, t] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qtt[idx_u, idx_x]))
-        k[:, t] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(qt[idx_u]))
-        Vxx = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(K[:, :, t])
-        vx = qt[idx_x] + Qtt[idx_x, idx_u].dot(k[:, t])
+        invPSig[t, :, :] = Qtt[idx_u, idx_u]
+        PSig[t, :, :] = np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(np.eye(dU)))
+        cholPSig[t, :, :] = np.linalg.cholesky(PSig[t, :, :])
+        K[t, :, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qtt[idx_u, idx_x]))
+        k[t, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(qt[idx_u]))
+        Vxx = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(K[t, :, :])
+        vx = qt[idx_x] + Qtt[idx_x, idx_u].dot(k[t, :])
         Vxx = 0.5 * (Vxx + Vxx.T)
 
-    #TODO: Remove tranposes (artifact of porting over from matlab)
-    K = np.transpose(K, [2, 0, 1])
-    k = k.T
-    PSig = np.transpose(PSig, [2, 0, 1])
-    cholPSig = np.transpose(cholPSig, [2, 0, 1])
-    invPSig = np.transpose(invPSig, [2, 0, 1])
     return ref, K, k, PSig, cholPSig, invPSig
 
 
