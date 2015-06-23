@@ -60,8 +60,8 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     PSig = np.zeros((T, dU, dU))  # Covariance of noise
     cholPSig = np.zeros((T, dU, dU))  # Cholesky decomposition of covariance
     invPSig = np.zeros((T, dU, dU))  # Inverse of covariance
-    Vxx = np.zeros((dX, dX))  # Vxx = ddV/dXdX. Second deriv of value function at some timestep.
-    vx = np.zeros(dX)  # Vx = dV/dX. Derivative of value function at some timestep.
+    Vxx_t = np.zeros((dX, dX))  # Vxx = ddV/dXdX. Second deriv of value function.
+    vx_t = np.zeros(dX)  # Vx = dV/dX. Derivative of value function.
     for t in range(T-1, -1, -1):
         # Compute Q function at this step.
         if t == (T-1):
@@ -71,20 +71,20 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
             Ltt_t = Ltt
             lt_t = lt
         # Qtt = (dX+dU) by (dX+dU) 2nd Derivative of Q-function with respect to trajectory (dX+dU)
-        Qtt = Ltt_t + Fd.T.dot(Vxx).dot(Fd)
+        Qtt_t = Ltt_t + Fd.T.dot(Vxx_t).dot(Fd)
         # Qt = (dX+dU) 1st Derivative of Q-function with respect to trajectory (dX+dU)
-        qt = lt_t + Fd.T.dot(vx + Vxx.dot(fc))
+        qt_t = lt_t + Fd.T.dot(vx_t + Vxx_t.dot(fc))
 
         # Compute preceding value function.
-        L = np.linalg.cholesky(Qtt[idx_u, idx_u])
-        invPSig[t, :, :] = Qtt[idx_u, idx_u]
+        L = np.linalg.cholesky(Qtt_t[idx_u, idx_u])
+        invPSig[t, :, :] = Qtt_t[idx_u, idx_u]
         PSig[t, :, :] = np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(np.eye(dU)))
         cholPSig[t, :, :] = np.linalg.cholesky(PSig[t, :, :])
-        K[t, :, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qtt[idx_u, idx_x]))
-        k[t, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(qt[idx_u]))
-        Vxx = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(K[t, :, :])
-        vx = qt[idx_x] + Qtt[idx_x, idx_u].dot(k[t, :])
-        Vxx = 0.5 * (Vxx + Vxx.T)
+        K[t, :, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qtt_t[idx_u, idx_x]))
+        k[t, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(qt_t[idx_u]))
+        Vxx_t = Qtt_t[idx_x, idx_x] + Qtt_t[idx_x, idx_u].dot(K[t, :, :])
+        vx_t = qt_t[idx_x] + Qtt_t[idx_x, idx_u].dot(k[t, :])
+        Vxx_t = 0.5 * (Vxx_t + Vxx_t.T)
 
     return ref, K, k, PSig, cholPSig, invPSig
 
