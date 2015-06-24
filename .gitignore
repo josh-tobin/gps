@@ -71,3 +71,6 @@ target/
 
 # MuJoCo
 src/3rdparty/mjc2
+
+# Vim
+*.swp
