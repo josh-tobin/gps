@@ -1,4 +1,7 @@
+from copy import deepcopy
+
 from algorithm import Algorithm
+from config import alg_traj_opt
 
 class AlgorithmTrajOpt(Algorithm):
     """Sample-based trajectory optimization.
@@ -6,7 +9,10 @@ class AlgorithmTrajOpt(Algorithm):
     """
     def __init__(self, hyperparams, sample_data):
         # TODO - Initialize trajectory distributions somewhere
-        Algorithm.__init__(self, hyperparams, sample_data)
+        config = deepcopy(alg_traj_opt)
+        config.update(hyperparams)
+        Algorithm.__init__(self, config, sample_data)
+
         self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'], sample_data, self.dynamics)
 
     def iteration(self):
