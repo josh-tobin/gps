@@ -7,7 +7,7 @@ int8 PD_GAINS=3
 int8 LEFT_ARM=1
 int8 RIGHT_ARM=2
 
-time stamp
+Header header
 int8 mode  # Denotes whether data stores joint angles, end-effector positions, etc.
 int8 arm # Which arm to execute on
 float64[] data
