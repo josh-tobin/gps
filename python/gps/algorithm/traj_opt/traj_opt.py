@@ -17,4 +17,7 @@ class TrajOpt(object):
         """ Update trajectory distributions. """
         raise NotImplementedError("Must be implemented in subclass")
 
+    def estimateobj(self, traj):
+        raise NotImplementedError("Must be implemented in subclass")
+
 # TODO - need interface with C++ trajopt
