@@ -14,6 +14,7 @@ class AlgorithmTrajOpt(Algorithm):
         # TODO - Initialize trajectory distributions from hyperparams
         self.max_step_mult = hyperparams['max_step_mult']
         self.min_step_mult = hyperparams['min_step_mult']
+        self.M = 0
 
         self.iteration = 0  # Keep track of what iteration this is currently on
         # TODO: Remove. This is very hacky
@@ -28,11 +29,7 @@ class AlgorithmTrajOpt(Algorithm):
 
     def iteration(self):
         """
-        Run iteration of the LQR.
-
-        Args:
-            iteration (int): Which iteration the algorithm is currently on.
-            prev_itr_data (list, IterationData): Iteration data from previous iteration.
+        Run iteration of LQR.
         """
         self.advance_timestep()
 
@@ -40,19 +37,17 @@ class AlgorithmTrajOpt(Algorithm):
         self.dynamics.update_prior()
         self.dynamics.fit()
 
-        # Fill in new_itr_data
-        self.update_vars()
+        self.eval_costs()
+        self.update_step()
 
         # Run inner loop
         for inner_itr in range(self._hyperparams['inner_iterations']):
             self.traj_opt.update()
 
-    def update_vars(self):
+    def update_step(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function.
-        M = 0
-        for m in range(M):  # m = condition
-            self.eval_cost(m)
+        for m in range(self.M):  # m = condition
             if self.iteration > 1 and self.prev_samples[m]:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
@@ -65,7 +60,7 @@ class AlgorithmTrajOpt(Algorithm):
         """
         T = 0
         # No policy by default.
-        polkl = np.zeros((1, T))
+        polkl = np.zeros(T)
 
         # Compute values under Laplace approximation.
         # This is the policy that the previous samples were actually drawn from
@@ -121,12 +116,17 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_mispred_std[m] = mispred_std
         self.cur_polkl[m] = polkl
 
+    def eval_costs(self):
+        """
+        Evaluate costs for all conditions and samples.
+        """
+        for m in range(self.M):
+            self.eval_cost(m)
 
     # TODO: Update code so that it runs. Clean args and names of variables
     def eval_cost(self, m):
         """
-        Evaluate costs for all samples.
-
+        Evaluate costs for all samples for a condition
         This code does not run yet.
         """
         samples = self.cur_samples[m]
