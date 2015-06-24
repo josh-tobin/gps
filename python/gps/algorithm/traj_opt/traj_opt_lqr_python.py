@@ -81,7 +81,9 @@ class TrajOptLQRPython(TrajOpt):
                 mu[idx_x, t+1] = dynamics.fd[:,:,t]*mu[:,t] + dynamics.fc[:,t]
         return mu, sigma
 
-    def backward(self, mu,sigma,K,k,PSig,invPSig,traj,trajinfo,prevtraj,Xs,Us,cs,eta):
+
+    #TODO: Update code so that it runs. Clean args and names of variables
+    def backward(self, mu, sigma, traj_distr, prevtraj, dynamics, cv, Cm, eta):
         # Perform LQR backward pass to compute new policy.
 
         # Without GPS, simple LQR pass always converges in one iteration.
@@ -94,10 +96,8 @@ class TrajOptLQRPython(TrajOpt):
         idx_u = slice(self.Dx, self.Dx+self.Du)
 
         # Pull out cost and dynamics.
-        cv = trajinfo.cv
-        Cm = trajinfo.Cm
-        fd = trajinfo.fd
-        fc = trajinfo.fc
+        fd = dynamics.fd
+        fc = dynamics.fc
 
         # Non-SPD correction terms.
         eta0 = eta
@@ -137,17 +137,21 @@ class TrajOptLQRPython(TrajOpt):
                 # Compute Cholesky decomposition of Q function action component.
                 L = np.linalg.cholesky(Qtt[idx_u, idx_u])
 
+                #TODO: Is matlab backslash (\) equivalent to inverse?
+                Linv = np.linalg.inv(L)
+                LTinv = np.linalg.inv(L.T)
+
                 # Store conditional covariance and its inverse.
-                invPSig[:, :, t] = Qtt[idx_u, idx_u]
-                PSig[:, :, t] = np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(np.eye(Du)))
+                traj_distr.invPSig[:, :, t] = Qtt[idx_u, idx_u]
+                traj_distr.PSig[:, :, t] = Linv.dot(LTinv.dot(np.eye(Du)))
 
                 # Compute mean terms.
-                k[:, t] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qt[idx_u, 1]))
-                K[:, :, t] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qtt[idx_u, idx_x]))
+                traj_distr.k[:, t] = -Linv.dot(LTinv.dot(Qt[idx_u, 1]))
+                traj_distr.K[:, :, t] = -Linv.dot(LTinv.dot(Qtt[idx_u, idx_x]))
 
                 # Compute value function.
-                Vxx[:,:,t] = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(K[:, :, t])
-                Vx[:,t] = Qt[idx_x, 1] + Qtt[idx_x, idx_u].dot(k[:, t])
+                Vxx[:,:,t] = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.K[:, :, t])
+                Vx[:,t] = Qt[idx_x, 1] + Qtt[idx_x, idx_u].dot(traj_distr.k[:, t])
                 Vxx[:,:,t] = 0.5 * (Vxx[:,:,t] + Vxx[:,:,t].T)
             # Increment eta if failed.
             """

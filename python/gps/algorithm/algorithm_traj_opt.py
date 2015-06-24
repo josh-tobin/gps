@@ -6,24 +6,25 @@ class AlgorithmTrajOpt(Algorithm):
     """Sample-based trajectory optimization.
 
     """
+
     def __init__(self, hyperparams, sample_data):
-        # TODO - Initialize trajectory distributions somewhere
         Algorithm.__init__(self, hyperparams, sample_data)
         self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'], sample_data, self.dynamics)
-        self.cost = None
-        self.max_step_mult = 0
-        self.min_step_mult = 0
+        self.costs = None  # TODO: Init costs from hyperparams
+        # TODO - Initialize trajectory distributions from hyperparams
+        self.max_step_mult = hyperparams['max_step_mult']
+        self.min_step_mult = hyperparams['min_step_mult']
 
         self.iteration = 0  # Keep track of what iteration this is currently on
         # TODO: Remove. This is very hacky
         # List of variables updated from iteration to iteration
         self.iteration_vars = ['samples', 'refs', 'trajinfo_cc', 'trajinfo_cv', 'trajinfo_Cm', 'traj_distr', 'cs',
-            'rate_change', 'mispred_std', 'init_polkl', 'traj_distr_step_mult']
+                               'rate_change', 'mispred_std', 'init_polkl', 'traj_distr_step_mult']
 
         # TODO: Remove. This is very hacky
         for varname in self.iteration_vars:
-            setattr(self, 'cur_'+varname, None)
-            setattr(self, 'prev_'+varname, None)
+            setattr(self, 'cur_' + varname, None)
+            setattr(self, 'prev_' + varname, None)
 
     def iteration(self):
         """
@@ -47,7 +48,7 @@ class AlgorithmTrajOpt(Algorithm):
             self.traj_opt.update()
 
     def update_vars(self):
-        """ Evaluate costs on samples, adjusts step size, updates itr_data """
+        """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function.
         M = 0
         for m in range(M):  # m = condition
@@ -70,24 +71,24 @@ class AlgorithmTrajOpt(Algorithm):
         # This is the policy that the previous samples were actually drawn from
         # under the dynamics that were estimated from the previous samples.
         previous_laplace_obj = self.traj_opt.estimate_cost(self.prev_traj_distr[m],
-                                                         self.prev_trajinfo_cc[m],
-                                                         self.prev_trajinfo_cv[m],
-                                                         self.prev_trajinfo_Cm[m])
+                                                           self.prev_trajinfo_cc[m],
+                                                           self.prev_trajinfo_cv[m],
+                                                           self.prev_trajinfo_Cm[m])
 
         # This is the policy that we just used under the dynamics that were
         # estimated from the previous samples (so this is the cost we thought we
         # would have).
         new_predicted_laplace_obj = self.traj_opt.estimate_cost(self.cur_traj_distr[m],
-                                                              self.prev_trajinfo_cc[m],
-                                                              self.prev_trajinfo_cv[m],
-                                                              self.prev_trajinfo_Cm[m])
+                                                                self.prev_trajinfo_cc[m],
+                                                                self.prev_trajinfo_cv[m],
+                                                                self.prev_trajinfo_Cm[m])
 
         # This is the actual cost we have under the current trajectory based on the
         # latest samples.
         new_actual_laplace_obj = self.traj_opt.estimate_cost(self.cur_traj_distr[m],
-                                                           self.cur_trajinfo_cc[m],
-                                                           self.cur_trajinfo_cv[m],
-                                                           self.cur_trajinfo_Cm[m])
+                                                             self.cur_trajinfo_cc[m],
+                                                             self.cur_trajinfo_cv[m],
+                                                             self.cur_trajinfo_Cm[m])
 
         # Measure the entropy of the current trajectory (for printout).
         ent = 0
@@ -95,7 +96,7 @@ class AlgorithmTrajOpt(Algorithm):
             ent = ent + np.sum(np.log(np.diag(self.cur_traj_distr[m].cholPSig[:, :, t])))
 
         # Compute actual objective values based on the samples.
-        #previous_mc_obj = np.mean(np.sum(prev_itr_data.ics, axis=1), axis=2)
+        # previous_mc_obj = np.mean(np.sum(prev_itr_data.ics, axis=1), axis=2)
         new_mc_obj = np.mean(np.sum(self.cur_cs[m], axis=0), axis=1)
 
         # Compute misprediction vs Monte-Carlo score.
@@ -120,6 +121,8 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_mispred_std[m] = mispred_std
         self.cur_polkl[m] = polkl
 
+
+    # TODO: Update code so that it runs. Clean args and names of variables
     def eval_cost(self, m):
         """
         Evaluate costs for all samples.
@@ -142,7 +145,7 @@ class AlgorithmTrajOpt(Algorithm):
         for n in range(N):
             sample = samples[n]
             # Get costs.
-            l, lx, lu, lxx, luu, lux = self.cost.eval(sample)
+            l, lx, lu, lxx, luu, lux = self.costs[m].eval(sample)
 
             #TODO: Transposes are wrong
             cc[n, :] = l
@@ -156,9 +159,9 @@ class AlgorithmTrajOpt(Algorithm):
 
             rdiff = refs[n][:, 1:T] - yhat
             cc[n, :] = cc[n, :] + np.sum(rdiff * cv[n, :, :], axis=0) + \
-                          0.5 * np.sum(
-                              rdiff * np.transpose(np.sum(Cm[n, :, :, :] * np.transpose(rdiff, [2, 0, 1]), axis=1),
-                                                   [0, 2, 1]), axis=0)
+                       0.5 * np.sum(
+                           rdiff * np.transpose(np.sum(Cm[n, :, :, :] * np.transpose(rdiff, [2, 0, 1]), axis=1),
+                                                [0, 2, 1]), axis=0)
             cv[n, :, :] = cv[n, :, :] + np.transpose(np.sum(Cm[n, :, :, :] * np.transpose(rdiff, [2, 0, 1]), axis=1),
                                                      [0, 2, 1])
         self.cur_trajinfo_cc(np.mean(cc, 0))  # Costs
@@ -175,5 +178,5 @@ class AlgorithmTrajOpt(Algorithm):
         self.iteration += 1
         # TODO: Remove. This is very hacky
         for varname in self.iteration_vars:
-            setattr(self, 'prev_'+varname, getattr(self, 'cur_'+varname))
-            setattr(self, 'cur_'+varname, None)
+            setattr(self, 'prev_' + varname, getattr(self, 'cur_' + varname))
+            setattr(self, 'cur_' + varname, None)
