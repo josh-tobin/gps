@@ -16,7 +16,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
+    >>> K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
     >>> K.shape
     (5, 3, 8)
     """
@@ -24,8 +24,6 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     config.update(hyperparams)
     #TODO: Use packing instead of assuming which indices are the joint angles.
     #TODO: Comment on variables.
-    ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
-
     # Constants.
     ix = slice(dX)
     iu = slice(dX, dX + dU)
@@ -43,11 +41,12 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
                             config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
                             np.zeros(dX-dU*2),
                             np.ones(dU)]))
-    Cm = Cm / config['init_var']
-    cv = np.zeros(dX + dU)  # Derivative of cost
+    Cm = Cm / config['init_var']  # Cost funciton - quadtratic term (matrix)
+    cv = -Cm.dot(np.r_[x0,np.zeros(dU)])  # Cost function - linear term (vector)
     # Perform dynamic programming.
     K = np.zeros((dU, dX, T))
     k = np.zeros((dU, T))
+
     PSig = np.zeros((dU, dU, T))
     cholPSig = np.zeros((dU, dU, T))
     invPSig = np.zeros((dU, dU, T))
@@ -82,7 +81,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     PSig = np.transpose(PSig, [2, 0, 1])
     cholPSig = np.transpose(cholPSig, [2, 0, 1])
     invPSig = np.transpose(invPSig, [2, 0, 1])
-    return ref, K, k, PSig, cholPSig, invPSig
+    return K, k, PSig, cholPSig, invPSig
 
 
 def init_pd(hyperparams, x0, dU, dQ, dX, T):
@@ -90,7 +89,6 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
     Return initial gains for a time-varying linear gaussian controller.
 
     Returns:
-        ref: T x dX+dU Reference trajectory + actions
         K: T x dU x dX linear controller matrix
         k: T x dU controller bias term
         PSig: T x dU x dU controller action covariance
@@ -99,13 +97,12 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
+    >>> K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
     >>> K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
     config.update(hyperparams)
-    ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
 
     # Choose initialization mode.
     Kp = 1.0
@@ -115,11 +112,9 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
             [np.eye(dU) * Kp, np.zeros(dU, dQ - dU), np.eye(dU) * Kv, np.zeros((dU, dQ - dU))], [T, 1, 1])
     else:
         K = -config['init_stiffness'] * np.tile(np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
-    k = np.zeros((T, dU))
-    if config['init_action_offset']:
-        ref[dX:, :] = np.tile(config['init_action_offset'], [T, 1])
+    k = np.tile(-K[0,:,:].dot(x0), [T, 1])
     PSig = config['init_var'] * np.tile(np.eye(dU), [T, 1, 1])
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
     invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
 
-    return ref, K, k, PSig, cholPSig, invPSig
+    return K, k, PSig, cholPSig, invPSig

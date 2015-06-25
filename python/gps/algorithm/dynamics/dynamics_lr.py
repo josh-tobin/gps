@@ -10,9 +10,6 @@ class DynamicsLR(Dynamics):
     def __init__(self,hyperparams,sample_data):
         Dynamics.__init__(self, hyperparams, sample_data)
 
-        self._ref_traj_X = np.zeros(T, dX)
-        self._ref_traj_U = np.zeros(T, dU)
-
     def update_prior(self):
         """ Update dynamics prior. """
         # Nothing to do - constant prior.
@@ -27,10 +24,6 @@ class DynamicsLR(Dynamics):
         dU = U.shape[2]
 
         Fd = np.zeros(T, dX+dU, dX)
-
-        # Subtract reference trajectory
-        X = np.asarray([X[i, :, :] - self._ref_traj for i in range(N)])
-        U = np.asarray([U[i, :, :] - self._ref_traj for i in range(N)])
 
         # Fit dynamics wih least squares regression
         # TODO - deal with fc (add ones and slice result?)
