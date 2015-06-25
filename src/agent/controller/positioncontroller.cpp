@@ -58,6 +58,10 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, std
     { // Only compute velocities if we have a previous sample.
         current_angle_velocities_ = (temp_angles_ - current_angles_)/update_time;
     }
+    else
+    {
+        current_angle_velocities_.fill(0.0);
+    }
 
     // Store new angles.
     current_angles_ = temp_angles_;

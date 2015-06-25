@@ -122,6 +122,9 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
             sensors_[sensor].set_update(active_arm_controller_->get_update_delay());
         }
     }
+
+    /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
+    /* publish message when finished */
 }
 
 // Get sensor.

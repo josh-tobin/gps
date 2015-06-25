@@ -171,6 +171,8 @@ void PR2Plugin::update()
     // Update the sensors and fill in the current step sample.
     update_sensors(last_update_time_,is_controller_step);
 
+    /* TODO: zero out torques */
+
     // Update the controllers.
     update_controllers(last_update_time_,is_controller_step);
 
