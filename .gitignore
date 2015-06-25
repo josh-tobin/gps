@@ -5,6 +5,19 @@ __pycache__/
 # C extensions
 *.so
 
+# CMake
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+
+#ROS
+build/
+bin/
+lib/
+msg_gen/
+srv_gen/
+
 # Distribution / packaging
 .Python
 env/
