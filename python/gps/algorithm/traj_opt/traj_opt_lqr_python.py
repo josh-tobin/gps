@@ -153,7 +153,7 @@ class TrajOptLQRPython(TrajOpt):
                 try:
                     U = sp.linalg.cholesky(Qtt[idx_u, idx_u])
                 except LinAlgError as e:
-                    LOGGER.info(e)
+                    LOGGER.debug(e)
                     fail = True
                     break
 
@@ -177,7 +177,7 @@ class TrajOptLQRPython(TrajOpt):
             if fail:
                 old_eta = eta
                 eta = eta0 + del_
-                LOGGER.info('Increasing eta: %f -> %f', old_eta, eta)
+                LOGGER.debug('Increasing eta: %f -> %f', old_eta, eta)
                 del_ *= 2  # Increase del_ exponentially on failure
                 if eta >= 1e16:
                     if np.any(np.any(np.any(np.isnan(Fd)))) or np.any(np.any(np.isnan(fc))):
