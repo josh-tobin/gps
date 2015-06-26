@@ -2,6 +2,7 @@ import numpy as np
 
 from policy import Policy
 
+
 class LinearGaussianPolicy(Policy):
     """
     Time-varying linear gaussian policy.
@@ -11,17 +12,26 @@ class LinearGaussianPolicy(Policy):
     Args:
         K: T x Du x Dx
         k: T x Du
-        x_hat: T x Dx
-        u_hat: T x Du
+        ref: T x (Dx+Du)
+        pol_covar: T x Du x Du
         chol_pol_covar: T x Du x Du
+        inv_pol_covar: T x Du x Du
     """
-    def __init__(self, K, k, x_hat, u_hat, chol_pol_covar):
+    def __init__(self, K, k, ref, pol_covar, chol_pol_covar, inv_pol_covar):
         Policy.__init__(self)
+        #TODO: Pull dimensions from somewhere else
+        self.T = K.shape[0]
+        self.dU = K.shape[1]
+        self.dX = K.shape[2]
+
         self.K = K
         self.k = k
-        self.x_hat = x_hat
-        self.u_hat = u_hat
+        self.ref = ref
+        self.x_hat = ref[:, :self.dX]
+        self.u_hat = ref[:, self.dX:self.dU]
+        self.pol_covar = pol_covar
         self.chol_pol_covar = chol_pol_covar
+        self.inv_pol_covar = inv_pol_covar
         self.T = K.shape[0]
         self.dU = k.shape[1]
 

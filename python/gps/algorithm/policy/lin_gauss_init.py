@@ -1,14 +1,15 @@
 """
 Initializations for Linear-gaussian controllers
 """
-from algorithm.dynamics.dynamics_util import guess_dynamics
-from config import init_lg
-
 from copy import deepcopy
 import numpy as np
 
-
+from algorithm.dynamics.dynamics_util import guess_dynamics
+from lin_gauss_policy import LinearGaussianPolicy
+from config import init_lg
 # TODO - put other arguments into a dictionary? include in hyperparams?
+
+
 def init_lqr(hyperparams, x0, dX, dU, dt, T):
     """
     Return initial gains for a time-varying linear gaussian controller
@@ -16,8 +17,8 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
-    >>> K.shape
+    >>> traj = init_lqr({}, x0, 8, 3, 0.1, 5)
+    >>> traj.K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
@@ -86,7 +87,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         vx = qt[idx_x] + Qtt[idx_x, idx_u].dot(k[t, :])
         Vxx = 0.5 * (Vxx + Vxx.T)
 
-    return ref, K, k, PSig, cholPSig, invPSig
+    return LinearGaussianPolicy(K, k, ref, PSig, cholPSig, invPSig)
 
 
 def init_pd(hyperparams, x0, dU, dQ, dX, T):
@@ -104,8 +105,8 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
-    >>> K.shape
+    >>> traj = init_pd({}, x0, 3, 3, 8, 5)
+    >>> traj.K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
@@ -127,4 +128,4 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
     invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
 
-    return ref, K, k, PSig, cholPSig, invPSig
+    return LinearGaussianPolicy(K, k, ref, PSig, cholPSig, invPSig)

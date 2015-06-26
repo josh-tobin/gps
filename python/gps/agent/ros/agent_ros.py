@@ -119,8 +119,7 @@ class AgentROS(Agent):
         trial_command.header.stamp = rospy.get_rostime()
         trial_command.T = T
         trial_command.frequency = self._hyperparams['frequency']
-        # Give up to 30 seconds to execute trial
-        sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=30)
+        sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
         sample = construct_sample_from_ros_msg(sample_msg)
         return sample

@@ -5,34 +5,25 @@ import numpy as np
 class TrajOptLQRPython(TrajOpt):
     """LQR trajectory optimization, python implementation
     """
-    def __init__(self, hyperparams, dynamics):
-        TrajOpt.__init__(self, hyperparams, dynamics)
-        #TODO: Fill in
-        self.Dx = 0
-        self.Du = 0
-        self.T = 0
+    def __init__(self, hyperparams):
+        TrajOpt.__init__(self, hyperparams)
 
     def update(self):
         pass
 
-    #TODO: Update code so that it runs. Clean args and names of variables
-    def estimate_cost(self, traj_distr, dynamics, initial_traj, cc, cv, Cm):
+    def estimate_cost(self, traj_distr, trajinfo):
         """
         Compute Laplace approximation to expected cost.
 
         Args:
-            traj_distr: Linear gaussian
-            dynamics: Linear dynamics
-            initial_traj: Initial mu, sigma
-            cc: Cost
-            cv: Cost 1st derivative
-            Cm: Cost 2nd derivative
+            traj_distr: Linear gaussian policy object
+            trajinfo:
         """
 
         # Constants.
-        Dx = traj_distr.K.shape(2)
-        Du = traj_distr.K.shape(1)
-        T = traj_distr.K.shape(0)
+        Dx = traj_distr.K.shape[2]
+        Du = traj_distr.K.shape[1]
+        T = traj_distr.K.shape[0]
 
         # IMPORTANT: trajinfo and traj must be constructed around the same
         # reference trajectory. This is quite important!
@@ -40,47 +31,52 @@ class TrajOptLQRPython(TrajOpt):
         # Perform forward pass (note that we repeat this here, because trajinfo may
         # have different dynamics from the ones that were used to compute the
         # distribution already saved in traj).
-        [sigma,mu] = self.forward(traj_distr, dynamics, initial_traj)
+        mu, sigma = self.forward(traj_distr, trajinfo.dynamics, trajinfo.x0mu, trajinfo.x0sigma)
 
         # Compute cost.
         predicted_cost = np.zeros(T)
         for t in range(T):
-            predicted_cost[t] = cc(t) + 0.5*sum(sum(sigma[:,:,t]*Cm[:,:,t])) + \
-                0.5*mu[:,t].T*Cm[:,:,t]*mu[:,t] + mu[:,t].T*cv[:,t]
+            predicted_cost[t] = trajinfo.cc[t] + 0.5*np.sum(np.sum(sigma[t, :, :]*trajinfo.Cm[t, :, :])) + \
+                0.5*mu[t, :].T.dot(trajinfo.Cm[t, :, :]).dot(mu[t, :]) + mu[t, :].T.dot(trajinfo.cv[t, :])
         return predicted_cost
 
     #TODO: Update code so that it runs. Clean args and names of variables
-    def forward(self, traj_distr, dynamics, initial_traj):
+    def forward(self, traj_distr, dynamics, x0mu, x0sigma):
         """
         Forward pass - computes trajectory means and variance.
         Does NOT run yet. Also need to flip axes.
+
+        Args:
+            traj_distr:
         """
         # Compute state-action marginals from specified conditional parameters and
         # current trajinfo.
+        T = traj_distr.T
+        dU = traj_distr.dU
+        dX = traj_distr.dX
 
         # Constants.
-        idx_x = slice(self.Dx)
+        idx_x = slice(dX)
 
         # Allocate space.
-        sigma = np.zeros((self.Dx+self.Du,self.Dx+self.Du,self.T))
-        mu = np.zeros((self.Dx+self.Du,self.T))
+        sigma = np.zeros((T, dX+dU, dX+dU))
+        mu = np.zeros((T, dX+dU))
 
         # Set initial covariance (initial mu is always zero).
-        sigma[idx_x, idx_x, 0] = initial_traj.x0sigma
-        mu[idx_x, 0] = initial_traj.x0mu
+        sigma[0, idx_x, idx_x] = x0sigma
+        mu[0, idx_x] = x0mu
 
         # Perform forward pass.
-        for t in range(self.T):
-            sigma[:,:,t] = np.vstack([
-                                np.hstack([sigma[idx_x, idx_x, t], sigma[idx_x, idx_x, t].dot(traj_distr.K[:,:,t].T)]),
-                                np.hstack([traj_distr.K[:,:,t].dot(sigma[idx_x, idx_x, t]), traj_distr.K[:,:,t].dot(sigma[idx_x, idx_x, t]).dot(traj_distr.K[:,:,t].T) + traj_distr.PSig[:,:,t]])]
+        for t in range(T):
+            sigma[t, :, :] = np.vstack([
+                                np.hstack([sigma[t, idx_x, idx_x], sigma[t, idx_x, idx_x].dot(traj_distr.K[t, :, :].T)]),
+                                np.hstack([traj_distr.K[t, :, :].dot(sigma[t, idx_x, idx_x]), traj_distr.K[t, :, :].dot(sigma[t, idx_x, idx_x]).dot(traj_distr.K[t, :, :].T) + traj_distr.pol_covar[t, :, :]])]
                             )
-            mu[:,t] = np.vstack([mu[idx_x, t], traj_distr.K[:,:,t].dot(mu[idx_x,t]) + traj_distr.k[:,t]])
-            if t < self.T-1:
-                sigma[idx_x, idx_x, t+1] = dynamics.fd[:,:,t].dot(sigma[:,:,t]).dot(dynamics.fd[:,:,t].T) + dynamics.dynsig[:,:,t]
-                mu[idx_x, t+1] = dynamics.fd[:,:,t]*mu[:,t] + dynamics.fc[:,t]
+            mu[t, :] = np.hstack([mu[t, idx_x], traj_distr.K[t, :, :].dot(mu[t, idx_x]) + traj_distr.k[t, :]])
+            if t < T-1:
+                sigma[t+1, idx_x, idx_x] = dynamics.fd[t, :, :].dot(sigma[t, :, :]).dot(dynamics.fd[t, :, :].T) + dynamics.dynsig[t, :, :]
+                mu[t+1, idx_x] = dynamics.fd[t, :, :].dot(mu[t, :]) + dynamics.fc[t, :]
         return mu, sigma
-
 
     #TODO: Update code so that it runs. Clean args and names of variables
     def backward(self, mu, sigma, traj_distr, prevtraj, dynamics, cv, Cm, eta):
