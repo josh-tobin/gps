@@ -14,9 +14,9 @@ class Dynamics(object):
         # TODO - Currently assuming that dynamics will always be linear with X.
 
         # TODO - allocate arrays using hyperparams dU, dX, T
-        # Fitted dynamics: x_t+1 = Fd * [x_t;u_t] + fc
-        self.Fd = np.array(np.nan)
-        self.fc = np.array(np.nan)
+        # Fitted dynamics: x_t+1 = Fm * [x_t;u_t] + fv
+        self.Fm = np.array(np.nan)
+        self.fv = np.array(np.nan)
         self.dyn_covar = np.array(np.nan)  # Covariance
 
     @abc.abstractmethod
