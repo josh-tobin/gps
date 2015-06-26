@@ -7,7 +7,8 @@ class LinearGaussianPolicy(Policy):
     """
     Time-varying linear gaussian policy.
 
-    U = K*(x - x_hat) + u_hat + k + chol_pol_covar*noise
+    U = K*(x - x_hat) + u_hat + k + noise
+    Where noise ~ N(0, chol_pol_covar)
 
     Args:
         K: T x Du x Dx
@@ -64,8 +65,8 @@ class LinearGaussianPolicy(Policy):
         Returns:
             k: A T x dU bias vector
         """
-        # Compute noise - this is executed once and thrown away
-        if noise is None:
-            noise = np.random.randn(self.T, self.dU)
-        noise = self.chol_pol_covar.T.dot(noise)
-        return self.u_hat + noise - self.K.dot(self.x_hat) + self.k
+        k = np.zeros_like(self.k)
+        for i in range(self.T):
+            noise = self.chol_pol_covar[i].T.dot(noise[i])
+            k[i] = self.u_hat[i] + noise - self.K[i].dot(self.x_hat[i]) + self.k[i]
+        return k

@@ -10,6 +10,7 @@ class CaffePolicy(Policy):
     The network output is taken to be the mean, and gaussian noise is added on top of it.
 
     U = net.forward(obs) + noise
+    Where noise ~ N(0, diag(var))
 
     Args:
         model_proto (string): Filename of model .prototxt file

@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+from copy import deepcopy
+>>>>>>> 683c806e6a891dfcf8d79bd97f412c996b24aea6
 import numpy as np
 import logging
 import copy
@@ -7,6 +11,9 @@ from config import alg_traj_opt
 from traj_opt.traj_info import TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
+
+from algorithm import Algorithm
+from config import alg_traj_opt
 
 
 class AlgorithmTrajOpt(Algorithm):

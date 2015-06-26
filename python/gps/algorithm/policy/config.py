@@ -2,7 +2,7 @@
 
 """
 
-# TODO - make sure this is exposed at a higher level.
+# TODO - make sure this is exposed at a higher level, also pd is default type.
 """ Intial Linear Gaussian Traj Distributions """
 init_lg = {
     # Used for both pd and lqr initialization
