@@ -104,8 +104,7 @@ class AlgorithmTrajOpt(Algorithm):
         previous_mc_obj = np.mean(np.sum(self.prev_cs[m], axis=1), axis=2)
         new_mc_obj = np.mean(np.sum(self.cur_cs[m], axis=1), axis=0)
 
-        if self._hyperparams['log_verbose']:
-            LOGGER.info('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)
+        LOGGER.info('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)
 
         # Compute misprediction vs Monte-Carlo score.
         mispred_std = np.abs(np.sum(new_actual_laplace_obj) - new_mc_obj) / \
@@ -116,11 +115,10 @@ class AlgorithmTrajOpt(Algorithm):
         actual_impr = np.sum(previous_laplace_obj) - np.sum(new_actual_laplace_obj)
 
         # Print improvement details.
-        if self._hyperparams['log_verbose']:
-            LOGGER.info('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
-            LOGGER.info('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
-            LOGGER.info('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
-            LOGGER.info('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
+        LOGGER.info('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
+        LOGGER.info('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
+        LOGGER.info('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
+        LOGGER.info('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
 
         # model improvement as: I = predicted_dI * KL + penalty * KL^2
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
@@ -133,11 +131,10 @@ class AlgorithmTrajOpt(Algorithm):
         step_change = new_step / self.cur_step_mult[m]
         self.cur_step_mult[m] = new_step
 
-        if self._hyperparams['log_verbose']:
-            if new_mult > 1:
-                LOGGER.info('Increasing step size multiplier to %f', new_step)
-            else:
-                LOGGER.info('Decreasing step size multiplier to %f', new_step)
+        if new_mult > 1:
+            LOGGER.info('Increasing step size multiplier to %f', new_step)
+        else:
+            LOGGER.info('Decreasing step size multiplier to %f', new_step)
 
         self.cur_step_change[m] = step_change
         self.cur_mispred_std[m] = mispred_std

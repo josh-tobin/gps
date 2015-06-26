@@ -60,3 +60,16 @@ class LinearGaussianPolicy(Policy):
             noise = self.chol_pol_covar[i].T.dot(noise[i])
             k[i] = noise + self.k[i]
         return k
+
+    def zeros_like(self):
+        """
+        Return a new LinearGaussianPolicy object with the same dimensions but
+        with all values zeroed-out.
+        """
+        return LinearGaussianPolicy(
+            np.zeros_like(self.K),
+            np.zeros_like(self.k),
+            np.zeros_like(self.pol_covar),
+            np.zeros_like(self.chol_pol_covar),
+            np.zeros_like(self.inv_pol_covar)
+        )

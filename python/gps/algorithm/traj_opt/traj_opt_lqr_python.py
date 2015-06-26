@@ -1,6 +1,10 @@
+from numpy.linalg import LinAlgError
 from traj_opt import TrajOpt
 import numpy as np
+import scipy as sp
+import logging
 
+LOGGER = logging.getLogger(__name__)
 
 class TrajOptLQRPython(TrajOpt):
     """LQR trajectory optimization, python implementation
@@ -82,96 +86,101 @@ class TrajOptLQRPython(TrajOpt):
                 mu[t+1, idx_x] = trajinfo.dynamics.Fd[t, :, :].dot(mu[t, :]) + trajinfo.dynamics.fc[t, :]
         return mu, sigma
 
-    #TODO: Update code so that it runs. Clean args and names of variables
-    def backward(self, traj_distr, prevtraj_distr, trajinfo, eta):
+    def backward(self, prev_traj_distr, trajinfo, eta):
         """
-        Args:
-            TODO
-        Returns:
-            traj_distr: Updated K, k, PSig, etc.
-            new_eta: New dual variable (eta)
-        """
-        # Perform LQR backward pass to compute new policy.
+        Perform LQR backward pass. This computes a new LinearGaussianPolicy object.
 
+        Args:
+            prev_traj_distr: A Linear gaussian policy object from previous iteration
+            trajinfo: A trajectory info object (need dynamics and cost matrices)
+            eta: Dual variable
+        Returns:
+            traj_distr: New linear gaussian policy
+            new_eta: Update dual variable. Updates happen if Q-function is not positive definite.
+        """
         # Without GPS, simple LQR pass always converges in one iteration.
 
         # Constants.
-        Dx = self.Dx
-        Du = self.Du
-        T = self.T
-        idx_x = slice(self.Dx)
-        idx_u = slice(self.Dx, self.Dx+self.Du)
+        T = prev_traj_distr.T
+        dU = prev_traj_distr.dU
+        dX = prev_traj_distr.dX
+
+        traj_distr = prev_traj_distr.zeros_like()
+
+        idx_x = slice(dX)
+        idx_u = slice(dX, dX+dU)
 
         # Pull out cost and dynamics.
         Fd = trajinfo.dynamics.Fd
         fc = trajinfo.dynamics.fc
 
         # Non-SPD correction terms.
+        del_ = 1e-4
         eta0 = eta
-        del0 = 1e-4
-        del_ = 0
 
         # Run dynamic programming.
         fail = True
         while fail:
-            # Allocate.
-            Vxx = np.zeros((Dx,Dx,T))
-            Vx = np.zeros((Dx,T))
+            fail = False  # Flip to true on non-SPD
 
-            # Don't fail.
-            fail = 0
+            # Allocate.
+            Vxx = np.zeros((T, dX, dX))
+            Vx = np.zeros((T, dX))
+
             for t in range(T-1, -1, -1):
                 # Compute state-action-state function at this step.
                 # Add in the cost.
-                Qtt = trajinfo.Cm[:,:,t]/eta
-                Qt = trajinfo.cv[:,t]/eta
+                Qtt = trajinfo.Cm[t, :, :]/eta  # (X+U) x (X+U)
+                Qt = trajinfo.cv[t, :]/eta  # (X+U) x 1
 
+                # import pdb; pdb.set_trace()
                 # Add in the trajectory divergence term.
                 Qtt = Qtt + np.vstack([
-                             np.hstack([prevtraj_distr.K[:,:,t].T.dot(prevtraj_distr.invPSig[:,:,t]).dot(prevtraj_distr.K[:,:,t]), -prevtraj_distr.K[:,:,t].T.dot(prevtraj_distr.invPSig[:,:,t])]),
-                             np.hstack([-prevtraj_distr.invPSig[:,:,t].dot(prevtraj_distr.K[:,:,t]), prevtraj_distr.invPSig[:,:,t]])
+                             np.hstack([prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :]).dot(prev_traj_distr.K[t, :, :]), -prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :])]),  # X x (X+U)
+                             np.hstack([-prev_traj_distr.inv_pol_covar[t, :, :].dot(prev_traj_distr.K[t, :, :]), prev_traj_distr.inv_pol_covar[t, :, :]])  # U x (X+U)
                              ])
-                Qt = Qt + np.hstack([prevtraj_distr.K[:,:,t].T.dot(prevtraj_distr.invPSig[:,:,t]).dot(prevtraj_distr.k[:,t]), -prevtraj_distr.invPSig[:,:,t].dot(prevtraj_distr.k[:,t])])
+                Qt = Qt + np.hstack([prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :]).dot(prev_traj_distr.k[t, :]), -prev_traj_distr.inv_pol_covar[t, :, :].dot(prev_traj_distr.k[t, :])])
 
                 # Add in the value function from the next time step.
                 if t < T-1:
-                    Qtt = Qtt + Fd[:,:,t].T.dot(Vxx[:,:,t+1]).dot(Fd[:,:,t]) #fd(:,:,t)'*Vxx(:,:,t+1)*fd(:,:,t);
-                    Qt = Qt + Fd[:,:,t].T.dot(Vx[:,t+1] + Vxx[:,:,t+1].dot(fc[:,t])) #fd(:,:,t).T*(Vx(:,t+1) + Vxx(:,:,t+1)*fc(:,t));
+                    Qtt = Qtt + Fd[t, :, :].T.dot(Vxx[t+1, :, :]).dot(Fd[t, :, :]) #fd(:,:,t)'*Vxx(:,:,t+1)*fd(:,:,t);
+                    Qt = Qt + Fd[t, :, :].T.dot(Vx[t+1, :] + Vxx[t+1, :, :].dot(fc[t, :])) #fd(:,:,t).T*(Vx(:,t+1) + Vxx(:,:,t+1)*fc(:,t));
 
                 # Symmetrize quadratic component.
                 Qtt = 0.5*(Qtt+Qtt.T)
 
                 # Compute Cholesky decomposition of Q function action component.
-                L = np.linalg.cholesky(Qtt[idx_u, idx_u])
+                try:
+                    U = sp.linalg.cholesky(Qtt[idx_u, idx_u])
+                except LinAlgError as e:
+                    LOGGER.info(e)
+                    fail = True
+                    break
 
-                #TODO: Is matlab backslash (\) equivalent to inverse?
-                Linv = np.linalg.inv(L)
-                LTinv = np.linalg.inv(L.T)
+                Uinv = np.linalg.inv(U)
+                UTinv = np.linalg.inv(U.T)
 
                 # Store conditional covariance and its inverse.
-                traj_distr.invPSig[:, :, t] = Qtt[idx_u, idx_u]
-                traj_distr.PSig[:, :, t] = Linv.dot(LTinv.dot(np.eye(Du)))
+                traj_distr.inv_pol_covar[t, :, :] = Qtt[idx_u, idx_u]
+                traj_distr.pol_covar[t, :, :] = Uinv.dot(UTinv.dot(np.eye(dU)))
 
                 # Compute mean terms.
-                traj_distr.k[:, t] = -Linv.dot(LTinv.dot(Qt[idx_u, 1]))
-                traj_distr.K[:, :, t] = -Linv.dot(LTinv.dot(Qtt[idx_u, idx_x]))
+                traj_distr.k[t, :] = -Uinv.dot(UTinv.dot(Qt[idx_u]))
+                traj_distr.K[t, :, :] = -Uinv.dot(UTinv.dot(Qtt[idx_u, idx_x]))
 
                 # Compute value function.
-                Vxx[:,:,t] = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.K[:, :, t])
-                Vx[:,t] = Qt[idx_x, 1] + Qtt[idx_x, idx_u].dot(traj_distr.k[:, t])
-                Vxx[:,:,t] = 0.5 * (Vxx[:,:,t] + Vxx[:,:,t].T)
-            # Increment eta if failed.
-            # TODO: Eta update on non-SPD
-            """
-            if fail,
-                del_ = max(del0,del*2);
-                eta = eta0 + del;
-                if #~isnan(algorithm.params.fid_debug),fprintf(algorithm.params.fid_debug,'Increasing eta: %f\n',eta);end;
-                if eta >= 1e16,
-                    if any(any(any(isnan(fd)))) || any(any(isnan(fc))),
-                        error('NaNs encountered in dynamics!');
-                    end;
-                    error('Failed to find positive definite LQR solution even for very large eta (check that dynamics and cost are reasonably well conditioned)!');
-                end;
-            end;
-            """
+                Vxx[t, :, :] = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.K[t, :, :])
+                Vx[t, :] = Qt[idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.k[t, :])
+                Vxx[t, :, :] = 0.5 * (Vxx[t, :, :] + Vxx[t, :, :].T)
+
+            # Increment eta on non-PD Q-function
+            if fail:
+                old_eta = eta
+                eta = eta0 + del_
+                LOGGER.info('Increasing eta: %f -> %f', old_eta, eta)
+                del_ *= 2  # Increase del_ exponentially on failure
+                if eta >= 1e16:
+                    if np.any(np.any(np.any(np.isnan(Fd)))) or np.any(np.any(np.isnan(fc))):
+                        raise ValueError('NaNs encountered in dynamics!')
+                    raise Exception('Failed to find positive definite LQR solution even for very large eta (check that dynamics and cost are reasonably well conditioned)!')
+        return traj_distr, eta
