@@ -29,7 +29,7 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin)
     end_effector_points_.resize(3,3);
 
     // Set time.
-    previous_angles_time_ = -1.0; // This ignores the velocities on the first step.
+    previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
 }
 
 // Destructor.
@@ -80,7 +80,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
         // If they are roughly from one step ago, assume the step is correct, otherwise use actual time.
         double update_time = current_time.toSecs() - previous_angles_time_.toSecs();
-        if (previous_angles_time_ >= 0.0)
+        if (!previous_angles_time_.isZero())
         { // Only compute velocities if we have a previous sample.
             if (fabs(update_time)/sensor_step_length_ >= 0.5 &&
                 fabs(update_time)/sensor_step_length_ <= 2.0)

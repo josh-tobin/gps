@@ -65,7 +65,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(std::vector<double> &angles, ArmType arm) const;
+    virtual void get_joint_encoder_readings(VectorXd &angles, ArmType arm) const;
 };
 
 }
