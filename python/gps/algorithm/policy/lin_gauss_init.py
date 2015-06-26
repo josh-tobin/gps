@@ -3,6 +3,7 @@ Initializations for Linear-gaussian controllers
 """
 from copy import deepcopy
 import numpy as np
+import scipy as sp
 
 from algorithm.dynamics.dynamics_util import guess_dynamics
 from lin_gauss_policy import LinearGaussianPolicy
@@ -76,12 +77,12 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         qt_t = lt_t + Fd.T.dot(vx_t + Vxx_t.dot(fc))
 
         # Compute preceding value function.
-        L = np.linalg.cholesky(Qtt_t[idx_u, idx_u])
+        U = sp.linalg.cholesky(Qtt_t[idx_u, idx_u])
         invPSig[t, :, :] = Qtt_t[idx_u, idx_u]
-        PSig[t, :, :] = np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(np.eye(dU)))
+        PSig[t, :, :] = np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(np.eye(dU)))
         cholPSig[t, :, :] = np.linalg.cholesky(PSig[t, :, :])
-        K[t, :, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(Qtt_t[idx_u, idx_x]))
-        k[t, :] = -np.linalg.inv(L).dot(np.linalg.inv(L.T).dot(qt_t[idx_u]))
+        K[t, :, :] = -np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(Qtt_t[idx_u, idx_x]))
+        k[t, :] = -np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(qt_t[idx_u]))
         Vxx_t = Qtt_t[idx_x, idx_x] + Qtt_t[idx_x, idx_u].dot(K[t, :, :])
         vx_t = qt_t[idx_x] + Qtt_t[idx_x, idx_u].dot(k[t, :])
         Vxx_t = 0.5 * (Vxx_t + Vxx_t.T)
