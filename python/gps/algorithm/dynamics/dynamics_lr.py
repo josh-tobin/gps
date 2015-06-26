@@ -29,7 +29,7 @@ class DynamicsLR(Dynamics):
         # Fit dynamics wih least squares regression
         for t in range(T-1):
             result, _, _, _ = np.linalg.lstsq(np.c_[X[:,t,:],U[:,t,:],np.ones(N)], np.c_[X[:,t+1,:],np.ones(N)])
-            self.Fd[t,:,:] = result[:-1,;-1]
+            self.Fd[t,:,:] = result[:-1,:-1]
             self.fc[t,:] = result[-1,:-1]
 
         # TODO - leave last time step as zeros?
