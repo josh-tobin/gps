@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-from copy import deepcopy
->>>>>>> 683c806e6a891dfcf8d79bd97f412c996b24aea6
 import numpy as np
 import logging
 import copy
@@ -11,9 +7,6 @@ from config import alg_traj_opt
 from traj_opt.traj_info import TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
-
-from algorithm import Algorithm
-from config import alg_traj_opt
 
 
 class AlgorithmTrajOpt(Algorithm):
@@ -161,20 +154,12 @@ class AlgorithmTrajOpt(Algorithm):
             sample = samples[n]
             # Get costs.
             l, lx, lu, lxx, luu, lux = self.cost[m].eval(sample)
-
             cc[n, :] = l
             cs[n, :] = l
             # Assemble matrix and vector.
             cv[n, :, :] = np.c_[lx, lu]  # T x (X+U)
             Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
-            # Adjust for difference from reference.
-            yhat = np.c_[sample.get_X(), sample.get_U()]
 
-            rdiff = self.cur_traj_distr[m].ref - yhat  # T x (X+U)
-            rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
-            cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)  # T x (X+U)
-            cc[n, :] = cc[n, :] + np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
-            cv[n, :, :] = cv[n, :, :] + cv_update
         self.cur_trajinfo[m].cc = np.mean(cc, 0)  # Costs. Average over samples
         self.cur_trajinfo[m].cv = np.mean(cv, 0)  # Cost, 1st deriv
         self.cur_trajinfo[m].Cm = np.mean(Cm, 0)  # Cost, 2nd deriv

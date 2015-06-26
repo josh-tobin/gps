@@ -52,7 +52,6 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
                             np.zeros(dX-dU*2),
                             np.ones(dU)]))
     Ltt = Ltt / config['init_var']  # Cost function - quadratic term
-    lt = -Cm.dot(np.r_[x0,np.zeros(dU)])  # Cost function - linear term
     lt = np.zeros(dX + dU)  # lt = (dX+dU) - first derivative of loss with respect to trajectory at a single timestep
 
     # Perform dynamic programming.
@@ -87,7 +86,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         vx_t = qt_t[idx_x] + Qtt_t[idx_x, idx_u].dot(k[t, :])
         Vxx_t = 0.5 * (Vxx_t + Vxx_t.T)
 
-    return LinearGaussianPolicy(K, k, ref, PSig, cholPSig, invPSig)
+    return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)
 
 
 def init_pd(hyperparams, x0, dU, dQ, dX, T):
@@ -124,4 +123,4 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
     invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
 
-    return LinearGaussianPolicy(K, k, ref, PSig, cholPSig, invPSig)
+    return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)

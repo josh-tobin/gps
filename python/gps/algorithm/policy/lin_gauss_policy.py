@@ -13,12 +13,11 @@ class LinearGaussianPolicy(Policy):
     Args:
         K: T x Du x Dx
         k: T x Du
-        ref: T x (Dx+Du)
         pol_covar: T x Du x Du
         chol_pol_covar: T x Du x Du
         inv_pol_covar: T x Du x Du
     """
-    def __init__(self, K, k, ref, pol_covar, chol_pol_covar, inv_pol_covar):
+    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar):
         Policy.__init__(self)
         #TODO: Pull dimensions from somewhere else
         self.T = K.shape[0]
@@ -27,9 +26,6 @@ class LinearGaussianPolicy(Policy):
 
         self.K = K
         self.k = k
-        self.ref = ref
-        self.x_hat = ref[:, :self.dX]
-        self.u_hat = ref[:, self.dX:self.dU]
         self.pol_covar = pol_covar
         self.chol_pol_covar = chol_pol_covar
         self.inv_pol_covar = inv_pol_covar
@@ -46,27 +42,21 @@ class LinearGaussianPolicy(Policy):
             t: timestep
             noise: Action noise vector. This will be scaled by the variance.
         """
-        u = self.K[t].dot(x - self.x_hat[t]) + self.u_hat[t] + self.k[t]
+        u = self.K[t].dot(x) + self.k[t]
         u += self.chol_pol_covar[t].T.dot(noise)
         return u
 
     def fold_k(self, noise):
         """
-        Fold x_hat, u_hat, and noise into k.
-
-        The new k is:
-        k = k + u_hat + noise - K*x_hat
-
-        This simplifies the policy to:
-        U = K*x + k
+        Fold noise into k.
 
         Args:
-            noise: A T x Du noise vector.
+            noise: A T x Du noise vector with ~mean 0 and variance 1
         Returns:
             k: A T x dU bias vector
         """
         k = np.zeros_like(self.k)
         for i in range(self.T):
             noise = self.chol_pol_covar[i].T.dot(noise[i])
-            k[i] = self.u_hat[i] + noise - self.K[i].dot(self.x_hat[i]) + self.k[i]
+            k[i] = noise + self.k[i]
         return k
