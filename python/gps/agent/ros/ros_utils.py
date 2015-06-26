@@ -37,23 +37,28 @@ class ServiceEmulator(object):
 
     Args:
         pub_topic (string): Publisher topic
-        pub_type (class): Publisher message type
+        pub_type (class): Publisher message type. Must have a header field (for seq id checking)
         sub_topic (string): Subscriber topic
-        sub_type (class): Subscriber message type
+        sub_type (class): Subscriber message type. Must have a header field (for seq id checking)
     """
     def __init__(self, pub_topic, pub_type, sub_topic, sub_type):
         self._pub = rospy.Publisher(pub_topic, pub_type)
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
 
         self._waiting = False
+        self._header_seq = -1
         self._subscriber_msg = None
 
     def _callback(self, message):
         if self._waiting:
+            if message.header.seq != self._header_seq:
+                return
             self._subscriber_msg = message
             self._waiting = False
+            self._header_seq = -1
 
     def publish(self, pub_msg):
+        """ Publish a message without waiting for response """
         self._pub.publish(pub_msg)
 
     def publish_and_wait(self, pub_msg, timeout=5.0):
@@ -67,6 +72,7 @@ class ServiceEmulator(object):
             sub_msg (sub_type): Subscriber message
         """
         self._waiting = True
+        self._header_seq = pub_msg.header.seq
         self.publish(pub_msg)
 
         time_waited = 0
