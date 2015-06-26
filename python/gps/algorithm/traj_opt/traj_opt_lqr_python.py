@@ -77,8 +77,8 @@ class TrajOptLQRPython(TrajOpt):
                             )
             mu[:,t] = np.vstack([mu[idx_x, t], traj_distr.K[:,:,t].dot(mu[idx_x,t]) + traj_distr.k[:,t]])
             if t < self.T-1:
-                sigma[idx_x, idx_x, t+1] = dynamics.fd[:,:,t].dot(sigma[:,:,t]).dot(dynamics.fd[:,:,t].T) + dynamics.dynsig[:,:,t]
-                mu[idx_x, t+1] = dynamics.fd[:,:,t]*mu[:,t] + dynamics.fc[:,t]
+                sigma[idx_x, idx_x, t+1] = dynamics.Fm[:,:,t].dot(sigma[:,:,t]).dot(dynamics.Fm[:,:,t].T) + dynamics.dynsig[:,:,t]
+                mu[idx_x, t+1] = dynamics.Fm[:,:,t]*mu[:,t] + dynamics.fv[:,t]
         return mu, sigma
 
 
@@ -96,8 +96,8 @@ class TrajOptLQRPython(TrajOpt):
         idx_u = slice(self.Dx, self.Dx+self.Du)
 
         # Pull out cost and dynamics.
-        fd = dynamics.fd
-        fc = dynamics.fc
+        Fm = dynamics.Fm
+        fv = dynamics.fv
 
         # Non-SPD correction terms.
         eta0 = eta
@@ -128,8 +128,8 @@ class TrajOptLQRPython(TrajOpt):
 
                 # Add in the value function from the next time step.
                 if t < T-1:
-                    Qtt = Qtt + fd[:,:,t].T.dot(Vxx[:,:,t+1]).dot(fd[:,:,t]) #fd(:,:,t)'*Vxx(:,:,t+1)*fd(:,:,t);
-                    Qt = Qt + fd[:,:,t].T.dot(Vx[:,t+1] + Vxx[:,:,t+1].dot(fc[:,t])) #fd(:,:,t).T*(Vx(:,t+1) + Vxx(:,:,t+1)*fc(:,t));
+                    Qtt = Qtt + Fm[:,:,t].T.dot(Vxx[:,:,t+1]).dot(Fm[:,:,t]) #Fm(:,:,t)'*Vxx(:,:,t+1)*Fm(:,:,t);
+                    Qt = Qt + Fm[:,:,t].T.dot(Vx[:,t+1] + Vxx[:,:,t+1].dot(fv[:,t])) #Fm(:,:,t).T*(Vx(:,t+1) + Vxx(:,:,t+1)*fv(:,t));
 
                 # Symmetrize quadratic component.
                 Qtt = 0.5*(Qtt+Qtt.T)
@@ -160,7 +160,7 @@ class TrajOptLQRPython(TrajOpt):
                 eta = eta0 + del;
                 if #~isnan(algorithm.params.fid_debug),fprintf(algorithm.params.fid_debug,'Increasing eta: %f\n',eta);end;
                 if eta >= 1e16,
-                    if any(any(any(isnan(fd)))) || any(any(isnan(fc))),
+                    if any(any(any(isnan(Fm)))) || any(any(isnan(fv))),
                         error('NaNs encountered in dynamics!');
                     end;
                     error('Failed to find positive definite LQR solution even for very large eta (check that dynamics and cost are reasonably well conditioned)!');
