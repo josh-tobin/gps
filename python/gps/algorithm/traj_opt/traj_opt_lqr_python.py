@@ -21,8 +21,8 @@ class TrajOptLQRPython(TrajOpt):
         """
 
         # Constants.
-        Dx = traj_distr.K.shape[2]
-        Du = traj_distr.K.shape[1]
+        # Dx = traj_distr.K.shape[2]
+        # Du = traj_distr.K.shape[1]
         T = traj_distr.K.shape[0]
 
         # IMPORTANT: trajinfo and traj must be constructed around the same
@@ -31,7 +31,7 @@ class TrajOptLQRPython(TrajOpt):
         # Perform forward pass (note that we repeat this here, because trajinfo may
         # have different dynamics from the ones that were used to compute the
         # distribution already saved in traj).
-        mu, sigma = self.forward(traj_distr, trajinfo.dynamics, trajinfo.x0mu, trajinfo.x0sigma)
+        mu, sigma = self.forward(traj_distr, trajinfo)
 
         # Compute cost.
         predicted_cost = np.zeros(T)
@@ -41,13 +41,17 @@ class TrajOptLQRPython(TrajOpt):
         return predicted_cost
 
     #TODO: Update code so that it runs. Clean args and names of variables
-    def forward(self, traj_distr, dynamics, x0mu, x0sigma):
+    def forward(self, traj_distr, trajinfo):
         """
         Forward pass - computes trajectory means and variance.
         Does NOT run yet. Also need to flip axes.
 
         Args:
-            traj_distr:
+            traj_distr: A linear gaussian policy object
+            trajinfo: A traj info object
+        Returns:
+            mu: T x dX
+            sigma: T x dX x dX
         """
         # Compute state-action marginals from specified conditional parameters and
         # current trajinfo.
@@ -63,8 +67,8 @@ class TrajOptLQRPython(TrajOpt):
         mu = np.zeros((T, dX+dU))
 
         # Set initial covariance (initial mu is always zero).
-        sigma[0, idx_x, idx_x] = x0sigma
-        mu[0, idx_x] = x0mu
+        sigma[0, idx_x, idx_x] = trajinfo.x0sigma
+        mu[0, idx_x] = trajinfo.x0mu
 
         # Perform forward pass.
         for t in range(T):
@@ -74,12 +78,19 @@ class TrajOptLQRPython(TrajOpt):
                             )
             mu[t, :] = np.hstack([mu[t, idx_x], traj_distr.K[t, :, :].dot(mu[t, idx_x]) + traj_distr.k[t, :]])
             if t < T-1:
-                sigma[t+1, idx_x, idx_x] = dynamics.fd[t, :, :].dot(sigma[t, :, :]).dot(dynamics.fd[t, :, :].T) + dynamics.dynsig[t, :, :]
-                mu[t+1, idx_x] = dynamics.fd[t, :, :].dot(mu[t, :]) + dynamics.fc[t, :]
+                sigma[t+1, idx_x, idx_x] = trajinfo.dynamics.Fd[t, :, :].dot(sigma[t, :, :]).dot(trajinfo.dynamics.Fd[t, :, :].T) + trajinfo.dynamics.dynsig[t, :, :]
+                mu[t+1, idx_x] = trajinfo.dynamics.Fd[t, :, :].dot(mu[t, :]) + trajinfo.dynamics.fc[t, :]
         return mu, sigma
 
     #TODO: Update code so that it runs. Clean args and names of variables
-    def backward(self, mu, sigma, traj_distr, prevtraj, dynamics, cv, Cm, eta):
+    def backward(self, traj_distr, prevtraj_distr, trajinfo, eta):
+        """
+        Args:
+            TODO
+        Returns:
+            traj_distr: Updated K, k, PSig, etc.
+            new_eta: New dual variable (eta)
+        """
         # Perform LQR backward pass to compute new policy.
 
         # Without GPS, simple LQR pass always converges in one iteration.
@@ -92,8 +103,8 @@ class TrajOptLQRPython(TrajOpt):
         idx_u = slice(self.Dx, self.Dx+self.Du)
 
         # Pull out cost and dynamics.
-        fd = dynamics.fd
-        fc = dynamics.fc
+        Fd = trajinfo.dynamics.Fd
+        fc = trajinfo.dynamics.fc
 
         # Non-SPD correction terms.
         eta0 = eta
@@ -112,20 +123,20 @@ class TrajOptLQRPython(TrajOpt):
             for t in range(T-1, -1, -1):
                 # Compute state-action-state function at this step.
                 # Add in the cost.
-                Qtt = Cm[:,:,t]/eta
-                Qt = cv[:,t]/eta
+                Qtt = trajinfo.Cm[:,:,t]/eta
+                Qt = trajinfo.cv[:,t]/eta
 
                 # Add in the trajectory divergence term.
                 Qtt = Qtt + np.vstack([
-                             np.hstack([prevtraj.K[:,:,t].T.dot(prevtraj.invPSig[:,:,t]).dot(prevtraj.K[:,:,t]), -prevtraj.K[:,:,t].T.dot(prevtraj.invPSig[:,:,t])]),
-                             np.hstack([-prevtraj.invPSig[:,:,t].dot(prevtraj.K[:,:,t]), prevtraj.invPSig[:,:,t]])
+                             np.hstack([prevtraj_distr.K[:,:,t].T.dot(prevtraj_distr.invPSig[:,:,t]).dot(prevtraj_distr.K[:,:,t]), -prevtraj_distr.K[:,:,t].T.dot(prevtraj_distr.invPSig[:,:,t])]),
+                             np.hstack([-prevtraj_distr.invPSig[:,:,t].dot(prevtraj_distr.K[:,:,t]), prevtraj_distr.invPSig[:,:,t]])
                              ])
-                Qt = Qt + np.hstack([prevtraj.K[:,:,t].T.dot(prevtraj.invPSig[:,:,t]).dot(prevtraj.k[:,t]), -prevtraj.invPSig[:,:,t].dot(prevtraj.k[:,t])])
+                Qt = Qt + np.hstack([prevtraj_distr.K[:,:,t].T.dot(prevtraj_distr.invPSig[:,:,t]).dot(prevtraj_distr.k[:,t]), -prevtraj_distr.invPSig[:,:,t].dot(prevtraj_distr.k[:,t])])
 
                 # Add in the value function from the next time step.
                 if t < T-1:
-                    Qtt = Qtt + fd[:,:,t].T.dot(Vxx[:,:,t+1]).dot(fd[:,:,t]) #fd(:,:,t)'*Vxx(:,:,t+1)*fd(:,:,t);
-                    Qt = Qt + fd[:,:,t].T.dot(Vx[:,t+1] + Vxx[:,:,t+1].dot(fc[:,t])) #fd(:,:,t).T*(Vx(:,t+1) + Vxx(:,:,t+1)*fc(:,t));
+                    Qtt = Qtt + Fd[:,:,t].T.dot(Vxx[:,:,t+1]).dot(Fd[:,:,t]) #fd(:,:,t)'*Vxx(:,:,t+1)*fd(:,:,t);
+                    Qt = Qt + Fd[:,:,t].T.dot(Vx[:,t+1] + Vxx[:,:,t+1].dot(fc[:,t])) #fd(:,:,t).T*(Vx(:,t+1) + Vxx(:,:,t+1)*fc(:,t));
 
                 # Symmetrize quadratic component.
                 Qtt = 0.5*(Qtt+Qtt.T)
@@ -150,6 +161,7 @@ class TrajOptLQRPython(TrajOpt):
                 Vx[:,t] = Qt[idx_x, 1] + Qtt[idx_x, idx_u].dot(traj_distr.k[:, t])
                 Vxx[:,:,t] = 0.5 * (Vxx[:,:,t] + Vxx[:,:,t].T)
             # Increment eta if failed.
+            # TODO: Eta update on non-SPD
             """
             if fail,
                 del_ = max(del0,del*2);

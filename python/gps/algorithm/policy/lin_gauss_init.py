@@ -46,13 +46,13 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     Fd, fc = guess_dynamics(config['init_gains'], config['init_acc'], dX, dU, dt)
 
     # Setup a cost function based on stiffness.
-    # Ltt = (dX+dU) by (dX+dU) - second derivative of loss with respect to trajectory at a single timestep
+    # Ltt = (dX+dU) by (dX+dU) - Hessian of loss with respect to trajectory at a single timestep
     Ltt = np.diag(np.hstack([config['init_stiffness']*np.ones(dU),
                             config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
                             np.zeros(dX-dU*2),
                             np.ones(dU)]))
     Ltt = Ltt / config['init_var']  # Cost function - quadratic term
-    lt = np.zeros(dX + dU)  # lt = (dX+dU) - first derivative of loss with respect to trajectory at a single timestep
+    lt = -Ltt.dot(np.r_[x0, np.zeros(dU)])  # Cost function - linear term
 
     # Perform dynamic programming.
     K = np.zeros((T, dU, dX))  # Controller gains matrix

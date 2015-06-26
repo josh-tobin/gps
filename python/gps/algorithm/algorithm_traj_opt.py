@@ -42,9 +42,11 @@ class AlgorithmTrajOpt(Algorithm):
         """
         Run iteration of LQR.
         """
+        # TODO: Need to set samples, dynamics,
+
         # Update dynamics model using all sample.
-        self.dynamics.update_prior()
-        self.dynamics.fit()
+        # self.dynamics.update_prior()  # TODO: Implement prior later
+        self.fit_dynamics()
 
         self.eval_costs()
         self.update_step()
@@ -54,6 +56,11 @@ class AlgorithmTrajOpt(Algorithm):
             self.traj_opt.update()
 
         self.advance_iteration_variables()
+
+    def fit_dynamics(self):
+        for m in range(self.M):
+            # TODO: Set samples in dynamics object
+            self.cur_dynamics[m].fit()
 
     def update_step(self):
         """ Evaluate costs on samples, adjusts step size """
@@ -67,7 +74,8 @@ class AlgorithmTrajOpt(Algorithm):
         """
         Calculate new step sizes.
 
-        This code does not run yet.
+        Args:
+            m: Condition
         """
         T = self.cur_samples[m][0].T
         # No policy by default.
@@ -93,8 +101,11 @@ class AlgorithmTrajOpt(Algorithm):
             ent = ent + np.sum(np.log(np.diag(self.cur_traj_distr[m].chol_pol_covar[t, :, :])))
 
         # Compute actual objective values based on the samples.
-        # previous_mc_obj = np.mean(np.sum(prev_itr_data.ics, axis=1), axis=2)
-        new_mc_obj = np.mean(np.sum(self.cur_cs[m], axis=1), axis=0)  # 1x1. Sum over time, average over N
+        previous_mc_obj = np.mean(np.sum(self.prev_cs[m], axis=1), axis=2)
+        new_mc_obj = np.mean(np.sum(self.cur_cs[m], axis=1), axis=0)
+
+        if self._hyperparams['log_verbose']:
+            LOGGER.info('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)
 
         # Compute misprediction vs Monte-Carlo score.
         mispred_std = np.abs(np.sum(new_actual_laplace_obj) - new_mc_obj) / \
@@ -103,6 +114,13 @@ class AlgorithmTrajOpt(Algorithm):
         # Compute predicted and actual improvement.
         predicted_impr = np.sum(previous_laplace_obj) - np.sum(new_predicted_laplace_obj)
         actual_impr = np.sum(previous_laplace_obj) - np.sum(new_actual_laplace_obj)
+
+        # Print improvement details.
+        if self._hyperparams['log_verbose']:
+            LOGGER.info('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
+            LOGGER.info('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
+            LOGGER.info('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
+            LOGGER.info('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
 
         # model improvement as: I = predicted_dI * KL + penalty * KL^2
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
@@ -136,7 +154,9 @@ class AlgorithmTrajOpt(Algorithm):
     def eval_cost(self, m):
         """
         Evaluate costs for all samples for a condition
-        This code does not run yet.
+
+        Args:
+            m: Condition
         """
         samples = self.cur_samples[m]
         # Constants.
