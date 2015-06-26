@@ -31,7 +31,7 @@ class AgentROS(Agent):
         self._relax_service = ServiceEmulator(self._hyperparams('relax_command_topic'), RelaxCommand,
                                               self._hyperparams('sample_result_topic'), SampleResult)
         self._data_service = ServiceEmulator(self._hyperparams('data_command_topic'), RelaxCommand,
-                                             self._hyperparams('data_result_topic'), SampleResult)
+                                             self._hyperparams('sample_result_topic'), SampleResult)
 
     def _get_next_seq_id(self):
         self._seq_id = (self._seq_id + 1) % (2**32)  # Max uint32
@@ -97,9 +97,9 @@ class AgentROS(Agent):
         self.reset_arm('trial_arm',
                        condition_data['trial_arm']['mode'],
                        condition_data['trial_arm']['data'])
-        self.reset_arm('auxillary_arm',
-                       condition_data['auxillary_arm']['mode'],
-                       condition_data['auxillary_arm']['data'])
+        self.reset_arm('auxiliary_arm',
+                       condition_data['auxiliary_arm']['mode'],
+                       condition_data['auxiliary_arm']['data'])
 
     def sample(self, policy, T):
         """
@@ -119,8 +119,7 @@ class AgentROS(Agent):
         trial_command.header.stamp = rospy.get_rostime()
         trial_command.T = T
         trial_command.frequency = self._hyperparams['frequency']
-        # Give up to 30 seconds to execute trial
-        sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=30)
+        sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
         sample = construct_sample_from_ros_msg(sample_msg)
         return sample

@@ -11,10 +11,10 @@ class CostState(Cost):
     Computes l1/l2 distance to a fixed target state
     """
 
-    def __init__(self, hyperparams):
+    def __init__(self, hyperparams, sample_data):
         config = deepcopy(cost_state)
         config.update(hyperparams)
-        Cost.__init__(self, config)
+        Cost.__init__(self, config, sample_data)
 
     def eval(self, sample):
         """
@@ -61,7 +61,7 @@ class CostState(Cost):
                 self._hyperparams['alpha'])
 
             final_l += l
-            sample.pack_data_x(final_lx, ls, data_types=[data_type_name])
-            sample.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
+            self.sample_data.pack_data_x(final_lx, ls, data_types=[data_type_name])
+            self.sample_data.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
 
         return final_l, final_lx, final_lu, final_lxx, final_luu, final_lux
