@@ -17,20 +17,21 @@ class DynamicsLR(Dynamics):
 
     def fit(self):
         """ Fit dynamics. """
-        X = self._sample_data.get_X()
+        X = self._sample_data.get_X()  # Use all samples to fit dynamics.
         U = self._sample_data.get_U()
 
         N, T, dX = X.shape
         dU = U.shape[2]
 
-        Fd = np.zeros(T, dX+dU, dX)
+        self.Fd = np.zeros([T, dX+dU, dX])
+        self.fc = np.zeros([T, dX])
 
         # Fit dynamics wih least squares regression
-        # TODO - deal with fc (add ones and slice result?)
         for t in range(T-1):
-            Fd[t,:,:], _, _, _ = np.linalg.lstsq(np.c_[X[:,t,:],U[:,t,:]], X[:,t+1,:])
+            result, _, _, _ = np.linalg.lstsq(np.c_[X[:,t,:],U[:,t,:],np.ones(N)], np.c_[X[:,t+1,:],np.ones(N)])
+            self.Fd[t,:,:] = result[:-1,:-1]
+            self.fc[t,:] = result[-1,:-1]
 
         # TODO - leave last time step as zeros?
-
-        dyn_covar = np.eye(dX+dU)
-        raise NotImplementedError("TODO - Fit dynamics")
+        # TODO - what to do with covariance? (the old dynsig)
+        self.dyn_covar = np.eye(dX+dU)
