@@ -5,7 +5,7 @@
 """ AlgorithmTrajOpt """
 alg_traj_opt = {
     'inner_iterations': 4,  # Number of iterations
-    'min_eta': 1e-5, # Don't know what this is
+    'min_eta': 1e-5,  # minimum initial lagrange multiplier in DGD for trajopt
     # Step size settings
     'kl_step',0.2,
     'min_step_mult',0.1,

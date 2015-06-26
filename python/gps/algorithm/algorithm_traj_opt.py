@@ -1,5 +1,8 @@
-from algorithm import Algorithm
+from copy import deepcopy
 import numpy as np
+
+from algorithm import Algorithm
+from config import alg_traj_opt
 
 
 class AlgorithmTrajOpt(Algorithm):
@@ -8,6 +11,10 @@ class AlgorithmTrajOpt(Algorithm):
     """
 
     def __init__(self, hyperparams, sample_data):
+        config = deepcopy(alg_traj_opt)
+        config.update(hyperparams)
+        Algorithm.__init__(self, config, sample_data)
+
         Algorithm.__init__(self, hyperparams, sample_data)
         self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'], sample_data, self.dynamics)
         self.costs = None  # TODO: Init costs from hyperparams

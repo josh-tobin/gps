@@ -16,14 +16,13 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
+    >>> K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
     >>> K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
     config.update(hyperparams)
     #TODO: Use packing instead of assuming which indices are the joint angles.
-    ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
 
     # Notation notes:
     # L = loss, Q = q-function (dX+dU dimensional), V = value function (dX dimensional), F = dynamics
@@ -51,7 +50,8 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
                             config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
                             np.zeros(dX-dU*2),
                             np.ones(dU)]))
-    Ltt = Ltt / config['init_var']
+    Ltt = Ltt / config['init_var']  # Cost function - quadratic term
+    lt = -Cm.dot(np.r_[x0,np.zeros(dU)])  # Cost function - linear term
     lt = np.zeros(dX + dU)  # lt = (dX+dU) - first derivative of loss with respect to trajectory at a single timestep
 
     # Perform dynamic programming.
@@ -86,7 +86,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         vx_t = qt_t[idx_x] + Qtt_t[idx_x, idx_u].dot(k[t, :])
         Vxx_t = 0.5 * (Vxx_t + Vxx_t.T)
 
-    return ref, K, k, PSig, cholPSig, invPSig
+    return K, k, PSig, cholPSig, invPSig
 
 
 def init_pd(hyperparams, x0, dU, dQ, dX, T):
@@ -95,7 +95,6 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
     tries to hold the initial position.
 
     Returns:
-        ref: T x dX+dU Reference trajectory
         K: T x dU x dX linear controller gains matrix
         k: T x dU controller bias term
         PSig: T x dU x dU controller action covariance
@@ -104,13 +103,12 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> ref, K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
+    >>> K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
     >>> K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
     config.update(hyperparams)
-    ref = np.hstack([np.tile(x0, [T, 1]), np.zeros((T, dU))])
 
     # Choose initialization mode.
     Kp = 1.0
@@ -120,11 +118,9 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
             [np.eye(dU) * Kp, np.zeros(dU, dQ - dU), np.eye(dU) * Kv, np.zeros((dU, dQ - dU))], [T, 1, 1])
     else:
         K = -config['init_stiffness'] * np.tile(np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
-    k = np.zeros((T, dU))
-    if config['init_action_offset']:
-        ref[dX:, :] = np.tile(config['init_action_offset'], [T, 1])
+    k = np.tile(-K[0,:,:].dot(x0), [T, 1])
     PSig = config['init_var'] * np.tile(np.eye(dU), [T, 1, 1])
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
     invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
 
-    return ref, K, k, PSig, cholPSig, invPSig
+    return K, k, PSig, cholPSig, invPSig
