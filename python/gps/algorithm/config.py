@@ -1,6 +1,7 @@
 """Default configuration and hyperparameter values for algorithm objects
 
 """
+from algorithm.traj_opt.traj_opt_lqr import TrajOptLQR
 
 """ AlgorithmTrajOpt """
 alg_traj_opt = {
@@ -14,11 +15,11 @@ alg_traj_opt = {
     'sample_increase_var':1.0,
     # Trajectory settings.
     'initial_state_var':1e-6,
-    'init_traj_distr': None,  # Initial TrajectoryDistribution object
+    'init_traj_distr': None,  # A list of initial LinearGaussianPolicy objects for each condition
     # TrajOpt
-    'traj_opt': None,
+    'traj_opt': TrajOptLQR({}),
     # Costs
-    'cost': None,  # Cost object
+    'cost': None,  # A list of Cost objects for each condition
     # TODO: Remove these:
     'conditions': 0
 }

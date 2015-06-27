@@ -147,7 +147,6 @@ class AlgorithmTrajOpt(Algorithm):
         for m in range(self.M):
             self.eval_cost(m)
 
-    # TODO: Update code so that it runs. Clean args and names of variables
     def eval_cost(self, m):
         """
         Evaluate costs for all samples for a condition
@@ -176,6 +175,14 @@ class AlgorithmTrajOpt(Algorithm):
             # Assemble matrix and vector.
             cv[n, :, :] = np.c_[lx, lu]  # T x (X+U)
             Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
+
+            # Adjust for difference from reference. Reference is now always 0.
+            yhat = np.c_[sample.get_X(), sample.get_U()]
+            rdiff = -yhat  # T x (X+U)
+            rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
+            cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)  # T x (X+U)
+            cc[n, :] = cc[n, :] + np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
+            cv[n, :, :] = cv[n, :, :] + cv_update
 
         self.cur_trajinfo[m].cc = np.mean(cc, 0)  # Costs. Average over samples
         self.cur_trajinfo[m].cv = np.mean(cv, 0)  # Cost, 1st deriv

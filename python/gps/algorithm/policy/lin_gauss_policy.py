@@ -61,15 +61,21 @@ class LinearGaussianPolicy(Policy):
             k[i] = noise + self.k[i]
         return k
 
-    def zeros_like(self):
+    def nans_like(self):
         """
         Return a new LinearGaussianPolicy object with the same dimensions but
         with all values zeroed-out.
         """
-        return LinearGaussianPolicy(
+        policy = LinearGaussianPolicy(
             np.zeros_like(self.K),
             np.zeros_like(self.k),
             np.zeros_like(self.pol_covar),
             np.zeros_like(self.chol_pol_covar),
             np.zeros_like(self.inv_pol_covar)
         )
+        policy.K.fill(np.nan)
+        policy.k.fill(np.nan)
+        policy.pol_covar.fill(np.nan)
+        policy.chol_pol_covar.fill(np.nan)
+        policy.inv_pol_covar.fill(np.nan)
+        return policy

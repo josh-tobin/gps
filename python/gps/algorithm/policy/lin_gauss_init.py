@@ -80,7 +80,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         U = sp.linalg.cholesky(Qtt_t[idx_u, idx_u])
         invPSig[t, :, :] = Qtt_t[idx_u, idx_u]
         PSig[t, :, :] = np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(np.eye(dU)))
-        cholPSig[t, :, :] = np.linalg.cholesky(PSig[t, :, :])
+        cholPSig[t, :, :] = sp.linalg.cholesky(PSig[t, :, :])
         K[t, :, :] = -np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(Qtt_t[idx_u, idx_x]))
         k[t, :] = -np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(qt_t[idx_u]))
         Vxx_t = Qtt_t[idx_x, idx_x] + Qtt_t[idx_x, idx_u].dot(K[t, :, :])
@@ -119,7 +119,7 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
             [np.eye(dU) * Kp, np.zeros(dU, dQ - dU), np.eye(dU) * Kv, np.zeros((dU, dQ - dU))], [T, 1, 1])
     else:
         K = -config['init_stiffness'] * np.tile(np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
-    k = np.tile(-K[0,:,:].dot(x0), [T, 1])
+    k = np.tile(-K[0, :, :].dot(x0), [T, 1])
     PSig = config['init_var'] * np.tile(np.eye(dU), [T, 1, 1])
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
     invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
