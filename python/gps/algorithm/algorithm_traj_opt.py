@@ -45,7 +45,7 @@ class AlgorithmTrajOpt(Algorithm):
         # TODO: Need to set samples, dynamics,
 
         # Update dynamics model using all sample.
-        # self.dynamics.update_prior()  # TODO: Implement prior later
+        self.dynamics.update_prior()
         self.fit_dynamics()
 
         self.eval_costs()
