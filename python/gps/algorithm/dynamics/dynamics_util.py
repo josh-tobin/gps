@@ -20,17 +20,17 @@ def guess_dynamics(gains, acc, dX, dU, dt):
         fc: dX bias
 
     Some sanity checks
-    >>> fd, fc = guess_dynamics_pos_vel(np.ones(3), np.ones(3), 9, 3, 0.1)
-    >>> fd.shape
+    >>> Fd, fc = guess_dynamics(np.ones(3), np.ones(3), 9, 3, 0.1)
+    >>> Fd.shape
     (9, 12)
     >>> fc.shape
     (9,)
     """
     #TODO: Use packing instead of assuming which indices are the joint angles.
-    fd = np.vstack([
+    Fd = np.vstack([
                     np.hstack([np.eye(dU), dt * np.eye(dU), np.zeros((dU, dX - dU * 2)), dt ** 2 * np.diag(gains)]),
                     np.hstack([np.zeros((dU, dU)), np.eye(dU), np.zeros((dU, dX - dU * 2)), dt * np.diag(gains)]),
                     np.zeros((dX - dU * 2, dX + dU))
                    ])
     fc = np.hstack([acc * dt ** 2, acc * dt, np.zeros((dX - dU * 2))])
-    return fd, fc
+    return Fd, fc

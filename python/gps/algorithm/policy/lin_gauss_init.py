@@ -1,14 +1,15 @@
 """
 Initializations for Linear-gaussian controllers
 """
-from algorithm.dynamics.dynamics_util import guess_dynamics
-from config import init_lg
-
 from copy import deepcopy
 import numpy as np
 
-
+from algorithm.dynamics.dynamics_util import guess_dynamics
+from lin_gauss_policy import LinearGaussianPolicy
+from config import init_lg
 # TODO - put other arguments into a dictionary? include in hyperparams?
+
+
 def init_lqr(hyperparams, x0, dX, dU, dt, T):
     """
     Return initial gains for a time-varying linear gaussian controller
@@ -16,8 +17,8 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> K, k, PSig, cholPSig, invPSig = init_lqr({}, x0, 8, 3, 0.1, 5)
-    >>> K.shape
+    >>> traj = init_lqr({}, x0, 8, 3, 0.1, 5)
+    >>> traj.K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
@@ -45,14 +46,13 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     Fd, fc = guess_dynamics(config['init_gains'], config['init_acc'], dX, dU, dt)
 
     # Setup a cost function based on stiffness.
-    # Ltt = (dX+dU) by (dX+dU) - second derivative of loss with respect to trajectory at a single timestep
+    # Ltt = (dX+dU) by (dX+dU) - Hessian of loss with respect to trajectory at a single timestep
     Ltt = np.diag(np.hstack([config['init_stiffness']*np.ones(dU),
                             config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
                             np.zeros(dX-dU*2),
                             np.ones(dU)]))
     Ltt = Ltt / config['init_var']  # Cost function - quadratic term
-    lt = -Cm.dot(np.r_[x0,np.zeros(dU)])  # Cost function - linear term
-    lt = np.zeros(dX + dU)  # lt = (dX+dU) - first derivative of loss with respect to trajectory at a single timestep
+    lt = -Ltt.dot(np.r_[x0, np.zeros(dU)])  # Cost function - linear term
 
     # Perform dynamic programming.
     K = np.zeros((T, dU, dX))  # Controller gains matrix
@@ -86,7 +86,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
         vx_t = qt_t[idx_x] + Qtt_t[idx_x, idx_u].dot(k[t, :])
         Vxx_t = 0.5 * (Vxx_t + Vxx_t.T)
 
-    return K, k, PSig, cholPSig, invPSig
+    return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)
 
 
 def init_pd(hyperparams, x0, dU, dQ, dX, T):
@@ -103,8 +103,8 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
 
     Some sanity checks
     >>> x0 = np.zeros(8)
-    >>> K, k, PSig, cholPSig, invPSig = init_pd({}, x0, 3, 3, 8, 5)
-    >>> K.shape
+    >>> traj = init_pd({}, x0, 3, 3, 8, 5)
+    >>> traj.K.shape
     (5, 3, 8)
     """
     config = deepcopy(init_lg)
@@ -123,4 +123,4 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
     invPSig = (1. / config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])
 
-    return K, k, PSig, cholPSig, invPSig
+    return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)
