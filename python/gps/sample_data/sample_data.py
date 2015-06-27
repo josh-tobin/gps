@@ -43,6 +43,10 @@ class SampleData(object):
         """Returns NxTxdObs numpy array of feature representations"""
         return np.asarray([self._samples[i].get_obs() for i in idx])
 
+    def get_samples(self):
+        """ Returns N sample objects """
+        return self._samples
+
     def add_samples(self, samples):
         """ Add newly collected samples. Save out new samples."""
 

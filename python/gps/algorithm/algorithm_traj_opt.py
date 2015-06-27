@@ -4,6 +4,7 @@ import copy
 
 from algorithm import Algorithm
 from config import alg_traj_opt
+from algorithm.dynamics.dynamics_lr import DynamicsLR
 from traj_opt.traj_info import TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.iteration = 0  # Keep track of what iteration this is currently on
         # TODO: Remove. This is very hacky
         # List of variables updated from iteration to iteration
-        self.iteration_vars = ['samples', 'trajinfo', 'traj_distr', 'cs',
+        self.iteration_vars = ['sample_data', 'trajinfo', 'traj_distr', 'cs',
                                'step_change', 'mispred_std', 'polkl', 'step_mult', 'dynamics']
 
         # TODO: Remove. This is very hacky
@@ -38,18 +39,20 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = [1.0]*self.M
 
-    def iteration(self, samples):
+    def iteration(self, sample_data):
         """
         Run iteration of LQR.
+        Args:
+            sample_data: List of sample_data for each condition.
         """
-        # TODO: Need to set samples, dynamics,
+        self.cur_sample_data = sample_data
 
         # Update dynamics model using all sample.
         # self.dynamics.update_prior()  # TODO: Implement prior later
         self.fit_dynamics()
 
         self.eval_costs()
-        self.update_step()
+        self.update_step_size()
 
         # Run inner loop
         for inner_itr in range(self._hyperparams['inner_iterations']):
@@ -58,15 +61,19 @@ class AlgorithmTrajOpt(Algorithm):
         self.advance_iteration_variables()
 
     def fit_dynamics(self):
+        """
+        Fit linear dynamics to samples
+        """
         for m in range(self.M):
             # TODO: Set samples in dynamics object
+            self.cur_dynamics[m] = DynamicsLR(self.cur_sample_data[m])
             self.cur_dynamics[m].fit()
 
-    def update_step(self):
+    def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function.
         for m in range(self.M):  # m = condition
-            if self.iteration >= 1 and self.prev_samples[m]:
+            if self.iteration >= 1 and self.prev_sample_data[m]:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
 
@@ -77,7 +84,7 @@ class AlgorithmTrajOpt(Algorithm):
         Args:
             m: Condition
         """
-        T = self.cur_samples[m][0].T
+        T = self.cur_sample_data[m].get_samples()[0].T
         # No policy by default.
         polkl = np.zeros(T)
 
@@ -154,7 +161,7 @@ class AlgorithmTrajOpt(Algorithm):
         Args:
             m: Condition
         """
-        samples = self.cur_samples[m]
+        samples = self.cur_samples[m].get_samples()
         # Constants.
         Dx = samples[0].dX
         Du = samples[0].dU
