@@ -25,14 +25,14 @@ class DynamicsLR(Dynamics):
         N, T, dX = X.shape
         dU = U.shape[2]
 
-        self.Fd = np.zeros([T, dX+dU, dX])
-        self.fc = np.zeros([T, dX])
+        self.Fm = np.zeros([T, dX+dU, dX])
+        self.fv = np.zeros([T, dX])
 
         # Fit dynamics wih least squares regression
         for t in range(T-1):
             result, _, _, _ = np.linalg.lstsq(np.c_[X[:,t,:],U[:,t,:],np.ones(N)], np.c_[X[:,t+1,:],np.ones(N)])
-            self.Fd[t,:,:] = result[:-1,:-1]
-            self.fc[t,:] = result[-1,:-1]
+            self.Fm[t,:,:] = result[:-1,:-1]
+            self.fv[t,:] = result[-1,:-1]
 
         # TODO - leave last time step as zeros?
         # TODO - what to do with covariance? (the old dynsig)

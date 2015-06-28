@@ -70,6 +70,12 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
             for (unsigned i = 0; i < 6; i++)
                 previous_jacobian(i,j) = temp_jacobian_(i,j);
 
+        // IMPORTANT: note that the Python code will assume that the Jacobian is the Jacobian of the end effector points, not of the end
+        // effector itself. In the old code, this correction was done in Matlab, but since the simulator will produce Jacobians of end
+        // effector points directly, it would make sense to also do this transformation on the robot, and send back N Jacobians, one for
+        // each feature point.
+        ROS_ERROR("FIX THIS!!");
+
         // Compute current end effector points and store in temporary storage.
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;

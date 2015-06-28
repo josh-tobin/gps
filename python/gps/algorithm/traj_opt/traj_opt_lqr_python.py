@@ -1,11 +1,18 @@
 from numpy.linalg import LinAlgError
-from traj_opt import TrajOpt
-from config import traj_opt_lqr
 import numpy as np
 import scipy as sp
 import logging
 import copy
 
+from config import traj_opt_lqr
+from traj_opt import TrajOpt
+from traj_opt_util import bracketing_line_search, traj_distr_kl
+
+
+# Constants - TODO: put in a different file?
+DGD_MAX_ITER = 50
+THRESHA = 1e-4
+THRESHB = 1e-3
 LOGGER = logging.getLogger(__name__)
 
 
@@ -17,8 +24,76 @@ class TrajOptLQRPython(TrajOpt):
         config.update(hyperparams)
         TrajOpt.__init__(self, hyperparams)
 
-    def update(self):
-        pass
+    # TODO - traj_distr and prevtraj_distr shouldn't be arguments - should exist in self.
+    def update(self, traj_distr, prevtraj_distr):
+        """Run dual gradient decent to optimize trajectories."""
+
+        # Constants
+        dX = self.dX
+        dU = self.dU
+        T = self.T
+
+        # Set KL-divergence step size (epsilon)
+        # TODO - traj_distr.step_mult needs to exist somewhere
+        kl_step = self._hyperparams['kl_step']*traj_distr.step_mult
+
+        line_search_data = {}
+        eta = traj_distr.eta
+        prev_eta = eta
+        min_eta = -np.Inf
+
+        for itr in range(DGD_MAX_ITER):
+            new_traj_distr, new_eta = self.backward(traj_distr,
+                                                    prevtraj_distr,
+                                                    trajinfo,
+                                                    eta)
+            new_mu, new_sigma = self.forward(new_traj_distr, trajinfo)
+
+            # Update min eta if we had a correction after running backward
+            if new_eta > eta:
+                min_eta = new_eta
+
+            # Compute KL divergence between previous and new distribuition
+            kl_div = traj_distr_kl(new_mu, new_sigma, new_traj_distr,
+                                   prev_traj_distr)
+
+            # TODO - Previously have stored lastklstep here, but that is only
+            # used in TrajOptBADMM, TrajOptADMM, and TrajOptCGPS
+
+            # Main convergence check - constraint satisfaction
+            if (abs(kl_div-kl_step*T) < 0.1*kl_step*T or
+                    (itr >= 20 and kl_div < kl_step*T)):
+                # TODO - Log/print debug info here
+                break
+
+            # Adjust eta using bracketing line search
+            line_search_data, eta = bracketing_line_search(line_search_data,
+                                                           kl_div-kl_step*T,
+                                                           new_eta,
+                                                           min_eta)
+
+            # Convergence check - dual variable change when min_eta hit
+            if (abs(prev_eta-eta) < THRESHA and
+                    eta == max(min_eta, self._hyperparams['min_eta'])):
+                # TODO - Log/print debug info here
+                break
+
+            # Convergence check - constraint satisfaction, kl not changing much
+            if (itr > 2 and abs(kl_div-prev_kl_div) < THRESHB and
+                    kl_div < kl_step*T):
+                # TODO - Log/print debug info here
+                break
+
+            prev_kl_div = kl_div
+            prev_eta = eta
+            # TODO - Log/print progress/debug info
+
+        if kl_div > kl_step*T and abs(kl_div-kl_step*T) > 0.1*kl_step*T:
+            fprintf()
+            # TODO Log warning - "Final KL divergence after DGD convergence is too high"
+
+        # TODO - store new_traj_distr somewhere (in self?)
+
 
     def estimate_cost(self, traj_distr, trajinfo):
         """
@@ -80,8 +155,8 @@ class TrajOptLQRPython(TrajOpt):
                             )
             mu[t, :] = np.hstack([mu[t, idx_x], traj_distr.K[t, :, :].dot(mu[t, idx_x]) + traj_distr.k[t, :]])
             if t < T-1:
-                sigma[t+1, idx_x, idx_x] = trajinfo.dynamics.Fd[t, :, :].dot(sigma[t, :, :]).dot(trajinfo.dynamics.Fd[t, :, :].T) + trajinfo.dynamics.dynsig[t, :, :]
-                mu[t+1, idx_x] = trajinfo.dynamics.Fd[t, :, :].dot(mu[t, :]) + trajinfo.dynamics.fc[t, :]
+                sigma[t+1, idx_x, idx_x] = trajinfo.dynamics.Fm[t, :, :].dot(sigma[t, :, :]).dot(trajinfo.dynamics.Fm[t, :, :].T) + trajinfo.dynamics.dynsig[t, :, :]
+                mu[t+1, idx_x] = trajinfo.dynamics.Fm[t, :, :].dot(mu[t, :]) + trajinfo.dynamics.fv[t, :]
         return mu, sigma
 
     def backward(self, prev_traj_distr, trajinfo, eta):
@@ -110,8 +185,8 @@ class TrajOptLQRPython(TrajOpt):
         idx_u = slice(dX, dX+dU)
 
         # Pull out cost and dynamics.
-        Fd = trajinfo.dynamics.Fd
-        fc = trajinfo.dynamics.fc
+        Fm = trajinfo.dynamics.Fm
+        fv = trajinfo.dynamics.fv
 
         # Non-SPD correction terms.
         del_ = self._hyperparams['del0']
@@ -141,8 +216,8 @@ class TrajOptLQRPython(TrajOpt):
 
                 # Add in the value function from the next time step.
                 if t < T-1:
-                    Qtt = Qtt + Fd[t, :, :].T.dot(Vxx[t+1, :, :]).dot(Fd[t, :, :])
-                    Qt = Qt + Fd[t, :, :].T.dot(Vx[t+1, :] + Vxx[t+1, :, :].dot(fc[t, :]))
+                    Qtt = Qtt + Fm[t, :, :].T.dot(Vxx[t+1, :, :]).dot(Fm[t, :, :])
+                    Qt = Qt + Fm[t, :, :].T.dot(Vx[t+1, :] + Vxx[t+1, :, :].dot(fv[t, :]))
 
                 # Symmetrize quadratic component.
                 Qtt = 0.5*(Qtt+Qtt.T)
@@ -179,8 +254,8 @@ class TrajOptLQRPython(TrajOpt):
                 eta = eta0 + del_
                 LOGGER.debug('Increasing eta: %f -> %f', old_eta, eta)
                 del_ *= 2  # Increase del_ exponentially on failure
-                if eta >= self._hyperparams['eta_error_threshold']:
-                    if np.any(np.isnan(Fd)) or np.any(np.isnan(fc)):
+                if eta >= 1e16:
+                    if np.any(np.any(np.any(np.isnan(Fm)))) or np.any(np.any(np.isnan(fv))):
                         raise ValueError('NaNs encountered in dynamics!')
                     raise ValueError('Failed to find positive definite LQR solution even for very large eta (check that dynamics and cost are reasonably well conditioned)!')
         return traj_distr, eta
