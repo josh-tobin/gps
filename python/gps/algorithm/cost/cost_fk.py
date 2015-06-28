@@ -12,10 +12,10 @@ class CostFK(Cost):
     end effector position.
     """
 
-    def __init__(self, hyperparams):
+    def __init__(self, hyperparams, sample_data):
         config = deepcopy(cost_fk)
         config.update(hyperparams)
-        Cost.__init__(self, config)
+        Cost.__init__(self, config, sample_data)
 
     def eval(self, sample):
         """

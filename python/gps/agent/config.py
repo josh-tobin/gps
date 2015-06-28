@@ -24,12 +24,12 @@ agent_ros = {
     # TODO: It might be worth putting this in json/yaml so C++ can read it.
     'trial_command_topic': 'gps/trial_command',
     'reset_command_topic': 'gps/reset_command',
-    'sample_result_topic': 'gps/sample_result',
     'relax_command_topic': 'gps/relax_command',
     'data_command_topic': 'gps/data_command',
-    'data_result_topic': 'gps/data_result',
+    'sample_result_topic': 'gps/sample_result',
     'trial_arm': ARM_RIGHT,
     'auxiliary_arm': ARM_LEFT,
+    'trial_timeout': 20,  # Give this many seconds to execute a trial.
     'reset_conditions': []  # Defines reset modes + positions for trial and auxiliary arms
 }
 
