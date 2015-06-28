@@ -27,7 +27,7 @@ class AlgorithmTrajOpt(Algorithm):
         # TODO: Remove. This is very hacky
         # List of variables updated from iteration to iteration
         self.iteration_vars = ['sample_data', 'trajinfo', 'traj_distr', 'cs',
-                               'step_change', 'mispred_std', 'polkl', 'step_mult', 'dynamics']
+                               'step_change', 'mispred_std', 'polkl', 'step_mult']
 
         # TODO: Remove. This is very hacky
         for varname in self.iteration_vars:
@@ -52,9 +52,9 @@ class AlgorithmTrajOpt(Algorithm):
         self.fit_dynamics()
 
         self.eval_costs()
-        self.update_step_size()
+        self.update_step_size()  # KL Divergence step size
 
-        # Run inner loop
+        # Run inner loop to compute new policies under new dynamics and step size
         for inner_itr in range(self._hyperparams['inner_iterations']):
             self.traj_opt.update()
 
@@ -66,8 +66,8 @@ class AlgorithmTrajOpt(Algorithm):
         """
         for m in range(self.M):
             # TODO: Set samples in dynamics object
-            self.cur_dynamics[m] = DynamicsLR(self.cur_sample_data[m])
-            self.cur_dynamics[m].fit()
+            self.cur_trajinfo.dynamics[m] = DynamicsLR(self.cur_sample_data[m])
+            self.cur_trajinfo.dynamics[m].fit()
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
@@ -161,7 +161,7 @@ class AlgorithmTrajOpt(Algorithm):
         Args:
             m: Condition
         """
-        samples = self.cur_samples[m].get_samples()
+        samples = self.cur_sample_data[m].get_samples()
         # Constants.
         Dx = samples[0].dX
         Du = samples[0].dU

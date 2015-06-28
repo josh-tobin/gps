@@ -30,12 +30,7 @@ class TrajOptLQRPython(TrajOpt):
         """
 
         # Constants.
-        # Dx = traj_distr.K.shape[2]
-        # Du = traj_distr.K.shape[1]
-        T = traj_distr.K.shape[0]
-
-        # IMPORTANT: trajinfo and traj must be constructed around the same
-        # reference trajectory. This is quite important!
+        T = traj_distr.T
 
         # Perform forward pass (note that we repeat this here, because trajinfo may
         # have different dynamics from the ones that were used to compute the
@@ -100,7 +95,7 @@ class TrajOptLQRPython(TrajOpt):
             eta: Dual variable
         Returns:
             traj_distr: New linear gaussian policy
-            new_eta: Updated dual variable. Updates happen if Q-function is not positive definite.
+            new_eta: Updated dual variable. Updates happen if Q-function is not symmetric positive definite.
         """
         # Without GPS, simple LQR pass always converges in one iteration.
 
@@ -125,7 +120,7 @@ class TrajOptLQRPython(TrajOpt):
         # Run dynamic programming.
         fail = True
         while fail:
-            fail = False  # Flip to true on non-positive definite
+            fail = False  # Flip to true on non-symmetric positive definite
 
             # Allocate.
             Vxx = np.zeros((T, dX, dX))
@@ -156,7 +151,7 @@ class TrajOptLQRPython(TrajOpt):
                 try:
                     U = sp.linalg.cholesky(Qtt[idx_u, idx_u])
                 except LinAlgError as e:
-                    # Error thrown when Qtt[idx_u, idx_u] is not positive definite.
+                    # Error thrown when Qtt[idx_u, idx_u] is not symmetric positive definite.
                     LOGGER.debug(e)
                     fail = True
                     break
@@ -178,7 +173,7 @@ class TrajOptLQRPython(TrajOpt):
                 Vx[t, :] = Qt[idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.k[t, :])
                 Vxx[t, :, :] = 0.5 * (Vxx[t, :, :] + Vxx[t, :, :].T)
 
-            # Increment eta on non-PD Q-function
+            # Increment eta on non-SPD Q-function
             if fail:
                 old_eta = eta
                 eta = eta0 + del_
