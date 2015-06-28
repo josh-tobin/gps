@@ -14,6 +14,6 @@ class Algorithm(object):
         self.cost = hyperparams['cost']
 
     @abc.abstractmethod
-    def iteration(self):
+    def iteration(self, sample_data):
         """ Run iteration of the algorithm. """
         raise NotImplementedError("Must be implemented in subclass")

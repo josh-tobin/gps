@@ -24,7 +24,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     """
     config = deepcopy(init_lg)
     config.update(hyperparams)
-    #TODO: Use packing instead of assuming which indices are the joint angles.
+    # TODO: Use packing instead of assuming which indices are the joint angles.
 
     # Notation notes:
     # L = loss, Q = q-function (dX+dU dimensional), V = value function (dX dimensional), F = dynamics
@@ -48,10 +48,10 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
     # Setup a cost function based on stiffness.
     # Ltt = (dX+dU) by (dX+dU) - Hessian of loss with respect to trajectory at a single timestep
-    Ltt = np.diag(np.hstack([config['init_stiffness']*np.ones(dU),
-                            config['init_stiffness']*config['init_stiffness_vel']*np.ones(dU),
-                            np.zeros(dX-dU*2),
-                            np.ones(dU)]))
+    Ltt = np.diag(np.hstack([config['init_stiffness'] * np.ones(dU),
+                             config['init_stiffness'] * config['init_stiffness_vel'] * np.ones(dU),
+                             np.zeros(dX - dU * 2),
+                             np.ones(dU)]))
     Ltt = Ltt / config['init_var']  # Cost function - quadratic term
     lt = -Ltt.dot(np.r_[x0, np.zeros(dU)])  # Cost function - linear term
 
@@ -63,9 +63,9 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     invPSig = np.zeros((T, dU, dU))  # Inverse of covariance
     Vxx_t = np.zeros((dX, dX))  # Vxx = ddV/dXdX. Second deriv of value function.
     vx_t = np.zeros(dX)  # Vx = dV/dX. Derivative of value function.
-    for t in range(T-1, -1, -1):
+    for t in range(T - 1, -1, -1):
         # Compute Q function at this step.
-        if t == (T-1):
+        if t == (T - 1):
             Ltt_t = config['init_final_weight'] * Ltt
             lt_t = config['init_final_weight'] * lt
         else:
@@ -118,7 +118,8 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
         K = -config['init_stiffness'] * np.tile(
             [np.eye(dU) * Kp, np.zeros(dU, dQ - dU), np.eye(dU) * Kv, np.zeros((dU, dQ - dU))], [T, 1, 1])
     else:
-        K = -config['init_stiffness'] * np.tile(np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
+        K = -config['init_stiffness'] * np.tile(
+            np.hstack([np.eye(dU) * Kp, np.eye(dU) * Kv, np.zeros((dU, dX - dU * 2))]), [T, 1, 1])
     k = np.tile(-K[0, :, :].dot(x0), [T, 1])
     PSig = config['init_var'] * np.tile(np.eye(dU), [T, 1, 1])
     cholPSig = np.sqrt(config['init_var']) * np.tile(np.eye(dU), [T, 1, 1])

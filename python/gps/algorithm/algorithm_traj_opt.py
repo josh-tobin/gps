@@ -48,7 +48,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_sample_data = sample_data
 
         # Update dynamics model using all sample.
-        self.dynamics.update_prior()
+        self.update_dynamics_prior()
         self.fit_dynamics()
 
         self.eval_costs()
@@ -60,13 +60,18 @@ class AlgorithmTrajOpt(Algorithm):
 
         self.advance_iteration_variables()
 
-    def fit_dynamics(self):
+    def update_dynamics_prior(self):
         """
-        Fit linear dynamics to samples
+        Instantiate dynamics objects and update prior.
         """
         for m in range(self.M):
-            # TODO: Set samples in dynamics object
             self.cur_trajinfo.dynamics[m] = DynamicsLR(self.cur_sample_data[m])
+            self.cur_trajinfo.dynamics[m].update_prior()
+
+    def fit_dynamics(self):
+        """ Fit linear dynamics to samples """
+        for m in range(self.M):
+            # TODO: Set samples in dynamics object
             self.cur_trajinfo.dynamics[m].fit()
 
     def update_step_size(self):
