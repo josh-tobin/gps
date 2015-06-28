@@ -7,7 +7,7 @@ class LinearGaussianPolicy(Policy):
     """
     Time-varying linear gaussian policy.
 
-    U = K*(x - x_hat) + u_hat + k + noise
+    U = K*x + k + noise
     Where noise ~ N(0, chol_pol_covar)
 
     Args:
@@ -63,8 +63,9 @@ class LinearGaussianPolicy(Policy):
 
     def nans_like(self):
         """
-        Return a new LinearGaussianPolicy object with the same dimensions but
-        with all values zeroed-out.
+        Returns:
+            A new LinearGaussianPolicy object with the same dimensions but
+        all values filled with nan.
         """
         policy = LinearGaussianPolicy(
             np.zeros_like(self.K),

@@ -84,10 +84,10 @@ class SampleData(object):
         Example Usage:
         >>> dX = 3; T=2
         >>> sample_data = SampleData({'T':T, 'dX': dX, 'dU': 0, 'dObs': dX}, None, SysOutWriter())
-        >>> sample_data._data_idx = {'a': [0], 'b': [1], 'c': [2]}
+        >>> sample_data._x_data_idx = {'a': [0], 'b': [1], 'c': [2]}
         >>> existing_mat = np.zeros((T, dX, dX))
         >>> data_to_insert = np.ones((T, 1, dX))
-        >>> sample_data.pack_data_x(existing_mat, data_to_insert, sensors=['a'], axes=[1])
+        >>> sample_data.pack_data_x(existing_mat, data_to_insert, data_types=['a'], axes=[1])
         >>> existing_mat
         array([[[ 1.,  1.,  1.],
                 [ 0.,  0.,  0.],
@@ -97,7 +97,7 @@ class SampleData(object):
                 [ 0.,  0.,  0.],
                 [ 0.,  0.,  0.]]])
         >>> data_to_insert = np.ones((T, 1, 1))*2
-        >>> sample_data.pack_data_x(existing_mat, data_to_insert, sensors=['a', 'b'], axes=[1, 2])
+        >>> sample_data.pack_data_x(existing_mat, data_to_insert, data_types=['a', 'b'], axes=[1, 2])
         >>> existing_mat
         array([[[ 1.,  2.,  1.],
                 [ 0.,  0.,  0.],
@@ -113,15 +113,18 @@ class SampleData(object):
             axes = list(range(-1, -num_sensor-1, -1))
         else:
             # Make sure number of sensors and axes are consistent
-            assert num_sensor == len(axes)
+            if num_sensor != len(axes):
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)', num_sensor, len(axes))
 
         #Shape Checks
         insert_shape = list(existing_mat.shape)
         for i in range(num_sensor):
-            assert existing_mat.shape[axes[i]] == self.dX  # Make sure you are slicing along X
+            if existing_mat.shape[axes[i]] != self.dX:  # Make sure you are slicing along X
+                raise ValueError('Axes must be along an dX=%d dimensional axis', self.dX)
             insert_shape[axes[i]] = len(self._x_data_idx[data_types[i]])
         # Make sure data is the right shape
-        assert tuple(insert_shape) == data_to_insert.shape
+        if tuple(insert_shape) != data_to_insert.shape:
+            raise ValueError('Data has shape %s. Expected %s', data_to_insert.shape, tuple(insert_shape))
 
         # Actually perform the slice
         index = [slice(None)]*len(existing_mat.shape)
@@ -145,11 +148,13 @@ class SampleData(object):
             axes = list(range(-1, -num_sensor-1, -1))
         else:
             # Make sure number of sensors and axes are consistent
-            assert num_sensor == len(axes)
+            if num_sensor != len(axes):
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)', num_sensor, len(axes))
 
         #Shape Checks
         for i in range(num_sensor):
-            assert existing_mat.shape[axes[i]] == self.dX  # Make sure you are slicing along X
+            if existing_mat.shape[axes[i]] != self.dX:  # Make sure you are slicing along X
+                raise ValueError('Axes must be along an dX=%d dimensional axis', self.dX)
 
         # Actually perform the slice
         index = [slice(None)]*len(existing_mat.shape)
