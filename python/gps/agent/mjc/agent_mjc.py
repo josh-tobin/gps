@@ -1,8 +1,7 @@
 import mjcpy2
 import numpy as np
 
-from copy import deepcopy
-
+from copy import deepcopy 
 from agent.agent import Agent
 from agent.config import agent_mujoco
 
@@ -15,14 +14,6 @@ class AgentMuJoCo(Agent):
         config.update(hyperparams)
         Agent.__init__(self, config, sample_data, state_assembler)
         self._setup_world(hyperparams['filename'])
-        self._hyperparams['dQ'] = self._model['nq']
-        self._hyperparams['dV'] = self._model['nv']
-        self._hyperparams['dX'] = self._model['nq'] + self._model['nv'] + self._hyperparams['dH']
-        self._hyperparams['dU'] = self._model['nu'] + self._hyperparams['dH']
-        self._hyperparams['dP'] = self._hyperparams['dX'] + \
-                self._hyperparams['extra_phi_mean'].size  #TODO: how to actually determine dP?
-        self._hyperparams['x0'] = np.concatenate([self._model['qpos0'].flatten(), \
-                np.zeros(self._model['nv'])])  #TODO: implement setmodel
         #TODO: add various other parameters, e.g. for drawing and appending to state
 
     def _setup_world(filename):
@@ -33,29 +24,42 @@ class AgentMuJoCo(Agent):
         #TODO: what else goes here?
 
     def sample(self, policy, T, verbose=True):
-        X = np.zeros([self._hyperparams['dX'], T])
-        U = np.zeros([self._hyperparams['dU'], T])
-        obs = np.zeros([self._hyperparams['dP'], T])  #TODO: populate this
-        noise = np.random.randn(U.shape)
-        if self._hyperparams['smooth_noise']:
+        new_sample = self._init_sample()  # create new sample, populate first time step
+        mj_X = new_sample.get_X(t=0)
+        noise = np.random.randn([self._hyperparams['dU'], T])
+        if self._hyperparams['smooth_noise']:  #TODO: implement filter_sequence
             noise = filter_sequence(noise, self._hyperparams['smooth_noise_sigma'], 1e-2)
             if self._hyperparams['smooth_noise_renormalize']:
                 noise = (noise.T * np.std(noise, axis=1)).T
-        X[:,0] = self._hyperparams['x0']
         if np.any(self._hyperparams['x0var'] > 0):
             x0n = self._hyperparams['x0var'] * np.random.randn(self._hyperparams['x0var'].shape)
-            X[:,0] += x0n
+            mj_X += x0n
         #TODO: add noise to body pos and then setmodel
         for t in range(T):
-            U[:,t] = policy.act(self, X[:,t], obs[:,t], noise[:,t], t)
+            mj_U = policy.act(self, mj_X, new_sample.get_obs(t), noise[:,t], t)
             if verbose:
-                self._world.Plot(X[:,t])
+                self._world.Plot(mj_X)
             if (t+1) < T:
                 if t < self._hyperparams['frozen_steps']:
-                    X[:,t+1] = self._world.Step(X[:,t], np.zeros(self._hyperparams['dU']))
+                    mj_X = self._world.Step(mj_X, np.zeros(self._hyperparams['dU']))
                 else:
-                    X[:,t+1] = self._world.Step(X[:,t], U[:,t])
+                    mj_X = self._world.Step(mj_X, mj_U)
                 #TODO: update hidden state
-                #TODO: contruct full state, i.e. append whatever is needed, and compute obs
+                self._data = self._world.GetData()
+                new_sample.set('JointAngles', mj_X[:self._model['nq'], t=t+1)
+                new_sample.set('JointVelocities', mj_X[self._model['nq']+1:], t=t+1)
+                new_sample.set('EndEffectorPoints', self._data['site_xpos'].flatten(), t=t+1)
+                #TODO: how to set end effector point velocities and Jacobians?
         #TODO: reset world
-        #TODO: construct and return sample from X,U,obs
+        return new_sample
+
+    def _init_sample(self):
+        sample = self.sample_data.create_new()
+        #TODO: set first time step with x0, for now do something else since setmodel doesn't exist
+        sample.set('JointAngles', self._model['qpos0'].flatten(), t=0)
+        sample.set('JointVelocities', np.zeros(self._model['nv']), t=0)
+        sites = self._data['site_xpos'].flatten()
+        sample.set('EndEffectorPoints', sites, t=0)
+        sample.set('EndEffectorPointVelocities', np.zeros(sites.shape), t=0)
+        #TODO: how to set Jacobians?
+        return sample

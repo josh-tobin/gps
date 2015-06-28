@@ -1,7 +1,9 @@
 import cPickle
 import os
 import numpy as np
+
 from gps_sample_types import *
+from sample import Sample
 
 
 class SampleData(object):
@@ -22,13 +24,18 @@ class SampleData(object):
         self.T = self._hyperparams['T']
         self.dX = self._hyperparams['dX']
         self.dU = self._hyperparams['dU']
-        self.dObs = self._hyperparams['dObs']
+        self.dO = self._hyperparams['dO']
 
         self._x_data_idx = {}  # List of indices for each data type in state X. Indices must be contiguous
         self._obs_data_idx = {}  # List of indices for each data type in observation. Indices must be contiguous
 
         # List of trajectory samples (roll-outs)
         self._samples = []
+
+    def create_new(self):
+        sample = Sample(self)
+        self._samples.append(sample)
+        return sample
 
     def get_X(self, idx):
         """Returns NxTxdX numpy array of states"""
@@ -40,7 +47,7 @@ class SampleData(object):
         return np.asarray([self._samples[i].get_U() for i in idx])
 
     def get_obs(self, idx):
-        """Returns NxTxdObs numpy array of feature representations"""
+        """Returns NxTxdO numpy array of feature representations"""
         return np.asarray([self._samples[i].get_obs() for i in idx])
 
     def get_samples(self):
@@ -66,10 +73,11 @@ class SampleData(object):
         """
         return self._data_idx[data_type]
 
-    def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None):
+    def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None, t=None):
         raise NotImplementedError()
 
-    def pack_data_x(self, existing_mat, data_to_insert, data_types=None, axes=None):
+    def pack_data_x(self, existing_mat, data_to_insert, data_types=None, axes=None, t=None):
+        #TODO: make this support taking in t, i.e. just return data for one specific time step
         """
         Inserts data into existing_mat into the indices specified by data_types and axes.
         Can insert 1 data type per axis.
@@ -83,8 +91,8 @@ class SampleData(object):
 
         Example Usage:
         >>> dX = 3; T=2
-        >>> sample_data = SampleData({'T':T, 'dX': dX, 'dU': 0, 'dObs': dX}, None, SysOutWriter())
-        >>> sample_data._x_data_idx = {'a': [0], 'b': [1], 'c': [2]}
+        >>> sample_data = SampleData({'T':T, 'dX': dX, 'dU': 0, 'dO': dX}, None, SysOutWriter())
+        >>> sample_data._data_idx = {'a': [0], 'b': [1], 'c': [2]}
         >>> existing_mat = np.zeros((T, dX, dX))
         >>> data_to_insert = np.ones((T, 1, dX))
         >>> sample_data.pack_data_x(existing_mat, data_to_insert, data_types=['a'], axes=[1])
