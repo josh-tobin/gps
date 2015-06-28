@@ -9,6 +9,8 @@ class DynamicsLR(Dynamics):
     """
     def __init__(self,hyperparams,sample_data):
         Dynamics.__init__(self, hyperparams, sample_data)
+        self.Fd = None
+        self.fc = None
 
     def update_prior(self):
         """ Update dynamics prior. """

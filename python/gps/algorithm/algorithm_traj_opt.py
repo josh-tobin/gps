@@ -4,6 +4,7 @@ import copy
 
 from algorithm import Algorithm
 from config import alg_traj_opt
+from algorithm.dynamics.dynamics_lr import DynamicsLR
 from traj_opt.traj_info import TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
@@ -25,8 +26,8 @@ class AlgorithmTrajOpt(Algorithm):
         self.iteration = 0  # Keep track of what iteration this is currently on
         # TODO: Remove. This is very hacky
         # List of variables updated from iteration to iteration
-        self.iteration_vars = ['samples', 'trajinfo', 'traj_distr', 'cs',
-                               'step_change', 'mispred_std', 'polkl', 'step_mult', 'dynamics']
+        self.iteration_vars = ['sample_data', 'trajinfo', 'traj_distr', 'cs',
+                               'step_change', 'mispred_std', 'polkl', 'step_mult']
 
         # TODO: Remove. This is very hacky
         for varname in self.iteration_vars:
@@ -38,35 +39,41 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = [1.0]*self.M
 
-    def iteration(self, samples):
+    def iteration(self, sample_data):
         """
         Run iteration of LQR.
+        Args:
+            sample_data: List of sample_data for each condition.
         """
-        # TODO: Need to set samples, dynamics,
+        self.cur_sample_data = sample_data
 
         # Update dynamics model using all sample.
         self.dynamics.update_prior()
         self.fit_dynamics()
 
         self.eval_costs()
-        self.update_step()
+        self.update_step_size()  # KL Divergence step size
 
-        # Run inner loop
+        # Run inner loop to compute new policies under new dynamics and step size
         for inner_itr in range(self._hyperparams['inner_iterations']):
             self.traj_opt.update()
 
         self.advance_iteration_variables()
 
     def fit_dynamics(self):
+        """
+        Fit linear dynamics to samples
+        """
         for m in range(self.M):
             # TODO: Set samples in dynamics object
-            self.cur_dynamics[m].fit()
+            self.cur_trajinfo.dynamics[m] = DynamicsLR(self.cur_sample_data[m])
+            self.cur_trajinfo.dynamics[m].fit()
 
-    def update_step(self):
+    def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function.
         for m in range(self.M):  # m = condition
-            if self.iteration >= 1 and self.prev_samples[m]:
+            if self.iteration >= 1 and self.prev_sample_data[m]:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
 
@@ -77,7 +84,7 @@ class AlgorithmTrajOpt(Algorithm):
         Args:
             m: Condition
         """
-        T = self.cur_samples[m][0].T
+        T = self.cur_sample_data[m].get_samples()[0].T
         # No policy by default.
         polkl = np.zeros(T)
 
@@ -147,7 +154,6 @@ class AlgorithmTrajOpt(Algorithm):
         for m in range(self.M):
             self.eval_cost(m)
 
-    # TODO: Update code so that it runs. Clean args and names of variables
     def eval_cost(self, m):
         """
         Evaluate costs for all samples for a condition
@@ -155,7 +161,7 @@ class AlgorithmTrajOpt(Algorithm):
         Args:
             m: Condition
         """
-        samples = self.cur_samples[m]
+        samples = self.cur_sample_data[m].get_samples()
         # Constants.
         Dx = samples[0].dX
         Du = samples[0].dU
@@ -176,6 +182,14 @@ class AlgorithmTrajOpt(Algorithm):
             # Assemble matrix and vector.
             cv[n, :, :] = np.c_[lx, lu]  # T x (X+U)
             Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
+
+            # Adjust for difference from reference. Reference is now always 0.
+            yhat = np.c_[sample.get_X(), sample.get_U()]
+            rdiff = -yhat  # T x (X+U)
+            rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
+            cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)  # T x (X+U)
+            cc[n, :] = cc[n, :] + np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
+            cv[n, :, :] = cv[n, :, :] + cv_update
 
         self.cur_trajinfo[m].cc = np.mean(cc, 0)  # Costs. Average over samples
         self.cur_trajinfo[m].cv = np.mean(cv, 0)  # Cost, 1st deriv
