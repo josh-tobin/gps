@@ -23,10 +23,10 @@ class TrajOptLQRPython(TrajOpt):
     def __init__(self, hyperparams):
         config = copy.deepcopy(traj_opt_lqr)
         config.update(hyperparams)
-        TrajOpt.__init__(self, hyperparams)
+        TrajOpt.__init__(self, config)
 
     # TODO - traj_distr and prevtraj_distr shouldn't be arguments - should exist in self.
-    def update(self, traj_distr, prevtraj_distr):
+    def update(self, step_mult, eta, trajinfo, prev_traj_distr):
         """Run dual gradient decent to optimize trajectories."""
 
         # Constants
@@ -36,16 +36,14 @@ class TrajOptLQRPython(TrajOpt):
 
         # Set KL-divergence step size (epsilon)
         # TODO - traj_distr.step_mult needs to exist somewhere
-        kl_step = self._hyperparams['kl_step'] * traj_distr.step_mult
+        kl_step = self._hyperparams['kl_step'] * step_mult
 
         line_search = LineSearch(self._hyperparams['min_eta'])
-        eta = traj_distr.eta
         prev_eta = eta
         min_eta = -np.Inf
 
         for itr in range(DGD_MAX_ITER):
-            new_traj_distr, new_eta = self.backward(traj_distr,
-                                                    prevtraj_distr,
+            new_traj_distr, new_eta = self.backward(prev_traj_distr,
                                                     trajinfo,
                                                     eta)
             new_mu, new_sigma = self.forward(new_traj_distr, trajinfo)
@@ -94,10 +92,9 @@ class TrajOptLQRPython(TrajOpt):
 
         if kl_div > kl_step*T and abs(kl_div - kl_step*T) > 0.1*kl_step*T:
             LOGGER.warning("Final KL divergence after DGD convergence is too high")
-            fprintf()
 
             # TODO - store new_traj_distr somewhere (in self?)
-
+        return new_traj_distr, eta
 
     def estimate_cost(self, traj_distr, trajinfo):
         """
@@ -237,23 +234,22 @@ class TrajOptLQRPython(TrajOpt):
                 # Compute Cholesky decomposition of Q function action component.
                 try:
                     U = sp.linalg.cholesky(Qtt[idx_u, idx_u])
+                    L = U.T
                 except LinAlgError as e:
                     # Error thrown when Qtt[idx_u, idx_u] is not symmetric positive definite.
                     LOGGER.debug(e)
                     fail = True
                     break
 
-                Uinv = np.linalg.inv(U)
-                UTinv = np.linalg.inv(U.T)
 
                 # Store conditional covariance, its inverse, and cholesky
                 traj_distr.inv_pol_covar[t, :, :] = Qtt[idx_u, idx_u]
-                traj_distr.pol_covar[t, :, :] = Uinv.dot(UTinv.dot(np.eye(dU)))
+                traj_distr.pol_covar[t, :, :] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, np.eye(dU), lower=True))
                 traj_distr.chol_pol_covar[t, :, :] = sp.linalg.cholesky(traj_distr.pol_covar[t, :, :])
 
                 # Compute mean terms.
-                traj_distr.k[t, :] = -Uinv.dot(UTinv.dot(Qt[idx_u]))
-                traj_distr.K[t, :, :] = -Uinv.dot(UTinv.dot(Qtt[idx_u, idx_x]))
+                traj_distr.k[t, :] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qt[idx_u], lower=True))
+                traj_distr.K[t, :, :] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qtt[idx_u, idx_x], lower=True))
 
                 # Compute value function.
                 Vxx[t, :, :] = Qtt[idx_x, idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.K[t, :, :])

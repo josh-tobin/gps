@@ -38,6 +38,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_traj_distr = hyperparams['init_traj_distr']
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = [1.0]*self.M
+        self.eta = [1.0]*self.M
 
     def iteration(self, sample_data):
         """
@@ -55,8 +56,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.update_step_size()  # KL Divergence step size
 
         # Run inner loop to compute new policies under new dynamics and step size
-        for inner_itr in range(self._hyperparams['inner_iterations']):
-            self.traj_opt.update()
+        self.update_trajectories()
 
         self.advance_iteration_variables()
 
@@ -81,6 +81,17 @@ class AlgorithmTrajOpt(Algorithm):
             if self.iteration >= 1 and self.prev_sample_data[m]:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
+
+    def update_trajectories(self):
+        """
+        Compute new linear gaussian controllers.
+        """
+        #TODO: Only thing that gets update between loops is eta??
+        self.new_traj_distr = [None]*self.M  # Hack to get around cur/prev being automatically updated in advance_iteration_variables
+        for inner_itr in range(self._hyperparams['inner_iterations']):
+            for m in range(self.M):
+                new_traj, self.eta[m] = self.traj_opt.update(self.cur_step_mult[m], self.eta[m], self.cur_trajinfo[m], self.prev_traj_distr[m])
+                self.new_traj_distr[m] = new_traj
 
     def stepadjust(self, m):
         """
@@ -188,7 +199,7 @@ class AlgorithmTrajOpt(Algorithm):
             cv[n, :, :] = np.c_[lx, lu]  # T x (X+U)
             Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
 
-            # Adjust for difference from reference. Reference is now always 0.
+            # Adjust for expanding cost around a sample.
             yhat = np.c_[sample.get_X(), sample.get_U()]
             rdiff = -yhat  # T x (X+U)
             rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
@@ -214,3 +225,4 @@ class AlgorithmTrajOpt(Algorithm):
             setattr(self, 'cur_' + varname, [None]*self.M)
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = self.prev_step_mult
+        self.cur_traj_distr = self.new_traj_distr  #TODO: Hack - clear this up once it runs.

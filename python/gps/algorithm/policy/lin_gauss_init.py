@@ -63,6 +63,8 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     invPSig = np.zeros((T, dU, dU))  # Inverse of covariance
     Vxx_t = np.zeros((dX, dX))  # Vxx = ddV/dXdX. Second deriv of value function.
     vx_t = np.zeros(dX)  # Vx = dV/dX. Derivative of value function.
+
+    #TODO: A lot of this code is repeated with traj_opt_lqr_python.py backward pass
     for t in range(T - 1, -1, -1):
         # Compute Q function at this step.
         if t == (T - 1):
@@ -78,11 +80,13 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
 
         # Compute preceding value function.
         U = sp.linalg.cholesky(Qtt_t[idx_u, idx_u])
+        L = U.T
+
         invPSig[t, :, :] = Qtt_t[idx_u, idx_u]
-        PSig[t, :, :] = np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(np.eye(dU)))
+        PSig[t, :, :] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, np.eye(dU), lower=True))
         cholPSig[t, :, :] = sp.linalg.cholesky(PSig[t, :, :])
-        K[t, :, :] = -np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(Qtt_t[idx_u, idx_x]))
-        k[t, :] = -np.linalg.inv(U).dot(np.linalg.inv(U.T).dot(qt_t[idx_u]))
+        K[t, :, :] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qtt_t[idx_u, idx_x], lower=True))
+        k[t, :] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, qt_t[idx_u], lower=True))
         Vxx_t = Qtt_t[idx_x, idx_x] + Qtt_t[idx_x, idx_u].dot(K[t, :, :])
         vx_t = qt_t[idx_x] + Qtt_t[idx_x, idx_u].dot(k[t, :])
         Vxx_t = 0.5 * (Vxx_t + Vxx_t.T)
