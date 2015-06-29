@@ -69,7 +69,7 @@ class TrajOptLQRPython(TrajOpt):
                 break
 
             # Adjust eta using bracketing line search
-            eta = line_search.bracketing_line_search(kl_div - kl_step * T,
+            eta = line_search.bracketing_line_search(kl_div - kl_step*T,
                                                      new_eta,
                                                      min_eta)
 
@@ -82,7 +82,7 @@ class TrajOptLQRPython(TrajOpt):
 
             # Convergence check - constraint satisfaction, kl not changing much
             if (itr > 2 and abs(kl_div - prev_kl_div) < THRESHB and
-                        kl_div < kl_step * T):
+                        kl_div < kl_step*T):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)\n",
                              itr, kl_div, kl_step*T)
                 break
@@ -92,7 +92,7 @@ class TrajOptLQRPython(TrajOpt):
                          itr, kl_div, kl_step*T, prev_eta, eta)
             prev_eta = eta
 
-        if kl_div > kl_step * T and abs(kl_div - kl_step * T) > 0.1 * kl_step * T:
+        if kl_div > kl_step*T and abs(kl_div - kl_step*T) > 0.1*kl_step*T:
             LOGGER.warning("Final KL divergence after DGD convergence is too high")
             fprintf()
 
