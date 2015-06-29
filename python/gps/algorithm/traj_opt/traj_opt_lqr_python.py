@@ -6,7 +6,7 @@ import copy
 
 from config import traj_opt_lqr
 from traj_opt import TrajOpt
-from traj_opt_util import bracketing_line_search, traj_distr_kl
+from traj_opt_util import LineSearch, traj_distr_kl
 
 
 # Constants - TODO: put in a different file?
@@ -38,7 +38,7 @@ class TrajOptLQRPython(TrajOpt):
         # TODO - traj_distr.step_mult needs to exist somewhere
         kl_step = self._hyperparams['kl_step'] * traj_distr.step_mult
 
-        line_search_data = {}
+        line_search = LineSearch(self._hyperparams['min_eta'])
         eta = traj_distr.eta
         prev_eta = eta
         min_eta = -np.Inf
@@ -62,36 +62,39 @@ class TrajOptLQRPython(TrajOpt):
             # used in TrajOptBADMM, TrajOptADMM, and TrajOptCGPS
 
             # Main convergence check - constraint satisfaction
-            if (abs(kl_div - kl_step * T) < 0.1 * kl_step * T or
-                    (itr >= 20 and kl_div < kl_step * T)):
-                # TODO - Log/print debug info here
+            if (abs(kl_div - kl_step*T) < 0.1*kl_step*T or
+                    (itr >= 20 and kl_div < kl_step*T)):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged\n",
+                             itr, kl_div, kl_step*T)
                 break
 
             # Adjust eta using bracketing line search
-            line_search_data, eta = bracketing_line_search(line_search_data,
-                                                           kl_div - kl_step * T,
-                                                           new_eta,
-                                                           min_eta)
+            eta = line_search.bracketing_line_search(kl_div - kl_step*T,
+                                                     new_eta,
+                                                     min_eta)
 
             # Convergence check - dual variable change when min_eta hit
             if (abs(prev_eta - eta) < THRESHA and
                         eta == max(min_eta, self._hyperparams['min_eta'])):
-                # TODO - Log/print debug info here
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (eta limit)\n",
+                             itr, kl_div, kl_step*T)
                 break
 
             # Convergence check - constraint satisfaction, kl not changing much
             if (itr > 2 and abs(kl_div - prev_kl_div) < THRESHB and
-                        kl_div < kl_step * T):
-                # TODO - Log/print debug info here
+                        kl_div < kl_step*T):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)\n",
+                             itr, kl_div, kl_step*T)
                 break
 
             prev_kl_div = kl_div
+            LOGGER.debug('Iteration %i, KL: %f / %f eta: %f -> %f\n',
+                         itr, kl_div, kl_step*T, prev_eta, eta)
             prev_eta = eta
-            # TODO - Log/print progress/debug info
 
-        if kl_div > kl_step * T and abs(kl_div - kl_step * T) > 0.1 * kl_step * T:
+        if kl_div > kl_step*T and abs(kl_div - kl_step*T) > 0.1*kl_step*T:
+            LOGGER.warning("Final KL divergence after DGD convergence is too high")
             fprintf()
-            # TODO Log warning - "Final KL divergence after DGD convergence is too high"
 
             # TODO - store new_traj_distr somewhere (in self?)
 
