@@ -100,7 +100,6 @@ class LineSearch(object):
             else:  # Too much change.
                 rate = 0.01
                 eta = eta + con*rate
-            return eta
         else:
             # Choose two points to fit.
             leta = eta
@@ -136,7 +135,6 @@ class LineSearch(object):
                     self.data['e1'] = e1
                     self.data['e2'] = e2
                     eta = max(min_eta,self.min_eta)
-                    return
                 else:
                     if abs(self.data['c1']) <= abs(self.data['c2']):
                         if self.data['c1'] < con:
@@ -201,7 +199,7 @@ class LineSearch(object):
                     cng = min(max(rate*con*eta,-5),5)
                     nlogeta = np.log(eta) + cng
 
-            LOGGER.debug('Bracket points: %f %f (%f %f) a=%f b=%f\n',e1,e2,c1,c2,a,b)
+            LOGGER.debug('Bracket points: %f %f (%f %f) a=%f b=%f',e1,e2,c1,c2,a,b)
 
             # Bound change.
             if mid == 1:
@@ -220,4 +218,4 @@ class LineSearch(object):
             self.data['e1'] = e1
             self.data['e2'] = e2
             eta = max(np.exp(nlogeta),max(min_eta,self.min_eta))
-            return eta
+        return eta

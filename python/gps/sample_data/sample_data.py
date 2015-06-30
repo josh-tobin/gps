@@ -51,6 +51,9 @@ class SampleData(object):
         """ Returns N sample objects """
         return self._samples
 
+    def num_samples(self):
+        return len(self._samples)
+
     def add_samples(self, samples):
         """ Add newly collected samples. Save out new samples."""
 
