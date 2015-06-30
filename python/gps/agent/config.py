@@ -40,7 +40,7 @@ agent_mujoco.update({
     'append_pts_vel': False,
     'append_prev_state': False,
     'smooth_noise': False,
-    'smooth_noise_sigma': 2.0,
+    'smooth_noise_var': 2.0,
     'smooth_noise_renormalize': True,
     'extra_phi_mean': np.array([]),
     'extra_phi_var': np.array([]),

@@ -28,7 +28,7 @@ class AgentMuJoCo(Agent):
         mj_X = new_sample.get_X(t=0)
         noise = np.random.randn([self._hyperparams['dU'], T])
         if self._hyperparams['smooth_noise']:  #TODO: implement filter_sequence
-            noise = filter_sequence(noise, self._hyperparams['smooth_noise_sigma'], 1e-2)
+            noise = filter_sequence(noise, self._hyperparams['smooth_noise_var'], 1e-2)
             if self._hyperparams['smooth_noise_renormalize']:
                 noise = (noise.T * np.std(noise, axis=1)).T
         if np.any(self._hyperparams['x0var'] > 0):
