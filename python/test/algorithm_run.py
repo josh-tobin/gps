@@ -25,22 +25,22 @@ def run():
     dt = 0.05
     T = 10
     M = 1
-    sampledata = sample_data(T, dX, dU)
 
     hyper = {}
     hyper['conditions'] = M
-    hyper['init_traj_distr'] = [init_lqr({}, x0, dX, dU, dt, T) for _ in range(M)]
-    hyper['cost'] = [CostState({
+    hyper['init_traj_distr'] = {'type':init_lqr, 'args': {'hyperparams':{}, 'dt':dt}}
+    hyper['cost'] = {
+        'type':CostState,
         'data_types': {
             'dummy':{
                 'wp': np.ones((1, dX)),
-                'desired_state': np.zeros((1,dX))
-            }
-        }
-    }, sampledata )]*M
+                'desired_state': np.zeros((1,dX)),
+            },
+        },
+    }
 
-    traj_opt = TrajOptLQRPython({})
-    hyper['traj_opt'] = traj_opt
+    #traj_opt = TrajOptLQRPython({})
+    hyper['traj_opt'] = {'type':TrajOptLQRPython}
 
     alg = AlgorithmTrajOpt(hyper, None)
     data = [sample_data(T, dX, dU, N=3)]*M
@@ -49,7 +49,7 @@ def run():
     alg.iteration(data)
 
 def sample_data(T, dX, dU, N=0):
-    sdata = SampleData({'T':T, 'dX': dX, 'dU': dU, 'dObs': 1}, {}, SysOutWriter())
+    sdata = SampleData({'T':T, 'dX': dX, 'dU': dU, 'dO': 1}, {}, SysOutWriter())
     sdata._x_data_idx = {'dummy': tuple(range(dX))}
     if N>0:
         sdata._samples = [make_dummy_sample(T, dX, dU, sdata) for _ in range(N)]

@@ -22,7 +22,7 @@ class GPSMain():
         """
         for itr in range(self._iterations):
             self.agent.sample()
-            self.algorithm.iteration()
+            self.algorithm.iteration(self.sample_data)
 
     def resume(self, itr):
         """

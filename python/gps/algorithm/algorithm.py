@@ -10,8 +10,8 @@ class Algorithm(object):
     def __init__(self, hyperparams, sample_data):
         self._hyperparams = hyperparams
         self._sample_data = sample_data
-        self.traj_opt = hyperparams['traj_opt']
-        self.cost = hyperparams['cost']
+        self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'])
+        self.cost = [hyperparams['cost']['type'](hyperparams['cost'], sample_data)]*hyperparams['conditions']
 
     @abc.abstractmethod
     def iteration(self, sample_data):
