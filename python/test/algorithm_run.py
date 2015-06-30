@@ -39,7 +39,6 @@ def run():
         },
     }
 
-    #traj_opt = TrajOptLQRPython({})
     hyper['traj_opt'] = {'type':TrajOptLQRPython}
 
     data = [sample_data(T, dX, dU, N=3)]*M

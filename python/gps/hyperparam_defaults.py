@@ -22,11 +22,9 @@ sample_data = {
     'dU': 21,
     'dO': 55,
     'state_include': ['JointAngles', 'JointVelocities'],
-    #'state_include': ['JointAngles', 'JointVelocities', 'EndEffectorPoints', 'EndEffectorPointVelocities'],
     'obs_include': [],
     'state_idx': [list(range(28)), list(range(28,55))],
-    'obs_idx': [list(range(28)), list(range(28,55))],
-    #'obs_include': ['JointAngles', 'JointVelocities'],  # Input to policy
+    'obs_idx': [],
 }
 
 agent = {
@@ -44,7 +42,7 @@ algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'args': {
         'hyperparams': {},
-        'dt': agent['dt']
+        'dt': agent['dt'],
     }
 }
 
@@ -54,8 +52,8 @@ algorithm['cost'] = {
         'JointAngles': {
             'wp': np.ones((1, 28)),
             'desired_state': np.zeros((1, 28)),
-            }
         },
+    },
 }
 
 algorithm['dynamics'] = {
@@ -63,12 +61,8 @@ algorithm['dynamics'] = {
 }
 
 algorithm['traj_opt'] = {
-        'type': TrajOptLQRPython,
-        }
-
-    #'type': TrajOptLQR,
-    #TrajOptLQRPython({}),
-#}
+    'type': TrajOptLQRPython,
+}
 
 algorithm['policy_opt'] = {}
 

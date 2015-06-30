@@ -4,6 +4,9 @@
 import numpy as np
 
 from copy import deepcopy
+
+#TODO: commenting out AgentROS stuff for now because the following import
+#      seems to be breaking things. will have to revisit this
 #from agent.ros.agent_ros import ARM_RIGHT, ARM_LEFT
 #from gps_agent_pkg.msg import PositionCommand
 

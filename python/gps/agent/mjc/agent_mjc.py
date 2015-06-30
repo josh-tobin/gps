@@ -10,6 +10,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 class AgentMuJoCo(Agent):
     """
+    All communication between the algorithms and MuJoCo is done through this class.
     """
     def __init__(self, hyperparams, sample_data):
         config = deepcopy(agent_mujoco)
@@ -19,6 +20,12 @@ class AgentMuJoCo(Agent):
         #TODO: add various other parameters, e.g. for drawing and appending to state
 
     def _setup_world(self, filename):
+        """
+        Helper method for handling setup of the MuJoCo world.
+
+        Args:
+            filename: path to XML file containing the world information
+        """
         self._world = mjcpy2.MJCWorld2(filename)
         self._model = self._world.GetModel()
         self._data = self._world.GetData()
@@ -27,6 +34,15 @@ class AgentMuJoCo(Agent):
         #TODO: what else goes here?
 
     def sample(self, policy, T, verbose=True):
+        """
+        Runs a trial and constructs and returns a new sample containing information
+        about the trial.
+
+        Args:
+            policy: policy to to used in the trial
+            T: number of time steps for the trial
+            verbose: whether or not to plot the trial
+        """
         new_sample = self._init_sample()  # create new sample, populate first time step
         mj_X = new_sample.get_X(t=0)
         U = np.zeros([T, self.sample_data.dU])
@@ -64,6 +80,9 @@ class AgentMuJoCo(Agent):
         return new_sample
 
     def _init_sample(self):
+        """
+        Construct a new sample and fill in the first time step.
+        """
         sample = self.sample_data.create_new()
         #TODO: set first time step with x0, for now do something else since setmodel doesn't exist
         sample.set('JointAngles', self._model['qpos0'].flatten(), t=0)

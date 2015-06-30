@@ -39,6 +39,7 @@ class SampleData(object):
         self._samples = []
 
     def create_new(self):
+        """Construct and return a new sample and add it to the list of samples."""
         sample = Sample(self)
         self._samples.append(sample)
         return sample
@@ -129,7 +130,7 @@ class SampleData(object):
         Example Usage:
         >>> dX = 3; T=2
         >>> sample_data = SampleData({'T':T, 'dX': dX, 'dU': 0, 'dO': dX}, None, SysOutWriter())
-        >>> sample_data._data_idx = {'a': [0], 'b': [1], 'c': [2]}
+        >>> sample_data._x_data_idx = {'a': [0], 'b': [1], 'c': [2]}
         >>> existing_mat = np.zeros((T, dX, dX))
         >>> data_to_insert = np.ones((T, 1, dX))
         >>> sample_data.pack_data_x(existing_mat, data_to_insert, data_types=['a'], axes=[1])
