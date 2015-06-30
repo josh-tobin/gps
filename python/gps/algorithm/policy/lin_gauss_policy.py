@@ -67,6 +67,7 @@ class LinearGaussianPolicy(Policy):
             A new LinearGaussianPolicy object with the same dimensions but
         all values filled with nan.
         """
+        # TODO: Consider using deepcopy instead of this
         policy = LinearGaussianPolicy(
             np.zeros_like(self.K),
             np.zeros_like(self.k),
