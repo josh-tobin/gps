@@ -4,7 +4,7 @@ import numpy as np
 from copy import deepcopy 
 from agent.agent import Agent
 from agent.config import agent_mujoco
-from agent.agent_util import filter_sequence
+from scipy.ndimage.filters import gaussian_filter
 
 
 class AgentMuJoCo(Agent):
@@ -29,7 +29,7 @@ class AgentMuJoCo(Agent):
         mj_X = new_sample.get_X(t=0)
         noise = np.random.randn(T, self.sample_data.dU)
         if self._hyperparams['smooth_noise']:
-            noise = filter_sequence(noise, self._hyperparams['smooth_noise_var'], 1e-2)
+            noise = gaussian_filter(noise, self._hyperparams['smooth_noise_var'])
             if self._hyperparams['smooth_noise_renormalize']:
                 noise = noise * np.std(noise, axis=0)
         if np.any(self._hyperparams['x0var'] > 0):
