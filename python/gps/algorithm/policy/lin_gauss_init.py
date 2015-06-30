@@ -12,7 +12,7 @@ from config import init_lg
 # TODO - put other arguments into a dictionary? include in hyperparams?
 
 
-def init_lqr(**kwargs):
+def init_lqr(hyperparams, x0, dX, dU, dt, T):
     """
     Return initial gains for a time-varying linear gaussian controller
     that tries to hold the initial position.

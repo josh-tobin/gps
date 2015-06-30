@@ -159,7 +159,7 @@ class SampleData(object):
         else:
             # Make sure number of sensors and axes are consistent
             if num_sensor != len(axes):
-                raise ValueError('Length of sensors (%d) must equal length of axes (%d)', num_sensor, len(axes))
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)' % (num_sensor, len(axes)))
 
         #Shape Checks
         insert_shape = list(existing_mat.shape)
@@ -169,7 +169,7 @@ class SampleData(object):
             insert_shape[axes[i]] = len(self._x_data_idx[data_types[i]])
         # Make sure data is the right shape
         if tuple(insert_shape) != data_to_insert.shape:
-            raise ValueError('Data has shape %s. Expected %s', data_to_insert.shape, tuple(insert_shape))
+            raise ValueError('Data has shape %s. Expected %s' % (data_to_insert.shape, tuple(insert_shape)))
 
         # Actually perform the slice
         index = [slice(None)]*len(existing_mat.shape)
