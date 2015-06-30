@@ -1,11 +1,11 @@
 """Default configuration and hyperparameter values for algorithm objects
 
 """
-from algorithm.traj_opt.traj_opt_lqr import TrajOptLQR
+from traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 
 """ AlgorithmTrajOpt """
 alg_traj_opt = {
-    'inner_iterations': 4,  # Number of iterations
+    'inner_iterations': 1,  # Number of iterations
     'min_eta': 1e-5,  # minimum initial lagrange multiplier in DGD for trajopt
     # Step size settings
     'kl_step':0.2,
@@ -17,7 +17,9 @@ alg_traj_opt = {
     'initial_state_var':1e-6,
     'init_traj_distr': None,  # A list of initial LinearGaussianPolicy objects for each condition
     # TrajOpt
-    'traj_opt': TrajOptLQR({}),
+    'traj_opt': TrajOptLQRPython({}),
+    # Dynamics hyperaparams
+    'dynamics': {},
     # Costs
     'cost': None,  # A list of Cost objects for each condition
     # TODO: Remove these:

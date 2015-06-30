@@ -4,7 +4,7 @@ import copy
 
 from algorithm import Algorithm
 from config import alg_traj_opt
-from algorithm.dynamics.dynamics_lr import DynamicsLR
+from dynamics.dynamics_lr import DynamicsLR
 from traj_opt.traj_info import TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class AlgorithmTrajOpt(Algorithm):
         # Construct objects
         self.M = self._hyperparams['conditions']
 
-        self.iteration = 0  # Keep track of what iteration this is currently on
+        self.iteration_count = 0  # Keep track of what iteration this is currently on
         # TODO: Remove. This is very hacky
         # List of variables updated from iteration to iteration
         self.iteration_vars = ['sample_data', 'trajinfo', 'traj_distr', 'cs',
@@ -35,7 +35,7 @@ class AlgorithmTrajOpt(Algorithm):
             setattr(self, 'prev_' + varname, [None]*self.M)
 
         # Set initial values
-        self.cur_traj_distr = hyperparams['init_traj_distr']
+        self.prev_traj_distr = hyperparams['init_traj_distr']
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = [1.0]*self.M
         self.eta = [1.0]*self.M
@@ -65,20 +65,20 @@ class AlgorithmTrajOpt(Algorithm):
         Instantiate dynamics objects and update prior.
         """
         for m in range(self.M):
-            self.cur_trajinfo.dynamics[m] = DynamicsLR(self.cur_sample_data[m])
-            self.cur_trajinfo.dynamics[m].update_prior()
+            self.cur_trajinfo[m].dynamics = DynamicsLR(self._hyperparams['dynamics'], self.cur_sample_data[m])
+            self.cur_trajinfo[m].dynamics.update_prior()
 
     def fit_dynamics(self):
         """ Fit linear dynamics to samples """
         for m in range(self.M):
             # TODO: Set samples in dynamics object
-            self.cur_trajinfo.dynamics[m].fit()
+            self.cur_trajinfo[m].dynamics.fit()
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function.
         for m in range(self.M):  # m = condition
-            if self.iteration >= 1 and self.prev_sample_data[m]:
+            if self.iteration_count >= 1 and self.prev_sample_data[m]:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
 
@@ -90,7 +90,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.new_traj_distr = [None]*self.M  # Hack to get around cur/prev being automatically updated in advance_iteration_variables
         for inner_itr in range(self._hyperparams['inner_iterations']):
             for m in range(self.M):
-                new_traj, self.eta[m] = self.traj_opt.update(self.cur_step_mult[m], self.eta[m], self.cur_trajinfo[m], self.prev_traj_distr[m])
+                new_traj, self.eta[m] = self.traj_opt.update(self.cur_sample_data[m].T, self.cur_step_mult[m], self.eta[m], self.cur_trajinfo[m], self.prev_traj_distr[m])
                 self.new_traj_distr[m] = new_traj
 
     def stepadjust(self, m):
@@ -218,7 +218,7 @@ class AlgorithmTrajOpt(Algorithm):
         Move all 'cur' variables to 'prev'.
         Advance iteration counter
         """
-        self.iteration += 1
+        self.iteration_count += 1
         # TODO: Remove. This is very hacky
         for varname in self.iteration_vars:
             setattr(self, 'prev_' + varname, getattr(self, 'cur_' + varname))

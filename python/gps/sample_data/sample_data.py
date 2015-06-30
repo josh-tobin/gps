@@ -30,13 +30,17 @@ class SampleData(object):
         # List of trajectory samples (roll-outs)
         self._samples = []
 
-    def get_X(self, idx):
+    def get_X(self, idx=None):
         """Returns NxTxdX numpy array of states"""
         # TODO - check above dimensions
+        if idx is None:
+            idx = range(len(self._samples))
         return np.asarray([self._samples[i].get_X() for i in idx])
 
-    def get_U(self, idx):
+    def get_U(self, idx=None):
         """Returns NxTxdU numpy array of actions"""
+        if idx is None:
+            idx = range(len(self._samples))
         return np.asarray([self._samples[i].get_U() for i in idx])
 
     def get_obs(self, idx):
