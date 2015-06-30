@@ -4,6 +4,7 @@ import numpy as np
 from copy import deepcopy 
 from agent.agent import Agent
 from agent.config import agent_mujoco
+from sample_data.gps_sample_types import *
 from scipy.ndimage.filters import gaussian_filter
 
 
@@ -28,7 +29,8 @@ class AgentMuJoCo(Agent):
     def sample(self, policy, T, verbose=True):
         new_sample = self._init_sample()  # create new sample, populate first time step
         mj_X = new_sample.get_X(t=0)
-        noise = np.random.randn(T, self.sample_data.dU)
+        U = np.zeros([T, self.sample_data.dU])
+        noise = np.random.randn(*U.shape)
         if self._hyperparams['smooth_noise']:
             noise = gaussian_filter(noise, self._hyperparams['smooth_noise_var'])
             if self._hyperparams['smooth_noise_renormalize']:
@@ -38,7 +40,8 @@ class AgentMuJoCo(Agent):
             mj_X += x0n
         #TODO: add noise to body pos and then setmodel
         for t in range(T):
-            mj_U = policy.act(self, mj_X, new_sample.get_obs(t), t, noise[t,:])
+            mj_U = policy.act(mj_X, new_sample.get_obs(t), t, noise[t,:])
+            U[t,:] = mj_U
             if verbose:
                 self._world.Plot(mj_X)
             if (t+1) < T:
@@ -57,6 +60,7 @@ class AgentMuJoCo(Agent):
                 eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
                 new_sample.set('EndEffectorPointVelocities', eept_vels, t=t+1)
         #TODO: reset world
+        new_sample.set(Action, U)
         return new_sample
 
     def _init_sample(self):

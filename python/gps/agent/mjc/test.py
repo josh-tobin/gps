@@ -31,7 +31,7 @@ class DummyPolicy(object):
     def __init__(self, dU):
         self.dU = dU
 
-    def act(self, agent, X, obs, t, noise):
+    def act(self, X, obs, t, noise):
         return np.ones(self.dU)
 
 policy = DummyPolicy(21)

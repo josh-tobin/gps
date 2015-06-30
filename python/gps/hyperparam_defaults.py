@@ -1,11 +1,13 @@
-import datetime
 from __future__ import division
+
+import datetime
+import numpy as np
 
 from agent.mjc.agent_mjc import AgentMuJoCo
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
-from algorithm.cost.cost_fk import CostFK
+from algorithm.cost.cost_state import CostState
 from algorithm.dynamics.dynamics_lr import DynamicsLR
-from algorithm.traj_opt.traj_opt_lqr import TrajOptLQR
+from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr
 
 common = {
@@ -28,7 +30,7 @@ sample_data = {
 }
 
 agent = {
-    'type': AgentMuJoCo
+    'type': AgentMuJoCo,
     'filename': '/home/marvin/dev/rlreloaded/domain_data/mujoco_worlds/humanoid.xml',
     'dt': 1/20,
 }
@@ -49,9 +51,9 @@ algorithm['init_traj_distr'] = {
 algorithm['cost'] = {
     'type': CostState,
     'data_types' : {
-        'dummy': {
-            'wp':np.ones((1,dX)),
-            'desired_state': np.zeros((1,dX)),
+        'JointAngles': {
+            'wp': np.ones((1, 28)),
+            'desired_state': np.zeros((1, 28)),
             }
         },
 }
@@ -73,7 +75,6 @@ algorithm['policy_opt'] = {}
 defaults = {
     'iterations': 10,
     'common': common,
-    'sample': sample,
     'sample_data': sample_data,
     'agent': agent,
     'algorithm': algorithm,
