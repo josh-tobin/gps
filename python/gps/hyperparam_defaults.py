@@ -10,14 +10,11 @@ common = {
     'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
-sample = {
-    'state_include': ['JointAngle', 'JointVelocity', 'EndEffectorPose', 'EndEffectorVelocity'],
-    'obs_include': [],  # Input to policy
-}
-
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
+    'state_include': ['JointAngles', 'JointVelocities', 'EndEffectorPoints', 'EndEffectorPointVelocities'],
+    'obs_include': ['JointAngles', 'JointVelocities'],  # Input to policy
 }
 
 agent = {}
