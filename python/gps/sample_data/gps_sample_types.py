@@ -1,1 +1,10 @@
 Action = 0
+JointAngles = 1
+JointVelocities = 2
+EndEffectorPoints = 3
+EndEffectorPointVelocities = 4
+EndEffectorPositions = 5
+EndEffectorRotations = 6
+EndEffectorJacobians = 7
+RGBImage = 8
+TotalDataTypes = 9

@@ -35,7 +35,13 @@ class AlgorithmTrajOpt(Algorithm):
             setattr(self, 'prev_' + varname, [None]*self.M)
 
         # Set initial values
-        self.cur_traj_distr = hyperparams['init_traj_distr']
+        init_args = self._hyperparams['init_traj_distr']['args']
+        init_args['dX'] = sample_data.dX
+        init_args['dU'] = sample_data.dU
+        init_args['T'] = sample_data.T
+        self.cur_traj_distr = [self._hyperparams['init_traj_distr']['type'](**init_args)]*self.M
+
+        hyperparams['init_traj_distr']
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = [1.0]*self.M
         self.eta = [1.0]*self.M
