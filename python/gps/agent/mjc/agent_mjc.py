@@ -22,6 +22,7 @@ class AgentMuJoCo(Agent):
         self._model = self._world.GetModel()
         self._data = self._world.GetData()
         self._options = self._world.GetOption()
+        self.x0 = np.concatenate([self._model['qpos0'].flatten(), np.zeros(self._model['nv'])])
         #TODO: what else goes here?
 
     def sample(self, policy, T, verbose=True):
