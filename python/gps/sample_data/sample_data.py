@@ -26,8 +26,14 @@ class SampleData(object):
         self.dU = self._hyperparams['dU']
         self.dO = self._hyperparams['dO']
 
-        self._x_data_idx = {}  # List of indices for each data type in state X. Indices must be contiguous
-        self._obs_data_idx = {}  # List of indices for each data type in observation. Indices must be contiguous
+        self.x_data_types = self._hyperparams['state_include']
+        self.obs_data_types = self._hyperparams['obs_include']
+        #TODO: not sure how we were planning on determining correct indices for x and obs
+        #      leaving it as a hyperparameter for now, just for testing purposes
+        # List of indices for each data type in state X. Indices must be contiguous
+        self._x_data_idx = {d: i for d, i in zip(self.x_data_types,  self._hyperparams['state_idx'])}
+        # List of indices for each data type in observation. Indices must be contiguous
+        self._obs_data_idx = {d: i for d, i in zip(self.obs_data_types,  self._hyperparams['obs_idx'])}
 
         # List of trajectory samples (roll-outs)
         self._samples = []
@@ -73,11 +79,33 @@ class SampleData(object):
         """
         return self._data_idx[data_type]
 
-    def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None, t=None):
-        raise NotImplementedError()
+    def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None):
+        num_sensor = len(data_types)
+        if axes is None:
+            # If axes not specified, assume you are indexing on last dimensions
+            axes = list(range(-1, -num_sensor-1, -1))
+        else:
+            # Make sure number of sensors and axes are consistent
+            if num_sensor != len(axes):
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)', num_sensor, len(axes))
 
-    def pack_data_x(self, existing_mat, data_to_insert, data_types=None, axes=None, t=None):
-        #TODO: make this support taking in t, i.e. just return data for one specific time step
+        #Shape Checks
+        insert_shape = list(existing_mat.shape)
+        for i in range(num_sensor):
+            if existing_mat.shape[axes[i]] != self.dO:  # Make sure you are slicing along X
+                raise ValueError('Axes must be along an dX=%d dimensional axis', self.dO)
+            insert_shape[axes[i]] = len(self._obs_data_idx[data_types[i]])
+        # Make sure data is the right shape
+        if tuple(insert_shape) != data_to_insert.shape:
+            raise ValueError('Data has shape %s. Expected %s', data_to_insert.shape, tuple(insert_shape))
+
+        # Actually perform the slice
+        index = [slice(None)]*len(existing_mat.shape)
+        for i in range(num_sensor):
+            index[axes[i]] = slice(self._obs_data_idx[data_types[i]][0], self._obs_data_idx[data_types[i]][-1]+1)
+        existing_mat[index] = data_to_insert
+
+    def pack_data_x(self, existing_mat, data_to_insert, data_types=None, axes=None):
         """
         Inserts data into existing_mat into the indices specified by data_types and axes.
         Can insert 1 data type per axis.
