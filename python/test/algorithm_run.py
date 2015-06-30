@@ -2,11 +2,16 @@
 Undocumented test script.
 
 python algorithm_run.py
+
+Also need to add gps/python/gps to PYTHONPATH
+ex.
+export PYTHONPATH=/home/<>/gps/python/gps
 """
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 import numpy as np
 from algorithm.cost.cost_state import CostState
 from sample_data.sample import Sample
+from algorithm.policy.lin_gauss_init import init_lqr
 from sample_data.gps_sample_types import Action
 from sample_data.sample_data import SampleData, SysOutWriter
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
