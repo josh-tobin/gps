@@ -35,7 +35,7 @@ class AlgorithmTrajOpt(Algorithm):
             setattr(self, 'prev_' + varname, [None]*self.M)
 
         # Set initial values
-        self.prev_traj_distr = hyperparams['init_traj_distr']
+        self.cur_traj_distr = hyperparams['init_traj_distr']
         self.cur_trajinfo = [TrajectoryInfo() for _ in range(self.M)]
         self.cur_step_mult = [1.0]*self.M
         self.eta = [1.0]*self.M
@@ -67,6 +67,11 @@ class AlgorithmTrajOpt(Algorithm):
         for m in range(self.M):
             self.cur_trajinfo[m].dynamics = DynamicsLR(self._hyperparams['dynamics'], self.cur_sample_data[m])
             self.cur_trajinfo[m].dynamics.update_prior()
+            T = self.cur_sample_data[m].T
+            self.cur_trajinfo[m].x0mu = np.mean(self.cur_sample_data[m].get_X()[:,0,:], axis=0)
+            # TODO: x0sigma is not quite right.
+            self.cur_trajinfo[m].x0sigma = \
+                T*np.diag(np.var(self.cur_sample_data[m].get_X()[:,0,:], axis=0))
 
     def fit_dynamics(self):
         """ Fit linear dynamics to samples """
@@ -90,7 +95,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.new_traj_distr = [None]*self.M  # Hack to get around cur/prev being automatically updated in advance_iteration_variables
         for inner_itr in range(self._hyperparams['inner_iterations']):
             for m in range(self.M):
-                new_traj, self.eta[m] = self.traj_opt.update(self.cur_sample_data[m].T, self.cur_step_mult[m], self.eta[m], self.cur_trajinfo[m], self.prev_traj_distr[m])
+                new_traj, self.eta[m] = self.traj_opt.update(self.cur_sample_data[m].T, self.cur_step_mult[m], self.eta[m], self.cur_trajinfo[m], self.cur_traj_distr[m])
                 self.new_traj_distr[m] = new_traj
 
     def stepadjust(self, m):
@@ -108,7 +113,6 @@ class AlgorithmTrajOpt(Algorithm):
         # This is the policy that the previous samples were actually drawn from
         # under the dynamics that were estimated from the previous samples.
         previous_laplace_obj = self.traj_opt.estimate_cost(self.prev_traj_distr[m], self.prev_trajinfo[m])
-
         # This is the policy that we just used under the dynamics that were
         # estimated from the previous samples (so this is the cost we thought we
         # would have).
@@ -124,7 +128,7 @@ class AlgorithmTrajOpt(Algorithm):
             ent = ent + np.sum(np.log(np.diag(self.cur_traj_distr[m].chol_pol_covar[t, :, :])))
 
         # Compute actual objective values based on the samples.
-        previous_mc_obj = np.mean(np.sum(self.prev_cs[m], axis=1), axis=2)
+        previous_mc_obj = np.mean(np.sum(self.prev_cs[m], axis=1), axis=0)
         new_mc_obj = np.mean(np.sum(self.cur_cs[m], axis=1), axis=0)
 
         LOGGER.debug('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)

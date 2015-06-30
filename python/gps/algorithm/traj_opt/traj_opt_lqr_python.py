@@ -59,7 +59,7 @@ class TrajOptLQRPython(TrajOpt):
             # Main convergence check - constraint satisfaction
             if (abs(kl_div - kl_step*T) < 0.1*kl_step*T or
                     (itr >= 20 and kl_div < kl_step*T)):
-                LOGGER.debug("Iteration %i, KL: %f / %f converged\n",
+                LOGGER.debug("Iteration %i, KL: %f / %f converged",
                              itr, kl_div, kl_step*T)
                 break
 
@@ -71,19 +71,19 @@ class TrajOptLQRPython(TrajOpt):
             # Convergence check - dual variable change when min_eta hit
             if (abs(prev_eta - eta) < THRESHA and
                         eta == max(min_eta, self._hyperparams['min_eta'])):
-                LOGGER.debug("Iteration %i, KL: %f / %f converged (eta limit)\n",
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (eta limit)",
                              itr, kl_div, kl_step*T)
                 break
 
             # Convergence check - constraint satisfaction, kl not changing much
             if (itr > 2 and abs(kl_div - prev_kl_div) < THRESHB and
                         kl_div < kl_step*T):
-                LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)\n",
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)",
                              itr, kl_div, kl_step*T)
                 break
 
             prev_kl_div = kl_div
-            LOGGER.debug('Iteration %i, KL: %f / %f eta: %f -> %f\n',
+            LOGGER.debug('Iteration %i, KL: %f / %f eta: %f -> %f',
                          itr, kl_div, kl_step*T, prev_eta, eta)
             prev_eta = eta
 
