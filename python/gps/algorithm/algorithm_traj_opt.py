@@ -67,11 +67,10 @@ class AlgorithmTrajOpt(Algorithm):
         for m in range(self.M):
             self.cur_trajinfo[m].dynamics = DynamicsLR(self._hyperparams['dynamics'], self.cur_sample_data[m])
             self.cur_trajinfo[m].dynamics.update_prior()
-            T = self.cur_sample_data[m].T
             self.cur_trajinfo[m].x0mu = np.mean(self.cur_sample_data[m].get_X()[:,0,:], axis=0)
-            # TODO: x0sigma is not quite right.
+            # TODO: x0sigma is not quite right. initial_state_var does not exist.
             self.cur_trajinfo[m].x0sigma = \
-                T*np.diag(np.var(self.cur_sample_data[m].get_X()[:,0,:], axis=0))
+                self.cur_sample_data[m].num_samples()*np.diag(np.var(self.cur_sample_data[m].get_X()[:, 0, :], axis=0))
 
     def fit_dynamics(self):
         """ Fit linear dynamics to samples """
