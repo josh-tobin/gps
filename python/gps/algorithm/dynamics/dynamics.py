@@ -1,5 +1,5 @@
 import abc
-
+import numpy as np
 
 class Dynamics(object):
     """Dynamics superclass

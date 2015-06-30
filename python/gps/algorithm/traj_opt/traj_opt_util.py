@@ -1,5 +1,9 @@
 import abc
+import logging
 import numpy as np
+import scipy as sp
+
+LOGGER = logging.getLogger(__name__)
 
 def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
     """Compute KL divergence between new and the previos trajectory
@@ -23,28 +27,29 @@ def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
     # Step through trajectory
     for t in range(T):
         # Fetch matrices and vectors from trajectory distributions
-        mu_t = mu[t,:]
+        mu_t = new_mu[t,:]
+        sigma_t = new_sigma[t,:,:]
         K_prev = prev_traj_distr.K[t,:,:]
         K_new = new_traj_distr.K[t,:,:]
-        k_prev = prev_traj_distr.k[t,:,:]
-        k_new = new_traj_distr.k[t,:,:]
+        k_prev = prev_traj_distr.k[t,:]
+        k_new = new_traj_distr.k[t,:]
         chol_prev = prev_traj_distr.chol_pol_covar[t,:,:]
         chol_new = new_traj_distr.chol_pol_covar[t,:,:]
 
         # Compute log determinants and precision matrices
         logdet_prev = 2*sum(np.log(np.diag(chol_prev)))
         logdet_new = 2*sum(np.log(np.diag(chol_new)))
-        prc_prev = np.lstsq(chol_prev,np.lstsq(chol_prev.T, np.eye(dU)))
-        prc_new = np.lstsq(chol_new,np.lstsq(chol_new.T, np.eye(dU)))
+        prc_prev = sp.linalg.solve_triangular(chol_prev,sp.linalg.solve_triangular(chol_prev.T, np.eye(dU), lower=True))
+        prc_new = sp.linalg.solve_triangular(chol_new,sp.linalg.solve_triangular(chol_new.T, np.eye(dU), lower=True))
 
         # Construct matrix, vector, and constants
-        M_prev = np.c_[np.r_[K_prev.T.dot(prc_prev).dot(K_prev),-K_prev.T.dot(prc_prev)],
-                       np.r_[-prc_prev.dot(K_prev), prc_prev]]
-        M_new = np.c_[np.r_[K_new.T.dot(prc_new).dot(K_new),-K_new.T.dot(prc_new)],
-                       np.r_[-prc_new.dot(K_new), prc_new]]
-        v_prev = np.c_[K_prev.T.dot(prc_prev).dot(k_prev),
+        M_prev = np.r_[np.c_[K_prev.T.dot(prc_prev).dot(K_prev),-K_prev.T.dot(prc_prev)],
+                       np.c_[-prc_prev.dot(K_prev), prc_prev]]
+        M_new = np.r_[np.c_[K_new.T.dot(prc_new).dot(K_new),-K_new.T.dot(prc_new)],
+                       np.c_[-prc_new.dot(K_new), prc_new]]
+        v_prev = np.r_[K_prev.T.dot(prc_prev).dot(k_prev),
                        -prc_prev.dot(k_prev)]
-        v_new = np.c_[K_new.T.dot(prc_new).dot(k_new),
+        v_new = np.r_[K_new.T.dot(prc_new).dot(k_new),
                        -prc_new.dot(k_new)]
         c_prev = 0.5*k_prev.T.dot(prc_prev).dot(k_prev)
         c_new = 0.5*k_new.T.dot(prc_new).dot(k_new)
@@ -71,7 +76,7 @@ class LineSearch(object):
         self.data = {}
         self.min_eta = min_eta
 
-    def bracketing_line_search(self, con, new_eta, min_eta):
+    def bracketing_line_search(self, con, eta, min_eta):
         """Adjust eta using second order bracketed line search.
 
         Args:
@@ -91,10 +96,11 @@ class LineSearch(object):
             if con < 0:  # Too little change.
                 rate = abs(1.0/(eta*con))
                 cng = min(max(rate*eta*con,-5),5)
-                eta = exp(log(eta) + cng)
+                eta = np.exp(np.log(eta) + cng)
             else:  # Too much change.
                 rate = 0.01
                 eta = eta + con*rate
+            return eta
         else:
             # Choose two points to fit.
             leta = eta
@@ -120,8 +126,7 @@ class LineSearch(object):
                         # Change in con is small compared to change in eta.
                     # If rate is changing very slowly, try jumping to lowest
                     # possible eta.
-                    if not np.isnan(algorithm.params.fid_debug):
-                        fprintf(algorithm.params.fid_debug,'Rate is changing slowly, jumping to minimum eta.\n')
+                    LOGGER.debug('Rate is changing slowly, jumping to minimum eta.')
                     c1 = self.data['c1']
                     c2 = con
                     e1 = self.data['e1']
@@ -170,7 +175,7 @@ class LineSearch(object):
             # Decide whether we want to solve in the original space instead.
             # Use ratio of gradients.
             if (abs(np.log(abs(lc1/lc2))) > 2*abs(np.log(abs(c1/c2))) and
-                    c1*c2 < 0 and rand() < 0.5):
+                    c1*c2 < 0 and np.random.rand() < 0.5):
                 solve_orig = 1 # Solve in the original if the ratio of gradients is very high in log space (with 50 percent probability).
             else:
                 solve_orig = 0
@@ -179,10 +184,10 @@ class LineSearch(object):
             if a < 0 and not solve_orig:  # Concave, good to go.
                 nlogeta = -b/(2*a)
             else:  # Solve in original space.
-                if solve_orig and not np.isnan(algorithm.params.fid_debug):
-                    fprintf(algorithm.params.fid_debug,'Solving non-log problem due to ratio choice: %f %f\n',abs(np.log(abs(lc1/lc2))),abs(np.log(abs(c1/c2))))
-                if not solve_orig and not np.isnan(algorithm.params.fid_debug):
-                    fprintf(algorithm.params.fid_debug,'Solving non-log problem due to a > 0: %f %f\n',abs(np.log(abs(lc1/lc2))),abs(np.log(abs(c1/c2))))
+                if solve_orig:
+                    LOGGER.debug('Solving non-log problem due to ratio choice: %f %f', abs(np.log(abs(lc1/lc2))),abs(np.log(abs(c1/c2))))
+                if not solve_orig:
+                    LOGGER.debug('Solving non-log problem due to a > 0: %f %f', abs(np.log(abs(lc1/lc2))),abs(np.log(abs(c1/c2))))
 
                 # Fit quadratic.
                 a = (c2 - c1)/(2*(e2 - e1))
@@ -191,14 +196,12 @@ class LineSearch(object):
                     nlogeta = np.log(max(-b/(2*a),1e-50))
                 else:
                     # Something is very wrong.
-                    if not np.isnan(algorithm.params.fid_debug):
-                        fprintf(algorithm.params.fid_debug,'Dual is not concave!\n')
+                    LOGGER.warning('Dual is not concave!')
                     rate = abs(1.0/(con*eta)) #0.001
                     cng = min(max(rate*con*eta,-5),5)
                     nlogeta = np.log(eta) + cng
 
-            if not np.isnan(algorithm.params.fid_debug):
-                fprintf(algorithm.params.fid_debug,'Bracket points: %f %f (%f %f) a=%f b=%f\n',e1,e2,c1,c2,a,b)
+            LOGGER.debug('Bracket points: %f %f (%f %f) a=%f b=%f\n',e1,e2,c1,c2,a,b)
 
             # Bound change.
             if mid == 1:
@@ -216,5 +219,5 @@ class LineSearch(object):
             self.data['c2'] = c2
             self.data['e1'] = e1
             self.data['e2'] = e2
-            eta = max(exp(nlogeta),max(min_eta,self.min_eta))
+            eta = max(np.exp(nlogeta),max(min_eta,self.min_eta))
             return eta

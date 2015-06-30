@@ -4,6 +4,7 @@ Initializations for Linear-gaussian controllers
 from copy import deepcopy
 import numpy as np
 import scipy as sp
+import scipy.linalg
 
 from algorithm.dynamics.dynamics_util import guess_dynamics
 from lin_gauss_policy import LinearGaussianPolicy

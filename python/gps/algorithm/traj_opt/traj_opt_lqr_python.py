@@ -26,13 +26,10 @@ class TrajOptLQRPython(TrajOpt):
         TrajOpt.__init__(self, config)
 
     # TODO - traj_distr and prevtraj_distr shouldn't be arguments - should exist in self.
-    def update(self, step_mult, eta, trajinfo, prev_traj_distr):
+    def update(self, T, step_mult, eta, trajinfo, prev_traj_distr):
         """Run dual gradient decent to optimize trajectories."""
 
         # Constants
-        dX = self.dX
-        dU = self.dU
-        T = self.T
 
         # Set KL-divergence step size (epsilon)
         # TODO - traj_distr.step_mult needs to exist somewhere
@@ -160,7 +157,7 @@ class TrajOptLQRPython(TrajOpt):
             mu[t, :] = np.hstack([mu[t, idx_x], traj_distr.K[t, :, :].dot(mu[t, idx_x]) + traj_distr.k[t, :]])
             if t < T - 1:
                 sigma[t + 1, idx_x, idx_x] = trajinfo.dynamics.Fm[t, :, :].dot(sigma[t, :, :]).dot(
-                    trajinfo.dynamics.Fm[t, :, :].T) + trajinfo.dynamics.dynsig[t, :, :]
+                    trajinfo.dynamics.Fm[t, :, :].T) + trajinfo.dynamics.dyn_covar[t, :, :]
                 mu[t + 1, idx_x] = trajinfo.dynamics.Fm[t, :, :].dot(mu[t, :]) + trajinfo.dynamics.fv[t, :]
         return mu, sigma
 
