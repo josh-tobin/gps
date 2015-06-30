@@ -37,21 +37,22 @@ def run():
                 'desired_state': np.zeros((1,dX))
             }
         }
-    }, sampledata )]
+    }, sampledata )]*M
 
     traj_opt = TrajOptLQRPython({})
     hyper['traj_opt'] = traj_opt
 
     alg = AlgorithmTrajOpt(hyper, None)
-    alg.iteration([sample_data(T, dX, dU, N=3)])
-    alg.iteration([sample_data(T, dX, dU, N=3)])
-    alg.iteration([sample_data(T, dX, dU, N=3)])
+    data = [sample_data(T, dX, dU, N=3)]*M
+    alg.iteration(data)
+    alg.iteration(data)
+    alg.iteration(data)
 
 def sample_data(T, dX, dU, N=0):
     sdata = SampleData({'T':T, 'dX': dX, 'dU': dU, 'dObs': 1}, {}, SysOutWriter())
     sdata._x_data_idx = {'dummy': tuple(range(dX))}
     if N>0:
-        sdata._samples = [make_dummy_sample(T, dX, dU, sdata)]
+        sdata._samples = [make_dummy_sample(T, dX, dU, sdata) for _ in range(N)]
     return sdata
 
 def make_dummy_sample(T, dX, dU, sample_data):

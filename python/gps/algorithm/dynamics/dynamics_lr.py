@@ -27,12 +27,16 @@ class DynamicsLR(Dynamics):
 
         self.Fm = np.zeros([T, dX, dX+dU])
         self.fv = np.zeros([T, dX])
+        self.dyn_covar = np.zeros([T, dX, dX])
 
         # Fit dynamics wih least squares regression
         for t in range(T-1):
-            result, _, _, _ = np.linalg.lstsq(np.c_[X[:,t,:],U[:,t,:],np.ones(N)], np.c_[X[:,t+1,:],np.ones(N)])
-            self.Fm[t,:,:] = result[:-1,:-1].T
-            self.fv[t,:] = result[-1,:-1]
-        # TODO - leave last time step as zeros?
-        # TODO - what to do with covariance? (the old dynsig)
-        self.dyn_covar = np.tile(np.eye(dX), [T, 1, 1])
+            result, _, _, _ = np.linalg.lstsq(np.c_[X[:, t, :], U[:, t, :], np.ones(N)], np.c_[X[:, t+1, :], np.ones(N)])
+            Fm = result[:-1, :-1].T
+            self.Fm[t, :, :] = Fm
+            self.fv[t, :] = result[-1,:-1]
+
+            x_next_covar = np.cov(X[:, t+1, :].T)
+            xu_covar = np.cov(np.c_[X[:, t, :], U[:, t, :]].T)
+            dyn_covar = x_next_covar - Fm.dot(xu_covar).dot(Fm.T)
+            self.dyn_covar[t, :, :] = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
