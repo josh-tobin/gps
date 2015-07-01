@@ -9,6 +9,7 @@ from algorithm.cost.cost_state import CostState
 from algorithm.dynamics.dynamics_lr import DynamicsLR
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr
+from sample_data.gps_sample_types import *
 
 common = {
     'experiment_dir': 'experiments/default_experiment/',
@@ -21,7 +22,7 @@ sample_data = {
     'dX': 55,
     'dU': 21,
     'dO': 55,
-    'state_include': ['JointAngles', 'JointVelocities'],
+    'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
     'state_idx': [list(range(28)), list(range(28,55))],
     'obs_idx': [],
