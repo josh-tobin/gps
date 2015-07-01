@@ -16,6 +16,7 @@ class CostState(Cost):
         config.update(hyperparams)
         Cost.__init__(self, config, sample_data)
 
+    # TODO - Pass in indices to sample_data rather than sample?
     def eval(self, sample):
         """
         Evaluate cost function and derivatives on a sample
