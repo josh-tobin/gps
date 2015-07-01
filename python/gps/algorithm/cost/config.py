@@ -15,6 +15,7 @@ cost_fk = {
     'l1': 0.0,
     'l2': 1.0,
     'alpha': 1e-2,
+    'end_effector_target': None,  # Target end-effector position
     'evalnorm': evallogl2term
 }
 

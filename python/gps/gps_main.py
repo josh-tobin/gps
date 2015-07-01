@@ -28,6 +28,7 @@ class GPSMain():
         Run training by iteratively sampling and taking an iteration step.
         """
         for itr in range(self._iterations):
+            # TODO - multiple times, for each condition
             self.agent.sample(self.algorithm.cur_traj_distr[0], 100)
             self.algorithm.iteration([self.sample_data])
 
