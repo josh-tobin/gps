@@ -49,18 +49,14 @@ class CostFK(Cost):
         lux = np.zeros((T, dU, dX))
 
         # Choose target.
-        if self._hyperparams['env_target']:
-            tgt = sample.get(EndEffectorTarget)
-        else:
-            raise NotImplementedError('Must use env_target option')
-
-        pt = sample.get(EndEffectorPoint)
+        tgt = self._hyperparams['end_effector_target']
+        pt = sample.get(EndEffectorPoints)
         dist = pt - tgt
-        jx = sample.get(EndEffectorJacobian)
+        jx = sample.get(EndEffectorJacobians)
 
         # Evaluate penalty term.
         if self._hyperparams['analytic_jacobian']:
-            jxx = sample.get(EndEffector2ndJacobian)
+            jxx = sample.get(EndEffectorHessians)
             il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],

@@ -17,6 +17,7 @@ enum DataType
     EndEffectorPositions,
     EndEffectorRotations,
     EndEffectorJacobians,
+    EndEffectorHessians,
     RGBImage,
     TotalDataTypes
 };
@@ -42,6 +43,7 @@ BOOST_PYTHON_MODULE(gps_sample_types)
         .value("EndEffectorPositions", EndEffectorPositions)
         .value("EndEffectorRotations", EndEffectorRotations)
         .value("EndEffectorJacobians", EndEffectorJacobians)
+        .value("EndEffectorHessians", EndEffectorJacobians)
         .value("RGBImage",RGBImage)
         .value("TotalDataTypes", TotalDataTypes)
         ;
