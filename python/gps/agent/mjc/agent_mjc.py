@@ -67,14 +67,14 @@ class AgentMuJoCo(Agent):
                     mj_X, _ = self._world.Step(mj_X, mj_U)
                 #TODO: update hidden state
                 self._data = self._world.GetData()
-                new_sample.set('JointAngles', mj_X[:self._model['nq']], t=t+1)
-                new_sample.set('JointVelocities', mj_X[self._model['nq']:], t=t+1)
+                new_sample.set(JointAngles, mj_X[:self._model['nq']], t=t+1)
+                new_sample.set(JointVelocities, mj_X[self._model['nq']:], t=t+1)
                 curr_eepts = self._data['site_xpos'].flatten()
-                new_sample.set('EndEffectorPoints', curr_eepts, t=t+1)
+                new_sample.set(EndEffectorPoints, curr_eepts, t=t+1)
                 #TODO: how to set Jacobians?
-                prev_eepts = new_sample.get('EndEffectorPoints', t=t)
+                prev_eepts = new_sample.get(EndEffectorPoints, t=t)
                 eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
-                new_sample.set('EndEffectorPointVelocities', eept_vels, t=t+1)
+                new_sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
         #TODO: reset world
         new_sample.set(Action, U)
         return new_sample
@@ -85,11 +85,11 @@ class AgentMuJoCo(Agent):
         """
         sample = self.sample_data.create_new()
         #TODO: set first time step with x0, for now do something else since setmodel doesn't exist
-        sample.set('JointAngles', self._model['qpos0'].flatten(), t=0)
-        sample.set('JointVelocities', np.zeros(self._model['nv']), t=0)
+        sample.set(JointAngles, self._model['qpos0'].flatten(), t=0)
+        sample.set(JointVelocities, np.zeros(self._model['nv']), t=0)
         sites = self._data['site_xpos'].flatten()
-        sample.set('EndEffectorPoints', sites, t=0)
-        sample.set('EndEffectorPointVelocities', np.zeros(sites.shape), t=0)
+        sample.set(EndEffectorPoints, sites, t=0)
+        sample.set(EndEffectorPointVelocities, np.zeros(sites.shape), t=0)
         #TODO: how to set Jacobians?
         return sample
 

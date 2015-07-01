@@ -76,9 +76,7 @@ class AlgorithmTrajOpt(Algorithm):
                             self.cur_sample_data[m])
             self.cur_trajinfo[m].dynamics.update_prior()
             self.cur_trajinfo[m].x0mu = np.mean(self.cur_sample_data[m].get_X()[:, 0, :], axis=0)
-            self.cur_trajinfo[m].x0sigma = \
-                self.cur_sample_data[m].num_samples() * \
-                np.diag(np.maximum(
+            self.cur_trajinfo[m].x0sigma = np.diag(np.maximum(
                     np.var(self.cur_sample_data[m].get_X()[:, 0, :], axis=0),
                     self._hyperparams['initial_state_var']))
 
