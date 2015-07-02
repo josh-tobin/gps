@@ -17,19 +17,20 @@ class CostState(Cost):
         Cost.__init__(self, config, sample_data)
 
     # TODO - Pass in indices to sample_data rather than sample?
-    def eval(self, sample):
+    def eval(self, sample_idx):
         """
         Evaluate cost function and derivatives on a sample
 
         Args:
-            sample: A Sample object
+            sample_idx:  A single index into sample_data
         Return:
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        T = sample.T
-        Du = sample.dU
-        Dx = sample.dX
+        T = self.sample_data.T
+        Du = self.sample_data.dU
+        Dx = self.sample_data.dX
+        sample = self.sample_data.get_samples(idx=[sample_idx])[0]
 
         final_l = np.zeros(T)
         final_lu = np.zeros((T, Du))

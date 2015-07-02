@@ -15,20 +15,20 @@ class CostTorque(Cost):
         config.update(hyperparams)
         Cost.__init__(self, config, sample_data)
 
-    def eval(self, sample):
+    def eval(self, sample_idx):
         """
         Evaluate cost function and derivatives on a sample
 
         Args:
-            sample: A Sample object
+            sample_idx: A single index into sample_data
         Return:
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        sample_u = sample.get_U()
-        T = sample.T
-        Du = sample.dU
-        Dx = sample.dX
+        sample_u = self.sample_data.get_U([sample_idx])
+        T = self.sample_data.T
+        Du = self.sample_data.dU
+        Dx = self.sample_data.dX
 
         l = 0.5 * self._hyperparams['wu'].dot(np.sum(sample_u ** 2, axis=1))
         lu = self._hyperparams['wu'].dot(sample_u)

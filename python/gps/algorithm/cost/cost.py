@@ -12,12 +12,12 @@ class Cost(object):
         self.sample_data = sample_data
 
     @abc.abstractmethod
-    def eval(self, sample):
+    def eval(self, sample_idx):
         """
         Evaluate cost function and derivatives
 
         Args:
-            sample: A Sample object
+            sample_idx:  A single index into sample_data
 
         Return:
             l, lx, lu, lxx, luu, lux:
