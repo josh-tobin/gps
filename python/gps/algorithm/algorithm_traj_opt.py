@@ -224,7 +224,6 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur[m].trajinfo.cv = np.mean(cv, 0)  # Cost, 1st deriv
         self.cur[m].trajinfo.Cm = np.mean(Cm, 0)  # Cost, 2nd deriv
         self.cur[m].cs = cs
-        # TODO: Implement policy sample costs
 
     def advance_iteration_variables(self):
         """
