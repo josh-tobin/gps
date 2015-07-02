@@ -31,7 +31,7 @@ sample_data = {
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': '/home/cfinn/code/rlreloaded/domain_data/mujoco_worlds/humanoid.xml',
+    'filename': './mjc_models/humanoid.xml',
     'dt': 1/20,
 }
 
