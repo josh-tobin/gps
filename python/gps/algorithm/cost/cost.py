@@ -12,6 +12,7 @@ class Cost(object):
         self.sample_data = sample_data
 
     @abc.abstractmethod
+    # TODO - Utilize self.sample_data rather than pass in a sample
     def eval(self, sample):
         """
         Evaluate cost function and derivatives

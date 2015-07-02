@@ -50,6 +50,8 @@ class AlgorithmTrajOpt(Algorithm):
         Run iteration of LQR.
         Args:
             sample_data: List of sample_data for each condition.
+            # TODO - make sample_data object take care of all conditions
+            # (to make it easy to save all the samples at once)
         """
         self.cur_sample_data = sample_data
 
@@ -57,7 +59,6 @@ class AlgorithmTrajOpt(Algorithm):
         self.update_dynamics_prior()
         self.fit_dynamics()
 
-        self.eval_costs()
         self.update_step_size()  # KL Divergence step size
 
         # Run inner loop to compute new policies under new dynamics and step size
@@ -90,7 +91,10 @@ class AlgorithmTrajOpt(Algorithm):
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
-        # Evaluate cost function.
+        # Evaluate cost function for all conditions and samples
+        for m in range(self.M):
+            self.eval_cost(m)
+
         for m in range(self.M):  # m = condition
             if self.iteration_count >= 1 and self.prev_sample_data[m]:
                 # Evaluate cost and adjust step size relative to the previous iteration.
@@ -176,13 +180,6 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur_mispred_std[m] = mispred_std
         self.cur_polkl[m] = polkl
 
-    def eval_costs(self):
-        """
-        Evaluate costs for all conditions and samples.
-        """
-        for m in range(self.M):
-            self.eval_cost(m)
-
     def eval_cost(self, m):
         """
         Evaluate costs for all samples for a condition
@@ -205,6 +202,7 @@ class AlgorithmTrajOpt(Algorithm):
         for n in range(N):
             sample = samples[n]
             # Get costs.
+            # TODO - Pass in indices of sample_data object
             l, lx, lu, lxx, luu, lux = self.cost[m].eval(sample)
             cc[n, :] = l
             cs[n, :] = l
