@@ -29,7 +29,7 @@ class GPSMain():
         """
         for itr in range(self._iterations):
             # TODO - multiple times, for each condition
-            self.agent.sample(self.algorithm.cur_traj_distr[0], 100)
+            self.agent.sample(self.algorithm.cur[0].traj_distr, 100)
             self.algorithm.iteration([self.sample_data])
 
     def resume(self, itr):
