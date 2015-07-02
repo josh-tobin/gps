@@ -6,7 +6,8 @@ def bundletype(name, vars):
 
     Args:
         name: Name of class to create
-        vars: A list of string representing field names
+        vars: A list of string representing field names.
+            A field with the name _frozen cannot be used (it is used internally).
     Returns:
         A class object. All fields default to None
 
@@ -18,18 +19,23 @@ def bundletype(name, vars):
     ...
     AttributeError: MyBundle{'a': 5, 'c': None, 'b': None} has no attribute d
     """
+    if '_frozen' in vars:
+        raise ValueError('Invalid field name _frozen')
+
     class BundleType(object):
         def __init__(self):
             for var in vars:
                 setattr(self, var, None)
-            self._freeze = True
+            self._frozen = True  # Freeze fields
 
         def __repr__(self):
             return name+str({var: getattr(self, var) for var in vars})
 
     BundleType.__name__ = name
+
+    # Freeze fields so new ones cannot be set.
     def __setattr(self, key, value):
-        if hasattr(self, '_freeze') and not hasattr(self, key):
+        if hasattr(self, '_frozen') and not hasattr(self, key):
             raise AttributeError("%r has no attribute %s" % (self, key))
         object.__setattr__(self, key, value)
     BundleType.__setattr__ = __setattr
