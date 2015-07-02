@@ -55,9 +55,9 @@ def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
         c_new = 0.5*k_new.T.dot(prc_new).dot(k_new)
 
         # Compute KL divergence at timestep t
-        kl_div[t] = (max(0, -0.5*mu_t.T.dot((M_new-M_prev)).dot(mu_t) -
-            mu_t.T.dot((v_new-v_prev)) - 0.5*np.sum(sigma_t*(M_new-M_prev)) -
-            0.5*logdet_new + 0.5*logdet_prev)) - c_new + c_prev
+        kl_div[t] = max(0, -0.5*mu_t.T.dot((M_new-M_prev)).dot(mu_t) -
+            mu_t.T.dot((v_new-v_prev))  - c_new + c_prev - 0.5*np.sum(sigma_t*(M_new-M_prev)) -
+            0.5*logdet_new + 0.5*logdet_prev)
 
     # Add up divergences across time to get total divergence
     return np.sum(kl_div)
