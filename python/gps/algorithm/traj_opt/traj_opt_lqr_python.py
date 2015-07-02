@@ -26,7 +26,7 @@ class TrajOptLQRPython(TrajOpt):
         TrajOpt.__init__(self, config)
 
     # TODO - traj_distr and prevtraj_distr shouldn't be arguments - should exist in self.
-    def update(self, T, step_mult, eta, trajinfo, prev_traj_distr):
+    def update(self, T, step_mult, eta, traj_info, prev_traj_distr):
         """Run dual gradient decent to optimize trajectories."""
 
         # Constants
@@ -41,9 +41,9 @@ class TrajOptLQRPython(TrajOpt):
 
         for itr in range(DGD_MAX_ITER):
             new_traj_distr, new_eta = self.backward(prev_traj_distr,
-                                                    trajinfo,
+                                                    traj_info,
                                                     eta)
-            new_mu, new_sigma = self.forward(new_traj_distr, trajinfo)
+            new_mu, new_sigma = self.forward(new_traj_distr, traj_info)
 
             # Update min eta if we had a correction after running backward
             if new_eta > eta:
@@ -93,45 +93,45 @@ class TrajOptLQRPython(TrajOpt):
             # TODO - store new_traj_distr somewhere (in self?)
         return new_traj_distr, eta
 
-    def estimate_cost(self, traj_distr, trajinfo):
+    def estimate_cost(self, traj_distr, traj_info):
         """
         Compute Laplace approximation to expected cost.
 
         Args:
             traj_distr: Linear gaussian policy object
-            trajinfo:
+            traj_info:
         """
 
         # Constants.
         T = traj_distr.T
 
-        # Perform forward pass (note that we repeat this here, because trajinfo may
+        # Perform forward pass (note that we repeat this here, because traj_info may
         # have different dynamics from the ones that were used to compute the
         # distribution already saved in traj).
-        mu, sigma = self.forward(traj_distr, trajinfo)
+        mu, sigma = self.forward(traj_distr, traj_info)
 
         # Compute cost.
         predicted_cost = np.zeros(T)
         for t in range(T):
-            predicted_cost[t] = trajinfo.cc[t] + 0.5 * np.sum(np.sum(sigma[t, :, :] * trajinfo.Cm[t, :, :])) + \
-                                0.5 * mu[t, :].T.dot(trajinfo.Cm[t, :, :]).dot(mu[t, :]) + mu[t, :].T.dot(
-                trajinfo.cv[t, :])
+            predicted_cost[t] = traj_info.cc[t] + 0.5 * np.sum(np.sum(sigma[t, :, :] * traj_info.Cm[t, :, :])) + \
+                                0.5 * mu[t, :].T.dot(traj_info.Cm[t, :, :]).dot(mu[t, :]) + mu[t, :].T.dot(
+                traj_info.cv[t, :])
         return predicted_cost
 
-    def forward(self, traj_distr, trajinfo):
+    def forward(self, traj_distr, traj_info):
         """
         Perform LQR forward pass.
         Computes state-action marginals from dynamics and policy.
 
         Args:
             traj_distr: A linear gaussian policy object
-            trajinfo: A traj info object
+            traj_info: A traj info object
         Returns:
             mu: T x dX
             sigma: T x dX x dX
         """
         # Compute state-action marginals from specified conditional parameters and
-        # current trajinfo.
+        # current traj_info.
         T = traj_distr.T
         dU = traj_distr.dU
         dX = traj_distr.dX
@@ -144,8 +144,8 @@ class TrajOptLQRPython(TrajOpt):
         mu = np.zeros((T, dX + dU))
 
         # Set initial covariance (initial mu is always zero).
-        sigma[0, idx_x, idx_x] = trajinfo.x0sigma
-        mu[0, idx_x] = trajinfo.x0mu
+        sigma[0, idx_x, idx_x] = traj_info.x0sigma
+        mu[0, idx_x] = traj_info.x0mu
 
         for t in range(T):
             sigma[t, :, :] = np.vstack([
@@ -156,19 +156,19 @@ class TrajOptLQRPython(TrajOpt):
             )
             mu[t, :] = np.hstack([mu[t, idx_x], traj_distr.K[t, :, :].dot(mu[t, idx_x]) + traj_distr.k[t, :]])
             if t < T - 1:
-                sigma[t + 1, idx_x, idx_x] = trajinfo.dynamics.Fm[t, :, :].dot(sigma[t, :, :]).dot(
-                    trajinfo.dynamics.Fm[t, :, :].T) + trajinfo.dynamics.dyn_covar[t, :, :]
-                mu[t + 1, idx_x] = trajinfo.dynamics.Fm[t, :, :].dot(mu[t, :]) + trajinfo.dynamics.fv[t, :]
+                sigma[t + 1, idx_x, idx_x] = traj_info.dynamics.Fm[t, :, :].dot(sigma[t, :, :]).dot(
+                    traj_info.dynamics.Fm[t, :, :].T) + traj_info.dynamics.dyn_covar[t, :, :]
+                mu[t + 1, idx_x] = traj_info.dynamics.Fm[t, :, :].dot(mu[t, :]) + traj_info.dynamics.fv[t, :]
         return mu, sigma
 
-    def backward(self, prev_traj_distr, trajinfo, eta):
+    def backward(self, prev_traj_distr, traj_info, eta):
         """
         Perform LQR backward pass.
         This computes a new LinearGaussianPolicy object.
 
         Args:
             prev_traj_distr: A Linear gaussian policy object from previous iteration
-            trajinfo: A trajectory info object (need dynamics and cost matrices)
+            traj_info: A trajectory info object (need dynamics and cost matrices)
             eta: Dual variable
         Returns:
             traj_distr: New linear gaussian policy
@@ -187,8 +187,8 @@ class TrajOptLQRPython(TrajOpt):
         idx_u = slice(dX, dX + dU)
 
         # Pull out cost and dynamics.
-        Fm = trajinfo.dynamics.Fm
-        fv = trajinfo.dynamics.fv
+        Fm = traj_info.dynamics.Fm
+        fv = traj_info.dynamics.fv
 
         # Non-SPD correction terms.
         del_ = self._hyperparams['del0']
@@ -206,8 +206,8 @@ class TrajOptLQRPython(TrajOpt):
             for t in range(T - 1, -1, -1):
                 # Compute state-action-state function at this step.
                 # Add in the cost.
-                Qtt = trajinfo.Cm[t, :, :] / eta  # (X+U) x (X+U)
-                Qt = trajinfo.cv[t, :] / eta  # (X+U) x 1
+                Qtt = traj_info.Cm[t, :, :] / eta  # (X+U) x (X+U)
+                Qt = traj_info.cv[t, :] / eta  # (X+U) x 1
 
                 # Add in the trajectory divergence term.
                 Qtt = Qtt + np.vstack([

@@ -10,7 +10,7 @@ from general_utils import bundletype
 LOGGER = logging.getLogger(__name__)
 
 # Set up an object to bundle variables
-ITERATION_VARS = ['sample_data', 'trajinfo', 'traj_distr', 'cs',
+ITERATION_VARS = ['sample_data', 'traj_info', 'traj_distr', 'cs',
                   'step_change', 'mispred_std', 'polkl', 'step_mult']
 IterationData = bundletype('ItrData', ITERATION_VARS)
 
@@ -44,7 +44,7 @@ class AlgorithmTrajOpt(Algorithm):
         init_args['T'] = sample_data.T
         for m in range(self.M):
             self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
-            self.cur[m].trajinfo = TrajectoryInfo()
+            self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = 1.0
         self.eta = [1.0]*self.M
 
@@ -74,12 +74,12 @@ class AlgorithmTrajOpt(Algorithm):
         Instantiate dynamics objects and update prior.
         """
         for m in range(self.M):
-            self.cur[m].trajinfo.dynamics = self._hyperparams['dynamics']['type'](
+            self.cur[m].traj_info.dynamics = self._hyperparams['dynamics']['type'](
                 self._hyperparams['dynamics'],
                 self.cur[m].sample_data)
-            self.cur[m].trajinfo.dynamics.update_prior()
-            self.cur[m].trajinfo.x0mu = np.mean(self.cur[m].sample_data.get_X()[:, 0, :], axis=0)
-            self.cur[m].trajinfo.x0sigma = np.diag(np.maximum(
+            self.cur[m].traj_info.dynamics.update_prior()
+            self.cur[m].traj_info.x0mu = np.mean(self.cur[m].sample_data.get_X()[:, 0, :], axis=0)
+            self.cur[m].traj_info.x0sigma = np.diag(np.maximum(
                     np.var(self.cur[m].sample_data.get_X()[:, 0, :], axis=0),
                     self._hyperparams['initial_state_var']))
 
@@ -87,7 +87,7 @@ class AlgorithmTrajOpt(Algorithm):
         """ Fit linear dynamics to samples """
         for m in range(self.M):
             # TODO: Set samples in dynamics object
-            self.cur[m].trajinfo.dynamics.fit()
+            self.cur[m].traj_info.dynamics.fit()
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
@@ -104,7 +104,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.new_traj_distr = [None]*self.M
         for inner_itr in range(self._hyperparams['inner_iterations']):
             for m in range(self.M):
-                new_traj, self.eta[m] = self.traj_opt.update(self.cur[m].sample_data.T, self.cur[m].step_mult, self.eta[m], self.cur[m].trajinfo, self.cur[m].traj_distr)
+                new_traj, self.eta[m] = self.traj_opt.update(self.cur[m].sample_data.T, self.cur[m].step_mult, self.eta[m], self.cur[m].traj_info, self.cur[m].traj_distr)
                 self.new_traj_distr[m] = new_traj
 
     def stepadjust(self, m):
@@ -121,15 +121,15 @@ class AlgorithmTrajOpt(Algorithm):
         # Compute values under Laplace approximation.
         # This is the policy that the previous samples were actually drawn from
         # under the dynamics that were estimated from the previous samples.
-        previous_laplace_obj = self.traj_opt.estimate_cost(self.prev[m].traj_distr, self.prev[m].trajinfo)
+        previous_laplace_obj = self.traj_opt.estimate_cost(self.prev[m].traj_distr, self.prev[m].traj_info)
         # This is the policy that we just used under the dynamics that were
         # estimated from the previous samples (so this is the cost we thought we
         # would have).
-        new_predicted_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr, self.prev[m].trajinfo)
+        new_predicted_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr, self.prev[m].traj_info)
 
         # This is the actual cost we have under the current trajectory based on the
         # latest samples.
-        new_actual_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr, self.cur[m].trajinfo)
+        new_actual_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr, self.cur[m].traj_info)
 
         # Measure the entropy of the current trajectory (for printout).
         ent = 0
@@ -220,9 +220,9 @@ class AlgorithmTrajOpt(Algorithm):
             cc[n, :] = cc[n, :] + np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
             cv[n, :, :] = cv[n, :, :] + cv_update
 
-        self.cur[m].trajinfo.cc = np.mean(cc, 0)  # Costs. Average over samples
-        self.cur[m].trajinfo.cv = np.mean(cv, 0)  # Cost, 1st deriv
-        self.cur[m].trajinfo.Cm = np.mean(Cm, 0)  # Cost, 2nd deriv
+        self.cur[m].traj_info.cc = np.mean(cc, 0)  # Costs. Average over samples
+        self.cur[m].traj_info.cv = np.mean(cv, 0)  # Cost, 1st deriv
+        self.cur[m].traj_info.Cm = np.mean(Cm, 0)  # Cost, 2nd deriv
         self.cur[m].cs = cs
 
     def advance_iteration_variables(self):
@@ -234,6 +234,6 @@ class AlgorithmTrajOpt(Algorithm):
         self.prev = self.cur
         self.cur = [IterationData() for _ in range(self.M)]
         for m in range(self.M):
-            self.cur[m].trajinfo = TrajectoryInfo()
+            self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = self.prev[m].step_mult
             self.cur[m].traj_distr = self.new_traj_distr[m]
