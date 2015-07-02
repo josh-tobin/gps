@@ -24,13 +24,14 @@ sample_data = {
     'dO': 55,
     'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
+    # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
     'state_idx': [list(range(28)), list(range(28,55))],
     'obs_idx': [],
 }
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': '/home/marvin/dev/rlreloaded/domain_data/mujoco_worlds/humanoid.xml',
+    'filename': '/home/cfinn/code/rlreloaded/domain_data/mujoco_worlds/humanoid.xml',
     'dt': 1/20,
 }
 
@@ -48,14 +49,24 @@ algorithm['init_traj_distr'] = {
 }
 
 algorithm['cost'] = {
-    'type': CostState,
-    'data_types' : {
-        'JointAngles': {
-            'wp': np.ones((1, 28)),
-            'desired_state': np.zeros((1, 28)),
+    'type': CostSum,
+    'costs': [
+    {
+        'type': CostState,
+        'data_types' : {
+            'JointAngles': {
+                'wp': np.ones((1, 28)),
+                'desired_state': np.zeros((1, 28)),
+            },
         },
     },
+    {
+        'type': CostTorque,
+        'wu': [1e-3]*sample_data['dU'],
+    },
+    ]
 }
+
 
 algorithm['dynamics'] = {
     'type': DynamicsLR,

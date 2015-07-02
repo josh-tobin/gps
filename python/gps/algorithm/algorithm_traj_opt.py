@@ -5,7 +5,7 @@ import copy
 from algorithm import Algorithm
 from config import alg_traj_opt
 from general_utils import bundletype
-from dynamics.dynamics_lr import DynamicsLR
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -74,7 +74,9 @@ class AlgorithmTrajOpt(Algorithm):
         Instantiate dynamics objects and update prior.
         """
         for m in range(self.M):
-            self.cur[m].trajinfo.dynamics = DynamicsLR(self._hyperparams['dynamics'], self.cur[m].sample_data)
+            self.cur[m].trajinfo.dynamics = self._hyperparams['dynamics']['type'](
+                self._hyperparams['dynamics'],
+                self.cur[m].sample_data)
             self.cur[m].trajinfo.dynamics.update_prior()
             self.cur[m].trajinfo.x0mu = np.mean(self.cur[m].sample_data.get_X()[:, 0, :], axis=0)
             self.cur[m].trajinfo.x0sigma = np.diag(np.maximum(

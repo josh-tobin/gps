@@ -2,7 +2,7 @@ import numpy as np
 import scipy.ndimage as sp_ndimage
 
 
-def generate_noise(T, dU, smooth=False, smooth_sigma=1.0, smooth_renormalize=False):
+def generate_noise(T, dU, smooth=False, var=1.0, renorm=False):
     """
     Generate a T x dU gaussian-distributed noise vector.
     This will approximately have mean 0 and variance 1, ignoring smoothing.
@@ -11,8 +11,8 @@ def generate_noise(T, dU, smooth=False, smooth_sigma=1.0, smooth_renormalize=Fal
         T (int): # Timesteps
         dU (int): Dimension of actions
         smooth (bool, optional): Perform smoothing of noise.
-        smooth_sigma (float, optional): If smooth=True, applies a gaussian filter with this variance.
-        smooth_renormalize (bool, optional): If smooth=True, renormalizes data to have variance 1 after smoothing.
+        var (float, optional): If smooth=True, applies a gaussian filter with this variance.
+        renorm (bool, optional): If smooth=True, renormalizes data to have variance 1 after smoothing.
 
     Sanity Check
     >>> np.random.seed(123)
@@ -23,7 +23,7 @@ def generate_noise(T, dU, smooth=False, smooth_sigma=1.0, smooth_renormalize=Fal
            [-2.42667924, -0.42891263],
            [ 1.26593626, -0.8667404 ]])
     >>> np.random.seed(123)
-    >>> generate_noise(5, 2, smooth=True, smooth_sigma=0.5)
+    >>> generate_noise(5, 2, smooth=True, var=0.5)
     array([[-0.93944619,  0.73034299],
            [ 0.04449717, -0.90269245],
            [-0.68326104,  1.09300178],
@@ -35,8 +35,8 @@ def generate_noise(T, dU, smooth=False, smooth_sigma=1.0, smooth_renormalize=Fal
         # Smooth out the noise. This violates the controller assumption, but
         # might produce smoother motions.
         for i in range(dU):
-            noise[:, i] = sp_ndimage.filters.gaussian_filter(noise[:, i], smooth_sigma)
-        if smooth_renormalize:
+            noise[:, i] = sp_ndimage.filters.gaussian_filter(noise[:, i], var)
+        if renorm:
             variance = np.std(noise, axis=0)
             noise = noise/variance
     return noise
