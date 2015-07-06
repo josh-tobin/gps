@@ -49,22 +49,13 @@ algorithm['init_traj_distr'] = {
 }
 
 algorithm['cost'] = {
-    'type': CostSum,
-    'costs': [
-    {
-        'type': CostState,
-        'data_types' : {
-            'JointAngles': {
-                'wp': np.ones((1, 28)),
-                'desired_state': np.zeros((1, 28)),
-            },
+    'type': CostState,
+    'data_types' : {
+        JointAngles: {
+            'wp': np.ones((1, 28)),
+            'desired_state': np.zeros((1, 28)),
         },
-    },
-    {
-        'type': CostTorque,
-        'wu': [1e-3]*sample_data['dU'],
-    },
-    ]
+    }
 }
 
 
