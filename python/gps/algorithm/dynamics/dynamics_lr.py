@@ -25,7 +25,7 @@ class DynamicsLR(Dynamics):
         N, T, dX = X.shape
         dU = U.shape[2]
 
-        if N==1: #TODO: Fix
+        if N==1: #TODO: Set covar to zeros when N=1?
             raise Exception("TODO: covariance breaks when N=1")
 
         self.Fm = np.zeros([T, dX, dX+dU])
@@ -39,8 +39,6 @@ class DynamicsLR(Dynamics):
             self.Fm[t, :, :] = Fm
             self.fv[t, :] = result[-1,:-1]
 
-            #if 2 in sample_idx:
-            #    import pdb; pdb.set_trace()
             x_next_covar = np.cov(X[:, t+1, :].T)
             xu_covar = np.cov(np.c_[X[:, t, :], U[:, t, :]].T)
             dyn_covar = x_next_covar - Fm.dot(xu_covar).dot(Fm.T)

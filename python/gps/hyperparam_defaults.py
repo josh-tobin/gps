@@ -8,7 +8,7 @@ from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from algorithm.cost.cost_state import CostState
 from algorithm.dynamics.dynamics_lr import DynamicsLR
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from algorithm.policy.lin_gauss_init import init_lqr
+from algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from sample_data.gps_sample_types import *
 
 common = {
@@ -43,8 +43,24 @@ algorithm = {
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'args': {
-        'hyperparams': {},
+        'hyperparams': {
+            #'init_gains': np.ones(21)*0.0001,
+            #'init_acc': np.ones(21)*1
+            'init_var': 0.0001
+            },
         'dt': agent['dt'],
+    }
+}
+
+algorithm['init_traj_distr'] = {
+    'type': init_pd,
+    'args': {
+        'hyperparams': {
+            'init_gains': np.ones(21)*0.0001,
+            'init_acc': np.ones(21)*1,
+            'init_var': 1000
+            },
+        'dQ': 21
     }
 }
 
@@ -53,7 +69,7 @@ algorithm['cost'] = {
     'data_types' : {
         JointAngles: {
             'wp': np.ones((1, 28)),
-            'desired_state': np.zeros((1, 28)),
+            'desired_state': np.array([0,0,1.4403624,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) #np.zeros((1, 28)),
         },
     }
 }

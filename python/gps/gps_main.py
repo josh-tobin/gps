@@ -29,12 +29,13 @@ class GPSMain():
         """
         for itr in range(self._iterations):
             # TODO - multiple times, for each condition
-            sample = self.agent.sample(self.algorithm.cur[0].traj_distr, 100)
-            sample_data.add_sample(sample)
-            sample = self.agent.sample(self.algorithm.cur[0].traj_distr, 100)
-            sample_data.add_sample(sample)
-            n = self.sample_data.num_samples()-1
-            self.algorithm.iteration([n-1, n-2])
+            idxs = []
+            for i in range(5):
+                n = self.sample_data.num_samples()
+                sample = self.agent.sample(self.algorithm.cur[0].traj_distr, 100)
+                sample_data.add_sample(sample)
+                idxs.append(n)
+            self.algorithm.iteration([idxs])
 
     def resume(self, itr):
         """
