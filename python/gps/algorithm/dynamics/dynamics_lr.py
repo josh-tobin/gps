@@ -18,12 +18,15 @@ class DynamicsLR(Dynamics):
         # Nothing to do - constant prior.
         pass
 
-    def fit(self):
+    def fit(self, sample_idx):
         """ Fit dynamics. """
-        X = self._sample_data.get_X()  # Use all samples to fit dynamics.
-        U = self._sample_data.get_U()
+        X = self._sample_data.get_X(idx=sample_idx)  # Use all samples to fit dynamics.
+        U = self._sample_data.get_U(idx=sample_idx)
         N, T, dX = X.shape
         dU = U.shape[2]
+
+        if N==1: #TODO: Set covar to zeros when N=1?
+            raise Exception("TODO: covariance breaks when N=1")
 
         self.Fm = np.zeros([T, dX, dX+dU])
         self.fv = np.zeros([T, dX])
@@ -35,7 +38,6 @@ class DynamicsLR(Dynamics):
             Fm = result[:-1, :-1].T
             self.Fm[t, :, :] = Fm
             self.fv[t, :] = result[-1,:-1]
-
             x_next_covar = np.cov(X[:, t+1, :].T)
             xu_covar = np.cov(np.c_[X[:, t, :], U[:, t, :]].T)
             dyn_covar = x_next_covar - Fm.dot(xu_covar).dot(Fm.T)

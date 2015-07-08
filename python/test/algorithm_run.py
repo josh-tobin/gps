@@ -42,11 +42,11 @@ def run():
 
     hyper['traj_opt'] = {'type':TrajOptLQRPython}
 
-    data = [sample_data(T, dX, dU, N=3)]*M
-    alg = AlgorithmTrajOpt(hyper, data[0])
-    alg.iteration(data)
-    alg.iteration(data)
-    alg.iteration(data)
+    data = sample_data(T, dX, dU, N=5)
+    alg = AlgorithmTrajOpt(hyper, data)
+    alg.iteration([[0,1]])
+    alg.iteration([[2,3]])
+    alg.iteration([[4,0]])
 
 def sample_data(T, dX, dU, N=0):
     state_idx = [tuple(range(dX))]

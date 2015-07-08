@@ -63,9 +63,11 @@ class SampleData(object):
             idx = range(len(self._samples))
         return np.asarray([self._samples[i].get_obs() for i in idx])
 
-    def get_samples(self):
+    def get_samples(self, idx=None):
         """ Returns N sample objects """
-        return self._samples
+        if idx is None:
+            idx = range(len(self._samples))
+        return [self._samples[i] for i in idx]
 
     def num_samples(self):
         return len(self._samples)

@@ -2,6 +2,7 @@
 
 """
 from traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from dynamics.dynamics_lr import DynamicsLR
 
 """ AlgorithmTrajOpt """
 alg_traj_opt = {
@@ -19,7 +20,9 @@ alg_traj_opt = {
     # TrajOpt
     'traj_opt': TrajOptLQRPython({}),
     # Dynamics hyperaparams
-    'dynamics': {},
+    'dynamics': {
+        'type': DynamicsLR
+    },
     # Costs
     'cost': None,  # A list of Cost objects for each condition
     # TODO: Remove these:
