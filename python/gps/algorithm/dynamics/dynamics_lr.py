@@ -38,7 +38,6 @@ class DynamicsLR(Dynamics):
             Fm = result[:-1, :-1].T
             self.Fm[t, :, :] = Fm
             self.fv[t, :] = result[-1,:-1]
-
             x_next_covar = np.cov(X[:, t+1, :].T)
             xu_covar = np.cov(np.c_[X[:, t, :], U[:, t, :]].T)
             dyn_covar = x_next_covar - Fm.dot(xu_covar).dot(Fm.T)

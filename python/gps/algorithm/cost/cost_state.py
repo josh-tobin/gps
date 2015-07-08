@@ -65,5 +65,4 @@ class CostState(Cost):
             final_l += l
             self.sample_data.pack_data_x(final_lx, ls, data_types=[data_type_name])
             self.sample_data.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
-
         return final_l, final_lx, final_lu, final_lxx, final_luu, final_lux

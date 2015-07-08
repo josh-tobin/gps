@@ -32,8 +32,8 @@ class GPSMain():
             idxs = []
             for i in range(5):
                 n = self.sample_data.num_samples()
-                sample = self.agent.sample(self.algorithm.cur[0].traj_distr, 100)
-                sample_data.add_sample(sample)
+                sample = self.agent.sample(self.algorithm.cur[0].traj_distr, self.sample_data.T)
+                self.sample_data.add_samples(sample)
                 idxs.append(n)
             self.algorithm.iteration([idxs])
 

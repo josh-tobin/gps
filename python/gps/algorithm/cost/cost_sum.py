@@ -5,7 +5,7 @@ class CostSum(Cost):
     """
     A wrapper cost function that adds other cost functions
     """
-    def __init__(self, hyperparams):
+    def __init__(self, hyperparams, sample_data):
 
         assert len(hyperparams['costs']) == len(hyperparams['weights'])
 
@@ -13,7 +13,7 @@ class CostSum(Cost):
         self._weights = hyperparams['weights']
 
         for cost in hyperparams['costs']:
-            self._costs.append(cost['type'](cost['hyperparams']))
+            self._costs.append(cost['type'](cost, sample_data))
 
 
     def eval(self, sample_idx):

@@ -6,6 +6,9 @@ import numpy as np
 from agent.mjc.agent_mjc import AgentMuJoCo
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from algorithm.cost.cost_state import CostState
+from algorithm.cost.cost_torque import CostTorque
+from algorithm.cost.cost_sum import CostSum
+
 from algorithm.dynamics.dynamics_lr import DynamicsLR
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr, init_pd
@@ -19,19 +22,19 @@ common = {
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
-    'dX': 55,
-    'dU': 21,
-    'dO': 55,
+    'dX': 22,
+    'dU': 7,
+    'dO': 22,
     'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
     # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
-    'state_idx': [list(range(28)), list(range(28,55))],
+    'state_idx': [list(range(11)), list(range(11, 22))],
     'obs_idx': [],
 }
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': './mjc_models/humanoid.xml',
+    'filename': './mjc_models/pr2_arm3d.xml',
     'dt': 1/20,
 }
 
@@ -40,40 +43,38 @@ algorithm = {
     'conditions': 1,
 }
 
+PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'args': {
         'hyperparams': {
-            #'init_gains': np.ones(21)*0.0001,
-            #'init_acc': np.ones(21)*1
-            'init_var': 0.0001
+            'init_gains':  (1.0)/PR2_GAINS,
+            'init_acc': np.zeros(sample_data['dU']),
+            'init_var': 100.0
             },
         'dt': agent['dt'],
     }
 }
 
-algorithm['init_traj_distr'] = {
-    'type': init_pd,
-    'args': {
-        'hyperparams': {
-            'init_gains': np.ones(21)*0.0001,
-            'init_acc': np.ones(21)*1,
-            'init_var': 1000
-            },
-        'dQ': 21
-    }
+torque_cost = {
+    'type': CostTorque,
+    'wu': 5e-3*PR2_GAINS
 }
-
-algorithm['cost'] = {
+state_cost = {
     'type': CostState,
     'data_types' : {
         JointAngles: {
-            'wp': np.ones((1, 28)),
-            'desired_state': np.array([0,0,1.4403624,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) #np.zeros((1, 28)),
+            'wp': np.array([1,1,0.,0,0,0.,0.,0.,0.,0.,0.]),
+            'desired_state': np.array([1,-1,0.,0,0,0.,0.,0.,0.,0.,0.])
         },
-    }
+    },
 }
 
+algorithm['cost'] = {
+    'type': CostSum,
+    'costs': [torque_cost, state_cost],
+    'weights': [1.0, 1.0]
+}
 
 algorithm['dynamics'] = {
     'type': DynamicsLR,

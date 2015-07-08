@@ -33,6 +33,7 @@ class AgentMuJoCo(Agent):
         self._options = self._world.GetOption()
         #TODO: once setmodel is done, perhaps want to set x0 from experiment script,
         #      or at least have the option to do this
+        #TODO: Need to include EE points in initial state
         self.x0 = np.concatenate([self._model['qpos0'].flatten(), np.zeros(self._model['nv'])])
         #TODO: what else goes here?
 
@@ -79,8 +80,10 @@ class AgentMuJoCo(Agent):
         sample.set(JointAngles, self._model['qpos0'].flatten(), t=0)
         sample.set(JointVelocities, np.zeros(self._model['nv']), t=0)
         sites = self._data['site_xpos'].flatten()
-        sample.set(EndEffectorPoints, sites, t=0)
-        sample.set(EndEffectorPointVelocities, np.zeros(sites.shape), t=0)
+        
+        #TODO: Need to include EE points in initial state
+        #sample.set(EndEffectorPoints, sites, t=0)
+        #sample.set(EndEffectorPointVelocities, np.zeros(sites.shape), t=0)
         #TODO: set Jacobians
         return sample
 
@@ -88,10 +91,12 @@ class AgentMuJoCo(Agent):
         sample.set(JointAngles, X[:self._model['nq']], t=t+1)
         sample.set(JointVelocities, X[self._model['nq']:], t=t+1)
         curr_eepts = self._data['site_xpos'].flatten()
-        sample.set(EndEffectorPoints, curr_eepts, t=t+1)
-        prev_eepts = sample.get(EndEffectorPoints, t=t)
-        eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
-        sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
+
+        #TODO: Need to include EE points in initial state
+        #sample.set(EndEffectorPoints, curr_eepts, t=t+1)
+        #prev_eepts = sample.get(EndEffectorPoints, t=t)
+        #eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
+        #sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
         #TODO: set Jacobians
 
     def reset(self, condition):
