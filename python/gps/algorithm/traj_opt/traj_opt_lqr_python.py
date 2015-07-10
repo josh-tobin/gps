@@ -114,8 +114,7 @@ class TrajOptLQRPython(TrajOpt):
         predicted_cost = np.zeros(T)
         for t in range(T):
             predicted_cost[t] = traj_info.cc[t] + 0.5 * np.sum(np.sum(sigma[t, :, :] * traj_info.Cm[t, :, :])) + \
-                                0.5 * mu[t, :].T.dot(traj_info.Cm[t, :, :]).dot(mu[t, :]) + mu[t, :].T.dot(
-                traj_info.cv[t, :])
+                0.5 * mu[t, :].T.dot(traj_info.Cm[t, :, :]).dot(mu[t, :]) + mu[t, :].T.dot(traj_info.cv[t, :])
         return predicted_cost
 
     def forward(self, traj_distr, traj_info):
@@ -234,7 +233,7 @@ class TrajOptLQRPython(TrajOpt):
                     L = U.T
                 except LinAlgError as e:
                     # Error thrown when Qtt[idx_u, idx_u] is not symmetric positive definite.
-                    LOGGER.debug(e)
+                    LOGGER.debug('LinAlgError:%s' % e)
                     fail = True
                     break
 

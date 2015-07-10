@@ -155,7 +155,7 @@ class AlgorithmTrajOpt(Algorithm):
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
         # optimize I w.r.t. KL: 0 = predicted_dI + 2 * penalty * KL => KL' = (-predicted_dI)/(2*penalty) = (pred/2*(pred-act)) * KL
         # therefore, the new multiplier is given by pred/2*(pred-act)
-        new_mult = predicted_impr / (2 * max(1e-4, predicted_impr - actual_impr))
+        new_mult = predicted_impr / (2.0 * max(1e-4, predicted_impr - actual_impr))
         new_mult = max(0.1, min(5.0, new_mult))
         new_step = max(min(new_mult * self.cur[m].step_mult, self._hyperparams['max_step_mult']),
                           self._hyperparams['min_step_mult'])
@@ -215,7 +215,7 @@ class AlgorithmTrajOpt(Algorithm):
             rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
             cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)  # T x (X+U)
             cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
-            cv[n, :, :] += cv_update
+            cv[n, :, :] += cv_update            
 
         self.cur[m].traj_info.cc = np.mean(cc, 0)  # Costs. Average over samples
         self.cur[m].traj_info.cv = np.mean(cv, 0)  # Cost, 1st deriv

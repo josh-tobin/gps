@@ -28,13 +28,21 @@ class AgentMuJoCo(Agent):
             filename: path to XML file containing the world information
         """
         self._world = mjcpy2.MJCWorld2(filename)
+        options = {
+            'timestep': self._hyperparams['dt']/self._hyperparams['substeps'],
+            'disableflags': 0
+        }
+        self._world.SetOption(options)
         self._model = self._world.GetModel()
         self._data = self._world.GetData()
         self._options = self._world.GetOption()
         #TODO: once setmodel is done, perhaps want to set x0 from experiment script,
         #      or at least have the option to do this
-        #TODO: Need to include EE points in initial state
-        self.x0 = np.concatenate([self._model['qpos0'].flatten(), np.zeros(self._model['nv'])])
+        #self.init_pose = np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0])
+        sites = self._data['site_xpos'].flatten()
+        self.x0 = np.concatenate([self._model['qpos0'].flatten(), np.zeros(self._model['nv']),
+            ]) #sites, np.zeros_like(sites)])
+        #self._world.Plot(self.x0)
         #TODO: what else goes here?
 
     def sample(self, policy, T, verbose=True):
@@ -82,8 +90,8 @@ class AgentMuJoCo(Agent):
         sites = self._data['site_xpos'].flatten()
         
         #TODO: Need to include EE points in initial state
-        #sample.set(EndEffectorPoints, sites, t=0)
-        #sample.set(EndEffectorPointVelocities, np.zeros(sites.shape), t=0)
+        sample.set(EndEffectorPoints, sites, t=0)
+        sample.set(EndEffectorPointVelocities, np.zeros(sites.shape), t=0)
         #TODO: set Jacobians
         return sample
 
@@ -93,10 +101,10 @@ class AgentMuJoCo(Agent):
         curr_eepts = self._data['site_xpos'].flatten()
 
         #TODO: Need to include EE points in initial state
-        #sample.set(EndEffectorPoints, curr_eepts, t=t+1)
-        #prev_eepts = sample.get(EndEffectorPoints, t=t)
-        #eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
-        #sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
+        sample.set(EndEffectorPoints, curr_eepts, t=t+1)
+        prev_eepts = sample.get(EndEffectorPoints, t=t)
+        eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
+        sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
         #TODO: set Jacobians
 
     def reset(self, condition):
