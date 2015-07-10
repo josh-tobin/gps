@@ -55,9 +55,9 @@ def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
         c_new = 0.5*k_new.T.dot(prc_new).dot(k_new)
 
         # Compute KL divergence at timestep t
-        kl_div[t] = (max(0, -0.5*mu_t.T.dot((M_new-M_prev)).dot(mu_t) -
-            mu_t.T.dot((v_new-v_prev)) - 0.5*np.sum(sigma_t*(M_new-M_prev)) -
-            0.5*logdet_new + 0.5*logdet_prev)) - c_new + c_prev
+        kl_div[t] = max(0, -0.5*mu_t.T.dot((M_new-M_prev)).dot(mu_t) -
+            mu_t.T.dot((v_new-v_prev))  - c_new + c_prev - 0.5*np.sum(sigma_t*(M_new-M_prev)) -
+            0.5*logdet_new + 0.5*logdet_prev)
 
     # Add up divergences across time to get total divergence
     return np.sum(kl_div)
@@ -95,7 +95,7 @@ class LineSearch(object):
             self.data = {'c1':con, 'c2':con, 'e1':eta, 'e2':eta}
             if con < 0:  # Too little change.
                 rate = abs(1.0/(eta*con))
-                cng = min(max(rate*eta*con,-5),5)
+                cng = min(max(rate*eta*con,-5.0),5.0)
                 eta = np.exp(np.log(eta) + cng)
             else:  # Too much change.
                 rate = 0.01
@@ -135,6 +135,7 @@ class LineSearch(object):
                     self.data['e1'] = e1
                     self.data['e2'] = e2
                     eta = max(min_eta,self.min_eta)
+                    return eta
                 else:
                     if abs(self.data['c1']) <= abs(self.data['c2']):
                         if self.data['c1'] < con:
@@ -167,7 +168,7 @@ class LineSearch(object):
             le2 = np.log(e2)
 
             # Fit quadratic.
-            a = (lc2-lc1) / 2*(le2-le1)
+            a = (lc2-lc1) / (2*(le2-le1))
             b = 0.5*(lc1+lc2-2*a*(le1+le2))
 
             # Decide whether we want to solve in the original space instead.

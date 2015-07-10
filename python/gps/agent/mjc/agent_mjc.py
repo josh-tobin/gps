@@ -3,6 +3,7 @@ import numpy as np
 
 from copy import deepcopy 
 from agent.agent import Agent
+from agent.agent_utils import generate_noise
 from agent.config import agent_mujoco
 from sample_data.gps_sample_types import *
 from scipy.ndimage.filters import gaussian_filter
@@ -27,10 +28,21 @@ class AgentMuJoCo(Agent):
             filename: path to XML file containing the world information
         """
         self._world = mjcpy2.MJCWorld2(filename)
+        options = {
+            'timestep': self._hyperparams['dt']/self._hyperparams['substeps'],
+            'disableflags': 0
+        }
+        self._world.SetOption(options)
         self._model = self._world.GetModel()
         self._data = self._world.GetData()
         self._options = self._world.GetOption()
-        self.x0 = np.concatenate([self._model['qpos0'].flatten(), np.zeros(self._model['nv'])])
+        #TODO: once setmodel is done, perhaps want to set x0 from experiment script,
+        #      or at least have the option to do this
+        #self.init_pose = np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0])
+        sites = self._data['site_xpos'].flatten()
+        self.x0 = np.concatenate([self._model['qpos0'].flatten(), np.zeros(self._model['nv']),
+            ]) #sites, np.zeros_like(sites)])
+        #self._world.Plot(self.x0)
         #TODO: what else goes here?
 
     def sample(self, policy, T, verbose=True):
@@ -46,11 +58,9 @@ class AgentMuJoCo(Agent):
         new_sample = self._init_sample()  # create new sample, populate first time step
         mj_X = new_sample.get_X(t=0)
         U = np.zeros([T, self.sample_data.dU])
-        noise = np.random.randn(*U.shape)
-        if self._hyperparams['smooth_noise']:
-            noise = gaussian_filter(noise, self._hyperparams['smooth_noise_var'])
-            if self._hyperparams['smooth_noise_renormalize']:
-                noise = noise * np.std(noise, axis=0)
+        noise = generate_noise(T, self.sample_data.dU, smooth=self._hyperparams['smooth_noise'], \
+                var=self._hyperparams['smooth_noise_var'], \
+                renorm=self._hyperparams['smooth_noise_renormalize'])
         if np.any(self._hyperparams['x0var'] > 0):
             x0n = self._hyperparams['x0var'] * np.random.randn(self._hyperparams['x0var'].shape)
             mj_X += x0n
@@ -61,20 +71,10 @@ class AgentMuJoCo(Agent):
             if verbose:
                 self._world.Plot(mj_X)
             if (t+1) < T:
-                if t < self._hyperparams['frozen_steps']:
-                    mj_X, _ = self._world.Step(mj_X, np.zeros(self.sample_data.dU))
-                else:
-                    mj_X, _ = self._world.Step(mj_X, mj_U)
+                mj_X, _ = self._world.Step(mj_X, mj_U)
                 #TODO: update hidden state
                 self._data = self._world.GetData()
-                new_sample.set('JointAngles', mj_X[:self._model['nq']], t=t+1)
-                new_sample.set('JointVelocities', mj_X[self._model['nq']:], t=t+1)
-                curr_eepts = self._data['site_xpos'].flatten()
-                new_sample.set('EndEffectorPoints', curr_eepts, t=t+1)
-                #TODO: how to set Jacobians?
-                prev_eepts = new_sample.get('EndEffectorPoints', t=t)
-                eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
-                new_sample.set('EndEffectorPointVelocities', eept_vels, t=t+1)
+                self._set_sample(new_sample, mj_X, t)
         #TODO: reset world
         new_sample.set(Action, U)
         return new_sample
@@ -85,13 +85,27 @@ class AgentMuJoCo(Agent):
         """
         sample = self.sample_data.create_new()
         #TODO: set first time step with x0, for now do something else since setmodel doesn't exist
-        sample.set('JointAngles', self._model['qpos0'].flatten(), t=0)
-        sample.set('JointVelocities', np.zeros(self._model['nv']), t=0)
+        sample.set(JointAngles, self._model['qpos0'].flatten(), t=0)
+        sample.set(JointVelocities, np.zeros(self._model['nv']), t=0)
         sites = self._data['site_xpos'].flatten()
-        sample.set('EndEffectorPoints', sites, t=0)
-        sample.set('EndEffectorPointVelocities', np.zeros(sites.shape), t=0)
-        #TODO: how to set Jacobians?
+        
+        #TODO: Need to include EE points in initial state
+        sample.set(EndEffectorPoints, sites, t=0)
+        sample.set(EndEffectorPointVelocities, np.zeros(sites.shape), t=0)
+        #TODO: set Jacobians
         return sample
+
+    def _set_sample(self, sample, X, t):
+        sample.set(JointAngles, X[:self._model['nq']], t=t+1)
+        sample.set(JointVelocities, X[self._model['nq']:], t=t+1)
+        curr_eepts = self._data['site_xpos'].flatten()
+
+        #TODO: Need to include EE points in initial state
+        sample.set(EndEffectorPoints, curr_eepts, t=t+1)
+        prev_eepts = sample.get(EndEffectorPoints, t=t)
+        eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
+        sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
+        #TODO: set Jacobians
 
     def reset(self, condition):
         pass #TODO: implement setmodel

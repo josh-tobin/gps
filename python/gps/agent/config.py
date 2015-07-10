@@ -14,13 +14,14 @@ from copy import deepcopy
 """ Agent """
 agent = {
     'dH': 0,
-    'frozen_steps': 0,
-    'frozen_state': np.array([]),
     'x0var': 0,
     'noisy_body_idx': np.array([]),
     'noisy_body_var': np.array([]),
     'pos_body_idx': np.array([]),
     'pos_body_offset': np.array([]),
+    'smooth_noise': False,
+    'smooth_noise_var': 2.0,
+    'smooth_noise_renormalize': True,
 }
 
 #""" AgentROS """
@@ -41,11 +42,4 @@ agent = {
 agent_mujoco = deepcopy(agent)
 agent_mujoco.update({
     'substeps': 1,
-    'append_pts_vel': False,
-    'append_prev_state': False,
-    'smooth_noise': False,
-    'smooth_noise_var': 2.0,
-    'smooth_noise_renormalize': True,
-    'extra_phi_mean': np.array([]),
-    'extra_phi_var': np.array([]),
 })

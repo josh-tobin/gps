@@ -29,11 +29,19 @@ class GPSMain():
         """
         for itr in range(self._iterations):
             # TODO - multiple times, for each condition
-            self.agent.sample(self.algorithm.cur_traj_distr[0], 100)
-            self.algorithm.iteration([self.sample_data])
+            idxs = []
+            for i in range(5):
+                n = self.sample_data.num_samples()
+                sample = self.agent.sample(self.algorithm.cur[0].traj_distr, self.sample_data.T)
+                self.sample_data.add_samples(sample)
+                idxs.append(n)
+            self.algorithm.iteration([idxs])
 
     def resume(self, itr):
         """
         Resume from iteration specified.
         """
         raise NotImplementedError("TODO")
+
+g = GPSMain()
+g.run()
