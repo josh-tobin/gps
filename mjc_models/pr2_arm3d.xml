@@ -77,7 +77,7 @@
                             -->
                           </body>
                         </body>
-                        <!--
+
                         <body name="r_gripper_l_finger_link" pos="0.07691 0.01 0">
 
                           <geom name="gf3" type="capsule" fromto="0 0 0 0.09137 0.00495 0" size="0.01"/>
@@ -107,7 +107,7 @@
                             
                           </body>
                         </body>
-                        -->
+
                       </body>
                     </body>
                   </body>
