@@ -155,7 +155,7 @@ class AlgorithmTrajOpt(Algorithm):
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
         # optimize I w.r.t. KL: 0 = predicted_dI + 2 * penalty * KL => KL' = (-predicted_dI)/(2*penalty) = (pred/2*(pred-act)) * KL
         # therefore, the new multiplier is given by pred/2*(pred-act)
-        new_mult = predicted_impr / (2 * max(1e-4, predicted_impr - actual_impr))
+        new_mult = predicted_impr / (2.0 * max(1e-4, predicted_impr - actual_impr))
         new_mult = max(0.1, min(5.0, new_mult))
         new_step = max(min(new_mult * self.cur[m].step_mult, self._hyperparams['max_step_mult']),
                           self._hyperparams['min_step_mult'])

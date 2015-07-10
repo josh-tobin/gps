@@ -28,6 +28,11 @@ class AgentMuJoCo(Agent):
             filename: path to XML file containing the world information
         """
         self._world = mjcpy2.MJCWorld2(filename)
+        options = {
+            'timestep': self._hyperparams['dt']/self._hyperparams['substeps'],
+            'disableflags': 0
+        }
+        self._world.SetOption(options)
         self._model = self._world.GetModel()
         self._data = self._world.GetData()
         self._options = self._world.GetOption()
@@ -66,7 +71,7 @@ class AgentMuJoCo(Agent):
             if verbose:
                 self._world.Plot(mj_X)
             if (t+1) < T:
-                mj_X, _ = self._world.Step(mj_X, 10*mj_U)
+                mj_X, _ = self._world.Step(mj_X, mj_U)
                 #TODO: update hidden state
                 self._data = self._world.GetData()
                 self._set_sample(new_sample, mj_X, t)

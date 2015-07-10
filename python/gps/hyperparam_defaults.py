@@ -37,7 +37,8 @@ sample_data = {
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d.xml',
-    'dt': 1/20,
+    'dt': 0.01,
+    'substeps': 1
 }
 
 algorithm = {
@@ -69,7 +70,7 @@ state_cost = {
     'data_types' : {
         JointAngles: {
             'wp': np.array([1,1,1,1,1,1,1]),
-            'desired_state': np.array([1,-1,0.,0,0,0.,0.])
+            'desired_state': np.array([1.0,-1.0,0.,0,0,0.,0.])
         },
     },
 }
