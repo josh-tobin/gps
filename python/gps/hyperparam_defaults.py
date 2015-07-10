@@ -22,21 +22,25 @@ common = {
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
-    'dX': 14,
+    'dX': 26,
     'dU': 7,
-    'dO': 14,
-    #'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
-    'state_include': [JointAngles, JointVelocities],
+    'dO': 26,
+    'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
+    #'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
     # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
-    #'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
-    'state_idx': [list(range(7)), list(range(7, 14))],
+    'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
+    #'state_idx': [list(range(7)), list(range(7, 14))],
     'obs_idx': [],
 }
 
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d.xml',
+    'frozen_joints': [7, 8, 9, 10],  # Freeze fingertips
+    #'init_pose': [0,0,0,0,0,0,0,0.5,0.5,0.5,0.5],
+    'init_pose': [0.1,0.1,-1.54,-1.7,1.54,-0.2,0,0.5,0.5,0.5,0.5],
+    'rk': 1,
     'dt': 0.01,
     'substeps': 1
 }
@@ -70,7 +74,7 @@ state_cost = {
     'data_types' : {
         JointAngles: {
             'wp': np.array([1,1,1,1,1,1,1]),
-            'desired_state': np.array([1.0,-1.0,0.,0,0,0.,0.])
+            'desired_state': np.array([0.0,-0.0,0.,0,0,0.,1.0])
         },
     },
 }
