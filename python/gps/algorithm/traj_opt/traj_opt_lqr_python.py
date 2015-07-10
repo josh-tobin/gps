@@ -234,7 +234,7 @@ class TrajOptLQRPython(TrajOpt):
                     L = U.T
                 except LinAlgError as e:
                     # Error thrown when Qtt[idx_u, idx_u] is not symmetric positive definite.
-                    LOGGER.debug(e)
+                    LOGGER.debug('LinAlgError:%s' % e)
                     fail = True
                     break
 

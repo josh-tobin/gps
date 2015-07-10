@@ -168,7 +168,7 @@ class LineSearch(object):
             le2 = np.log(e2)
 
             # Fit quadratic.
-            a = (lc2-lc1) / 2*(le2-le1)
+            a = (lc2-lc1) / (2*(le2-le1))
             b = 0.5*(lc1+lc2-2*a*(le1+le2))
 
             # Decide whether we want to solve in the original space instead.
