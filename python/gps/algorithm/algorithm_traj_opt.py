@@ -215,7 +215,7 @@ class AlgorithmTrajOpt(Algorithm):
             rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
             cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)  # T x (X+U)
             cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
-            cv[n, :, :] += cv_update
+            cv[n, :, :] += cv_update            
 
         self.cur[m].traj_info.cc = np.mean(cc, 0)  # Costs. Average over samples
         self.cur[m].traj_info.cv = np.mean(cv, 0)  # Cost, 1st deriv

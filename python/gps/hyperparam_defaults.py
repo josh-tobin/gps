@@ -22,13 +22,15 @@ common = {
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
-    'dX': 22,
+    'dX': 14,
     'dU': 7,
-    'dO': 22,
+    'dO': 14,
+    #'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
     'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
     # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
-    'state_idx': [list(range(11)), list(range(11, 22))],
+    #'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
+    'state_idx': [list(range(7)), list(range(7, 14))],
     'obs_idx': [],
 }
 
@@ -50,7 +52,9 @@ algorithm['init_traj_distr'] = {
         'hyperparams': {
             'init_gains':  (1.0)/PR2_GAINS,
             'init_acc': np.zeros(sample_data['dU']),
-            'init_var': 100.0
+            'init_var': 5.0,
+            'init_stiffness': 1.0,
+            'init_stiffness_vel': 0.5
             },
         'dt': agent['dt'],
     }
@@ -64,8 +68,8 @@ state_cost = {
     'type': CostState,
     'data_types' : {
         JointAngles: {
-            'wp': np.array([1,1,0.,0,0,0.,0.,0.,0.,0.,0.]),
-            'desired_state': np.array([1,-1,0.,0,0,0.,0.,0.,0.,0.,0.])
+            'wp': np.array([1,1,1,1,1,1,1]),
+            'desired_state': np.array([1,-1,0.,0,0,0.,0.])
         },
     },
 }
@@ -73,7 +77,7 @@ state_cost = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, state_cost],
-    'weights': [1.0, 1.0]
+    'weights': [0.0, 1.0]
 }
 
 algorithm['dynamics'] = {

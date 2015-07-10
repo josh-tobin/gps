@@ -95,7 +95,7 @@ class LineSearch(object):
             self.data = {'c1':con, 'c2':con, 'e1':eta, 'e2':eta}
             if con < 0:  # Too little change.
                 rate = abs(1.0/(eta*con))
-                cng = min(max(rate*eta*con,-5),5)
+                cng = min(max(rate*eta*con,-5.0),5.0)
                 eta = np.exp(np.log(eta) + cng)
             else:  # Too much change.
                 rate = 0.01
@@ -135,6 +135,7 @@ class LineSearch(object):
                     self.data['e1'] = e1
                     self.data['e2'] = e2
                     eta = max(min_eta,self.min_eta)
+                    return eta
                 else:
                     if abs(self.data['c1']) <= abs(self.data['c2']):
                         if self.data['c1'] < con:
