@@ -57,7 +57,7 @@ algorithm['init_traj_distr'] = {
         'hyperparams': {
             'init_gains':  (1.0)/PR2_GAINS,
             'init_acc': np.zeros(sample_data['dU']),
-            'init_var': 5.0,
+            'init_var': 10.0,
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5
             },
@@ -67,14 +67,15 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-3*PR2_GAINS
+    'wu': 5e-5/PR2_GAINS
 }
 state_cost = {
     'type': CostState,
     'data_types' : {
         JointAngles: {
             'wp': np.array([1,1,1,1,1,1,1]),
-            'desired_state': np.array([0.0,-0.0,0.,0,0,0.,1.0])
+            # This should extend the arm out straight
+            'desired_state': np.array([0.,0.,0.,0.,0.,0.,0.])
         },
     },
 }
@@ -82,7 +83,7 @@ state_cost = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, state_cost],
-    'weights': [0.0, 1.0]
+    'weights': [1.0, 1.0]
 }
 
 algorithm['dynamics'] = {
