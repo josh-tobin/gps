@@ -57,6 +57,7 @@ class AgentMuJoCo(Agent):
         sites = self._data['site_xpos'].flatten()
         init_vel = np.zeros(len(self._vel_idx))
         init_joints = np.array([self._model['qpos0'].flatten()[i] for i in self._joint_idx])
+        # TODO: Remove hardcoded indices from state
         self.x0 = np.concatenate([init_joints, init_vel, sites, np.zeros_like(sites)])
 
     def sample(self, policy, T, verbose=True):

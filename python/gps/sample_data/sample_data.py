@@ -41,7 +41,6 @@ class SampleData(object):
     def create_new(self):
         """Construct and return a new sample and add it to the list of samples."""
         sample = Sample(self)
-        self._samples.append(sample)
         return sample
 
     def get_X(self, idx=None):
