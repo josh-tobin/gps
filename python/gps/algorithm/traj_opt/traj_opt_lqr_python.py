@@ -113,7 +113,7 @@ class TrajOptLQRPython(TrajOpt):
         # Compute cost.
         predicted_cost = np.zeros(T)
         for t in range(T):
-            predicted_cost[t] = traj_info.cc[t] + 0.5 * np.sum(np.sum(sigma[t, :, :] * traj_info.Cm[t, :, :])) + \
+            predicted_cost[t] = traj_info.cc[t] + 0.5 * np.sum(sigma[t, :, :] * traj_info.Cm[t, :, :]) + \
                 0.5 * mu[t, :].T.dot(traj_info.Cm[t, :, :]).dot(mu[t, :]) + mu[t, :].T.dot(traj_info.cv[t, :])
         return predicted_cost
 

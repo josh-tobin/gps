@@ -36,11 +36,11 @@ class DynamicsLR(Dynamics):
         ip = slice(dX+dU, dX+dU+dX)
         # Fit dynamics wih least squares regression
         for t in range(T-1):
-            xu = np.c_[X[:, t, :], U[:, t, :]]
             xux = np.c_[X[:, t, :], U[:, t, :], X[:, t+1, :]]
             xux_mean = np.mean(xux, axis=0)
             empsig = (xux-xux_mean).T.dot(xux-xux_mean) / (N-1)
             sigma = 0.5*(empsig+empsig.T)
+            sigma[it,it] = sigma[it,it]+self._hyperparams['regularization']*np.eye(dX+dU)
 
             Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
             fv = xux_mean[ip] - Fm.dot(xux_mean[it]);

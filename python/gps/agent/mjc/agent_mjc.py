@@ -49,7 +49,6 @@ class AgentMuJoCo(Agent):
         self.init_pose = self._hyperparams['init_pose']
         x0 = np.r_[self.init_pose, np.zeros_like(self.init_pose)]
         self.init_mj_X = x0
-        self._world.Plot(x0)
         self._world.Step(x0, np.zeros(self._model['nu']))
 
         # Initialize x0
@@ -89,7 +88,6 @@ class AgentMuJoCo(Agent):
             if verbose:
                 self._world.Plot(mj_X)
             if (t+1) < T:
-                #import pdb; pdb.set_trace()
                 mj_X, _ = self._world.Step(mj_X, mj_U)
                 #TODO: update hidden state
                 self._data = self._world.GetData()

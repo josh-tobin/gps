@@ -75,7 +75,7 @@ state_cost = {
         JointAngles: {
             'wp': np.array([1,1,1,1,1,1,1]),
             # This should extend the arm out straight
-            #'desired_state': np.array([-1.0,0.,0.,0.,0.,0.,0.])
+            #'desired_state': np.array([0.0,0.,0.,0.,0.,0.,0.])
 
             # This should insert into the hold
             'desired_state': np.array([0.617830101225870,0.298009357128493,-2.26613599619067,-1.83180464491005,1.44102734751961,-0.488554457910043,-0.311987910094871])
@@ -91,6 +91,7 @@ algorithm['cost'] = {
 
 algorithm['dynamics'] = {
     'type': DynamicsLR,
+    'regularization': 1e-6
 }
 
 algorithm['traj_opt'] = {
