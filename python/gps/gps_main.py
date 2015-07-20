@@ -36,7 +36,7 @@ class GPSMain():
                 sample = self.agent.sample(pol, self.sample_data.T, True)
                 self.sample_data.add_samples(sample)
                 idxs.append(n)
-            self.algorithm.iteration([idxs[-30:]])
+            self.algorithm.iteration([idxs[-15:]])
 
     def resume(self, itr):
         """

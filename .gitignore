@@ -70,7 +70,7 @@ docs/_build/
 target/
 
 # MuJoCo
-src/3rdparty/mjc2
+src/3rdparty
 MUJOCO_LOG.TXT
 
 # Vim

@@ -5,6 +5,7 @@ import numpy as np
 
 from agent.mjc.agent_mjc import AgentMuJoCo
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from algorithm.cost.cost_fk import CostFK
 from algorithm.cost.cost_state import CostState
 from algorithm.cost.cost_torque import CostTorque
 from algorithm.cost.cost_sum import CostSum
@@ -83,9 +84,16 @@ state_cost = {
     },
 }
 
+fk_cost = {
+    'type': CostFK,
+    'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'analytic_jacobian': False,
+    'wp': np.array([1,1,1,1,1,1]),
+}
+
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
+    'costs': [torque_cost, fk_cost],
     'weights': [1.0, 1.0]
 }
 
