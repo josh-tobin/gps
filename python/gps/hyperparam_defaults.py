@@ -10,6 +10,7 @@ from algorithm.cost.cost_torque import CostTorque
 from algorithm.cost.cost_sum import CostSum
 
 from algorithm.dynamics.dynamics_lr import DynamicsLR
+from algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from sample_data.gps_sample_types import *
@@ -90,7 +91,7 @@ algorithm['cost'] = {
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLR,
+    'type': DynamicsLRPrior,
     'regularization': 1e-6
 }
 

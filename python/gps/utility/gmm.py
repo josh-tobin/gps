@@ -119,7 +119,7 @@ class GMM(object):
         logwts = logsum(logwts,axis=1) - np.log(data.shape[1])
         return logwts
 
-    def update(self, data, K, iterations=100):
+    def update(self, data, K, max_iterations=100):
         """
         Run EM to update clusters
 
@@ -131,7 +131,9 @@ class GMM(object):
         Do = data.shape[0]
         N = data.shape[1];
 
-        #TODO: Check if we are warmstarting. 
+        LOGGER.debug('Fitting GMM with %d clusters on %d points', K, N)
+
+        #TODO: Implement warm start
         if True: #~gmm.params.warmstart || isempty(gmm.sigma) || K ~= size(gmm.sigma,3),
             # Initialization.
             self.sigma = np.zeros((Do,Do,K))
@@ -174,16 +176,15 @@ class GMM(object):
                 self.sigma[:,:,i] = sigma + np.eye(Do)*2e-6;
 
         prevll = -float('inf')
-        for itr in range(iterations):
-            LOGGER.debug('Beginning GMM EM iteration %d/%d', itr, self.iterations)
+        for itr in range(max_iterations):
             # E-step: compute cluster probabilities.
             logobs = self.estep(data);
 
             # Compute log-likelihood.
             ll = np.sum(logsum(logobs,axis=0));
-            LOGGER.debug('GMM Log likelihood: %f', ll)
+            LOGGER.debug('GMM itr %d/%d. Log likelihood: %f', itr, max_iterations, ll)
             if np.abs(ll-prevll) < 1e-2:
-                LOGGER.debug('GMM Converged on itr=%d/%d', itr, self.iterations)
+                LOGGER.debug('GMM convergenced on itr=%d/%d', itr, max_iterations)
                 break
             prevll = ll;
 

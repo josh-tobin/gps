@@ -77,12 +77,18 @@ class AlgorithmTrajOpt(Algorithm):
             self.cur[m].traj_info.dynamics = self._hyperparams['dynamics']['type'](
                 self._hyperparams['dynamics'],
                 self._sample_data)
-            self.cur[m].traj_info.dynamics.update_prior()
-            init_X = self._sample_data.get_X(idx=self.cur[m].sample_idx)[:, 0, :]
+            cur_idx = self.cur[m].sample_idx
+            self.cur[m].traj_info.dynamics.update_prior(cur_idx)
+
+            prior = self.cur[m].traj_info.dynamics.get_prior()
+            if prior:
+                LOGGER.warning("Initial state dynamics with prior is not implemented")
+
+            init_X = self._sample_data.get_X(idx=cur_idx)[:, 0, :]
             self.cur[m].traj_info.x0mu = np.mean(init_X, axis=0)
             self.cur[m].traj_info.x0sigma = np.diag(np.maximum( np.var(init_X, axis=0),
                     self._hyperparams['initial_state_var']))
-            self.cur[m].traj_info.dynamics.fit(self.cur[m].sample_idx)
+            self.cur[m].traj_info.dynamics.fit(cur_idx)
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
