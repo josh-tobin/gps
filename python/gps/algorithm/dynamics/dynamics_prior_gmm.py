@@ -5,6 +5,7 @@ from utility.gmm import GMM
 
 LOGGER = logging.getLogger(__name__)
 
+#TODO: Add comments
 class DynamicsPriorGMM(object):
 	def __init__(self):
 		self.X = None
