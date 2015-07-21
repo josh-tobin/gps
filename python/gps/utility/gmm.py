@@ -12,9 +12,11 @@ def logsum(vec,axis=0, keepdims=True):
 
 class GMM(object):
     """ Gaussian Mixture Model """
-    def __init__(self, init_sequential=False, eigreg=False):
+    def __init__(self, init_sequential=False, eigreg=False, warmstart=True):
         self.init_sequential = init_sequential
         self.eigreg = eigreg
+        self.warmstart = warmstart
+        self.sigma = None
 
     def inference(self, pts):
         """ 
@@ -133,9 +135,9 @@ class GMM(object):
 
         LOGGER.debug('Fitting GMM with %d clusters on %d points', K, N)
 
-        #TODO: Implement warm start
-        if True: #~gmm.params.warmstart || isempty(gmm.sigma) || K ~= size(gmm.sigma,3),
+        if (not self.warmstart) or (self.sigma is None) or (K != self.sigma.shape[2]):
             # Initialization.
+            LOGGER.debug('Initializing GMM')
             self.sigma = np.zeros((Do,Do,K))
             self.prec = np.zeros((Do,Do,K))
             self.xxt = np.zeros((Do,Do,K))

@@ -42,11 +42,17 @@ class AlgorithmTrajOpt(Algorithm):
         init_args['dX'] = sample_data.dX
         init_args['dU'] = sample_data.dU
         init_args['T'] = sample_data.T
+
+        self.dynamics = [None]*self.M
         for m in range(self.M):
             self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
             self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = 1.0
+            self.dynamics[m] = self._hyperparams['dynamics']['type'](
+                self._hyperparams['dynamics'],
+                self._sample_data)
         self.eta = [1.0]*self.M
+
 
     def iteration(self, sample_idxs):
         """
@@ -74,9 +80,7 @@ class AlgorithmTrajOpt(Algorithm):
         Fit dynamics to current samples
         """
         for m in range(self.M):
-            self.cur[m].traj_info.dynamics = self._hyperparams['dynamics']['type'](
-                self._hyperparams['dynamics'],
-                self._sample_data)
+            self.cur[m].traj_info.dynamics = self.dynamics[m]
             cur_idx = self.cur[m].sample_idx
             self.cur[m].traj_info.dynamics.update_prior(cur_idx)
 

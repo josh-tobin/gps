@@ -35,15 +35,15 @@ class DynamicsPriorGMM(object):
 		T = X.shape[1]-1; # Note that we subtract 1, since last step doesn't have dynamics.
 
 		# Append data to dataset.
-		if self.X:
-			self.X = np.concatenate([self.X, X], axis=0)
-		else:
+		if self.X is None:
 			self.X = X
-
-		if self.U:
-			self.U = np.concatenate([self.U, U], axis=0)
 		else:
+			self.X = np.concatenate([self.X, X], axis=0)
+
+		if self.U is None:
 			self.U = U
+		else:
+			self.U = np.concatenate([self.U, U], axis=0)
 
 		# Remove excess samples from dataset.
 		strt = max(0,self.X.shape[0]-self.max_samples+1)
