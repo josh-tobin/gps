@@ -5,6 +5,11 @@ import scipy as sp
 
 LOGGER = logging.getLogger(__name__)
 
+# Constants used in TrajOptLQR
+DGD_MAX_ITER = 50
+THRESHA = 1e-4  # First convergence threshold
+THRESHB = 1e-3  # Second convergence threshold
+
 def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
     """Compute KL divergence between new and the previos trajectory
     distributions.
@@ -88,7 +93,6 @@ class LineSearch(object):
         """
 
         # Adjust eta.
-        # TODO - make constants
         if not self.data or ((abs(self.data['c1']-con) < 1e-8*abs(self.data['c1']+con)) and
                 (abs(self.data['c2']-con) < 1e-8*abs(self.data['c2']+con))):
             # Take initial step if we don't have multiple points already available.
