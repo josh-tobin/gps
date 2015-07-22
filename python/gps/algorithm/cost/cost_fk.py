@@ -18,7 +18,7 @@ class CostFK(Cost):
         config.update(hyperparams)
         Cost.__init__(self, config, sample_data)
 
-    def eval(self, sample_idx):
+    def eval_sample(self, sample):
         """
         Evaluate forward kinematics (end-effector penalties) cost.
 
@@ -32,10 +32,9 @@ class CostFK(Cost):
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        T = self.sample_data.T
-        dX = self.sample_data.dX
-        dU = self.sample_data.dU
-        sample = self.sample_data.get_samples(idx=[sample_idx])
+        T = sample.T
+        dX = sample.dX
+        dU = sample.dU
 
         wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
                                   wp_final_multiplier=self._hyperparams['wp_final_multiplier'])

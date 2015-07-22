@@ -75,6 +75,7 @@ state_cost = {
     'data_types' : {
         JointAngles: {
             'wp': np.array([1,1,1,1,1,1,1]),
+            'wp_final_multiplier': 10.0,
             # This should extend the arm out straight
             #'desired_state': np.array([0.0,0.,0.,0.,0.,0.,0.])
 

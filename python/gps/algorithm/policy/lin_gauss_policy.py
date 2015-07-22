@@ -42,6 +42,7 @@ class LinearGaussianPolicy(Policy):
             t: timestep
             noise: Action noise vector. This will be scaled by the variance.
         """
+        #import pdb; pdb.set_trace()
         u = self.K[t].dot(x) + self.k[t]
         u += self.chol_pol_covar[t].T.dot(noise)
         return u

@@ -46,6 +46,7 @@ class AgentMuJoCo(Agent):
         self._vel_idx = [i+self.n_joints for i in self._joint_idx]
 
         #TODO: This is a hack to initialize end-effector sites. 
+        """
         self.init_pose = self._hyperparams['init_pose']
         x0 = np.r_[self.init_pose, np.zeros_like(self.init_pose)]
         self.init_mj_X = x0
@@ -58,6 +59,20 @@ class AgentMuJoCo(Agent):
         init_joints = np.array([self._model['qpos0'].flatten()[i] for i in self._joint_idx])
         # TODO: Remove hardcoded indices from state
         self.x0 = np.concatenate([init_joints, init_vel, sites, np.zeros_like(sites)])
+        """
+         #TODO: This is a hack to initialize end-effector sites.
+        self.init_pose = self._hyperparams['init_pose']
+        x0 = np.r_[self.init_pose, np.zeros_like(self.init_pose)]
+        self.init_mj_X = x0
+        #TODO: the next line is bad and will break things if, e.g., gravity is on
+        self._world.Step(x0, np.zeros(self._model['nu']))
+        # Initialize x0
+        self._data = self._world.GetData()
+        eepts = self._data['site_xpos'].flatten()
+        # TODO: Remove hardcoded indices from state
+        self._joint_idx = [i for i in range(self._model['nq']) if i not in self._hyperparams['frozen_joints']]
+        self._vel_idx = [i + self._model['nq'] for i in self._joint_idx]
+        self.x0 = np.concatenate([x0[self._joint_idx], x0[self._vel_idx], eepts, np.zeros_like(eepts)])
 
     def sample(self, policy, T, verbose=True):
         """

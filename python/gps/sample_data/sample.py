@@ -8,13 +8,13 @@ class Sample(object):
     Note: must be serializable for easy saving - no C++ object references!
     """
 
-    def __init__(self, sample_data):
-        self.sample_data = sample_data
+    def __init__(self, T, state_assembler):
+        self.state_assembler = state_assembler
 
-        self.T = sample_data.T
-        self.dX = sample_data.dX
-        self.dU = sample_data.dU
-        self.dO = sample_data.dO
+        self.T = T
+        self.dX = state_assembler.dX
+        self.dU = state_assembler.dU
+        self.dO = state_assembler.dO
 
         # Dictionary containing the sample data from various sensors
         self._data = {}
@@ -47,10 +47,10 @@ class Sample(object):
         X = self._X if t is None else self._X[t,:]
         if np.any(np.isnan(X)):
             for data_type in self._data:
-                if data_type not in self.sample_data.x_data_types:
+                if data_type not in self.state_assembler.x_data_types:
                     continue
                 data = self._data[data_type] if t is None else self._data[data_type][t,:]
-                self.sample_data.pack_data_x(X, data, data_types=[data_type])
+                self.state_assembler.pack_data_x(X, data, data_types=[data_type])
         return X
 
     def get_U(self, t=None):
@@ -62,8 +62,8 @@ class Sample(object):
         obs = self._obs if t is None else self._obs[t,:]
         if np.any(np.isnan(obs)):
             for data_type in self._data:
-                if data_type not in self.sample_data.obs_data_types:
+                if data_type not in self.state_assembler.obs_data_types:
                     continue
                 data = self._data[data_type] if t is None else self._data[data_type][t,:]
-                self.sample_data.pack_data_obs(obs, data, data_types=[data_type])
+                self.state_assembler.pack_data_obs(obs, data, data_types=[data_type])
         return obs

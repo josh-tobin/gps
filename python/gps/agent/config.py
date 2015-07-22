@@ -19,7 +19,7 @@ agent = {
     'noisy_body_var': np.array([]),
     'pos_body_idx': np.array([]),
     'pos_body_offset': np.array([]),
-    'smooth_noise': False,
+    'smooth_noise': True,
     'smooth_noise_var': 2.0,
     'smooth_noise_renormalize': True,
 }
