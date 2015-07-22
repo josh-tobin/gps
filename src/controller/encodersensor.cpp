@@ -150,11 +150,11 @@ boost::scoped_ptr<Sample> EncoderSensor::set_sample_data_format(boost::scoped_pt
 
     // Set end effector rotation size and format.
     OptionsMap eerot_metadata;
-    sample->set_meta_data(DataType.EndEffectorPosition,9,SampleDataFormat.DataFormatDouble,eerot_metadata);
+    sample->set_meta_data(DataType.EndEffectorRotation,9,SampleDataFormat.DataFormatDouble,eerot_metadata);
 
     // Set jacobian size and format.
     OptionsMap eejac_metadata;
-    sample->set_meta_data(DataType.EndEffectorPosition,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat.DataFormatDouble,eejac_metadata);
+    sample->set_meta_data(DataType.EndEffectorJacobian,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat.DataFormatDouble,eejac_metadata);
 }
 
 // Set data on the provided sample.
