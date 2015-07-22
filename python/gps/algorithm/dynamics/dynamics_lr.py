@@ -41,8 +41,10 @@ class DynamicsLR(Dynamics):
         for t in range(T-1):
             xux = np.c_[X[:, t, :], U[:, t, :], X[:, t+1, :]]
             xux_mean = np.mean(xux, axis=0)
-            empsig = (xux-xux_mean).T.dot(xux-xux_mean) / (N-1)
+            empsig = (xux-xux_mean).T.dot(xux-xux_mean) / N
             sigma = 0.5*(empsig+empsig.T)
+
+            #TODO: Integrate regularization into prior
             sigma[it,it] = sigma[it,it]+self._hyperparams['regularization']*np.eye(dX+dU)
 
             Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T

@@ -50,11 +50,13 @@ class DynamicsLRPrior(Dynamics):
             mu0, Phi, m, n0 = self.prior.eval(dX,dU,xux)
 
             xux_mean = np.mean(xux, axis=0)
-            empsig = (xux-xux_mean).T.dot(xux-xux_mean) / (N-1)
+            empsig = (xux-xux_mean).T.dot(xux-xux_mean) / N
             empsig = 0.5*(empsig+empsig.T)
 
             sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(xux_mean-mu0,xux_mean-mu0))/(N+n0)
             sigma = 0.5*(sigma+sigma.T)
+
+            #TODO: Integrate regularization into prior
             sigma[it,it] = sigma[it,it]+self._hyperparams['regularization']*np.eye(dX+dU)
 
             Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
