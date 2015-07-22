@@ -1,0 +1,54 @@
+import numpy as np
+
+from algorithm.cost.cost_utils import get_ramp_multiplier, RAMP_CONSTANT, evall1l2term, evall1l2term_fast
+
+class CostStateTracking(object):
+    def __init__(self, wp, tgt):
+        self.wp = wp
+        self.mu = tgt
+        self.ramp_option = RAMP_CONSTANT
+        self.t_weight = 0.5
+        self.l1 = 0.0
+        self.l2 = 1.0
+        self.alpha = 0.05
+        self.wu = 5e-3*np.ones(7)
+
+    def eval(self, X, U, t):
+        # Constants.
+        dX = X.shape[1]
+        dU = U.shape[1]
+        T = X.shape[0]
+
+        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=1.0)
+        wp = self.wp*np.expand_dims(wpm, axis=-1)
+
+        #l = np.zeros(T)
+        l = 0.5 * np.sum(self.wu * (U ** 2), axis=1)
+        lu = self.wu*U
+        #lx = np.zeros((T, Dx))
+        luu = np.tile(np.diag(self.wu), [T, 1, 1])
+        #lxx = np.zeros((T, Dx, Dx))
+        lux = np.zeros((T, dU, dX))
+
+        # Compute target based on nearest neighbors
+        tgt = np.zeros((T, dX))
+        Tmu = self.mu.shape[0]
+        cand_idx = np.zeros(T)
+        t_ramp = self.t_weight*np.arange(t,t+T)
+        query_pnts = np.c_[X, t_ramp]
+        tgt_points = np.c_[self.mu, self.t_weight*np.arange(Tmu)]
+        for i in range(T):
+            query_pnt = query_pnts[i]
+            dist = tgt_points - query_pnt
+            dist = np.sum( dist*dist, axis=1)
+            min_idx = np.argmin(dist)
+            cand_idx[i] = min_idx
+            tgt[i] = self.mu[min_idx]
+        dist = X - tgt
+        # Evaluate penalty term.
+        #l2, lx2, lxx2 = evall1l2term( wp, dist, np.tile(np.eye(dX), [T, 1, 1]), np.zeros((T, dX, dX, dX)),
+        #    self.l1, self.l2, self.alpha)
+
+        l, lx, lxx = evall1l2term_fast( wp, dist, self.l1, self.l2, self.alpha)
+
+        return l, lx, lu, lxx, luu, lux

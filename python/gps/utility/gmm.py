@@ -65,8 +65,8 @@ class GMM(object):
         cconst = np.zeros((1,1,1,K))
 
         for i in range(K):
-            U = sp.linalg.cholesky(self.sigma[:Di, :Di, i])
-            Pdiff[:,:,0,i] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True))
+            U = sp.linalg.cholesky(self.sigma[:Di, :Di, i], check_finite=False)
+            Pdiff[:,:,0,i] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True, check_finite=False), check_finite=False)
             cconst[0,0,0,i] = -np.sum(np.log(np.diag(U))) - 0.5*Di*np.log(2*np.pi)
 
         logobs = -0.5*np.sum(diff*Pdiff,axis=0, keepdims=True)+cconst
@@ -121,7 +121,7 @@ class GMM(object):
         logwts = logsum(logwts,axis=1) - np.log(data.shape[1])
         return logwts
 
-    def update(self, data, K, max_iterations=100):
+    def update(self, data, K, min_iter=0, max_iterations=100):
         """
         Run EM to update clusters
 
@@ -139,16 +139,16 @@ class GMM(object):
             # Initialization.
             LOGGER.debug('Initializing GMM')
             self.sigma = np.zeros((Do,Do,K))
-            self.prec = np.zeros((Do,Do,K))
-            self.xxt = np.zeros((Do,Do,K))
+            #self.prec = np.zeros((Do,Do,K))
+            #self.xxt = np.zeros((Do,Do,K))
             self.mu = np.zeros((Do,K))
             self.logmass = np.log(1.0/K)*np.ones((K,1))
             self.mass = (1.0/K)*np.ones((K,1))
-            self.logdet = np.zeros((K,1))
+            #self.logdet = np.zeros((K,1))
             self.N = data.shape[1];
-            self.priorw = 1e-3;
-            self.priorx = np.mean(data,axis=1);
-            self.priorxxt = (1.0/N)*(data.dot(data.T)) + 1e-1*np.eye(Do);
+            #self.priorw = 1e-3;
+            #self.priorx = np.mean(data,axis=1);
+            #self.priorxxt = (1.0/N)*(data.dot(data.T)) + 1e-1*np.eye(Do);
             N = self.N;
 
             # Set initial cluster indices.
@@ -185,7 +185,7 @@ class GMM(object):
             # Compute log-likelihood.
             ll = np.sum(logsum(logobs,axis=0));
             LOGGER.debug('GMM itr %d/%d. Log likelihood: %f', itr, max_iterations, ll)
-            if np.abs(ll-prevll) < 1e-2:
+            if itr>min_iter and np.abs(ll-prevll) < 1e-2:
                 LOGGER.debug('GMM convergenced on itr=%d/%d', itr, max_iterations)
                 break
             prevll = ll;
@@ -218,7 +218,7 @@ class GMM(object):
             for i in range(K):
                 # Compute weighted outer product.
                 XX = wdata[:,:,i].dot(wdata[:,:,i].T)
-                self.xxt[:,:,i] = 0.5*(XX+XX.T)
+                #self.xxt[:,:,i] = 0.5*(XX+XX.T)
                 self.sigma[:,:,i] = XX - np.outer(self.mu[:,i], self.mu[:,i])
 
                 if self.eigreg: # Use eigenvalue regularization.
