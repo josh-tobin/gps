@@ -54,7 +54,6 @@ class DynamicsLRPrior(Dynamics):
             empsig = 0.5*(empsig+empsig.T)
 
             sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(xux_mean-mu0,xux_mean-mu0))/(N+n0)
-            #sigma = empsig
             sigma = 0.5*(sigma+sigma.T)
             sigma[it,it] = sigma[it,it]+self._hyperparams['regularization']*np.eye(dX+dU)
 
