@@ -51,7 +51,7 @@ algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'args': {
         'hyperparams': {
-            'init_gains':  (1.0)/PR2_GAINS,
+            'init_gains':  1.0/PR2_GAINS,
             'init_acc': np.zeros(sample_data['dU']),
             'init_var': 5.0,
             'init_stiffness': 1.0,
@@ -69,8 +69,8 @@ state_cost = {
     'type': CostState,
     'data_types' : {
         JointAngles: {
-            'wp': np.array([1,1,1,1,1,1,1]),
-            'desired_state': np.array([1.0,-1.0,0.,0,0,0.,0.])
+            'wp': np.ones(sample_data['dU']),
+            'desired_state': np.array([1.0,-1.0,0.0,0,0.0,0.0,0.0])
         },
     },
 }

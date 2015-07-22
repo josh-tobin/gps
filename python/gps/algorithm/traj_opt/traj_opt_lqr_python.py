@@ -6,13 +6,9 @@ import copy
 
 from config import traj_opt_lqr
 from traj_opt import TrajOpt
-from traj_opt_util import LineSearch, traj_distr_kl
+from traj_opt_util import LineSearch, traj_distr_kl, DGD_MAX_ITER, THRESHA, THRESHB
 
 
-# Constants - TODO: put in a different file?
-DGD_MAX_ITER = 50
-THRESHA = 1e-4
-THRESHB = 1e-3
 LOGGER = logging.getLogger(__name__)
 
 
