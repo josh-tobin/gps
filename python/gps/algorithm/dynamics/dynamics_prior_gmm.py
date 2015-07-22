@@ -11,15 +11,15 @@ class DynamicsPriorGMM(object):
 		self.X = None
 		self.U = None
 		self.gmm = GMM()
-		self.min_samples_per_cluster = 20
+		self.min_samples_per_cluster = 40
 		self.max_samples = 20
 		self.max_clusters = 40
 		self.strength = 1.0
 
 	def initial_state(self):
 		# Compute mean and covariance.
-		mu0 = np.mean(self.X[:,0,:],axis=2);
-		Phi = np.diag(np.var(self.X[:,0,:],axis=2));
+		mu0 = np.mean(self.X[:,0,:],axis=0)
+		Phi = np.diag(np.var(self.X[:,0,:],axis=0))
 
 		# Factor in multiplier.
 		n0 = self.X.shape[2]*self.strength;
@@ -47,8 +47,8 @@ class DynamicsPriorGMM(object):
 
 		# Remove excess samples from dataset.
 		strt = max(0,self.X.shape[0]-self.max_samples+1)
-		self.X = self.X[strt:,:];
-		self.U = self.U[strt:,:];
+		self.X = self.X[strt:,:]
+		self.U = self.U[strt:,:]
 
 		# Get indices of fitted and known dimensions.
 		#Xtgt = self.getdynamicstarget(self.X);
@@ -81,7 +81,7 @@ class DynamicsPriorGMM(object):
 		assert pts.shape[1] == Dx+Du+Dx
 
 		# Perform query and fix mean.
-		mu0,Phi,m,n0 = self.gmm.inference(pts)
+		mu0,Phi,m,n0 = self.gmm.inference(pts.T)
 
 		# Factor in multiplier.
 		n0 = n0*self.strength
