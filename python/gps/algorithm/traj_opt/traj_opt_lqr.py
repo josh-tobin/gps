@@ -6,4 +6,4 @@ class TrajOptLQR(TrajOpt):
     TODO: Implement this in C++, and use boost. This is just a placeholder.
     """
     def __init__(self, hyperparams, dynamics):
-        TrajOpt.__init__(self, hyperparams, sample_data, dynamics)
+        TrajOpt.__init__(self, hyperparams, dynamics)

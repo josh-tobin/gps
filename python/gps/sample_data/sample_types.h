@@ -10,14 +10,15 @@ between the C++ and Python code.
 enum DataType
 {
     Action = 0,
-    JointAngle,
-    JointVelocity,
-    EndEffectorPoint,
-    EndEffectorPointVelocity,
-    EndEffectorPosition,
-    EndEffectorRotation,
-    EndEffectorJacobian,
-    RBGImage,
+    JointAngles,
+    JointVelocities,
+    EndEffectorPoints,
+    EndEffectorPointVelocities,
+    EndEffectorPositions,
+    EndEffectorRotations,
+    EndEffectorJacobians,
+    EndEffectorHessians,
+    RGBImage,
     TotalDataTypes
 };
 
@@ -35,14 +36,15 @@ BOOST_PYTHON_MODULE(gps_sample_types)
 {
     enum_<DataType>("DataType")
         .value("Action", Action)
-        .value("JointAngle", JointAngle)
-        .value("JointVelocity", JointVelocity)
-        .value("EndEffectorPoint", EndEffectorPoint)
-        .value("EndEffectorPointVelocity", EndEffectorPointVelocity)
-        .value("EndEffectorPosition", EndEffectorPosition)
-        .value("EndEffectorRotation", EndEffectorRotation)
-        .value("EndEffectorJacobian", EndEffectorJacobian)
-        .value("RBGImage",RBGImage)
+        .value("JointAngles", JointAngles)
+        .value("JointVelocities", JointVelocities)
+        .value("EndEffectorPoints", EndEffectorPoints)
+        .value("EndEffectorPointVelocities", EndEffectorPointVelocities)
+        .value("EndEffectorPositions", EndEffectorPositions)
+        .value("EndEffectorRotations", EndEffectorRotations)
+        .value("EndEffectorJacobians", EndEffectorJacobians)
+        .value("EndEffectorHessians", EndEffectorJacobians)
+        .value("RGBImage",RGBImage)
         .value("TotalDataTypes", TotalDataTypes)
         ;
 }

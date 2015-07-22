@@ -1,4 +1,10 @@
-from hyperparams_defaults import defaults
+import logging
+
+from hyperparam_defaults import defaults
+from sample_data.sample_data import SampleData
+
+
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 class GPSMain():
     """Main class to run algorithms and experiments.
@@ -12,20 +18,31 @@ class GPSMain():
         self._hyperparams = defaults
         self._iterations = defaults['iterations']
 
-        self.sample_data = SampleData(defaults['sample_data'], defaults['common'])
-        self.algorithm = defaults['algorithm']['type'](defaults['algorithm'], defaults['common'], sample_data)
-        self.agent = defaults['agent']['type'](defaults['agent'], defaults['common'], sample_data)
+        self.sample_data = SampleData(defaults['sample_data'], defaults['common'], False)
+        self.agent = defaults['agent']['type'](defaults['agent'], self.sample_data)
+        defaults['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0
+        self.algorithm = defaults['algorithm']['type'](defaults['algorithm'], self.sample_data)
 
     def run(self):
         """
         Run training by iteratively sampling and taking an iteration step.
         """
+        idxs = []
         for itr in range(self._iterations):
-            self.agent.sample()
-            self.algorithm.iteration()
+            # TODO - multiple times, for each condition
+            for i in range(5):
+                n = self.sample_data.num_samples()
+                pol = self.algorithm.cur[0].traj_distr
+                sample = self.agent.sample(pol, self.sample_data.T, True)
+                self.sample_data.add_samples(sample)
+                idxs.append(n)
+            self.algorithm.iteration([idxs[-15:]])
 
     def resume(self, itr):
         """
         Resume from iteration specified.
         """
         raise NotImplementedError("TODO")
+
+g = GPSMain()
+g.run()

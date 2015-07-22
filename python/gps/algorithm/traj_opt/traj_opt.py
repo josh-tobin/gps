@@ -7,10 +7,8 @@ class TrajOpt(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, hyperparams, sample_data, dynamics):
+    def __init__(self, hyperparams):
         self._hyperparams = hyperparams
-        self.sample_data = sample_data
-        self.dynamics = dynamics
 
     @abc.abstractmethod
     def update(self):

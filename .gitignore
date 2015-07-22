@@ -68,3 +68,10 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# MuJoCo
+src/3rdparty
+MUJOCO_LOG.TXT
+
+# Vim
+*.swp

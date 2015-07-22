@@ -1,5 +1,5 @@
 import abc
-
+import numpy as np
 
 class Dynamics(object):
     """Dynamics superclass
@@ -11,12 +11,25 @@ class Dynamics(object):
         self._hyperparams = hyperparams
         self._sample_data = sample_data
 
+        # TODO - Currently assuming that dynamics will always be linear with X.
+
+        # TODO - allocate arrays using hyperparams dU, dX, T
+        # Fitted dynamics: x_t+1 = Fm * [x_t;u_t] + fv
+        self.Fm = np.array(np.nan)
+        self.fv = np.array(np.nan)
+        self.dyn_covar = np.array(np.nan)  # Covariance
+
     @abc.abstractmethod
-    def update(self):
-        """ Update dynamics. """
+    def update_prior(self):
+        """ Update dynamics prior. """
         raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod
-    def eval(self):
-        """ Evaluate dynamics. """
+    def get_prior(self):
+        """ Returns prior object """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def fit(self, sample_idx):
+        """ Fit dynamics. """
         raise NotImplementedError("Must be implemented in subclass")
