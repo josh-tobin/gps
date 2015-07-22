@@ -2,7 +2,7 @@
   <compiler inertiafromgeom="true" angle="radian" coordinate="local"/>
   <option timestep="0.01" eqsoft="true" remotecontact="true" gravity="0 0 0" iterations='20'/>
   <default>
-    <joint armature='0.04' damping="1" islimited="true"/>
+    <joint armature='0.04' damping="1" islimited="true" makeactuator="true"/>
     <geom friction=".5 .1 .1" mindist="0.002" compliance="0.001" timeconst="0.001" condim="1" contype="0" conaffinity="0"/>
   </default>
 
@@ -82,13 +82,13 @@
 
                           <geom name="gf3" type="capsule" fromto="0 0 0 0.09137 0.00495 0" size="0.01"/>
                           
-                          <joint name="r_gripper_l_finger_joint" type="hinge" pos="0 0 0" axis="0 0 1" range="0 0.548" damping="0.2" maxvel="0.5" />
+                          <joint name="r_gripper_l_finger_joint" type="hinge" pos="0 0 0" axis="0 0 1" range="0 0.548" damping="0.2" maxvel="0.5" makeactuator="false"/>
 
                           <body name="r_gripper_l_finger_tip_link" pos="0.09137 0.00495 0">
 
                             <geom name="gf4" type="capsule" fromto="0 0 0 0.09137 0.0 0" size="0.01"/>
                             
-                            <joint name="r_gripper_l_finger_tip_joint" type="hinge" pos="0 0 0" axis="0 0 -1" range="0 0.548" damping="0.01" maxvel="0.5" />
+                            <joint name="r_gripper_l_finger_tip_joint" type="hinge" pos="0 0 0" axis="0 0 -1" range="0 0.548" damping="0.01" maxvel="0.5" makeactuator="false"/>
                             
                           </body>
                         </body>
@@ -97,17 +97,16 @@
 
                           <geom name="gf1" type="capsule" fromto="0 0 0 0.09137 -0.00495 0" size="0.01"/>
                           
-                          <joint name="r_gripper_r_finger_joint" type="hinge" pos="0 0 0" axis="0 0 -1" range="0 0.548" damping="0.2" maxvel="0.5" />
+                          <joint name="r_gripper_r_finger_joint" type="hinge" pos="0 0 0" axis="0 0 -1" range="0 0.548" damping="0.2" maxvel="0.5" makeactuator="false"/>
 
                           <body name="r_gripper_r_finger_tip_link" pos="0.09137 -0.00495 0">
 
                             <geom name="gf2" type="capsule" fromto="0 0 0 0.09137 0.0 0" size="0.01"/>
                             
-                            <joint name="r_gripper_r_finger_tip_joint" type="hinge" pos="0 0 0" axis="0 0 1" range="0 0.548" damping="0.01" maxvel="0.5" />
+                            <joint name="r_gripper_r_finger_tip_joint" type="hinge" pos="0 0 0" axis="0 0 1" range="0 0.548" damping="0.01" maxvel="0.5" makeactuator="false"/>
                             
                           </body>
                         </body>
-
                       </body>
                     </body>
                   </body>
@@ -149,17 +148,6 @@
 
   </body>
 
-    <actuator>
-        <motor joint='r_shoulder_pan_joint'        ctrlrange="-100.0 100.0" isctrllimited="true"/>
-        <motor joint='r_shoulder_lift_joint'        ctrlrange="-100.0 100.0" isctrllimited="true"/>
-        <motor joint='r_upper_arm_roll_joint'        ctrlrange="-100.0 100.0" isctrllimited="true"/>
-        <motor joint='r_elbow_flex_joint'       ctrlrange="-100.0 100.0" isctrllimited="true"/>
-        <motor joint='r_forearm_roll_joint'       ctrlrange="-100.0 100.0" isctrllimited="true"/>
-        <motor joint='r_wrist_flex_joint'       ctrlrange="-100.0 100.0" isctrllimited="true"/>
-        <motor joint='r_wrist_roll_joint'       ctrlrange="-100.0 100.0" isctrllimited="true"/>
-     </actuator>
-
-  <!--
   <features>
     <feature name='control'>
       <data field='ctrl' item='all'/>
@@ -179,5 +167,5 @@
       <term feature='control'       norm='quadratic'    coef_running='.1' />
     </cost>
   </costs>
-  -->
+
 </mujoco>

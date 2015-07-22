@@ -35,7 +35,7 @@ class CostFK(Cost):
         T = self.sample_data.T
         dX = self.sample_data.dX
         dU = self.sample_data.dU
-        sample = self.sample_data.get_samples(idx=[sample_idx])
+        sample = self.sample_data.get_samples(idx=[sample_idx])[0]
 
         wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
                                   wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
@@ -64,7 +64,7 @@ class CostFK(Cost):
                                                           self._hyperparams['alpha'])
         else:
             # Use estimated Jacobians and no higher order terms
-            jxx_zeros = np.zeros((T, dist.shape[0], dX, dX))
+            jxx_zeros = np.zeros((T, dist.shape[1], dX, dX))
             il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],

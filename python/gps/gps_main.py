@@ -27,15 +27,16 @@ class GPSMain():
         """
         Run training by iteratively sampling and taking an iteration step.
         """
+        idxs = []
         for itr in range(self._iterations):
             # TODO - multiple times, for each condition
-            idxs = []
             for i in range(5):
                 n = self.sample_data.num_samples()
-                sample = self.agent.sample(self.algorithm.cur[0].traj_distr, self.sample_data.T)
+                pol = self.algorithm.cur[0].traj_distr
+                sample = self.agent.sample(pol, self.sample_data.T, True)
                 self.sample_data.add_samples(sample)
                 idxs.append(n)
-            self.algorithm.iteration([idxs])
+            self.algorithm.iteration([idxs[-15:]])
 
     def resume(self, itr):
         """

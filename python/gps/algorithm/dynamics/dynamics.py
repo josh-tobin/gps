@@ -25,6 +25,11 @@ class Dynamics(object):
         raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod
+    def get_prior(self):
+        """ Returns prior object """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def fit(self, sample_idx):
         """ Fit dynamics. """
         raise NotImplementedError("Must be implemented in subclass")

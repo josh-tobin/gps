@@ -42,11 +42,17 @@ class AlgorithmTrajOpt(Algorithm):
         init_args['dX'] = sample_data.dX
         init_args['dU'] = sample_data.dU
         init_args['T'] = sample_data.T
+
+        self.dynamics = [None]*self.M
         for m in range(self.M):
             self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
             self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = 1.0
+            self.dynamics[m] = self._hyperparams['dynamics']['type'](
+                self._hyperparams['dynamics'],
+                self._sample_data)
         self.eta = [1.0]*self.M
+
 
     def iteration(self, sample_idxs):
         """
@@ -73,15 +79,23 @@ class AlgorithmTrajOpt(Algorithm):
         Fit dynamics to current samples
         """
         for m in range(self.M):
-            self.cur[m].traj_info.dynamics = self._hyperparams['dynamics']['type'](
-                self._hyperparams['dynamics'],
-                self._sample_data)
-            self.cur[m].traj_info.dynamics.update_prior()
-            init_X = self._sample_data.get_X(idx=self.cur[m].sample_idx)[:, 0, :]
-            self.cur[m].traj_info.x0mu = np.mean(init_X, axis=0)
+            self.cur[m].traj_info.dynamics = self.dynamics[m]
+            cur_idx = self.cur[m].sample_idx
+            self.cur[m].traj_info.dynamics.update_prior(cur_idx)
+
+            self.cur[m].traj_info.dynamics.fit(cur_idx)
+
+            init_X = self._sample_data.get_X(idx=cur_idx)[:, 0, :]
+            x0mu = np.mean(init_X, axis=0)
+            self.cur[m].traj_info.x0mu = x0mu
             self.cur[m].traj_info.x0sigma = np.diag(np.maximum( np.var(init_X, axis=0),
                     self._hyperparams['initial_state_var']))
-            self.cur[m].traj_info.dynamics.fit(self.cur[m].sample_idx)
+
+            prior = self.cur[m].traj_info.dynamics.get_prior()
+            if prior:
+                mu0, Phi, priorm, n0 = prior.initial_state()
+                N = len(cur_idx)
+                self.cur[m].traj_info.x0sigma += Phi + ((N*priorm)/(N+priorm))*np.outer(x0mu-mu0,x0mu-mu0)/(N+n0)
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """

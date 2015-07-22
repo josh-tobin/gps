@@ -5,11 +5,13 @@ import numpy as np
 
 from agent.mjc.agent_mjc import AgentMuJoCo
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from algorithm.cost.cost_fk import CostFK
 from algorithm.cost.cost_state import CostState
 from algorithm.cost.cost_torque import CostTorque
 from algorithm.cost.cost_sum import CostSum
 
 from algorithm.dynamics.dynamics_lr import DynamicsLR
+from algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from sample_data.gps_sample_types import *
@@ -22,21 +24,25 @@ common = {
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
-    'dX': 14,
+    'dX': 26,
     'dU': 7,
-    'dO': 14,
-    #'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
-    'state_include': [JointAngles, JointVelocities],
+    'dO': 26,
+    'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
+    #'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
     # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
-    #'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
-    'state_idx': [list(range(7)), list(range(7, 14))],
+    'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
+    #'state_idx': [list(range(7)), list(range(7, 14))],
     'obs_idx': [],
 }
 
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d.xml',
+    'frozen_joints': [7, 8, 9, 10],  # Freeze fingertips
+    #'init_pose': [0,0,0,0,0,0,0,0.5,0.5,0.5,0.5],
+    'init_pose': [0.1,0.1,-1.54,-1.7,1.54,-0.2,0,0.5,0.5,0.5,0.5],
+    'rk': 1,
     'dt': 0.01,
     'substeps': 1
 }
@@ -53,7 +59,7 @@ algorithm['init_traj_distr'] = {
         'hyperparams': {
             'init_gains':  1.0/PR2_GAINS,
             'init_acc': np.zeros(sample_data['dU']),
-            'init_var': 5.0,
+            'init_var': 10.0,
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5
             },
@@ -63,26 +69,38 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-3*PR2_GAINS
+    'wu': 5e-5/PR2_GAINS
 }
 state_cost = {
     'type': CostState,
     'data_types' : {
         JointAngles: {
             'wp': np.ones(sample_data['dU']),
-            'desired_state': np.array([1.0,-1.0,0.0,0,0.0,0.0,0.0])
+            # This should extend the arm out straight
+            #'desired_state': np.array([0.0,0.,0.,0.,0.,0.,0.])
+
+            # This should insert into the hold
+            'desired_state': np.array([0.617830101225870,0.298009357128493,-2.26613599619067,-1.83180464491005,1.44102734751961,-0.488554457910043,-0.311987910094871])
         },
     },
 }
 
+fk_cost = {
+    'type': CostFK,
+    'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'analytic_jacobian': False,
+    'wp': np.array([1,1,1,1,1,1]),
+}
+
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
-    'weights': [0.0, 1.0]
+    'costs': [torque_cost, fk_cost],
+    'weights': [1.0, 1.0]
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLR,
+    'type': DynamicsLRPrior,
+    'regularization': 1e-6
 }
 
 algorithm['traj_opt'] = {
@@ -92,7 +110,7 @@ algorithm['traj_opt'] = {
 algorithm['policy_opt'] = {}
 
 defaults = {
-    'iterations': 10,
+    'iterations': 20,
     'common': common,
     'sample_data': sample_data,
     'agent': agent,
