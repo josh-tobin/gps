@@ -19,7 +19,8 @@ with the robot.
 #include "gps_agent_pkg/TrialCommand.h"
 #include "gps_agent_pkg/RelaxCommand.h"
 #include "gps_agent_pkg/SampleResult.h"
-#include "sample_data/sample_types.h"
+#include "gps_agent_pkg/sensor.h"
+#include "gps_agent_pkg/ArmType.h"
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -27,12 +28,7 @@ with the robot.
 namespace gps_control
 {
 
-// List of arm types.
-enum ArmType
-{
-    AuxiliaryArm,
-    TrialArm
-};
+
 
 // Forward declarations.
 // Controllers.
@@ -52,12 +48,12 @@ class RelaxCommand;
 
 class RobotPlugin
 {
-private:
+protected:
     ros::Time last_update_time_;
     // Temporary storage for active arm torques to be applied at each step.
-    std::vector<double> active_arm_torques_;
+    Eigen::VectorXd active_arm_torques_;
     // Temporary storage for passive arm torques to be applied at each step.
-    std::vector<double> passive_arm_torques_;
+    Eigen::VectorXd  passive_arm_torques_;
     // Position controller for passive arm.
     boost::scoped_ptr<PositionController> passive_arm_controller_;
     // Position controller for active arm.
@@ -100,9 +96,9 @@ public:
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
     // TODO: Comment    
-    virtual void initialize_sample(boost::scoped_ptr<Sample> sample);
+    virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
     // Publish the specified sample in a report.
-    virtual void publish_report(boost::scoped_ptr<Sample> sample);
+    virtual void publish_report(boost::scoped_ptr<Sample>& sample);
     // Run a trial.
     virtual void run_trial(/* TODO: receive all of the trial parameters here */);
     // Move the arm.
@@ -125,7 +121,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const = 0;
     // Get sensor
-    virtual Sensor *get_sensor(DataType sensor);
+    virtual Sensor *get_sensor(SensorType sensor);
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.

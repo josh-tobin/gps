@@ -48,6 +48,9 @@ private:
     Eigen::VectorXd current_angle_velocities_;
     // Latest pose.
     Eigen::VectorXd current_pose_;
+
+    Eigen::VectorXd torques_;
+
     // Current mode.
     PositionControlMode mode_;
     // Current arm.
@@ -62,15 +65,15 @@ public:
     // Destructor.
     virtual ~PositionController();
     // Update the controller (take an action).
-    virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample> sample, std::vector<double> &torques);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample> get_sample() const;
+    virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Reset the controller -- this is typically called when the controller is turned on.
-    virtual void reset();
+    virtual void reset(ros::Time update_time);
 };
 
 }

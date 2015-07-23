@@ -25,7 +25,7 @@ public:
     // Destructor.
     virtual ~Controller();
     // Update the controller (take an action).
-    virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample> sample, std::vector<double> &torques) = 0;
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques) = 0;
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
     // Set update delay on the controller.
@@ -35,9 +35,9 @@ public:
     // Check if controller is finished with its current task.
     virtual bool is_finished() const = 0;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample> get_sample() const = 0;
+    virtual boost::scoped_ptr<Sample>* get_sample() const = 0;
     // Reset the controller -- this is typically called when the controller is turned on.
-    virtual void reset();
+    virtual void reset(ros::Time update_time);
 };
 
 }

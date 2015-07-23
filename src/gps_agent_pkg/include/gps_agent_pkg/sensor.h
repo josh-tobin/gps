@@ -6,10 +6,11 @@ anything that produces state (X) or observation (phi) information.
 
 // Headers.
 #include <ros/ros.h>
+#include <boost/scoped_ptr.hpp>
 
 // This header defines the main enum that lists the available sensors, which
 // is also used by the state assembler.
-//#include "sample_data/sample_types.h"
+#include "sample_data/sample_types.h"
 
 // This header contains additional defines for communicating with the sample object.
 #include "gps_agent_pkg/sample.h"
@@ -27,12 +28,12 @@ enum SensorType
 };
 
 // Forward declarations.
-class sample;
+class Sample;
 class RobotPlugin;
 
 class Sensor
 {
-private:
+protected:
     // Current sensor update delay, in seconds (should match controller step length).
     double sensor_step_length_;
 public:
@@ -54,9 +55,9 @@ public:
     // Configure the Sensor (for Sensor-specific trial settings).
     virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual boost::scoped_ptr<Sample> set_sample_data_format(boost::scoped_ptr<Sample> sample); // const = 0; Causes compiler errors!
+    virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.
-    virtual boost::scoped_ptr<Sample> set_sample_data(boost::scoped_ptr<Sample> sample); // const = 0; Causes compiler errors!
+    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample);
 };
 
 }

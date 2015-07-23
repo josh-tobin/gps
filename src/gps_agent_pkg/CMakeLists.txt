@@ -68,6 +68,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 ELSE()
   MESSAGE(FATAL_ERROR "CMakeLists.txt has not been tested/written for your compiler.")
 ENDIF()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 set(DDP_FILES src/robotplugin.cpp
 			  src/pr2plugin.cpp

@@ -13,7 +13,7 @@ from it.
 
 // This contains the list of data types.
 #define RUN_ON_ROBOT
-//#include "sample_data/sample_types.h"
+#include "sample_data/sample_types.h"
 
 // This allows us to use options.
 #include "options.h"

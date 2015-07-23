@@ -1,4 +1,6 @@
-#include "agent/controller/pr2plugin.h"
+#include "gps_agent_pkg/pr2plugin.h"
+#include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/trialcontroller.h"
 
 using namespace gps_control;
 
@@ -11,7 +13,7 @@ PR2Plugin::PR2Plugin()
 }
 
 // Destructor.
-void PR2Plugin::~PR2Plugin()
+PR2Plugin::~PR2Plugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
@@ -76,7 +78,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this active joint exists.
         std::string joint_name;
-        if(!n.getParam((std::string("active_arm_joint_name_" + int_to_string(joint_index)).c_str(), joint_name))
+        if(!n.getParam(std::string("active_arm_joint_name_" + std::to_string(joint_index)).c_str(), joint_name))
             break;
 
         // Push back the joint state and name.
@@ -99,7 +101,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this passive joint exists.
         std::string joint_name;
-        if(!n.getParam((std::string("passive_arm_joint_name_" + int_to_string(joint_index)).c_str(), joint_name))
+        if(!n.getParam(std::string("passive_arm_joint_name_" + std::to_string(joint_index)).c_str(), joint_name))
             break;
 
         // Push back the joint state and name.
@@ -138,7 +140,7 @@ void PR2Plugin::starting()
 
     // Reset all the sensors. This is important for sensors that try to keep
     // track of the previous state somehow.
-    for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
+    for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
     {
         sensors_[sensor].reset(this,last_update_time_);
     }
@@ -148,7 +150,7 @@ void PR2Plugin::starting()
     active_arm_controller_->reset(last_update_time_);
 
     // Reset trial controller, if any.
-    if (trial_controller_ != NULL) trial_controller_->reset(this,last_update_time_);
+    if (trial_controller_ != NULL) trial_controller_->reset(last_update_time_);
 }
 
 // This is called by the controller manager before stopping the controller.
@@ -165,8 +167,8 @@ void PR2Plugin::update()
 
     // Check if this is a controller step based on the current controller frequency.
     controller_counter_++;
-    if (controller_counter_ >= controller_step_length_) controller_counter = 0;
-    bool is_controller_step = (controller_counter == 0);
+    if (controller_counter_ >= controller_step_length_) controller_counter_ = 0;
+    bool is_controller_step = (controller_counter_ == 0);
 
     // Update the sensors and fill in the current step sample.
     update_sensors(last_update_time_,is_controller_step);
@@ -190,21 +192,21 @@ ros::Time PR2Plugin::get_current_time() const
 }
 
 // Get current encoder readings (robot-dependent).
-void PR2Plugin::get_joint_encoder_readings(VectorXd &angles, ArmType arm) const
+void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const
 {
-    if (arm == ArmType.PassiveArm)
+    if (arm == AuxiliaryArm)
     {
         if (angles.rows() != passive_arm_joint_state_.size())
             angles.resize(passive_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
-            angles(i) = passive_arm_joint_state_[i]->position;
+            angles(i) = passive_arm_joint_state_[i]->position_;
     }
-    else if (arm == ArmType.ActiveArm)
+    else if (arm == TrialArm)
     {
         if (angles.rows() != active_arm_joint_state_.size())
             angles.resize(active_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
-            angles(i) = active_arm_joint_state_[i]->position;
+            angles(i) = active_arm_joint_state_[i]->position_;
     }
     else
     {
