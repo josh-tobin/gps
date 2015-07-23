@@ -9,10 +9,10 @@ anything that produces state (X) or observation (phi) information.
 
 // This header defines the main enum that lists the available sensors, which
 // is also used by the state assembler.
-#include "sample_data/state/state.h"
+//#include "sample_data/sample_types.h"
 
 // This header contains additional defines for communicating with the sample object.
-#include "agent/controller/sample.h"
+#include "gps_agent_pkg/sample.h"
 
 namespace gps_control
 {
@@ -41,7 +41,7 @@ public:
     // Constructor.
     Sensor(ros::NodeHandle& n, RobotPlugin *plugin);
     // Destructor.
-    virtual void ~Sensor();
+    virtual ~Sensor();
     // Reset the sensor, clearing any previous state and setting it to the current state.
     virtual void reset(RobotPlugin *plugin, ros::Time current_time);
     // Update the sensor (called every tick).
@@ -54,9 +54,9 @@ public:
     // Configure the Sensor (for Sensor-specific trial settings).
     virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual boost::scoped_ptr<Sample> set_sample_data_format(boost::scoped_ptr<Sample> sample) const = 0;
+    virtual boost::scoped_ptr<Sample> set_sample_data_format(boost::scoped_ptr<Sample> sample); // const = 0; Causes compiler errors!
     // Set data on the provided sample.
-    virtual boost::scoped_ptr<Sample> set_sample_data(boost::scoped_ptr<Sample> sample) const = 0;
+    virtual boost::scoped_ptr<Sample> set_sample_data(boost::scoped_ptr<Sample> sample); // const = 0; Causes compiler errors!
 };
 
 }

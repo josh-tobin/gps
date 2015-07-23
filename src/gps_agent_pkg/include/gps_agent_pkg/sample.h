@@ -13,7 +13,7 @@ from it.
 
 // This contains the list of data types.
 #define RUN_ON_ROBOT
-#include "sample_data/sample_types.h"
+//#include "sample_data/sample_types.h"
 
 // This allows us to use options.
 #include "options.h"
@@ -24,10 +24,10 @@ namespace gps_control
 // Types of data supported for internal data storage.
 enum SampleDataFormat
 {
-    DataFormatBool,
-    DataFormatUInt8,
-    DataFormatInt,
-    DataFormatDouble
+    SampleDataFormatBool,
+    SampleDataFormatUInt8,
+    SampleDataFormatInt,
+    SampleDataFormatDouble
 };
 
 class Sample
@@ -53,7 +53,7 @@ public:
     // Constructor.
     Sample(int T);
     // Construct state from message.
-    Sample(gps_control::state_msg::ConstPtr &msg);
+    //Sample(gps_control::state_msg::ConstPtr& msg); // TODO: Replace with initialization from protobuf
     // Destructor.
     virtual ~Sample();
     // Get pointer to internal data for given time step.

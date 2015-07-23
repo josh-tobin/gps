@@ -1,7 +1,7 @@
-#include "agent/controller/robotplugin.h"
-#include "agent/controller/sensor.h"
-#include "agent/controller/controller.h"
-#include "agent/controller/positioncontroller.h"
+#include "gps_agent_pkg/robotplugin.h"
+#include "gps_agent_pkg/sensor.h"
+#include "gps_agent_pkg/controller.h"
+#include "gps_agent_pkg/positioncontroller.h"
 
 using namespace gps_control;
 
@@ -12,7 +12,7 @@ RobotPlugin::RobotPlugin()
 }
 
 // Destructor.
-void RobotPlugin::~RobotPlugin()
+RobotPlugin::~RobotPlugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
@@ -46,7 +46,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
     // Create publishers.
-    report_publisher_.reset(new realtime_tools::RealtimePublisher<report_msg>(n, "/gps_controller_report", 1));
+    report_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::SampleResult>(n, "/gps_controller_report", 1));
 }
 
 // Initialize all sensors.
@@ -56,33 +56,36 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     sensors_.clear();
 
     // Create all sensors.
-    for (SensorType i = 0; i < SensorType::TotalSensorTypes; i++)
+    for (int i = 0; i < TotalSensorTypes; i++)
     {
-        sensors_.push_back(Sensor::create_sensor(i,n,this));
+        sensors_.push_back(Sensor::create_sensor((SensorType)i,n,this));
     }
 
     // Create current state sample and populate it using the sensors.
-    current_time_step_sample_.reset(new Sample(1));
-    current_time_step_sample_ = initialize_sample(current_time_step_sample_);
+    //Causes compiler errors!
+    //current_time_step_sample_.reset(new Sample(1));
+    //initialize_sample(current_time_step_sample_);
 }
 
 // Initialize position controllers.
-void RobotPlugin::initialize_position_controllers(n)
+void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
     // Create passive arm position controller.
-    passive_arm_controller_.reset(new PositionController(n,ArmType.PassiveArm));
+    // Causes compiler errors! (expected primary-expression before '.' token)
+    //passive_arm_controller_.reset(new PositionController(n, ArmType.PassiveArm));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new PositionController(n,ArmType.ActiveArm));
+    //active_arm_controller_.reset(new PositionController(n, ArmType.ActiveArm));
 }
 
 // Helper function to initialize a sample from the current sensors.
 void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample> sample)
 {
     // Go through all of the sensors and initialize metadata.
-    for (SensorType i = 0; i < SensorType::TotalSensorTypes; i++)
+    for (int i = 0; i < TotalSensorTypes; i++)
     {
-        current_time_step_sample_ = sensors_[i].set_sample_data_format(current_time_step_sample_);
+        //Causes compiler errors!
+        //current_time_step_sample_ = sensors_[i].set_sample_data_format(current_time_step_sample_);
     }
 }
 
@@ -90,10 +93,11 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample> sample)
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
     // Update all of the sensors and fill in the sample.
-    for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
+    for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
     {
-        sensors_[sensor].update(this,last_update_time_,is_controller_step);
-        current_time_step_sample_ = sensors_[i].set_sample_data(current_time_step_sample_);
+        sensors_[sensor].update(this, last_update_time_, is_controller_step);
+        //Causes compiler errors!
+        //current_time_step_sample_ = sensors_[sensor].set_sample_data(current_time_step_sample_);
     }
 }
 

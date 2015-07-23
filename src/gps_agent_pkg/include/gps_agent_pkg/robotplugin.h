@@ -6,12 +6,20 @@ with the robot.
 
 // Headers.
 #include <vector>
+#include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <kdl/chain.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
+#include <realtime_tools/realtime_publisher.h>
+
+#include "gps_agent_pkg/PositionCommand.h"
+#include "gps_agent_pkg/TrialCommand.h"
+#include "gps_agent_pkg/RelaxCommand.h"
+#include "gps_agent_pkg/SampleResult.h"
+#include "sample_data/sample_types.h"
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -24,7 +32,7 @@ enum ArmType
 {
     AuxiliaryArm,
     TrialArm
-}
+};
 
 // Forward declarations.
 // Controllers.
@@ -45,6 +53,7 @@ class RelaxCommand;
 class RobotPlugin
 {
 private:
+    ros::Time last_update_time_;
     // Temporary storage for active arm torques to be applied at each step.
     std::vector<double> active_arm_torques_;
     // Temporary storage for passive arm torques to be applied at each step.
@@ -76,7 +85,7 @@ private:
     ros::Subscriber report_subscriber_;
     // Publishers.
     // Publish result of a trial, completion of position command, or just a report.
-    ros_publisher_ptr(TrialResultMsg) report_publisher_;
+    ros_publisher_ptr(gps_agent_pkg::SampleResult) report_publisher_;
 public:
     // Constructor (this should do nothing).
     RobotPlugin();
@@ -90,6 +99,8 @@ public:
     virtual void initialize_position_controllers(ros::NodeHandle& n);
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
+    // TODO: Comment    
+    virtual void initialize_sample(boost::scoped_ptr<Sample> sample);
     // Publish the specified sample in a report.
     virtual void publish_report(boost::scoped_ptr<Sample> sample);
     // Run a trial.
@@ -98,11 +109,11 @@ public:
     virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
     // Subscriber callbacks.
     // Position command callback.
-    virtual void position_subscriber_callback(const PositionCommand::ConstPtr& msg);
+    virtual void position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg);
     // Trial command callback.
-    virtual void trial_subscriber_callback(const TrialCommand::ConstPtr& msg);
+    virtual void trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg);
     // Relax command callback.
-    virtual void relax_subscriber_callback(const RelaxCommand::ConstPtr& msg);
+    virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
     // Report request callback.
     virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Update functions.
@@ -113,10 +124,10 @@ public:
     // Accessors.
     // Get current time.
     virtual ros::Time get_current_time() const = 0;
-    // Get sensor.
-    virtual Sensor *get_sensor(SensorType sensor);
+    // Get sensor
+    virtual Sensor *get_sensor(DataType sensor);
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(VectorXd &angles, ArmType arm) const = 0;
+    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.
     virtual void get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
 };

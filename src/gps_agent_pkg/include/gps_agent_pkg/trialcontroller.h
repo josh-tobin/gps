@@ -13,7 +13,7 @@ a subclass.
 namespace gps_control
 {
 
-class PositionController : public Controller
+class TrialController : public Controller
 {
 private:
     // Current time step.
@@ -26,9 +26,9 @@ private:
     boost::scoped_ptr<Sample> sample_;
 public:
     // Constructor.
-    PositionController(ros::NodeHandle& n);
+    TrialController(ros::NodeHandle& n);
     // Destructor.
-    virtual ~PositionController();
+    virtual ~TrialController();
     // Compute the action at the current time step.
     virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U) = 0;
     // Update the controller (take an action).
