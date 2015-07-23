@@ -2,8 +2,11 @@ import time
 import numpy as np
 from sensor_msgs.msg import JointState
 import rospy
+import logging
 
 from matlab_interface import get_controller
+
+logging.basicConfig(level=logging.DEBUG)
 
 def main():
 	rospy.init_node('mpc_node')
@@ -17,6 +20,8 @@ def main():
 		noise = None
 
 		action = controller.act(X, obs, t, noise)
+		print action
+		#action.fill(0.0)
 
 		response = JointState()
 		response.velocity = (t+1,)

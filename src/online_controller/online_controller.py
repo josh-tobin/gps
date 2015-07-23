@@ -18,11 +18,11 @@ class OnlineController(Policy):
         self.dU = dU
         self.cost = cost
         self.gamma = 0.5
-        self.H = 20
+        self.H = 8
         self.maxT = 100
         self.min_mu = 1e-6 
         self.del0 = 2
-        self.NSample = 1
+        self.NSample = 3
         
         self.prevX = None
         self.prevU = None
@@ -85,12 +85,11 @@ class OnlineController(Policy):
         iu = slice(dX, dX+dU)
         it = slice(dX+dU)
         ip = slice(dX+dU, dX+dU+dX)
-        horizon = min(self.H, self.maxT-T+1);
+        horizon = min(self.H, self.maxT-T);
 
         cv, Cm, Fd, fc = self.estimate_cost(horizon, x, lgpolicy, empsig, T)
 
         # Compute optimal action with short horizon MPC.
-
         fail = True;
         decrease_mu = True;
         del0 = self.del0;
@@ -258,6 +257,7 @@ class OnlineController(Policy):
 
             # Fix small eigenvalues only.
             #[val, vec] = np.linalg.eig(sigma[t,ix,ix])
+            #val0 = val;
             #val = np.real(val)
             #val = np.maximum(val,1e-6);
             #sigma[t, ix,ix] = vec.dot(np.diag(val)).dot(vec.T)
@@ -267,7 +267,10 @@ class OnlineController(Policy):
             #pProb[:,t,:] = -0.5*np.sum(samps**2,axis=0) - 0.5*np.sum(np.log(val));
 
             # Draw samples.
-            samps = sp.linalg.cholesky(sigma[t,ix,ix], overwrite_a=True, check_finite=False).T.dot(samps)+np.expand_dims(mu[t, ix], axis=1)
+            try:
+                samps = sp.linalg.cholesky(sigma[t,ix,ix], overwrite_a=True, check_finite=False).T.dot(samps)+np.expand_dims(mu[t, ix], axis=1)
+            except np.linalg.LinAlgError:
+                import pdb; pdb.set_trace()
 
             pX[:,t,:] = samps.T #np.expand_dims(samps, axis=1)
             pU[:,t,:] = (lgpolicy.K[t].dot(samps)+np.expand_dims(lgpolicy.k[t], axis=1) + \
