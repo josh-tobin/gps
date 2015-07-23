@@ -1,7 +1,8 @@
-#include "agent/controller/robotplugin.h"
-#include "agent/controller/sensor.h"
-#include "agent/controller/controller.h"
-#include "agent/controller/positioncontroller.h"
+#include "gps_agent_pkg/robotplugin.h"
+#include "gps_agent_pkg/sensor.h"
+#include "gps_agent_pkg/controller.h"
+#include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/trialcontroller.h"
 
 using namespace gps_control;
 
@@ -12,7 +13,7 @@ RobotPlugin::RobotPlugin()
 }
 
 // Destructor.
-void RobotPlugin::~RobotPlugin()
+RobotPlugin::~RobotPlugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
@@ -46,7 +47,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
     // Create publishers.
-    report_publisher_.reset(new realtime_tools::RealtimePublisher<report_msg>(n, "/gps_controller_report", 1));
+    report_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::SampleResult>(n, "/gps_controller_report", 1));
 }
 
 // Initialize all sensors.
@@ -56,33 +57,33 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     sensors_.clear();
 
     // Create all sensors.
-    for (SensorType i = 0; i < SensorType::TotalSensorTypes; i++)
+    for (int i = 0; i < SensorType::TotalSensorTypes; i++)
     {
-        sensors_.push_back(Sensor::create_sensor(i,n,this));
+        sensors_.push_back(Sensor::create_sensor((SensorType)i,n,this));
     }
 
     // Create current state sample and populate it using the sensors.
     current_time_step_sample_.reset(new Sample(1));
-    current_time_step_sample_ = initialize_sample(current_time_step_sample_);
+    initialize_sample(current_time_step_sample_);
 }
 
 // Initialize position controllers.
-void RobotPlugin::initialize_position_controllers(n)
+void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
     // Create passive arm position controller.
-    passive_arm_controller_.reset(new PositionController(n,ArmType.PassiveArm));
+    passive_arm_controller_.reset(new PositionController(n, AuxiliaryArm));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new PositionController(n,ArmType.ActiveArm));
+    active_arm_controller_.reset(new PositionController(n, TrialArm));
 }
 
 // Helper function to initialize a sample from the current sensors.
-void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample> sample)
+void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 {
     // Go through all of the sensors and initialize metadata.
-    for (SensorType i = 0; i < SensorType::TotalSensorTypes; i++)
+    for (int i = 0; i < SensorType::TotalSensorTypes; i++)
     {
-        current_time_step_sample_ = sensors_[i].set_sample_data_format(current_time_step_sample_);
+        sensors_[i].set_sample_data_format(current_time_step_sample_);
     }
 }
 
@@ -90,34 +91,37 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample> sample)
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
     // Update all of the sensors and fill in the sample.
-    for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
+    for (int sensor = 0; sensor < SensorType::TotalSensorTypes; sensor++)
     {
-        sensors_[sensor].update(this,last_update_time_,is_controller_step);
-        current_time_step_sample_ = sensors_[i].set_sample_data(current_time_step_sample_);
+        sensors_[sensor].update(this, last_update_time_, is_controller_step);
+        sensors_[sensor].set_sample_data(current_time_step_sample_);
     }
 }
 
 // Update the controllers at each time step.
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
+    if(!is_controller_step){
+        return;
+    }
     // If we have a trial controller, update that, otherwise update position controller.
-    if (trial_controller_ != NULL) trial_controller_->update(this,current_time,is_controller_step,active_arm_torques_);
-    else active_arm_controller_->update(this,current_time,is_controller_step,active_arm_torques_);
+    if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
     // Update passive arm controller.
-    passive_arm_controller_->update(this,current_time,is_controller_step,passive_arm_torques_);
+    passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
     if (trial_controller_->is_finished())
     {
         // Clear the trial controller.
-        trial_controller_.reset(NULL);
+        trial_controller_->reset(current_time);
 
         // Reset the active arm controller.
         active_arm_controller_->reset(current_time);
 
         // Switch the sensors to run at full frequency.
-        for (SensorType sensor = 0; sensor < SensorType.TotalSensorTypes; sensor++)
+        for (int sensor = 0; sensor < SensorType::TotalSensorTypes; sensor++)
         {
             sensors_[sensor].set_update(active_arm_controller_->get_update_delay());
         }
@@ -130,19 +134,21 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 // Get sensor.
 Sensor *RobotPlugin::get_sensor(SensorType sensor)
 {
-    assert(sensor < SensorType.TotalSensors);
+    assert(sensor < SensorType::TotalSensorTypes);
     return &sensors_[sensor];
 }
 
 // Get forward kinematics solver.
 void RobotPlugin::get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm)
 {
-    if (arm == ArmType.PassiveArm)
+    //TODO: compile errors related to boost::scoped_ptr
+    /*
+    if (arm == AuxiliaryArm)
     {
         fk_solver = passive_arm_fk_solver_;
         jac_solver = passive_arm_jac_solver_;
     }
-    else if (arm == ArmType.ActiveArm)
+    else if (arm == TrialArm)
     {
         fk_solver = active_arm_fk_solver_;
         jac_solver = active_arm_jac_solver_;
@@ -151,4 +157,5 @@ void RobotPlugin::get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_sol
     {
         ROS_ERROR("Unknown ArmType %i requested for joint encoder readings!",arm);
     }
+    */
 }

@@ -8,9 +8,10 @@ This is the PR2-specific version of the robot plugin.
 #include <pr2_mechanism_model/joint.h>
 #include <pr2_mechanism_model/chain.h>
 #include <pr2_mechanism_model/robot.h>
+#include <Eigen/Dense>
 
 // Superclass.
-#include "agent/controller/RobotPlugin.h"
+#include "gps_agent_pkg/robotplugin.h"
 
 namespace gps_control
 {
@@ -65,7 +66,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(VectorXd &angles, ArmType arm) const;
+    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const;
 };
 
 }

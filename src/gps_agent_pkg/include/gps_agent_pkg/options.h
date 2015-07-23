@@ -16,19 +16,19 @@ namespace gps_control
 // Types of data supported for internal data storage.
 enum OptionsDataFormat
 {
-    DataFormatBool,
-    DataFormatUInt8,
-    DataFormatInt,
-    DataFormatDouble,
-    DataFormatMatrix,
-    DataFormatString
+    OptionsDataFormatBool,
+    OptionsDataFormatUInt8,
+    OptionsDataFormatInt,
+    OptionsDataFormatDouble,
+    OptionsDataFormatMatrix,
+    OptionsDataFormatString
 };
 
 // This is a parameter entry. Note that the arguments should match the enum.
-typedef OptionsVariant boost::variant<bool,uint8_t,int,double,MatrixXd,std::string>;
+typedef boost::variant<bool,uint8_t,int,double,Eigen::MatrixXd,std::string> OptionsVariant;
 
 // This is the options map.
-typedef OptionsMap std::map<std::string,OptionsVariant>;
+typedef std::map<std::string,OptionsVariant> OptionsMap;
 
 }
 

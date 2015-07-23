@@ -6,14 +6,15 @@ a subclass.
 
 // Headers.
 #include <Eigen/Dense>
+#include <boost/scoped_ptr.hpp>
 
 // Superclass.
-#include "agent/controller/controller.h"
+#include "gps_agent_pkg/controller.h"
 
 namespace gps_control
 {
 
-class PositionController : public Controller
+class TrialController : public Controller
 {
 private:
     // Current time step.
@@ -26,19 +27,19 @@ private:
     boost::scoped_ptr<Sample> sample_;
 public:
     // Constructor.
-    PositionController(ros::NodeHandle& n);
+    TrialController(ros::NodeHandle& n);
     // Destructor.
-    virtual ~PositionController();
+    virtual ~TrialController();
     // Compute the action at the current time step.
-    virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U) = 0;
+    virtual void get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U) = 0;
     // Update the controller (take an action).
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, std::scopted_ptr<Sample> sample);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample> get_sample() const;
+    virtual boost::scoped_ptr<Sample>* get_sample() const;
 };
 
 }

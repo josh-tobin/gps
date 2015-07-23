@@ -1,10 +1,11 @@
-#include "agent/controller/robotplugin.h"
-#include "agent/controller/positioncontroller.h"
+#include "gps_agent_pkg/robotplugin.h"
+#include "gps_agent_pkg/positioncontroller.h"
 
 using namespace gps_control;
 
 // Constructor.
 PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
+: Controller(n, arm)
 {
     // Initialize PD gains.
     
@@ -28,22 +29,22 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
     temp_jacobian_.resize(6,current_angles_.rows());
 
     // Set initial mode.
-    mode_ = PositionControlMode.NoControl;
+    mode_ = NoControl;
 
     // Set initial time.
-    last_update_time = ros::Time(0.0);
+    last_update_time_ = ros::Time(0.0);
 
     // Set arm.
     arm_ = arm;
 }
 
 // Destructor.
-void PositionController::~PositionController()
+PositionController::~PositionController()
 {
 }
 
 // Update the controller (take an action).
-void PositionController::update(RobotPlugin *plugin, ros::Time current_time, std::scopted_ptr<Sample> sample, VectorXd &torques)
+void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
     // Get current joint angles.
     plugin->get_joint_encoder_readings(temp_angles_,arm_);
@@ -53,7 +54,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, std
     assert(temp_angles_.rows() == current_angles_.rows());
 
     // Estimate joint angle velocities.
-    double update_time = current_time.toSecs() - last_update_time_.toSecs();
+    double update_time = current_time.toSec() - last_update_time_.toSec();
     if (!last_update_time_.isZero())
     { // Only compute velocities if we have a previous sample.
         current_angle_velocities_ = (temp_angles_ - current_angles_)/update_time;
@@ -66,7 +67,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, std
     last_update_time_ = current_time;
 
     // If doing task space control, compute joint positions target.
-    if (mode_ == PositionControlMode.TaskSpaceControl)
+    if (mode_ == TaskSpaceControl)
     {
         ROS_ERROR("Not implemented!");
 
@@ -82,13 +83,13 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, std
     }
 
     // If we're doing any kind of control at all, compute torques now.
-    if (mode_ != PositionControlMode.NoControl)
+    if (mode_ != NoControl)
     {
         // Compute error.
         temp_angles_ = current_angles_ - target_angles_;
 
         // Add to integral term.
-        pd_integral_ += temp_angles;
+        pd_integral_ += temp_angles_;
 
         // Compute torques.
         // TODO: look at PR2 PD controller implementation and make sure our version matches!
@@ -116,21 +117,23 @@ bool PositionController::is_finished() const
 {
     // Check whether we are close enough to the current target.
     // TODO: implement.
+    return true;
 }
 
 // Ask the controller to return the sample collected from its latest execution.
-boost::scoped_ptr<Sample> PositionController::get_sample() const
+boost::scoped_ptr<Sample>* PositionController::get_sample() const
 {
     // Return the sample that has been recorded so far.
     // TODO: implement.
+    return NULL;
 }
 
 // Reset the controller -- this is typically called when the controller is turned on.
-void PositionController::reset()
+void PositionController::reset(ros::Time time)
 {
     // Clear the integral term.
     pd_integral_.fill(0.0);
 
     // Clear update time.
-    last_update_time = ros::Time(0.0);
+    last_update_time_ = ros::Time(0.0);
 }

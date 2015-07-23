@@ -8,7 +8,7 @@ space.
 #include <Eigen/Dense>
 
 // Superclass.
-#include "agent/controller/controller.h"
+#include "gps_agent_pkg/controller.h"
 
 namespace gps_control
 {
@@ -25,29 +25,32 @@ class PositionController : public Controller
 {
 private:
     // P gains.
-    VectorXd pd_gains_p_;
+    Eigen::VectorXd pd_gains_p_;
     // D gains.
-    VectorXd pd_gains_d_;
+    Eigen::VectorXd pd_gains_d_;
     // I gains.
-    VectorXd pd_gains_i_;
+    Eigen::VectorXd pd_gains_i_;
     // Integral terms.
-    VectorXd pd_integral_;
+    Eigen::VectorXd pd_integral_;
     // Maximum joint velocities.
-    VectorXd max_velocities_;
+    Eigen::VectorXd max_velocities_;
     // Temporary storage for Jacobian.
-    MatrixXd temp_jacobian_;
+    Eigen::MatrixXd temp_jacobian_;
     // Temporary storage for joint angle offset.
-    VectorXd temp_angles_;
+    Eigen::VectorXd temp_angles_;
     // Current target (joint space).
-    VectorXd target_angles_;
+    Eigen::VectorXd target_angles_;
     // Current target (task space).
-    VectorXd target_pose_;
+    Eigen::VectorXd target_pose_;
     // Latest joint angles.
-    VectorXd current_angles_;
+    Eigen::VectorXd current_angles_;
     // Latest joint angle velocities.
-    VectorXd current_angle_velocities_;
+    Eigen::VectorXd current_angle_velocities_;
     // Latest pose.
-    VectorXd current_pose_;
+    Eigen::VectorXd current_pose_;
+
+    Eigen::VectorXd torques_;
+
     // Current mode.
     PositionControlMode mode_;
     // Current arm.
@@ -60,17 +63,17 @@ public:
     // Constructor.
     PositionController(ros::NodeHandle& n, ArmType arm);
     // Destructor.
-    virtual void ~PositionController();
+    virtual ~PositionController();
     // Update the controller (take an action).
-    virtual void update(RobotPlugin *plugin, ros::Time current_time, std::scopted_ptr<Sample> sample, std::vector<double> &torques);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample> get_sample() const;
+    virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Reset the controller -- this is typically called when the controller is turned on.
-    virtual void reset();
+    virtual void reset(ros::Time update_time);
 };
 
 }

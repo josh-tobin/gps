@@ -1,6 +1,6 @@
 <package>
   <description brief="gps_agent_pkg">
-     ROS interface for GPS
+     gps_agent_pkg
   </description>
   <author></author>
   <license>BSD</license>
@@ -16,18 +16,20 @@
   <depend package="control_toolbox"/>
   <depend package="realtime_tools"/>
   <depend package="kdl"/>
+  <depend package="ar_track_alvar"/>
   <depend package="geometry_msgs"/>
+  <depend package="tf"/>
+  <depend package="actionlib"/>
   <depend package="pr2_controller_manager"/>
   <!--depend package="ar_pose"/-->
   <!--depend package="ar_kinect"/-->
 
   <rosdep name="eigen" />
 
-  <!--
   <export>
     <pr2_controller_interface plugin="${prefix}/controller_plugins.xml" />
   </export>
-  -->
 
 </package>
+
 
