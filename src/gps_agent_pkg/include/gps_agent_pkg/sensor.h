@@ -10,7 +10,7 @@ anything that produces state (X) or observation (phi) information.
 
 // This header defines the main enum that lists the available sensors, which
 // is also used by the state assembler.
-#include "sample_data/sample_types.h"
+#include "gps/proto/gps.pb.h"
 
 // This header contains additional defines for communicating with the sample object.
 #include "gps_agent_pkg/sample.h"

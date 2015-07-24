@@ -5,10 +5,11 @@ control law.
 #pragma once
 
 // Headers.
+#include <vector>
 #include <Eigen/Dense>
 
 // Superclass.
-#include "agent/controller/trialcontroller.h"
+#include "gps_agent_pkg/trialcontroller.h"
 
 namespace gps_control
 {
@@ -16,19 +17,18 @@ namespace gps_control
 class LinearGaussianController : public TrialController
 {
 private:
-    // Nominal trajectory states.
-    MatrixXd &X_;
-    // Nominal trajectory actions.
-    MatrixXd &U_;
     // Linear feedbacks.
-    MatrixXd &K_;
+    std::vector<Eigen::MatrixXd> K_;
+
+    // Bias.
+    std::vector<Eigen::VectorXd> k_;
 public:
     // Constructor.
     LinearGaussianController(ros::NodeHandle& n);
     // Destructor.
     virtual ~LinearGaussianController();
     // Compute the action at the current time step.
-    virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U);
+    virtual void get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U);
     // Configure the controller.
     virtual void configure_controller(const OptionsMap &options);
 };

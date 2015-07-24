@@ -13,7 +13,7 @@ from it.
 
 // This contains the list of data types.
 #define RUN_ON_ROBOT
-#include "sample_data/sample_types.h"
+#include "gps/proto/gps.pb.h"
 
 // This allows us to use options.
 #include "options.h"
@@ -46,9 +46,9 @@ private:
     std::vector<OptionsMap> meta_data_;
     // Note: state and observation definitions are pairs, where the second entry is how far into the past to go.
     // State definition.
-    std::vector<std::pair<DataType,int> > state_definition_;
+    std::vector<std::pair<gps::SampleType,int> > state_definition_;
     // Observation definition.
-    std::vector<std::pair<DataType,int> > obs_definition_;
+    std::vector<std::pair<gps::SampleType,int> > obs_definition_;
 public:
     // Constructor.
     Sample(int T);
@@ -57,15 +57,15 @@ public:
     // Destructor.
     virtual ~Sample();
     // Get pointer to internal data for given time step.
-    virtual void *get_data_pointer(int t, DataType type);
+    virtual void *get_data_pointer(int t, gps::SampleType type);
     // Add sensor data for given timestep.
-    virtual void set_data(int t, DataType type, const void *data, int data_size, SampleDataFormat data_format);
+    virtual void set_data(int t, gps::SampleType type, const void *data, int data_size, SampleDataFormat data_format);
     // Get sensor data for given timestep.
-    virtual void get_data(int t, DataType type, void *data, int data_size, SampleDataFormat data_format) const;
+    virtual void get_data(int t, gps::SampleType type, void *data, int data_size, SampleDataFormat data_format) const;
     // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
-    virtual void set_meta_data(DataType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_);
+    virtual void set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_);
     // Get sensor meta-data.
-    virtual void get_meta_data(DataType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const;
+    virtual void get_meta_data(gps::SampleType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const;
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.

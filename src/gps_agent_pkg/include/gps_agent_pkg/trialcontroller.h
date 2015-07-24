@@ -8,6 +8,8 @@ a subclass.
 #include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
 
+#include "gps_agent_pkg/ArmType.h"
+
 // Superclass.
 #include "gps_agent_pkg/controller.h"
 
@@ -19,6 +21,7 @@ class TrialController : public Controller
 private:
     // Current time step.
     int t_;
+    ros::Time last_update_time_;
     // Counter for time step increment.
     int step_counter_;
     // Current time step.
@@ -40,6 +43,8 @@ public:
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
     virtual boost::scoped_ptr<Sample>* get_sample() const;
+    // Called when controller is turned on
+    virtual void reset(ros::Time update_time);
 };
 
 }
