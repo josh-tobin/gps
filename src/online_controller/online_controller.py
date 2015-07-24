@@ -18,15 +18,54 @@ class OnlineController(Policy):
         self.dU = dU
         self.cost = cost
         self.gamma = 0.5
-        self.H = 8
         self.maxT = 100
         self.min_mu = 1e-6 
         self.del0 = 2
-        self.NSample = 3
-        
+        self.NSample = 1
+
+        self.H = 10
+        self.empsig_N = 3
+        self.sigreg = 5e-6
+
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
+
+    def act_pol(self, x, empmu, empsig, prevx, prevu, t):
+        #start = time.time()
+        dX = self.dX
+        dU = self.dU
+        #gamma = self.gamma
+        self.mu = empmu
+        self.sigma = empsig
+        self.prevX = prevx
+        self.prevU = prevu
+
+        if t==0:
+            # Execute something for first action.
+            H = self.H
+            K = np.zeros((H, dU, dX))
+            k = np.zeros((H, dU))
+            cholPSig = np.zeros((H, dU, dU))
+            self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
+            return self.prev_policy
+
+        #pt = np.r_[self.prevX,self.prevU,x]
+        #self.mu = self.mu*self.gamma + pt*(1-self.gamma)
+        #self.sigma = self.sigma*self.gamma + np.outer(pt,pt)*(1-self.gamma)
+        #empsig = self.sigma
+
+        reg_mu = self.min_mu
+        reg_del = self.del0
+        for _ in range(self.LQR_iter):
+            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, empsig, reg_mu, reg_del)
+
+            # Store traj
+            self.prev_policy = lgpolicy
+        #u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
+        # Store state and action.
+        return self.prev_policy
+ 
 
     def act(self, x, obs, t, noise):
         #start = time.time()
@@ -41,12 +80,12 @@ class OnlineController(Policy):
             k = np.zeros((H, dU))
             cholPSig = np.zeros((H, dU, dU))
             U = K[0].dot(x) + k[0] #+ cholPSig[t].dot(np.random.randn(dU));
-            
+
             self.prevU = U;
             self.prevX = x;
 
             self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
-           
+
             pt = np.r_[self.prevX,self.prevU,x]
             self.mu = pt
             self.sigma = np.outer(pt,pt)
@@ -69,14 +108,14 @@ class OnlineController(Policy):
             self.prev_policy = lgpolicy
 
         #TODO: Re-enable noise once this works.
-        U = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
+        u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
 
         # Store state and action.
         self.prevX = x
-        self.prevU = U
+        self.prevU = u
         #elapsed = time.time()-start
         #print 'Controller Act:', elapsed
-        return U
+        return u
 
     def lqr(self, T, x, lgpolicy, empsig, reg_mu, reg_del):
         dX = self.dX
@@ -205,19 +244,20 @@ class OnlineController(Policy):
 
             if t < H-1:
                 # Estimate new dynamics here based on mu
-                #F[t], f[t], dynsig[t] = self.getdynamics(mu[t,ix], mu[t,iu], mu[t+1, ix], empsig);
+                #if t%6==0:
+                #    F[t], f[t], dynsig[t] = self.getdynamics(mu[t,ix], mu[t,iu], mu[t+1, ix], empsig);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
-
 
         #cc = zeros(1,horizon,N);
         cv = np.zeros((N, H, dT))
         Cm = np.zeros((N, H, dT, dT))
-        Xs, Us = self.trajsamples(dX, dU, H, mu, trajsig, lgpolicy, N)
+        #Xs, Us = self.trajsamples(dX, dU, H, mu, trajsig, lgpolicy, N)
 
         for n in range(N):
             # Get costs.
-            l,lx,lu,lxx,luu,lux = self.cost.eval(Xs[n],Us[n], cur_timestep);
+            #l,lx,lu,lxx,luu,lux = self.cost.eval(Xs[n],Us[n], cur_timestep);
+            l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix],mu[:,iu], cur_timestep);
             #[cc(:,:,i),lx,lu,lxx,luu,lux] = controller.cost.eval(Xs(:,:,i),Us(:,:,i),[],cost_infos(:,:,i));
 
             #cs(:,:,i) = cc(:,:,i);
@@ -226,7 +266,8 @@ class OnlineController(Policy):
             Cm[n] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
 
             # Adjust for expanding cost around a sample.
-            yhat = np.c_[Xs[n], Us[n]]
+            #yhat = np.c_[Xs[n], Us[n]]
+            yhat = np.c_[mu[:,ix], mu[:,iu]]
             rdiff = -yhat  # T x (X+U)
             rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
             cv_update = np.sum(Cm[n] * rdiff_expand, axis=1)  # T x (X+U)
@@ -267,10 +308,7 @@ class OnlineController(Policy):
             #pProb[:,t,:] = -0.5*np.sum(samps**2,axis=0) - 0.5*np.sum(np.log(val));
 
             # Draw samples.
-            try:
-                samps = sp.linalg.cholesky(sigma[t,ix,ix], overwrite_a=True, check_finite=False).T.dot(samps)+np.expand_dims(mu[t, ix], axis=1)
-            except np.linalg.LinAlgError:
-                import pdb; pdb.set_trace()
+            samps = sp.linalg.cholesky(sigma[t,ix,ix], overwrite_a=True, check_finite=False).T.dot(samps)+np.expand_dims(mu[t, ix], axis=1)
 
             pX[:,t,:] = samps.T #np.expand_dims(samps, axis=1)
             pU[:,t,:] = (lgpolicy.K[t].dot(samps)+np.expand_dims(lgpolicy.k[t], axis=1) + \
@@ -280,8 +318,8 @@ class OnlineController(Policy):
     def getdynamics(self, prev_x, prev_u, cur_x, empsig):
         """
         """
-        dX = prev_x.shape[0]
-        dU = prev_u.shape[0]
+        dX = self.dX
+        dU = self.dU
 
         ix = slice(dX)
         iu = slice(dX, dX+dU)
@@ -293,18 +331,18 @@ class OnlineController(Policy):
         #xu = np.r_[prev_x, prev_u]
         mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
 
-        N = 1
-        mun = xux
+        N = self.empsig_N
+        mun = self.mu
         
         sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-        sigma[it, it] = sigma[it, it] + 1e-6*np.eye(dX+dU)
         
-        #sigma = Phi/m;  % Prior only
+        #sigma = Phi/m;  # Prior only
         #sigma = empsig;  % Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
+        sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 
         Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
-        fv = xux[ip] - Fm.dot(xux[it]);
+        fv = mun[ip] - Fm.dot(mun[it]);
 
         dyn_covar = sigma[ip,ip] - Fm.dot(sigma[it,it]).dot(Fm.T)
         dyn_covar = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric

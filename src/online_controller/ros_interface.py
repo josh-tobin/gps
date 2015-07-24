@@ -26,6 +26,8 @@ def main():
 		response = JointState()
 		response.velocity = (t+1,)
 		response.effort = action
+		#elapsed_time = time.time()-start_time
+		#time.sleep(0.045-elapsed_time)			
 		action_publisher.publish(response)
 		elapsed_time = time.time()-start_time
 		print 'Calculation took %f s for T=%d' % (elapsed_time, t)

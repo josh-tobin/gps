@@ -7,11 +7,12 @@ class CostStateTracking(object):
         self.wp = wp
         self.mu = tgt
         self.ramp_option = RAMP_CONSTANT
-        self.t_weight = 0.5
+        self.t_weight = 10.0
         self.l1 = 0.1
         self.l2 = 1.0
         self.alpha = 1e-5
-        self.wu = 1e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+        #self.wu = 1e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+        self.wu = 5e-3/np.array([2.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
     def eval(self, X, U, t):
         # Constants.
@@ -43,6 +44,7 @@ class CostStateTracking(object):
             dist = np.sum( dist*dist, axis=1)
             #print dist.shape
             min_idx = np.argmin(dist)
+            #min_idx = 99
             cand_idx[i] = min_idx
             tgt[i] = self.mu[min_idx]
         print cand_idx
