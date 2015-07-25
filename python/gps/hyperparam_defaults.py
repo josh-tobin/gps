@@ -17,6 +17,7 @@ from algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from sample_data.gps_sample_types import *
 
 common = {
+    'conditions': 4,
     'experiment_dir': 'experiments/default_experiment/',
     'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
 }
@@ -38,18 +39,21 @@ sample_data = {
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': './mjc_models/pr2_arm3d.xml',
+    'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
     'frozen_joints': [7, 8, 9, 10],  # Freeze fingertips
     #'init_pose': [0,0,0,0,0,0,0,0.5,0.5,0.5,0.5],
-    'init_pose': [0.1,0.1,-1.54,-1.7,1.54,-0.2,0,0.5,0.5,0.5,0.5],
-    'rk': 1,
-    'dt': 0.01,
-    'substeps': 1
+    'init_pose': np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0,0.5,0.5,0.5,0.5]),
+    'rk': 0,
+    'dt': 0.05,
+    'substeps': 5,
+    'conditions': common['conditions'],
+    'pos_body_idx': [np.array([1])] * 4,
+    'pos_body_offset': [np.array([0,0.2,0]), np.array([0,0.1,0]), np.array([0,-0.1,0]), np.array([0,-0.2,0])],
 }
 
 algorithm = {
     'type': AlgorithmTrajOpt,
-    'conditions': 1,
+    'conditions': common['conditions'],
 }
 
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
@@ -59,7 +63,7 @@ algorithm['init_traj_distr'] = {
         'hyperparams': {
             'init_gains':  1.0/PR2_GAINS,
             'init_acc': np.zeros(sample_data['dU']),
-            'init_var': 10.0,
+            'init_var': 1.0,
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5
             },
