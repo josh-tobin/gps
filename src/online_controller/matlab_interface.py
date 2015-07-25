@@ -19,7 +19,7 @@ def get_controller(matfile):
 	dU = mat['Du']
 
 	# Read in mu for a CostStateOnline
-	tgt = mat['cost_tgt'].T
+	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
 	cost = CostStateTracking(wp, tgt)
 

@@ -19,13 +19,13 @@ class OnlineController(Policy):
         self.cost = cost
         self.gamma = 0.5
         self.maxT = 100
-        self.min_mu = 1e-6 
+        self.min_mu = 1e-4 
         self.del0 = 2
         self.NSample = 1
 
-        self.H = 10
+        self.H = 25
         self.empsig_N = 3
-        self.sigreg = 5e-6
+        self.sigreg = 1e-6
 
         self.prevX = None
         self.prevU = None
@@ -62,7 +62,10 @@ class OnlineController(Policy):
 
             # Store traj
             self.prev_policy = lgpolicy
-        #u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
+        #self.prev_policy.K[1] = self.prev_policy.K[0]
+        #self.prev_policy.k[1] = self.prev_policy.k[0]
+        u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
+        print u
         # Store state and action.
         return self.prev_policy
  
