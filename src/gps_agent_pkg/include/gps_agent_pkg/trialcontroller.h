@@ -5,10 +5,12 @@ a subclass.
 #pragma once
 
 // Headers.
+#include <vector>
 #include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
 
 #include "gps_agent_pkg/ArmType.h"
+#include "gps/proto/gps.pb.h"
 
 // Superclass.
 #include "gps_agent_pkg/controller.h"
@@ -28,6 +30,9 @@ private:
     boost::scoped_ptr<Sample> current_step_;
     // Trajectory sample.
     boost::scoped_ptr<Sample> sample_;
+    // State and obs datatypes
+    std::vector<gps::SampleType> state_datatypes_;
+    std::vector<gps::SampleType> obs_datatypes_;
 public:
     // Constructor.
     TrialController();

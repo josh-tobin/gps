@@ -21,7 +21,7 @@ TrialController::~TrialController()
 void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
     Eigen::VectorXd X, obs;
-    //TODO: Fill in X and obs
+    //TODO: Fill in X and obs from sample
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
@@ -29,6 +29,24 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     // Update last update time.
     last_update_time_ = current_time;
     step_counter_ ++;
+}
+
+void TrialController::configure_controller(OptionsMap &options)
+{
+    std::vector<int> datatypes;
+
+    datatypes = boost::get<std::vector<int>>(options["state_datatypes"]);
+    state_datatypes_.resize(datatypes.size());
+    for(int i=0; i<datatypes.size(); i++){
+        state_datatypes_[i] = (gps::SampleType) datatypes[i];
+    }
+
+    datatypes = boost::get<std::vector<int>>(options["obs_datatypes"]);
+    obs_datatypes_.resize(datatypes.size());
+    for(int i=0; i<datatypes.size(); i++){
+        obs_datatypes_[i] = (gps::SampleType) datatypes[i];
+    }
+
 }
 
 // Check if controller is finished with its current task.
