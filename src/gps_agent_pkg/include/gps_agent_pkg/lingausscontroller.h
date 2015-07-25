@@ -24,13 +24,13 @@ private:
     std::vector<Eigen::VectorXd> k_;
 public:
     // Constructor.
-    LinearGaussianController(ros::NodeHandle& n);
+    LinearGaussianController();
     // Destructor.
     virtual ~LinearGaussianController();
     // Compute the action at the current time step.
     virtual void get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U);
     // Configure the controller.
-    virtual void configure_controller(const OptionsMap &options);
+    virtual void configure_controller(OptionsMap &options);
 };
 
 }

@@ -4,8 +4,8 @@
 using namespace gps_control;
 
 // Constructor.
-LinearGaussianController::LinearGaussianController(ros::NodeHandle& n)
-: TrialController(n)
+LinearGaussianController::LinearGaussianController()
+: TrialController()
 {
 }
 
@@ -20,11 +20,18 @@ void LinearGaussianController::get_action(int t, const Eigen::VectorXd &X, const
 }
 
 // Configure the controller.
-void LinearGaussianController::configure_controller(const OptionsMap &options)
+void LinearGaussianController::configure_controller(OptionsMap &options)
 {
     // TODO: Update K_
-    //K_;
+    int T = boost::get<int>(options["T"]);
 
-    // TODO: Update k_
-    //k_;
+    K_.resize(T);
+    for(int i=0; i<T; i++){
+        K_[i] = boost::get<Eigen::MatrixXd>(options["K_"+std::to_string(i)]);
+    }
+
+    k_.resize(T);
+    for(int i=0; i<T; i++){
+        k_[i] = boost::get<Eigen::MatrixXd>(options["k_"+std::to_string(i)]);
+    }
 }

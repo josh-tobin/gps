@@ -67,7 +67,7 @@ public:
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.
-    virtual void configure_controller(const OptionsMap &options);
+    virtual void configure_controller(OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.

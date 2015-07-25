@@ -5,8 +5,8 @@
 using namespace gps_control;
 
 // Constructor.
-TrialController::TrialController(ros::NodeHandle& n)
-: Controller(n, ArmType::TrialArm)
+TrialController::TrialController()
+: Controller()
 {
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
