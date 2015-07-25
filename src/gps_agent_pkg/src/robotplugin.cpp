@@ -2,7 +2,11 @@
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/lingausscontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
+#include "gps_agent_pkg/LinGaussParams.h"
+#include "gps_agent_pkg/ControllerParams.h"
+#include <vector>
 
 using namespace gps_control;
 
@@ -129,6 +133,79 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 
     /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
     /* publish message when finished */
+}
+
+void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
+
+    OptionsMap params;
+    uint8_t arm = msg->arm;
+    params["mode"] = msg->mode;
+    Eigen::VectorXd data;
+    data.resize(msg->data.size());
+    for(int i=0; i<data.size(); i++){
+        data[i] = msg->data[i];
+    }
+    params["data"] = data;
+
+    if(arm == TrialArm){
+        active_arm_controller_->configure_controller(params);
+    }else if (arm == AuxiliaryArm){
+        passive_arm_controller_->configure_controller(params);
+    }else{
+        ROS_ERROR("Unknown position controller arm type");
+    }
+}
+
+void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg){
+
+    OptionsMap controller_params;
+
+    //Read out trial information
+    uint32_t T = msg->T;  // Trial length
+    float frequency = msg->frequency;  // Controller frequency
+    std::vector<int> state_datatypes, obs_datatypes;
+    state_datatypes.resize(msg->state_datatypes.size());
+    for(int i=0; i<state_datatypes.size(); i++){
+        state_datatypes[i] = msg->state_datatypes[i];
+    }
+    controller_params["state_datatypes"] = state_datatypes;
+    obs_datatypes.resize(msg->obs_datatypes.size());
+    for(int i=0; i<obs_datatypes.size(); i++){
+        obs_datatypes[i] = msg->obs_datatypes[i];
+    }
+    controller_params["obs_datatypes"] = obs_datatypes;
+
+    if(msg->controller.controller_to_execute == gps_agent_pkg::ControllerParams::LIN_GAUSS_CONTROLLER){
+        //
+        gps_agent_pkg::LinGaussParams lingauss = msg->controller.lingauss;
+        trial_controller_.reset(new LinearGaussianController());
+        int dX = (int) lingauss.dX;
+        int dU = (int) lingauss.dU;
+        //Prepare options map
+        controller_params["T"] = (int)lingauss.T;
+        controller_params["dX"] = dX;
+        controller_params["dU"] = dU;
+        for(int t=0; t<(int)lingauss.T; t++){
+            Eigen::MatrixXd K;
+            K.resize(dU, dX);
+            for(int u=0; u<dU; u++){
+                for(int x=0; x<dX; x++){
+                    K(u,x) = lingauss.K_t[x+u*dX+t*dU*dX];
+                }
+            }
+            Eigen::VectorXd k;
+            k.resize(dU);
+            for(int u=0; u<dU; u++){
+                k(u) = lingauss.k_t[u+t*dU];
+            }
+            controller_params["K_"+std::to_string(t)] = K; //TODO: Does this copy or will all values be the same?
+            controller_params["k_"+std::to_string(t)] = k;
+        }
+        trial_controller_->configure_controller(controller_params);
+
+    }else{
+        ROS_ERROR("Unknown trial controller arm type");
+    }
 }
 
 // Get sensor.

@@ -105,11 +105,18 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
 }
 
 // Configure the controller.
-void PositionController::configure_controller(const OptionsMap &options)
+void PositionController::configure_controller(OptionsMap &options)
 {
     // TODO: implement!
     // This sets the target position.
     // This sets the mode
+    mode_ = (PositionControlMode) boost::get<int>(options["mode"]);
+    Eigen::VectorXd data = boost::get<Eigen::VectorXd>(options["data"]);
+    if(mode_ == JointSpaceControl){
+        target_angles_ = data;
+    }else{
+        ROS_ERROR("Unimplemented position control mode!");
+    }
 }
 
 // Check if controller is finished with its current task.

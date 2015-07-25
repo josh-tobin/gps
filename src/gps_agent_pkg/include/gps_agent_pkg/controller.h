@@ -22,12 +22,13 @@ private:
 public:
     // Constructor.
     Controller(ros::NodeHandle& n, ArmType arm);
+    Controller();
     // Destructor.
     virtual ~Controller();
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques) = 0;
     // Configure the controller.
-    virtual void configure_controller(const OptionsMap &options);
+    virtual void configure_controller(OptionsMap &options);
     // Set update delay on the controller.
     virtual void set_update_delay(double new_step_length);
     // Get update delay on the controller.

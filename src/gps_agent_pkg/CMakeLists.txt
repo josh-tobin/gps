@@ -29,45 +29,10 @@ rosbuild_genmsg()
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-# Find PCL 1.7
-#find_package(PCL 1.7 REQUIRED)
-#include_directories(BEFORE ${PCL_INCLUDE_DIRS})
-#link_directories(${PCL_LIBRARY_DIRS})
-#add_definitions(${PCL_DEFINITIONS})
-#if(NOT PCL_FOUND)
-#    MESSAGE(FATAL_ERROR "PCL not found.\n")
-#endif (NOT PCL_FOUND)
+#Include protobuf
+include_directories($ENV{GPS_ROOT_DIR}/build/gps)
 
-# List the files to be included for DDP controller.
-#set(DDP_FILES src/ddp_controller.cpp
-#			  src/kinematic_controller.cpp
-#              src/kinematic_controller_pos.cpp
-#		      src/torque_controller_zoh.cpp
-#		      src/torque_controller_foh.cpp
-#		      src/torque_controller_jt.cpp
-#		      src/state_estimator.cpp
-#		      src/neural_network.cpp
-#		      src/reset_controller.cpp)
-
-# Boost Python
-FIND_PACKAGE(Boost 1.45.0)
-IF(Boost_FOUND)
-  INCLUDE_DIRECTORIES("${Boost_INCLUDE_DIRS}" "/usr/include/python2.7")
-  SET(Boost_USE_STATIC_LIBS OFF)
-  SET(Boost_USE_MULTITHREADED ON)
-  SET(Boost_USE_STATIC_RUNTIME OFF)
-  FIND_PACKAGE(Boost 1.45.0 COMPONENTS python)
-  #ADD_LIBRARY(yay SHARED yay.cxx)
-  #TARGET_LINK_LIBRARIES(yay ${Boost_LIBRARIES})
-ELSEIF(NOT Boost_FOUND)
-  MESSAGE(FATAL_ERROR "Unable to find correct Boost version. Did you set BOOST_ROOT?")
-ENDIF()
-
-IF(CMAKE_COMPILER_IS_GNUCXX)
-  ADD_DEFINITIONS("-Wall")
-ELSE()
-  MESSAGE(FATAL_ERROR "CMakeLists.txt has not been tested/written for your compiler.")
-ENDIF()
+#Use C++0x
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 set(DDP_FILES src/robotplugin.cpp
@@ -106,7 +71,7 @@ if (USE_CAFFE)
     #target_link_libraries(caffe_img_processor caffe protobuf)
 endif (USE_CAFFE)
 
-rosbuild_add_library(ddp_controller_lib ${DDP_FILES})
+rosbuild_add_library(gps_agent_lib ${DDP_FILES})
 
 #rosbuild_add_executable(kinematic_baseline src/kinematic_baseline.cpp)
 
@@ -118,10 +83,8 @@ rosbuild_add_library(ddp_controller_lib ${DDP_FILES})
 #rosbuild_add_executable(point_head src/point_head.cpp)
 #rosbuild_add_executable(torso src/torso.cpp)
 
-#SET_TARGET_PROPERTIES(pointcloud_solver PROPERTIES LINK_FLAGS -L${PCL_LIBRARY_DIRS})
-
 # Include Caffe in controller
 if (USE_CAFFE)
-    target_link_libraries(ddp_controller_lib caffe protobuf)
+    target_link_libraries(gps_agent_lib caffe protobuf)
 endif (USE_CAFFE)
 

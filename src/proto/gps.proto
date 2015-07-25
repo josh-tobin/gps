@@ -3,7 +3,7 @@ syntax = "proto2";
 package gps;
 
 // Enum for sample types
-enum SampleTypes {
+enum SampleType {
   ACTION = 0;
   JOINT_ANGLES = 1;
   JOINT_VELOCITIES = 2;
