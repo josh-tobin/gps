@@ -7,7 +7,7 @@ class CostStateTracking(object):
         self.wp = wp
         self.mu = tgt
         self.ramp_option = RAMP_CONSTANT
-        self.t_weight = 10.1
+        self.t_weight = 5.1
         self.l1 = 0.1
         self.l2 = 10.0
         self.alpha = 1e-5
@@ -20,7 +20,7 @@ class CostStateTracking(object):
         dU = U.shape[1]
         T = X.shape[0]
 
-        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=5.0)
+        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=1.0)
         wp = self.wp*np.expand_dims(wpm, axis=-1)
 
         #l = np.zeros(T)
@@ -39,11 +39,7 @@ class CostStateTracking(object):
         query_pnts = np.c_[X, t_ramp]
         tgt_points = np.c_[self.mu, self.t_weight*np.arange(Tmu)]
         for i in range(T):
-            query_pnt = query_pnts[i]
-            dist = tgt_points - query_pnt
-            dist = np.sum( dist*dist, axis=1)
-            #print dist.shape
-            min_idx = np.argmin(dist)
+            min_idx = nearest_neighbor(query_pnts[i], tgt_points)
             #min_idx = 99
             cand_idx[i] = min_idx
             tgt[i] = self.mu[min_idx]
@@ -56,3 +52,22 @@ class CostStateTracking(object):
         l, lx, lxx = evall1l2term_fast( wp, dist, self.l1, self.l2, self.alpha)
 
         return l, lx, lu, lxx, luu, lux
+
+    def compute_nearest_neighbors(self, X, U, t):
+    	T = X.shape[0]
+        Tmu = self.mu.shape[0]
+        cand_idx = np.zeros(T)
+        t_ramp = self.t_weight*np.arange(t,t+T)
+        query_pnts = np.c_[X, t_ramp]
+        tgt_points = np.c_[self.mu, self.t_weight*np.arange(Tmu)]
+        for i in range(T):
+            min_idx = nearest_neighbor(query_pnts[i], tgt_points)
+            #min_idx = 99
+            cand_idx[i] = min_idx
+        return cand_idx
+
+def nearest_neighbor(query_pnt, tgt_points):
+    dist = tgt_points - query_pnt
+    dist = np.sum( dist*dist, axis=1)
+    min_idx = np.argmin(dist)
+    return min_idx

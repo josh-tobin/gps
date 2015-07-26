@@ -23,6 +23,11 @@ def get_controller(matfile):
 	wp = mat['cost_wp'][:,0]
 	cost = CostStateTracking(wp, tgt)
 
+	# Read in offline dynamics
+	Fm = mat['dyn_fd'].transpose(2,0,1)
+	fv = mat['dyn_fc'].T
+	dynsig = mat['dyn_sig'].transpose(2,0,1)
+
 	# Read in dynprior sigma, mu, N, mass, logmass
 	gmm = GMM()
 	gmm.sigma = mat['gmm_sigma']
@@ -38,7 +43,7 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	oc = OnlineController(dX, dU, dynprior, cost)
+	oc = OnlineController(dX, dU, dynprior, cost, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
 	#for t in range(100):
 	#	print oc.act(tgt[t,:dX], None, t, None)
 	return oc

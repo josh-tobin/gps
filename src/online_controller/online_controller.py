@@ -11,7 +11,7 @@ from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 LOGGER = logging.getLogger(__name__)
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost):
+    def __init__(self, dX, dU, dynprior, cost, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
         self.LQR_iter = 1
         self.dX = dX
@@ -23,13 +23,17 @@ class OnlineController(Policy):
         self.del0 = 2
         self.NSample = 1
 
-        self.H = 25
+        self.H = 10
         self.empsig_N = 3
         self.sigreg = 1e-6
 
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
+
+        self.offline_fd = offline_fd
+        self.offline_fc = offline_fc
+        self.offline_dynsig = offline_dynsig
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, t):
         #start = time.time()
@@ -227,7 +231,7 @@ class OnlineController(Policy):
         F = np.zeros((H, dX, dT))
         f = np.zeros((H, dX))
         dynsig = np.zeros((H,dX, dX))
-        F[0], f[0], dynsig[0] = self.getdynamics(self.prevX, self.prevU, x0, empsig);
+        F[0], f[0], dynsig[0] = self.getdynamics(self.prevX, self.prevU, x0, empsig, cur_timestep);
 
         K = lgpolicy.K
         k = lgpolicy.k
@@ -247,8 +251,7 @@ class OnlineController(Policy):
 
             if t < H-1:
                 # Estimate new dynamics here based on mu
-                #if t%6==0:
-                #    F[t], f[t], dynsig[t] = self.getdynamics(mu[t,ix], mu[t,iu], mu[t+1, ix], empsig);
+                #F[t], f[t], dynsig[t] = self.getdynamics(mu[t,ix], mu[t,iu], mu[t+1, ix], empsig, cur_timestep+t);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
@@ -318,7 +321,7 @@ class OnlineController(Policy):
                 lgpolicy.chol_pol_covar[t].dot(np.random.randn(dU, N))).T
         return pX, pU
 
-    def getdynamics(self, prev_x, prev_u, cur_x, empsig):
+    def getdynamics(self, prev_x, prev_u, cur_x, empsig, t):
         """
         """
         dX = self.dX
@@ -329,6 +332,12 @@ class OnlineController(Policy):
         it = slice(dX+dU)
         ip = slice(dX+dU, dX+dU+dX)
 
+        nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
+
+        offline_fd = self.offline_fd[nearest_idx]
+        offline_fc = self.offline_fc[nearest_idx]
+        offline_dynsig = self.offline_dynsig[nearest_idx]
+        #return offline_fd, offline_fc, offline_dynsig
 
         xux = np.r_[prev_x, prev_u, cur_x]
         #xu = np.r_[prev_x, prev_u]
@@ -336,7 +345,7 @@ class OnlineController(Policy):
 
         N = self.empsig_N
         mun = self.mu
-        
+
         sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
         
         #sigma = Phi/m;  # Prior only
@@ -349,4 +358,9 @@ class OnlineController(Policy):
 
         dyn_covar = sigma[ip,ip] - Fm.dot(sigma[it,it]).dot(Fm.T)
         dyn_covar = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
+
+        import pdb; pdb.set_trace()
+        Fm = 0.5*Fm+0.5*offline_fd
+        fv = 0.5*fv+0.5*offline_fc
+        dyn_covar = 0.5*dyn_covar + 0.5*offline_dynsig
         return Fm, fv, dyn_covar
