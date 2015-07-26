@@ -107,7 +107,6 @@
                             
                           </body>
                         </body>
-
                       </body>
                     </body>
                   </body>
@@ -180,4 +179,5 @@
     </cost>
   </costs>
   -->
+
 </mujoco>

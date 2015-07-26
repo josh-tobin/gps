@@ -49,9 +49,9 @@ class AgentMuJoCo(Agent):
             'disableflags': 0,
         }
         if self._hyperparams['rk']:
-            options['integrator'] = 3  # 3 = Runge-Kutta
+            options['integrator'] = 3  # Runge-Kutta
         else:
-            options['integrator'] = 2  # 2 = Semi-implicit Euler
+            options['integrator'] = 2  # Semi-implicit Euler
         self._world.set_option(options)
 
         self._model = self._world.get_model()
@@ -62,27 +62,23 @@ class AgentMuJoCo(Agent):
             for j in range(len(self._hyperparams['pos_body_idx'][i])):
                 idx = self._hyperparams['pos_body_idx'][i][j]
                 self._model[i]['body_pos'][idx,:] += self._hyperparams['pos_body_offset'][i]
-
-        self.init_mj_X = []
-        for init_pose in self._hyperparams['init_pose']:
-            #TODO: perhaps we might want to initialize velocities to something other than zeros?
-            x0 = np.r_[init_pose, np.zeros_like(init_pose)]
-            self.init_mj_X.append(x0)
-
-        #TODO: the next line is bad and can be potentially bad if, e.g., gravity is on
-        #      it only exists to initialize end effector sites
-        self._world.step(x0, np.zeros(self._model[0]['nu']))
+            self._world.set_model(self._model[i])
+            init_pose = self._hyperparams['init_pose'][i]
+            idx = len(init_pose) // 2
+            data = {'qpos': init_pose[:idx], 'qvel': init_pose[idx:]}
+            self._world.set_data(data)
+            self._world.kinematics()
 
         # Initialize x0
         self._data = self._world.get_data()
         eepts = self._data['site_xpos'].flatten()
 
-        self._joint_idx = [i for i in range(self._model[0]['nq']) if i not in self._hyperparams['frozen_joints']]
+        self._joint_idx = list(range(self._model[0]['nq']))
         self._vel_idx = [i + self._model[0]['nq'] for i in self._joint_idx]
 
         self.x0 = []
-        for x0 in self.init_mj_X:
-            self.x0.append(np.concatenate([x0[self._joint_idx], x0[self._vel_idx], eepts, np.zeros_like(eepts)]))
+        for x0 in self._hyperparams['init_pose']:
+            self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
     def sample(self, policy, T, condition, verbose=True):
         """
@@ -95,7 +91,7 @@ class AgentMuJoCo(Agent):
             verbose: whether or not to plot the trial
         """
         new_sample = self._init_sample(condition)  # create new sample, populate first time step
-        mj_X = self.init_mj_X[condition]
+        mj_X = self._hyperparams['init_pose'][condition]
         U = np.zeros([T, self.sample_data.dU])
         noise = generate_noise(T, self.sample_data.dU, smooth=self._hyperparams['smooth_noise'], \
                 var=self._hyperparams['smooth_noise_var'], \
@@ -110,22 +106,19 @@ class AgentMuJoCo(Agent):
                 var = self._hyperparams['noisy_body_var'][condition][i]
                 self._model[condition]['body_pos'][idx,:] += (var * np.random.randn(1,3))
         self._world.set_model(self._model[condition])
-        #TODO: add noise to body pos and then setmodel
         for t in range(T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
             mj_U = policy.act(X_t, obs_t, t, noise[t,:])
             U[t,:] = mj_U
-            mj_U = np.concatenate([mj_U, np.zeros(len(self._hyperparams['frozen_joints']))])
             if verbose:
                 self._world.plot(mj_X)
             if (t+1) < T:
                 for step in range(self._hyperparams['substeps']):
                     mj_X, _ = self._world.step(mj_X, mj_U)
-                #TODO: update hidden state
+                #TODO: some hidden state stuff will go here
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
-        #TODO: reset world?
         new_sample.set(Action, U)
         return new_sample
 
@@ -134,8 +127,8 @@ class AgentMuJoCo(Agent):
         Construct a new sample and fill in the first time step.
         """
         sample = self.sample_data.create_new()
-        sample.set(JointAngles, self.init_mj_X[condition][self._joint_idx], t=0)
-        sample.set(JointVelocities, self.init_mj_X[condition][self._vel_idx], t=0)
+        sample.set(JointAngles, self._hyperparams['init_pose'][condition][self._joint_idx], t=0)
+        sample.set(JointVelocities, self._hyperparams['init_pose'][condition][self._vel_idx], t=0)
         self._data = self._world.get_data()
         eepts = self._data['site_xpos'].flatten()
         sample.set(EndEffectorPoints, eepts, t=0)
@@ -162,4 +155,4 @@ class AgentMuJoCo(Agent):
         sample.set(EndEffectorJacobians, jac, t=t+1)
 
     def reset(self, condition):
-        pass #TODO: implement setmodel?
+        pass

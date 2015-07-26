@@ -29,20 +29,16 @@ sample_data = {
     'dU': 7,
     'dO': 26,
     'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
-    #'state_include': [JointAngles, JointVelocities],
     'obs_include': [],
     # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
     'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
-    #'state_idx': [list(range(7)), list(range(7, 14))],
     'obs_idx': [],
 }
 
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
-    'frozen_joints': [7, 8, 9, 10],  # Freeze fingertips
-    #'init_pose': [0,0,0,0,0,0,0,0.5,0.5,0.5,0.5],
-    'init_pose': np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0,0.5,0.5,0.5,0.5]),
+    'init_pose': np.concatenate([np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
