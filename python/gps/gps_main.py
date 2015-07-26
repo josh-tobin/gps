@@ -35,7 +35,7 @@ class GPSMain():
             for m in range(self._conditions):
                 for i in range(5):
                     n = self.sample_data.num_samples()
-                    pol = self.algorithm.cur[0].traj_distr
+                    pol = self.algorithm.cur[m].traj_distr
                     sample = self.agent.sample(pol, self.sample_data.T, m, verbose=True)
                     self.sample_data.add_samples(sample)
                     idxs[m].append(n)

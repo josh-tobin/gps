@@ -43,7 +43,7 @@ agent = {
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
-    'pos_body_idx': [np.array([1])] * 4,
+    'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0,0.2,0]), np.array([0,0.1,0]), np.array([0,-0.1,0]), np.array([0,-0.2,0])],
 }
 
