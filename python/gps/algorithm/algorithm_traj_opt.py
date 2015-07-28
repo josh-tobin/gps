@@ -115,8 +115,9 @@ class AlgorithmTrajOpt(Algorithm):
         self.new_traj_distr = [None]*self.M
         for inner_itr in range(self._hyperparams['inner_iterations']):
             for m in range(self.M):
-                new_traj, self.eta[m] = self.traj_opt.update(self._sample_data.T, self.cur[m].step_mult, self.eta[m], self.cur[m].traj_info, self.cur[m].traj_distr)
-                self.new_traj_distr[m] = new_traj
+                self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
+                        self._sample_data.T, self.cur[m].step_mult, self.eta[m],
+                        self.cur[m].traj_info, self.cur[m].traj_distr)
 
     def stepadjust(self, m):
         """
@@ -243,3 +244,4 @@ class AlgorithmTrajOpt(Algorithm):
             self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = self.prev[m].step_mult
             self.cur[m].traj_distr = self.new_traj_distr[m]
+
