@@ -16,6 +16,8 @@ def main():
 
 		X = np.array(msg.position)
 		t = int(msg.velocity[0])
+		if t == 98:
+			print 'Saving outputs!'
 		obs = None
 		noise = None
 

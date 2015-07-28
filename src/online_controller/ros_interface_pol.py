@@ -6,10 +6,11 @@ from sensor_msgs.msg import JointState
 from ddp_controller_pkg.msg import LGPolicy, MPCState
 import rospy
 import logging
-
+import cPickle
 from matlab_interface import get_controller
 
 logging.basicConfig(level=logging.DEBUG)
+np.set_printoptions(suppress=True)
 
 def main():
     rospy.init_node('mpc_node')
@@ -19,6 +20,11 @@ def main():
 
         X = np.array(msg.X)
         t = msg.t
+
+        if t==98:
+        	with open('junk.pkl', 'w') as f:
+        		cPickle.dump(controller, f)
+
         obs = None
         noise = None
         dT = msg.dX+msg.dU

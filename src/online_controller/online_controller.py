@@ -11,7 +11,7 @@ from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 LOGGER = logging.getLogger(__name__)
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost, offline_fd=None, offline_fc=None, offline_dynsig=None):
+    def __init__(self, dX, dU, dynprior, cost, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None, big_dyn_sig=None):
         self.dynprior = dynprior
         self.LQR_iter = 1
         self.dX = dX
@@ -19,7 +19,7 @@ class OnlineController(Policy):
         self.cost = cost
         self.gamma = 0.5
         self.maxT = 100
-        self.min_mu = 1e-4 
+        self.min_mu = 1e-6 
         self.del0 = 2
         self.NSample = 1
 
@@ -34,6 +34,14 @@ class OnlineController(Policy):
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
         self.offline_dynsig = offline_dynsig
+        self.offline_sigma = big_dyn_sig
+        self.copy_offline_traj = False
+        self.offline_K = offline_K
+        self.offline_k = offline_k
+        self.X = [] # History of Xs. For debugging
+        self.inputs = []
+        self.calculated = []
+        self.fwd_hist = [None]*101
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, t):
         #start = time.time()
@@ -44,14 +52,21 @@ class OnlineController(Policy):
         self.sigma = empsig
         self.prevX = prevx
         self.prevU = prevu
+        self.X.append(x) # For debugging
+        self.inputs.append({'x':x, 'empmu':empmu, 'empsig':empsig, 'prevx':prevx, 'prevu':prevu, 't':t})
 
         if t==0:
+            self.X = []
             # Execute something for first action.
             H = self.H
             K = np.zeros((H, dU, dX))
             k = np.zeros((H, dU))
             cholPSig = np.zeros((H, dU, dU))
             self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
+            if self.copy_offline_traj:
+                for i in range(t,t+self.prev_policy.T):
+                    self.prev_policy.K[i-t] = self.offline_K[i]
+                    self.prev_policy.k[i-t] = self.offline_k[i]
             return self.prev_policy
 
         #pt = np.r_[self.prevX,self.prevU,x]
@@ -66,10 +81,39 @@ class OnlineController(Policy):
 
             # Store traj
             self.prev_policy = lgpolicy
-        #self.prev_policy.K[1] = self.prev_policy.K[0]
-        #self.prev_policy.k[1] = self.prev_policy.k[0]
+        
+        #Trick
+        """
+        self.prev_policy.T = 2;
+        new_K = np.zeros((2, dU, dX))
+        new_k = np.zeros((2, dU))
+        new_K[0] = self.prev_policy.K[0]
+        new_K[1] = self.prev_policy.K[0]
+        new_k[0] = self.prev_policy.k[0]
+        new_k[1] = self.prev_policy.k[0]
+        self.prev_policy.K = new_K
+        self.prev_policy.k = new_k
+        """
+        
+
+        #print 'PrevX:', prevx
+        print 'CurX:', x[0:7]
+        print 'Tgt:', self.cost.mu[t+1, 0:7]
         u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
-        print u
+        self.calculated.append({
+            'u':u, 'K':np.copy(self.prev_policy.K), 'k':np.copy(self.prev_policy.k), 't':t
+            })
+        print 'Online:', u
+        u = self.offline_K[t].dot(x)+self.offline_k[t]
+        print 'Offline:', u
+
+        #if self.copy_offline_traj:
+        #    for i in range(t,t+self.prev_policy.T):
+        #        self.prev_policy.K[i-t] = self.offline_K[i]
+        #        self.prev_policy.k[i-t] = self.offline_k[i]
+        #self.prev_policy.K.fill(0.0)
+        #self.prev_policy.k.fill(0.0)
+
         # Store state and action.
         return self.prev_policy
  
@@ -154,9 +198,13 @@ class OnlineController(Policy):
                 Qtt = Cm[t]
                 Qt = cv[t]
                 
-                Vxx = Vxx + reg_mu*np.eye(dX)
-                Qtt = Qtt + F.T.dot(Vxx).dot(F)
-                Qt = Qt + F.T.dot(Vx+Vxx.dot(f))
+                Vxx = Vxx #+ reg_mu*np.eye(dX)
+                #Qtt = Qtt + F.T.dot(Vxx.dot(F))
+                Qtt = Qtt + F.T.dot(Vxx.dot(F))
+                Qt = Qt + F.T.dot(Vx)+F.T.dot(Vxx).dot(f)
+                Qt2 = cv[t] + F.T.dot(Vx+Vxx.dot(f))
+                if not np.all(np.abs(Qt-Qt2)<1e-5):
+                    import pdb; pdb.set_trace()
 
                 Qtt = 0.5*(Qtt+Qtt.T)
 
@@ -243,6 +291,7 @@ class OnlineController(Policy):
                                 np.c_[K[t].dot(trajsig[t,ix,ix]), K[t].dot(trajsig[t,ix,ix]).dot(K[t].T) + PSig]
                              ]
             mu[t] = np.r_[mu[t,ix], K[t].dot(mu[t,ix]) + k[t]]
+            #mu[t] = np.r_[mu[t,ix], np.zeros(dU)]
 
             # Reuse old dynamics
             F[t] = F[0]
@@ -251,11 +300,14 @@ class OnlineController(Policy):
 
             if t < H-1:
                 # Estimate new dynamics here based on mu
-                #F[t], f[t], dynsig[t] = self.getdynamics(mu[t,ix], mu[t,iu], mu[t+1, ix], empsig, cur_timestep+t);
+                #if t>=1:
+                #    F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], empsig, cur_timestep+t);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
-        #cc = zeros(1,horizon,N);
+        self.fwd_hist[cur_timestep] = {'trajmu': mu, 'trajsig': trajsig, 'F': F, 'f': f}
+
+        #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))
         Cm = np.zeros((N, H, dT, dT))
         #Xs, Us = self.trajsamples(dX, dU, H, mu, trajsig, lgpolicy, N)
@@ -263,21 +315,29 @@ class OnlineController(Policy):
         for n in range(N):
             # Get costs.
             #l,lx,lu,lxx,luu,lux = self.cost.eval(Xs[n],Us[n], cur_timestep);
-            l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix],mu[:,iu], cur_timestep);
+            #newmu = np.zeros_like(mu[:,iu]) 
+            newmu = mu[:,iu]
+            l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix], newmu, cur_timestep);
             #[cc(:,:,i),lx,lu,lxx,luu,lux] = controller.cost.eval(Xs(:,:,i),Us(:,:,i),[],cost_infos(:,:,i));
 
             #cs(:,:,i) = cc(:,:,i);
             # Assemble matrix and vector.
-            cv[n] = np.c_[lx,lu]
+
+            #cc[n] = l
+            self.prev_cv = np.c_[lx, lu] #TEMP
+            self.prev_cc = l #TEMP
+            cv[n] = np.c_[lx, lu]
             Cm[n] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
 
             # Adjust for expanding cost around a sample.
-            #yhat = np.c_[Xs[n], Us[n]]
-            yhat = np.c_[mu[:,ix], mu[:,iu]]
+            yhat = mu #np.c_[mu[:,ix], newmu_u]
             rdiff = -yhat  # T x (X+U)
+            #if self.ref is not None:
+            #    rdiff = self.ref[cur_timestep:cur_timestep+H]-yhat
             rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
             cv_update = np.sum(Cm[n] * rdiff_expand, axis=1)  # T x (X+U)
             #cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
+            #self.cc = cc  # TEMP
             cv[n] += cv_update      
 
         #cc = mean(cc,3);
@@ -332,11 +392,11 @@ class OnlineController(Policy):
         it = slice(dX+dU)
         ip = slice(dX+dU, dX+dU+dX)
 
-        nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
+        #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
 
-        offline_fd = self.offline_fd[nearest_idx]
-        offline_fc = self.offline_fc[nearest_idx]
-        offline_dynsig = self.offline_dynsig[nearest_idx]
+        #offline_fd = self.offline_fd[t]
+        #offline_fc = self.offline_fc[t]
+        #offline_dynsig = self.offline_dynsig[t]
         #return offline_fd, offline_fc, offline_dynsig
 
         xux = np.r_[prev_x, prev_u, cur_x]
@@ -346,10 +406,12 @@ class OnlineController(Policy):
         N = self.empsig_N
         mun = self.mu
 
+        #empsig = 0.5*self.offline_sigma[t]+0.5*empsig
+
         sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
         
         #sigma = Phi/m;  # Prior only
-        #sigma = empsig;  % Moving average only
+        #sigma = empsig;  # Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
         sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 
@@ -359,8 +421,4 @@ class OnlineController(Policy):
         dyn_covar = sigma[ip,ip] - Fm.dot(sigma[it,it]).dot(Fm.T)
         dyn_covar = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
 
-        import pdb; pdb.set_trace()
-        Fm = 0.5*Fm+0.5*offline_fd
-        fv = 0.5*fv+0.5*offline_fc
-        dyn_covar = 0.5*dyn_covar + 0.5*offline_dynsig
         return Fm, fv, dyn_covar

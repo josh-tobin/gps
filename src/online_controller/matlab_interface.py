@@ -21,12 +21,19 @@ def get_controller(matfile):
 	# Read in mu for a CostStateOnline
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
+	#wp.fill(1.0)
+	#wp[14:21] = 0.0
 	cost = CostStateTracking(wp, tgt)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
 	fv = mat['dyn_fc'].T
 	dynsig = mat['dyn_sig'].transpose(2,0,1)
+	#big_dyn_sig = mat['dyn_big_sig'].transpose(2,0,1)
+
+	# Read in prev controller
+	K = mat['traj_K'].transpose(2,0,1)
+	k = mat['traj_k'].T
 
 	# Read in dynprior sigma, mu, N, mass, logmass
 	gmm = GMM()
@@ -43,21 +50,12 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	oc = OnlineController(dX, dU, dynprior, cost, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
+	oc = OnlineController(dX, dU, dynprior, cost, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig, big_dyn_sig=None)
 	#for t in range(100):
 	#	print oc.act(tgt[t,:dX], None, t, None)
 	return oc
 
-def setup_agent():
-    _hyperparams = defaults
-    _iterations = defaults['iterations']
-
-    sample_data = SampleData(defaults['sample_data'], defaults['common'], False)
-    agent = defaults['agent']['type'](defaults['agent'], sample_data)
-    return agent
-
 def run():
-	#agent = setup_agent()
-	oc = get_controller('/home/justin/RobotRL/test/onlinecont.mat')
-
-run()
+    oc = get_controller('/home/justin/RobotRL/test/onlinecont.mat')
+    print np.max(oc.offline_K[0], axis=0)
+    print oc.offline_k[0]
