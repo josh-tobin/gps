@@ -2,7 +2,6 @@ import cPickle
 import os
 import numpy as np
 
-from proto.gps_pb2 import *
 from sample import Sample
 
 
