@@ -9,6 +9,7 @@ This is the PR2-specific version of the robot plugin.
 #include <pr2_mechanism_model/chain.h>
 #include <pr2_mechanism_model/robot.h>
 #include <Eigen/Dense>
+#include <pluginlib/class_list_macros.h>
 
 // Superclass.
 #include "gps_agent_pkg/robotplugin.h"

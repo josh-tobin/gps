@@ -2,7 +2,7 @@
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
 
-using namespace gps_control;
+namespace gps_control {
 
 // Plugin constructor.
 PR2Plugin::PR2Plugin()
@@ -213,3 +213,11 @@ void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm)
         ROS_ERROR("Unknown ArmType %i requested for joint encoder readings!",arm);
     }
 }
+
+}
+
+// Register controller to pluginlib
+PLUGINLIB_DECLARE_CLASS(gps_agent_pkg, PR2Plugin,
+						gps_control::PR2Plugin,
+						pr2_controller_interface::Controller)
+
