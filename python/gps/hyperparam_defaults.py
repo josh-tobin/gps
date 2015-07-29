@@ -14,7 +14,7 @@ from algorithm.dynamics.dynamics_lr import DynamicsLR
 from algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr, init_pd
-from sample_data.gps_sample_types import *
+from proto.gps_pb2 import *
 
 common = {
     'conditions': 4,
@@ -28,7 +28,7 @@ sample_data = {
     'dX': 26,
     'dU': 7,
     'dO': 26,
-    'state_include': [JointAngles, JointVelocities, EndEffectorPoints, EndEffectorPointVelocities],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
     'obs_include': [],
     # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
     'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
@@ -74,7 +74,7 @@ torque_cost = {
 state_cost = {
     'type': CostState,
     'data_types' : {
-        JointAngles: {
+        JOINT_ANGLES: {
             'wp': np.ones(sample_data['dU']),
             # This should extend the arm out straight
             #'desired_state': np.array([0.0,0.,0.,0.,0.,0.,0.])

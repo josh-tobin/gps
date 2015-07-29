@@ -1,5 +1,5 @@
 import numpy as np
-from gps_sample_types import Action
+from proto.gps_pb2 import ACTION
 
 
 class Sample(object):
@@ -55,7 +55,7 @@ class Sample(object):
 
     def get_U(self, t=None):
         """Get the action. Put it together if not already precomputed."""
-        return self._data[Action] if t is None else self._data[Action][t,:]
+        return self._data[ACTION] if t is None else self._data[ACTION][t,:]
 
     def get_obs(self, t=None):
         """Get the feature representation. Put it together if not already precomputed."""

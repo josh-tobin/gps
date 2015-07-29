@@ -44,7 +44,7 @@ class AgentROS(Agent):
 
         Args:
             data_type: Integer code for a data type.
-                These are defined in sample_data.gps_sample_types
+                These are defined in proto.gps_pb2
         """
         msg = DataRequest()
         msg.header.seq = self._get_next_seq_id()
