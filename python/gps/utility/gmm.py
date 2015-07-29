@@ -22,7 +22,7 @@ class GMM(object):
         """ 
         Evaluate dynamics prior 
         Args:
-            pts: A DxN array of points
+            pts: A NxD array of points
         """
         # Compute posterior cluster weights.
         logwts = self.clusterwts(pts)
@@ -43,18 +43,19 @@ class GMM(object):
         """
         Compute log observation probabilities under GMM.
         Args:
-            data: A DxN array of points
+            data: A NxD array of points
         Returns:
-            logobs: A KxN array of log probabilities (for each point on each cluster)
+            logobs: A NxK array of log probabilities (for each point on each cluster)
         """
 
         # Constants.
-        K = self.sigma.shape[2]
-        Di = data.shape[0]
-        N = data.shape[1]
+        K = self.sigma.shape[0]
+        Di = data.shape[1]
+        N = data.shape[0]
 
         # Compute probabilities.
-        mu = self.mu[0:Di, :]
+        data = data.T
+        mu = self.mu[:,0:Di].T
         mu_expand = np.expand_dims(np.expand_dims(mu, axis=1), axis=1)
         assert mu_expand.shape == (Di,1,1,K)
         # Calculate for each point distance to each cluster
@@ -65,13 +66,13 @@ class GMM(object):
         cconst = np.zeros((1,1,1,K))
 
         for i in range(K):
-            U = sp.linalg.cholesky(self.sigma[:Di, :Di, i])
-            Pdiff[:,:,0,i] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True))
+            U = sp.linalg.cholesky(self.sigma[i, :Di, :Di], check_finite=False)
+            Pdiff[:,:,0,i] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True, check_finite=False), check_finite=False)
             cconst[0,0,0,i] = -np.sum(np.log(np.diag(U))) - 0.5*Di*np.log(2*np.pi)
 
         logobs = -0.5*np.sum(diff*Pdiff,axis=0, keepdims=True)+cconst
         assert logobs.shape == (1, N, 1, K)
-        logobs = logobs[0,:,0,:].T + self.logmass
+        logobs = logobs[0,:,0,:] + self.logmass.T
         return logobs
 
     def moments(self, logwts):
@@ -89,16 +90,15 @@ class GMM(object):
         wts = np.exp(logwts)
 
         # Compute overall mean.
-        mu = np.sum(self.mu*wts.T,axis=1)
+        mu = np.sum(self.mu*wts,axis=0)
 
         # Compute overall covariance.
         # For some reason this version works way better than the "right" one...
         # Could we be computing xxt wrong?
-        diff = self.mu-np.expand_dims(mu, axis=1)
-        diff_expand = np.expand_dims(diff,axis=1)*np.expand_dims(diff,axis=0)
-        wts_expand = np.expand_dims(wts.T,axis=0)
-        sigma = np.sum((self.sigma + diff_expand)*wts_expand,axis=2)
-
+        diff = self.mu-np.expand_dims(mu, axis=0)
+        diff_expand = np.expand_dims(diff,axis=1)*np.expand_dims(diff,axis=2)
+        wts_expand = np.expand_dims(wts,axis=2)
+        sigma = np.sum((self.sigma + diff_expand)*wts_expand,axis=0)
         return mu, sigma
 
     def clusterwts(self, data):
@@ -106,7 +106,7 @@ class GMM(object):
         Compute cluster weights for specified points under GMM.
 
         Args:
-            data: A DxN array of points
+            data: An NxD array of points
         Return:
             A Kx1 array of average cluster log probabilities
         """
@@ -115,40 +115,40 @@ class GMM(object):
         logobs = self.estep(data)
 
         # Renormalize to get cluster weights.
-        logwts = logobs-logsum(logobs,axis=0)
+        logwts = logobs-logsum(logobs,axis=1)
 
         # Average the cluster probabilities.
-        logwts = logsum(logwts,axis=1) - np.log(data.shape[1])
-        return logwts
+        logwts = logsum(logwts,axis=0) - np.log(data.shape[0])
+        return logwts.T
 
     def update(self, data, K, max_iterations=100):
         """
         Run EM to update clusters
 
         Args:
-            data: A D x N data matrix, where N = number of data points
+            data: An N x D data matrix, where N = number of data points
             K: Number of clusters to use
         """
         # Constants.
-        Do = data.shape[0]
-        N = data.shape[1];
+        N = data.shape[0];
+        Do = data.shape[1]
 
         LOGGER.debug('Fitting GMM with %d clusters on %d points', K, N)
 
-        if (not self.warmstart) or (self.sigma is None) or (K != self.sigma.shape[2]):
+        if (not self.warmstart) or (self.sigma is None) or (K != self.sigma.shape[0]):
             # Initialization.
             LOGGER.debug('Initializing GMM')
-            self.sigma = np.zeros((Do,Do,K))
-            self.prec = np.zeros((Do,Do,K))
-            self.xxt = np.zeros((Do,Do,K))
-            self.mu = np.zeros((Do,K))
+            self.sigma = np.zeros((K,Do,Do))
+            #self.prec = np.zeros((K,Do,Do))
+            #self.xxt = np.zeros((K,Do,Do))
+            self.mu = np.zeros((K,Do))
             self.logmass = np.log(1.0/K)*np.ones((K,1))
             self.mass = (1.0/K)*np.ones((K,1))
-            self.logdet = np.zeros((K,1))
-            self.N = data.shape[1];
-            self.priorw = 1e-3;
-            self.priorx = np.mean(data,axis=1);
-            self.priorxxt = (1.0/N)*(data.dot(data.T)) + 1e-1*np.eye(Do);
+            #self.logdet = np.zeros((K,1))
+            self.N = data.shape[0];
+            #self.priorw = 1e-3;
+            #self.priorx = np.mean(data,axis=1);
+            #self.priorxxt = (1.0/N)*(data.dot(data.T)) + 1e-1*np.eye(Do);
             N = self.N;
 
             # Set initial cluster indices.
@@ -171,11 +171,11 @@ class GMM(object):
             # Initialize.
             for i in range(K):
                 cluster_idx = (cidx==i)[0]
-                mu = np.mean(data[:, cluster_idx],axis=1)
-                diff = (data[:, cluster_idx].T-mu).T
+                mu = np.mean(data[cluster_idx,:],axis=0)
+                diff = (data[cluster_idx,:]-mu).T
                 sigma = (1.0/K)*(diff.dot(diff.T));
-                self.mu[:,i] = mu;
-                self.sigma[:,:,i] = sigma + np.eye(Do)*2e-6;
+                self.mu[i,:] = mu;
+                self.sigma[i,:,:] = sigma + np.eye(Do)*2e-6;
 
         prevll = -float('inf')
         for itr in range(max_iterations):
@@ -183,7 +183,7 @@ class GMM(object):
             logobs = self.estep(data);
 
             # Compute log-likelihood.
-            ll = np.sum(logsum(logobs,axis=0));
+            ll = np.sum(logsum(logobs,axis=1));
             LOGGER.debug('GMM itr %d/%d. Log likelihood: %f', itr, max_iterations, ll)
             if np.abs(ll-prevll) < 1e-2:
                 LOGGER.debug('GMM convergenced on itr=%d/%d', itr, max_iterations)
@@ -191,35 +191,36 @@ class GMM(object):
             prevll = ll;
 
             # Renormalize to get cluster weights.
-            logw = logobs-logsum(logobs,axis=0);
-            assert logw.shape == (K, N)
+            logw = logobs-logsum(logobs,axis=1);
+            assert logw.shape == (N, K)
             wc = np.exp(logw);
 
-            # Renormalize againt to get weights for refitting clusters.
-            logwn = logw-logsum(logw,axis=1);
-            assert logwn.shape == (K, N)
+            # Renormalize again to get weights for refitting clusters.
+            logwn = logw-logsum(logw,axis=0);
+            assert logwn.shape == (N, K)
             w = np.exp(logwn);
 
             # M-step: update clusters.
             # Fit cluster mass.
-            self.logmass = logsum(logw,axis=1);
+            self.logmass = logsum(logw,axis=0).T;
             self.logmass =self.logmass - logsum(self.logmass,axis=0);
             assert self.logmass.shape == (K, 1)
             self.mass = np.exp(self.logmass);
             # Reboot small clusters.
-            w[(self.mass < (1.0/K)*1e-4)[:,0],:] = 1.0/N;
+            w[:,(self.mass < (1.0/K)*1e-4)[:,0]] = 1.0/N;
             # Fit cluster means.
-            w_expand = np.expand_dims(w,axis=2).transpose([2,1,0])
-            data_expand = np.expand_dims(data, axis=2)
-            self.mu = np.sum(w_expand*data_expand,axis=1);
+            w_expand = np.expand_dims(w,axis=2)
+            data_expand = np.expand_dims(data, axis=1)
+            self.mu = np.sum(w_expand*data_expand,axis=0);
             # Fit covariances.
             wdata = data_expand*np.sqrt(w_expand);
-            assert wdata.shape == (Do, N, K)
+            #assert wdata.shape == (Do, N, K)
+            assert wdata.shape == (N, K, Do)
             for i in range(K):
                 # Compute weighted outer product.
-                XX = wdata[:,:,i].dot(wdata[:,:,i].T)
-                self.xxt[:,:,i] = 0.5*(XX+XX.T)
-                self.sigma[:,:,i] = XX - np.outer(self.mu[:,i], self.mu[:,i])
+                XX = wdata[:,i,:].T.dot(wdata[:,i,:])
+                #self.xxt[:,:,i] = 0.5*(XX+XX.T)
+                self.sigma[i,:,:] = XX - np.outer(self.mu[i,:], self.mu[i,:])
 
                 if self.eigreg: # Use eigenvalue regularization.
                     raise NotImplementedError()
@@ -233,13 +234,13 @@ class GMM(object):
                     self.logdet[i,1] = np.sum(np.log(val))
                     """
                 else: # Use quick and dirty regularization.
-                    self.sigma[:,:,i] = 0.5*(self.sigma[:,:,i]+self.sigma[:,:,i].T) + 1e-6*np.eye(Do)
+                    self.sigma[i,:,:] = 0.5*(self.sigma[i,:,:]+self.sigma[i,:,:].T) + 1e-6*np.eye(Do)
 
 def test():
     from algorithm.cost.cost_utils import approx_equal
     np.random.seed(12345)
     gmm = GMM()
-    data =np.random.randn(3, 10)
+    data =np.random.randn(3, 10).T
     gmm.update(data, 2)
     mu0, Phi, m, n0 = gmm.inference(data)
     assert approx_equal(mu0, np.array([ 0.49483644, 0.13111947, 0.38831296]))
