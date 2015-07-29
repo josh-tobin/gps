@@ -4,7 +4,7 @@ import numpy as np
 from config import cost_fk
 from cost import Cost
 from cost_utils import get_ramp_multiplier
-from sample_data.gps_sample_types import *
+from proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_JACOBIANS
 
 
 class CostFK(Cost):
@@ -51,13 +51,13 @@ class CostFK(Cost):
 
         # Choose target.
         tgt = self._hyperparams['end_effector_target']
-        pt = sample.get(EndEffectorPoints)
+        pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
-        jx = sample.get(EndEffectorJacobians)
+        jx = sample.get(END_EFFECTOR_JACOBIANS)
 
         # Evaluate penalty term.
         if self._hyperparams['analytic_jacobian']:
-            jxx = sample.get(EndEffectorHessians)
+            jxx = sample.get(END_EFFECTOR_HESSIANS)
             il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],
