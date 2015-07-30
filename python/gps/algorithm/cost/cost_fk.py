@@ -4,7 +4,7 @@ import numpy as np
 from config import cost_fk
 from cost import Cost
 from cost_utils import get_ramp_multiplier
-from sample_data.gps_sample_types import *
+from proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_JACOBIANS
 
 
 class CostFK(Cost):
@@ -32,9 +32,16 @@ class CostFK(Cost):
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
+<<<<<<< HEAD
         T = sample.T
         dX = sample.dX
         dU = sample.dU
+=======
+        T = self.sample_data.T
+        dX = self.sample_data.dX
+        dU = self.sample_data.dU
+        sample = self.sample_data.get_samples(idx=[sample_idx])[0]
+>>>>>>> 9e211550480556a8e422aa3fae78ef174d0fd265
 
         wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
                                   wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
@@ -50,20 +57,20 @@ class CostFK(Cost):
 
         # Choose target.
         tgt = self._hyperparams['end_effector_target']
-        pt = sample.get(EndEffectorPoints)
+        pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
-        jx = sample.get(EndEffectorJacobians)
+        jx = sample.get(END_EFFECTOR_JACOBIANS)
 
         # Evaluate penalty term.
         if self._hyperparams['analytic_jacobian']:
-            jxx = sample.get(EndEffectorHessians)
+            jxx = sample.get(END_EFFECTOR_HESSIANS)
             il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],
                                                           self._hyperparams['alpha'])
         else:
             # Use estimated Jacobians and no higher order terms
-            jxx_zeros = np.zeros((T, dist.shape[0], dX, dX))
+            jxx_zeros = np.zeros((T, dist.shape[1], dX, dX))
             il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],

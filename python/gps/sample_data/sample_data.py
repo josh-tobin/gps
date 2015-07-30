@@ -2,7 +2,6 @@ import cPickle
 import os
 import numpy as np
 
-from gps_sample_types import *
 from sample import Sample
 
 

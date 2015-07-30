@@ -1,16 +1,18 @@
-#include "agent/controller/sensor.h"
+#include "gps_agent_pkg/sensor.h"
 
 using namespace gps_control;
 
 // Factory function.
-static Sensor Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin)
+static Sensor create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin)
 {
     switch (type)
     {
+    /* Not yet implemented
     case EncoderSensorType:
         return EncoderSensor(n,plugin);
     case CameraSensorType:
         return CameraSensor(n,plugin);
+    */
     default:
         ROS_ERROR("Unknown sensor type %i requested from sensor constructor!",type);
     }
@@ -23,7 +25,7 @@ Sensor::Sensor(ros::NodeHandle& n, RobotPlugin *plugin)
 }
 
 // Destructor.
-void Sensor::~Sensor()
+Sensor::~Sensor()
 {
     // Nothing to do.
 }

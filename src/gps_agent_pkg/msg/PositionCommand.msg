@@ -1,7 +1,8 @@
 # Position mode constants
-int8 JOINT_ANGLE=1
-int8 END_EFFECTOR=2
-int8 PD_GAINS=3
+int8 NO_CONTROL=0
+int8 JOINT_SPACE=1
+int8 TASK_SPACE=2
+#int8 PD_GAINS=3
 
 # Arm constants
 int8 LEFT_ARM=1

@@ -1,5 +1,5 @@
 import numpy as np
-from gps_sample_types import Action
+from proto.gps_pb2 import ACTION
 
 
 class Sample(object):
@@ -32,7 +32,7 @@ class Sample(object):
             self._obs.fill(np.nan)  # Invalidate existing Obs
         else:
             if sensor_name not in self._data:
-                self._data[sensor_name] = np.empty((self.T, sensor_data.shape[0]))
+                self._data[sensor_name] = np.empty((self.T,) + sensor_data.shape)
                 self._data[sensor_name].fill(np.nan)
             self._data[sensor_name][t,:] = sensor_data
             self._X[t,:].fill(np.nan)
@@ -55,7 +55,7 @@ class Sample(object):
 
     def get_U(self, t=None):
         """Get the action. Put it together if not already precomputed."""
-        return self._data[Action] if t is None else self._data[Action][t,:]
+        return self._data[ACTION] if t is None else self._data[ACTION][t,:]
 
     def get_obs(self, t=None):
         """Get the feature representation. Put it together if not already precomputed."""

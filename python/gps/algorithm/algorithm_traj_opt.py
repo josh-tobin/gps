@@ -66,7 +66,6 @@ class AlgorithmTrajOpt(Algorithm):
         # Update dynamics model using all sample.
         self.update_dynamics()
 
-        self.eval_costs()
         self.update_step_size()  # KL Divergence step size
 
         # Run inner loop to compute new policies under new dynamics and step size
@@ -100,7 +99,10 @@ class AlgorithmTrajOpt(Algorithm):
 
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
-        # Evaluate cost function.
+        # Evaluate cost function for all conditions and samples
+        for m in range(self.M):
+            self.eval_cost(m)
+
         for m in range(self.M):  # m = condition
             if self.iteration_count >= 1 and self.prev[m].sample_idx:
                 # Evaluate cost and adjust step size relative to the previous iteration.
@@ -113,8 +115,9 @@ class AlgorithmTrajOpt(Algorithm):
         self.new_traj_distr = [None]*self.M
         for inner_itr in range(self._hyperparams['inner_iterations']):
             for m in range(self.M):
-                new_traj, self.eta[m] = self.traj_opt.update(self._sample_data.T, self.cur[m].step_mult, self.eta[m], self.cur[m].traj_info, self.cur[m].traj_distr)
-                self.new_traj_distr[m] = new_traj
+                self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
+                        self._sample_data.T, self.cur[m].step_mult, self.eta[m],
+                        self.cur[m].traj_info, self.cur[m].traj_distr)
 
     def stepadjust(self, m):
         """
@@ -185,13 +188,6 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur[m].mispred_std = mispred_std
         self.cur[m].polkl = polkl
 
-    def eval_costs(self):
-        """
-        Evaluate costs for all conditions and samples.
-        """
-        for m in range(self.M):
-            self.eval_cost(m)
-
     def eval_cost(self, m):
         """
         Evaluate costs for all samples for a condition
@@ -229,7 +225,7 @@ class AlgorithmTrajOpt(Algorithm):
             rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
             cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)  # T x (X+U)
             cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
-            cv[n, :, :] += cv_update            
+            cv[n, :, :] += cv_update
 
         self.cur[m].traj_info.cc = np.mean(cc, 0)  # Costs. Average over samples
         self.cur[m].traj_info.cv = np.mean(cv, 0)  # Cost, 1st deriv
@@ -248,3 +244,4 @@ class AlgorithmTrajOpt(Algorithm):
             self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = self.prev[m].step_mult
             self.cur[m].traj_distr = self.new_traj_distr[m]
+

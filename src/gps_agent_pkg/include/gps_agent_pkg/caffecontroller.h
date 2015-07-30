@@ -25,7 +25,7 @@ public:
     // Compute the action at the current time step.
     virtual void get_action(int t, const VectorXd &X, const VectorXd &obs, VectorXd &U);
     // Configure the controller.
-    virtual void configure_controller(const OptionsMap &options);
+    virtual void configure_controller(OptionsMap &options);
 };
 
 }

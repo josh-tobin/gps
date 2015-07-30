@@ -15,4 +15,4 @@ class TrajOpt(object):
         """ Update trajectory distributions. """
         raise NotImplementedError("Must be implemented in subclass")
 
-# TODO - need interface with C++ trajopt
+# TODO - Interface with C++ traj opt?

@@ -17,26 +17,29 @@ class GPSMain():
     def __init__(self):
         self._hyperparams = defaults
         self._iterations = defaults['iterations']
+        self._conditions = defaults['common']['conditions']
 
         self.sample_data = SampleData(defaults['sample_data'], defaults['common'], False)
         self.agent = defaults['agent']['type'](defaults['agent'], self.sample_data)
-        defaults['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0
+        # TODO: the following is a hack that doesn't even work some of the time
+        #       let's think a bit about how we want to really do this
+        defaults['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
         self.algorithm = defaults['algorithm']['type'](defaults['algorithm'], self.sample_data)
 
     def run(self):
         """
         Run training by iteratively sampling and taking an iteration step.
         """
-        idxs = []
+        idxs = [[] for _ in range(self._conditions)]
         for itr in range(self._iterations):
-            # TODO - multiple times, for each condition
-            for i in range(5):
-                n = self.sample_data.num_samples()
-                pol = self.algorithm.cur[0].traj_distr
-                sample = self.agent.sample(pol, self.sample_data.T, True)
-                self.sample_data.add_samples(sample)
-                idxs.append(n)
-            self.algorithm.iteration([idxs[-30:]])
+            for m in range(self._conditions):
+                for i in range(5):
+                    n = self.sample_data.num_samples()
+                    pol = self.algorithm.cur[m].traj_distr
+                    sample = self.agent.sample(pol, self.sample_data.T, m, verbose=True)
+                    self.sample_data.add_samples(sample)
+                    idxs[m].append(n)
+            self.algorithm.iteration([idx[-15:] for idx in idxs])
 
     def resume(self, itr):
         """
@@ -44,5 +47,6 @@ class GPSMain():
         """
         raise NotImplementedError("TODO")
 
-g = GPSMain()
-g.run()
+if __name__ == "__main__":
+    g = GPSMain()
+    g.run()

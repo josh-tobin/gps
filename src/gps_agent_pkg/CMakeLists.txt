@@ -20,3 +20,71 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
+
+#common commands for building c++ executables and libraries
+#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
+#target_link_libraries(${PROJECT_NAME} another_library)
+#rosbuild_add_boost_directories()
+#rosbuild_link_boost(${PROJECT_NAME} thread)
+#rosbuild_add_executable(example examples/example.cpp)
+#target_link_libraries(example ${PROJECT_NAME})
+
+#Include protobuf
+include_directories($ENV{GPS_ROOT_DIR}/build/gps)
+
+#Use C++0x
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+
+set(DDP_FILES src/robotplugin.cpp
+			  src/pr2plugin.cpp
+              src/sample.cpp
+		      src/sensor.cpp
+		      src/lingausscontroller.cpp
+		      src/positioncontroller.cpp
+		      src/trialcontroller.cpp
+		      src/encodersensor.cpp
+		      src/encoderfilter.cpp)
+
+# Include Caffe
+if (USE_CAFFE)
+    # add definitions for the C++ code
+    add_definitions(-DUSE_CAFFE)
+    if (USE_CAFFE_GPU)
+        add_definitions(-DCAFFE_GPU)
+        find_package(CUDA 5.5 REQUIRED)
+        include_directories(${CUDA_INCLUDE_DIRS})
+    else (USE_CAFFE_GPU)
+        add_definitions(-DCPU_ONLY)
+    endif (USE_CAFFE_GPU)
+    # add paths to CAFFE
+    link_directories(${CAFFE_LIBRARY_PATH})
+    include_directories(${CAFFE_INCLUDE_PATH})
+    # extra header paths
+    include_directories(${CAFFE_EXTRA_PATH})
+    # add neural network to DDP controller files
+    #set(DDP_FILES ${DDP_FILES} src/neural_network_caffe.cpp)
+    # compile Caffe test
+    #rosbuild_add_executable(caffe_test src/caffe_test.cpp src/neural_network_caffe.cpp)
+    #target_link_libraries(caffe_test caffe protobuf)
+    # compile image processor node
+    #rosbuild_add_executable(caffe_img_processor src/img_processor.cpp src/neural_network_caffe.cpp)
+    #target_link_libraries(caffe_img_processor caffe protobuf)
+endif (USE_CAFFE)
+
+rosbuild_add_library(gps_agent_lib ${DDP_FILES})
+
+#rosbuild_add_executable(kinematic_baseline src/kinematic_baseline.cpp)
+
+#rosbuild_add_executable(controller_switcher src/controller_switcher.cpp)
+
+#rosbuild_add_executable(pointcloud_solver src/pointcloud_solver.cpp
+#                                          src/keypoint_detector.cpp)
+
+#rosbuild_add_executable(point_head src/point_head.cpp)
+#rosbuild_add_executable(torso src/torso.cpp)
+
+# Include Caffe in controller
+if (USE_CAFFE)
+    target_link_libraries(gps_agent_lib caffe protobuf)
+endif (USE_CAFFE)
+

@@ -14,6 +14,13 @@ def main():
 	actual_x = np.array([inp['x'][idx_to_plot] for inp in actual_info])
 
 	fwd_info = oc.fwd_hist
+
+	start_time = 5
+	fwd_mu = np.array([mu[idx_to_plot] for mu in oc.fwd_hist[start_time]['trajmu']])
+	diff = fwd_mu - actual_x[start_time:start_time+oc.H]
+	plt.plot(np.arange(start_time,start_time+oc.H), diff)
+	plt.show()
+
 	start_time = 50
 	fwd_mu = np.array([mu[idx_to_plot] for mu in oc.fwd_hist[start_time]['trajmu']])
 	diff = fwd_mu - actual_x[start_time:start_time+oc.H]
@@ -25,7 +32,6 @@ def main():
 	plt.show()
 	u_online = np.array([ oc.calculated[t]['u'] for t in range(97) ])
 	plt.plot(np.arange(2,97), u_online[2:])
-	print [oc.calculated[t]['k'][0] for t in range(97)]
 	plt.show()
 
 

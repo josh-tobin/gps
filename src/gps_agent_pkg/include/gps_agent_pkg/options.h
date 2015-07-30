@@ -5,6 +5,7 @@ The options object is used to list a map from strings to parameters.
 
 // Headers.
 #include <map>
+#include <vector>
 #include <string>
 #include <boost/variant.hpp>
 #include <Eigen/Dense>
@@ -16,19 +17,21 @@ namespace gps_control
 // Types of data supported for internal data storage.
 enum OptionsDataFormat
 {
-    DataFormatBool,
-    DataFormatUInt8,
-    DataFormatInt,
-    DataFormatDouble,
-    DataFormatMatrix,
-    DataFormatString
+    OptionsDataFormatBool,
+    OptionsDataFormatUInt8,
+    OptionsDataFormatIntVector,
+    OptionsDataFormatInt,
+    OptionsDataFormatDouble,
+    OptionsDataFormatMatrix,
+    OptionsDataFormatVector,
+    OptionsDataFormatString
 };
 
 // This is a parameter entry. Note that the arguments should match the enum.
-typedef OptionsVariant boost::variant<bool,uint8_t,int,double,MatrixXd,std::string>;
+typedef boost::variant<bool,uint8_t,std::vector<int>,int,double,Eigen::MatrixXd,Eigen::VectorXd,std::string> OptionsVariant;
 
 // This is the options map.
-typedef OptionsMap std::map<std::string,OptionsVariant>;
+typedef std::map<std::string,OptionsVariant> OptionsMap;
 
 }
 

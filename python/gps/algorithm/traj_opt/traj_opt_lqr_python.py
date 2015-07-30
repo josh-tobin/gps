@@ -6,13 +6,9 @@ import copy
 
 from config import traj_opt_lqr
 from traj_opt import TrajOpt
-from traj_opt_util import LineSearch, traj_distr_kl
+from traj_opt_util import LineSearch, traj_distr_kl, DGD_MAX_ITER, THRESHA, THRESHB
 
 
-# Constants - TODO: put in a different file?
-DGD_MAX_ITER = 50
-THRESHA = 1e-4
-THRESHB = 1e-3
 LOGGER = logging.getLogger(__name__)
 
 
@@ -23,30 +19,28 @@ class TrajOptLQRPython(TrajOpt):
     def __init__(self, hyperparams):
         config = copy.deepcopy(traj_opt_lqr)
         config.update(hyperparams)
+
         TrajOpt.__init__(self, config)
 
-    # TODO - traj_distr and prevtraj_distr shouldn't be arguments - should exist in self.
-    def update(self, T, step_mult, eta, traj_info, prev_traj_distr):
+    # TODO - traj_distr and prev_traj_distr shouldn't be arguments - should exist in self?
+    # If so, how to deal with multiple conditions? (multiple traj_distr)
+    def update(self, T, step_mult, prev_eta, traj_info, prev_traj_distr):
         """Run dual gradient decent to optimize trajectories."""
 
-        # Constants
-
         # Set KL-divergence step size (epsilon)
-        # TODO - traj_distr.step_mult needs to exist somewhere
         kl_step = self._hyperparams['kl_step'] * step_mult
 
         line_search = LineSearch(self._hyperparams['min_eta'])
-        prev_eta = eta
         min_eta = -np.Inf
 
         for itr in range(DGD_MAX_ITER):
             new_traj_distr, new_eta = self.backward(prev_traj_distr,
                                                     traj_info,
-                                                    eta)
+                                                    prev_eta)
             new_mu, new_sigma = self.forward(new_traj_distr, traj_info)
 
             # Update min eta if we had a correction after running backward
-            if new_eta > eta:
+            if new_eta > prev_eta:
                 min_eta = new_eta
 
             # Compute KL divergence between previous and new distribuition
@@ -61,6 +55,7 @@ class TrajOptLQRPython(TrajOpt):
                     (itr >= 20 and kl_div < kl_step*T)):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged",
                              itr, kl_div, kl_step*T)
+                eta = prev_eta  # TODO - should this actually be new_eta? (matlab code does this.)
                 break
 
             # Adjust eta using bracketing line search
@@ -90,7 +85,6 @@ class TrajOptLQRPython(TrajOpt):
         if kl_div > kl_step*T and abs(kl_div - kl_step*T) > 0.1*kl_step*T:
             LOGGER.warning("Final KL divergence after DGD convergence is too high")
 
-            # TODO - store new_traj_distr somewhere (in self?)
         return new_traj_distr, eta
 
     def estimate_cost(self, traj_distr, traj_info):

@@ -7,7 +7,7 @@ class CostStateTracking(object):
         self.wp = wp
         self.mu = tgt
         self.ramp_option = RAMP_CONSTANT
-        self.t_weight = 10.01
+        self.t_weight = 5.01
         self.l1 = 0.0
         self.l2 = 10.0
         self.alpha = 1e-5
@@ -43,7 +43,7 @@ class CostStateTracking(object):
             #min_idx = 99
             cand_idx[i] = min_idx
             tgt[i] = self.mu[min_idx]
-        print cand_idx
+        #print cand_idx
         dist = X - tgt
         # Evaluate penalty term.
         #l, lx, lxx = evall1l2term( wp, dist, np.tile(np.eye(dX), [T, 1, 1]), np.zeros((T, dX, dX, dX)),
