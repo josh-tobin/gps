@@ -47,5 +47,6 @@ class GPSMain():
         """
         raise NotImplementedError("TODO")
 
-g = GPSMain()
-g.run()
+if __name__ == "__main__":
+    g = GPSMain()
+    g.run()

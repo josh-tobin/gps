@@ -55,6 +55,7 @@ class TrajOptLQRPython(TrajOpt):
                     (itr >= 20 and kl_div < kl_step*T)):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged",
                              itr, kl_div, kl_step*T)
+                eta = prev_eta  # TODO - should this actually be new_eta? (matlab code does this.)
                 break
 
             # Adjust eta using bracketing line search
