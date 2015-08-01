@@ -1,44 +1,53 @@
+import time
 import numpy as np
 import sys
 import cPickle
 import theano
 import theano.tensor as T
 import theano.sandbox.cuda.basic_ops as tcuda
+import scipy.io
 ONE = np.array([1])
 
-NN_INIT = 0.05
+NN_INIT = 0.1
 
 gpu_host = tcuda.gpu_from_host
 
-class NNetDyn(object):
-    def __init__(self, dims, loss_wt):
-        data = T.matrix('data')
-        lbl = T.matrix('lbl')
 
+def dump_net(fname, net):
+    with open(fname, 'w') as f:
+        cPickle.dump(net.serialize(), f)  
+
+def load_net(fname):
+    net = NNetDyn([], None, init_funcs=False)
+    with open(fname, 'r') as f:
+        wts = cPickle.load(f)
+        net.unserialize(wts)
+        net.init_funcs()
+    return net
+
+class NNetDyn(object):
+    def __init__(self, layers, loss_wt, init_funcs=True, weight_decay=0.0):
         self.loss = SquaredLoss(loss_wt)
-        self.layers = []
         self.params = []
         self.nparams = 0
+        self.layers = layers
+        self.weight_decay = weight_decay
+        if init_funcs:
+            self.init_funcs()
 
-        #dims[0] += 1
-        for i in range(len(dims)-1):
-            din = dims[i]
-            dout = dims[i+1]
-            if type(dout) == ActivationLayer:
-                self.layers.append(dout)
-                dims[i+1] = din
-                i += 1
-            else:
-                new_layer = FFIPLayer(din, dout)
-                self.layers.append(new_layer)
-                self.params.extend(new_layer.params())
-                self.nparams += new_layer.n_params()
-        print self.layers
+    def init_funcs(self):
+        self.params = []
+        self.nparams = 0
+        for layer in self.layers:
+            self.params.extend(layer.params())
+            self.nparams += layer.n_params()
+
+        data = T.matrix('data')
+        lbl = T.matrix('lbl')
+        # Cannot be serialized
         net_out, obj = self.fwd(data, lbl)
         self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
-
-        self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams)
-
+        self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
         jac_data = T.vector('jacdata')
         jac_lbl = T.vector('jaclbl')
         net_out, obj = self.fwd(jac_data, jac_lbl)
@@ -47,15 +56,26 @@ class NNetDyn(object):
         data_grad = theano.gradient.jacobian(net_out, jac_data)
         self.jac = theano.function(inputs=[jac_data], outputs=data_grad)
 
-    def get_weights(self):
+    def serialize(self):
         wts = []
         for layer in self.layers:
-            wts.append(layer.get_weights())
-        return wts
+            wts.append(layer)
+        metadata = {
+            'time': time.time(),
+            'loss': self.loss,
+            'weight_decay': self.weight_decay
+        }
+        return (metadata, wts)
 
-    def set_weights(self, wts):
+    def unserialize(self, net):
+        metadata = net[0]
+        wts = net[1]
+        self.loss = metadata['loss']
+        self.loss.wt[7:14] = 2.0
+        self.weight_decay = metadata['weight_decay']
+        self.layers = [None]*len(wts)
         for i in range(len(wts)):
-            self.layers[i].set_weights(wts[i])
+            self.layers[i] = wts[i]
 
     def fwd(self, data, labels):
         net_out = data
@@ -104,7 +124,7 @@ def train_gd(obj, params, args):
     return train    
 
 
-def train_gd_momentum(obj, params, args, scl=1.0):
+def train_gd_momentum(obj, params, args, scl=1.0, weight_decay=0.0):
     obj = obj
     scl = float(scl)
     gradients = T.grad(obj, params)
@@ -113,7 +133,7 @@ def train_gd_momentum(obj, params, args, scl=1.0):
     momentums = [theano.shared(np.copy(param.get_value())) for param in params]
     updates = []
     for i in range(len(gradients)):
-        update_gradient = (gradients[i])+momentum*momentums[i]
+        update_gradient = (gradients[i])+momentum*momentums[i]+weight_decay*params[i]
         updates.append((params[i], gpu_host(params[i]-(eta/scl)*update_gradient)))
         updates.append((momentums[i], gpu_host(update_gradient)))
     train = theano.function(
@@ -123,6 +143,41 @@ def train_gd_momentum(obj, params, args, scl=1.0):
     )
     return train
 
+
+class NormalizeLayer(object):
+    def __init__(self):
+        pass
+
+    def forward(self, prev_layer):
+        if self.reverse:
+            return prev_layer*self.sig + self.mean
+        else:
+            return (prev_layer-self.mean)/self.sig
+
+    def generate_weights(self, data, reverse=False):
+        self.mean = np.mean(data, axis=0)
+        data = data-self.mean
+        sig = np.std(data, axis=0)
+        self.sig = sig
+        self.reverse = reverse
+
+    def params(self):
+        """ Return a list of trainable parameters """
+        return []
+    
+    def n_params(self):
+        return 0
+
+    def serialize(self):
+        return [self.sig, self.mu, self.normalize]
+
+    def unserialize(self, wts):
+        self.sig = wts[0]
+        self.mu = wts[1]
+        self.normalize = self.normalize
+
+    def __str__(self):
+        return "W:%s; b:%s" % (self.w.get_value(), self.b.get_value())
 
 class FFIPLayer(object):
     """ Feedforward inner product layer """
@@ -145,10 +200,10 @@ class FFIPLayer(object):
     def n_params(self):
         return self.n_in*self.n_out+self.n_out
 
-    def get_weights(self):
+    def serialize(self):
         return [self.w.get_value(), self.b.get_value()]
 
-    def set_weights(self, wts):
+    def unserialize(self, wts):
         self.w.set_value(wts[0])
         self.b.set_value(wts[1])
 
@@ -157,23 +212,35 @@ class FFIPLayer(object):
         #return "W:%s" % (self.w.get_value())
 
 class ActivationLayer(object):
+    ACT_DICT = {
+        'tanh': T.tanh,
+        'sigmoid': T.nnet.sigmoid,
+        'softmax': T.nnet.softmax,
+        'relu': lambda x: x * (x > 0) + (0.99*x * (x<0))
+    }
     """ Activation layer """
     def __init__(self, act):
         self.act = act
 
-    def get_weights(self):
-        return None
+    def serialize(self):
+        return [self.act]
 
-    def set_weights(self, wt):
-        pass
+    def unserialize(self, wt):
+        self.act = wt[0]
+
+    def params(self):
+        return []
+
+    def n_params(self):
+        return 0
 
     def forward(self, previous):
-        return self.act(previous)
+        return ActivationLayer.ACT_DICT[self.act](previous)
 
-TanhLayer = ActivationLayer(T.tanh)
-SigmLayer = ActivationLayer(T.nnet.sigmoid)
-SoftMaxLayer = ActivationLayer(T.nnet.softmax)
-ReLULayer = ActivationLayer(lambda x: x * (x > 0) + (0.99*x * (x<0)))
+TanhLayer = ActivationLayer('tanh')
+SigmLayer = ActivationLayer('sigmoid')
+SoftMaxLayer = ActivationLayer('softmax')
+ReLULayer = ActivationLayer('relu')
 
 class SquaredLoss(object):
     def __init__(self, wt):
@@ -232,39 +299,42 @@ def dummytest():
     print FFF.dot(data_in[idx])
 
 def train_dyn():
-    fname = 'dyn_net_air2.pkl'
-    np.random.seed(10)
+    fname = 'norm_net.pkl'
+    #np.random.seed(10)
     np.set_printoptions(suppress=True)
     import scipy.io
     data = scipy.io.loadmat('dyndata.mat')
     din = 46
     dout = 39
     data_in = data['train_data'].T.astype(np.float32)
+    print 'Data shape:', data_in.shape
     N = data_in.shape[0]
     print 'Loaded %d training examples' % N
     data_out = data['train_lbl'].T.astype(np.float32)
-    wt = np.ones(39).astype(np.float32)
-    wt[0:7] = 5.0
-    wt[0] = 10.0
-    wt[7:14] = 2.0
-    net = NNetDyn([din,200, ReLULayer, 300, ReLULayer, 100, ReLULayer, dout], wt)
-
     #shuffle
     perm = np.random.permutation(N)
     data_in = data_in[perm]
     data_out = data_out[perm]
 
     try:
-        with open(fname, 'r') as f:
-            wts = cPickle.load(f)
-            net.set_weights(wts)
+        net = load_net(fname)
+        print 'Loaded net!'
     except IOError:
         print 'Initializing new network!'
+        wt = np.ones(39).astype(np.float32)
+        wt[0:7] = 5.0
+        wt[7:14] = 2.0
+        norm1 = NormalizeLayer()
+        norm1.generate_weights(data_in)
+        #norm2 = NormalizeLayer()
+        #norm2.generate_weights(data_out, reverse=True)
+        net = NNetDyn([norm1, FFIPLayer(46,100), ReLULayer, FFIPLayer(100,50) , ReLULayer, FFIPLayer(50,39)], wt, weight_decay=0.0001)
+        import pdb; pdb.set_trace()
 
 
-    for idx in [1,2, 90]:
+    for idx in [25]:
         pred =  net.fwd_single(data_in[idx])
-        F, f = net.getF(data_in[idx] + 0.1*np.random.randn(din).astype(np.float32))
+        F, f = net.getF(data_in[idx] + 0.01*np.random.randn(din).astype(np.float32))
         print F
         print f
         pred2 = (F.dot(data_in[idx])+f)
@@ -272,11 +342,12 @@ def train_dyn():
         print 'net:',pred
         print 'tay:',pred2
         print 'lbl:',data_out[idx]
+        import pdb; pdb.set_trace()
 
     # Train one example at a time - use high momentum
     #lr = 20.0
     bsize = 50
-    lr = 50.0/bsize
+    lr = 10.0/bsize
     lr_schedule = {
             1000000: 0.5,
             2000000: 0.5,
@@ -302,13 +373,12 @@ def train_dyn():
         net.train(_din, _dout, lr, 0.90)
         if i in lr_schedule:
             lr *= lr_schedule[i]
-        if i % 1000 == 0:
+        if i % 5000 == 0:
             print i, net.obj_matrix(data_in, data_out)
             sys.stdout.flush()
-        if i % 100000 == 0:
+        if i % 50000 == 0:
             print 'Dumping weights'
-            with open(fname, 'w') as f:
-                cPickle.dump(net.get_weights(), f)
+            dump_net(fname, net)
 
     for idx in [1,2, 90]:
         pred =  net.fwd_single(data_in[idx])
@@ -321,19 +391,31 @@ def train_dyn():
         print 'tay:',pred2
         print 'lbl:',data_out[idx]
 
-    with open(fname, 'w') as f:
-        cPickle.dump(net.get_weights(), f)
+
 
 def get_net():
     wt = np.ones(39).astype(np.float32)
     #net = NNetDyn([46,200,100,100,39], wt)
-    with open('dyn_net_trap.pkl', 'r') as f:
+    with open('dyn_net_lin.pkl', 'r') as f:
         wts = cPickle.load(f)
-
-        net = NNetDyn([46,200,100,100,39], wt)
+        #net = NNetDyn([46,200,TanhLayer,300,ReLULayer,100,ReLULayer,39], wt)
+        net = NNetDyn([46,39], wt)
         net.set_weights(wts)
     return net
+
+def test_norm():
+    data = scipy.io.loadmat('dyndata.mat')
+    data_in = data['train_data'].T.astype(np.float32)
+    print data_in.shape
+    norm = NormalizeLayer()
+    norm.generate_weights(data_in)
+    norm_data = norm.forward(data_in)
+    norm.reverse = True
+    norm_data_rev = norm.forward(norm_data)
+    import pdb; pdb.set_trace()
+
 
 if __name__ == "__main__":
     #get_net()
     train_dyn()
+    #test_norm()

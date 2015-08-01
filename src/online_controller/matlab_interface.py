@@ -3,7 +3,6 @@ import logging
 import numpy as np
 
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
-from hyperparam_defaults import defaults
 from sample_data.sample_data import SampleData
 from utility.gmm import GMM
 from cost_state_online import CostStateTracking
@@ -37,8 +36,8 @@ def get_controller(matfile):
 
 	# Read in dynprior sigma, mu, N, mass, logmass
 	gmm = GMM()
-	gmm.sigma = mat['gmm_sigma']
-	gmm.mu = mat['gmm_mu']
+	gmm.sigma = mat['gmm_sigma'].transpose(2,0,1)
+	gmm.mu = mat['gmm_mu'].T
 	gmm.N = mat['gmm_N']
 	gmm.mass = mat['gmm_mass']
 	gmm.logmass = mat['gmm_logmass']

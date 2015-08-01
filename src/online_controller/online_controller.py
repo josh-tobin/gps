@@ -38,6 +38,7 @@ class OnlineController(Policy):
         self.empsig_N = 1
         self.sigreg = 1e-6
         self.diag_dynamics = False
+        self.time_varying_dynamics = True
 
         self.prevX = None
         self.prevU = None
@@ -320,14 +321,15 @@ class OnlineController(Policy):
             #mu[t] = np.r_[mu[t,ix], np.zeros(dU)]
 
             # Reuse old dynamics
-            F[t] = F[0]
-            f[t] = f[0]
-            dynsig[t] = dynsig[0]
+            if not self.time_varying_dynamics:
+                F[t] = F[0]
+                f[t] = f[0]
+                dynsig[t] = dynsig[0]
 
             if t < H-1:
                 # Estimate new dynamics here based on mu
-                #if t>=1:
-                #    F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], empsig, cur_timestep+t);
+                if self.time_varying_dynamics and t>=1:
+                    F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], empsig, cur_timestep+t);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
@@ -419,10 +421,10 @@ class OnlineController(Policy):
         ip = slice(dX+dU, dX+dU+dX)
 
         #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
-        #offline_fd = self.offline_fd[t]
-        #offline_fc = self.offline_fc[t]
-        #offline_dynsig = self.offline_dynsig[t]
-        #return offline_fd, offline_fc, offline_dynsig
+        offline_fd = self.offline_fd[t]
+        offline_fc = self.offline_fc[t]
+        offline_dynsig = self.offline_dynsig[t]
+        return offline_fd, offline_fc, offline_dynsig
 
         """
         xu = np.r_[prev_x, prev_u].astype(np.float32)
@@ -449,10 +451,10 @@ class OnlineController(Policy):
 
         #empsig = 0.5*self.offline_sigma[t]+0.5*empsig
         empsig = self.sigma
+        if self.diag_dynamics:
+            empsig = self.diag_dyn(empsig, t)
 
         sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-        if self.diag_dynamics:
-            sigma = self.diag_dyn(sigma)
         #sigma = empsig;  # Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
         sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
@@ -465,7 +467,9 @@ class OnlineController(Policy):
 
         return Fm, fv, dyn_covar
 
-    def diag_dyn(self, sigma):
+    def diag_dyn(self, sigma, t):
+        if t>10:
+            return sigma
         sigma = np.copy(sigma)
         #Zero-out cross terms
         dX = self.dX
@@ -495,7 +499,7 @@ class OnlineController(Policy):
             dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ijnt)
             dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ivel)
             dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ijnt_tgt)
-            dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ivel_tgt)
+            #dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ivel_tgt)
             dirty = dirty or zero_offdiag(sigma, i, j, ijnt_tgt, ivel_tgt)
 
             # Joint vel
@@ -518,7 +522,7 @@ class OnlineController(Policy):
             dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieejnt)
             dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieevel)
             dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieejnt_tgt)
-            dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieevel_tgt)
+            #dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieevel_tgt)
             dirty = dirty or zero_offdiag(sigma, i, j, ieejnt_tgt, ieevel_tgt)
 
             # EE vel
@@ -539,8 +543,4 @@ class OnlineController(Policy):
                 sigma[i,j] = 0
 
         sigma = sigma+sigma.T
-
-        #it = slice(dX+dU)
-        #ip = slice(dX+dU, dX+dU+dX)
-        #Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
         return sigma
