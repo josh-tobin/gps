@@ -35,19 +35,13 @@ class NNetDyn(object):
         if init_funcs:
             self.init_funcs()
 
-    def init_funcs(self):
+def init_funcs(self):
         self.params = []
         self.nparams = 0
         for layer in self.layers:
             self.params.extend(layer.params())
             self.nparams += layer.n_params()
 
-        data = T.matrix('data')
-        lbl = T.matrix('lbl')
-        # Cannot be serialized
-        net_out, obj = self.fwd(data, lbl)
-        self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
-        self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
         jac_data = T.vector('jacdata')
         jac_lbl = T.vector('jaclbl')
         net_out, obj = self.fwd(jac_data, jac_lbl)
@@ -55,6 +49,16 @@ class NNetDyn(object):
         self.out_shape = theano.function(inputs=[jac_data], outputs=net_out.shape)
         data_grad = theano.gradient.jacobian(net_out, jac_data)
         self.jac = theano.function(inputs=[jac_data], outputs=data_grad)
+
+        data = T.matrix('data')
+        lbl = T.matrix('lbl')
+        # Cannot be serialized
+        net_out = self.fwd(data)
+        jacobian = theano.gradient.jacobian(net_out, data)
+        obj = self.loss.loss(labels, net_out, )
+        self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
+        self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparam
+
 
     def serialize(self):
         wts = []
@@ -252,6 +256,25 @@ class SquaredLoss(object):
         diff = diff*self.wt
         loss = T.sum(diff*diff)/diff.shape[0]
         return loss
+
+class SparsityLoss(object):
+    def __init__(self, expr):
+        super(SparsityLoss, self).__init__()
+        self.expr = expr
+
+    def loss(self, labels, predictions):
+        return T.sum(self.expr)
+
+class SumLoss(object):
+    def __init__(self, losses):
+        super(SumLoss, self).__init__()
+        self.losses = losses
+
+    def loss(self, labels, predictions):
+        sumloss = self.losses[0].loss(labels, predictions)
+        for i in range(1, len(self.losses)):
+            sumloss += self.losses[i].loss(labels, predictions)
+        return sumloss
 
 def dummytest():
     np.random.seed(10)
