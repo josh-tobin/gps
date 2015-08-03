@@ -21,9 +21,9 @@ def main():
         X = np.array(msg.X)
         t = msg.t
 
-        #if t==98:
-        #	with open('junk.pkl', 'w') as f:
-        #		cPickle.dump(controller, f)
+        if t==99:
+        	with open('plot.pkl', 'w') as f:
+        		cPickle.dump(controller, f)
 
         obs = None
         noise = None

@@ -1,6 +1,8 @@
 import scipy.io
 import logging
 import numpy as np
+import scipy.io
+import cPickle
 
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from sample_data.sample_data import SampleData
@@ -29,7 +31,9 @@ def get_controller(matfile):
 	fv = mat['dyn_fc'].T
 	dynsig = mat['dyn_sig'].transpose(2,0,1)
 	#big_dyn_sig = mat['dyn_big_sig'].transpose(2,0,1)
-
+	dyn_init_mu = mat['dyn_init_mu'][:,0]
+	dyn_init_sig = mat['dyn_init_sig']
+	
 	# Read in prev controller
 	K = mat['traj_K'].transpose(2,0,1)
 	k = mat['traj_k'].T
@@ -49,12 +53,33 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	oc = OnlineController(dX, dU, dynprior, cost, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig, big_dyn_sig=None)
+	#"""
+	with open('trap_contact_gmm60.pkl') as f:
+		gmm = cPickle.load(f)
+	#"""
+
+	oc = OnlineController(dX, dU, dynprior, cost, dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig, big_dyn_sig=None)
 	#for t in range(100):
 	#	print oc.act(tgt[t,:dX], None, t, None)
 	return oc
+
+def newgmm():
+    logging.basicConfig(level=logging.DEBUG)
+    data = scipy.io.loadmat('dyndata.mat')
+    data_in = data['train_data'].T.astype(np.float32)
+    data_out = data['train_lbl'].T.astype(np.float32)
+    X = np.c_[data_in, data_out]
+    print X.shape
+    gmm = GMM()
+    gmm.update(X, 60)
+    with open('trap_contact_gmm60.pkl', 'w') as f:
+    	cPickle.dump(gmm, f)
+
 
 def run():
     oc = get_controller('/home/justin/RobotRL/test/onlinecont.mat')
     print np.max(oc.offline_K[0], axis=0)
     print oc.offline_k[0]
+
+if __name__ == "__main__":
+	newgmm()

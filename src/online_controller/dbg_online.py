@@ -16,12 +16,21 @@ def main():
 	fwd_info = oc.fwd_hist
 
 	start_time = 5
+	print 'T=',start_time
 	fwd_mu = np.array([mu[idx_to_plot] for mu in oc.fwd_hist[start_time]['trajmu']])
 	diff = fwd_mu - actual_x[start_time:start_time+oc.H]
 	plt.plot(np.arange(start_time,start_time+oc.H), diff)
 	plt.show()
 
 	start_time = 50
+	print 'T=',start_time
+	fwd_mu = np.array([mu[idx_to_plot] for mu in oc.fwd_hist[start_time]['trajmu']])
+	diff = fwd_mu - actual_x[start_time:start_time+oc.H]
+	plt.plot(np.arange(start_time,start_time+oc.H), diff)
+	plt.show()
+
+	start_time = 80
+	print 'T=',start_time
 	fwd_mu = np.array([mu[idx_to_plot] for mu in oc.fwd_hist[start_time]['trajmu']])
 	diff = fwd_mu - actual_x[start_time:start_time+oc.H]
 	plt.plot(np.arange(start_time,start_time+oc.H), diff)
