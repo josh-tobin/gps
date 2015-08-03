@@ -23,8 +23,8 @@ def get_data():
             xu = np.r_[x,u]
             test_data.append(xu)
             test_lbl.append(x_p1)
-    test_data = np.array(test_data)
-    test_lbl = np.array(test_lbl)
+    test_data = np.array(test_data).astype(np.float32)
+    test_lbl = np.array(test_lbl).astype(np.float32)
     return data_in, data_out, test_data, test_lbl
 
 def train_dyn():
@@ -35,6 +35,7 @@ def train_dyn():
     din = 46#28
     dout = 39#21
     data_in, data_out, test_data, test_lbl = get_data()
+    N = data_in.shape[0]
     #data_out = data_out[:,0:27]
     #data_out = data_out[:,0:21]
 
@@ -60,7 +61,7 @@ def train_dyn():
     """
     #net = NNetDyn([norm1, FFIPLayer(din,200), TanhLayer, FFIPLayer(200,200) , ReLULayer, FFIPLayer(200,dout)], wt, weight_decay=0.0001)
     #net = NNetDyn([norm1, FFIPLayer(din,100), TanhLayer, FFIPLayer(100,100), ReLULayer, FFIPLayer(100,dout)], wt, weight_decay=0.0005)
-    #net = NNetDyn([norm1, FFIPLayer(din,100), TanhLayer, FFIPLayer(100,80), ReLULayer, FFIPLayer(80,dout)], wt, weight_decay=0.0001)
+    #net = NNetDyn([norm1, FFIPLayer(din,100), TanhLayer, FFIPLayer(100,80), ReLULayer, FFIPLayer(80,dout)], wt, weight_decay=0.0001, sparsity_wt = 0.1)
     net = NNetDyn([norm1, FFIPLayer(din,40), ReLULayer, FFIPLayer(40,dout)], wt, weight_decay=0.0001)
     #net = NNetDyn([norm1, FFIPLayer(din,dout)], wt, weight_decay=0.0001) # loss ~0.13
 
@@ -69,7 +70,6 @@ def train_dyn():
         print 'Loaded net!'
     except IOError:
         print 'Initializing new network!'
-
 
     for idx in [25]:
         pred =  net.fwd_single(data_in[idx])
@@ -81,9 +81,8 @@ def train_dyn():
         print 'net:',pred
         print 'tay:',pred2
         print 'lbl:',data_out[idx]
-        import pdb; pdb.set_trace()
 
-    bsize = 50
+    bsize = 1
     lr = 5.0/bsize
     lr_schedule = {
             2000000: 0.2,
@@ -112,8 +111,7 @@ def train_dyn():
         if i in lr_schedule:
             lr *= lr_schedule[i]
         if i % 5000 == 0:
-            print 'Train err:',i, net.obj_matrix(data_in, data_out)
-            print 'Test err:',i, net.obj_matrix(test_data, test_lbl)
+            print 'Train:',i, net.obj_matrix(data_in, data_out), ' // Test :',i, net.obj_matrix(test_data, test_lbl)
             sys.stdout.flush()
         if i % 50000 == 0:
             print 'Dumping weights'

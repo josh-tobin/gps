@@ -27,10 +27,11 @@ def load_net(fname):
     return net
 
 class NNetDyn(object):
-    def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True, weight_decay=0.0):
-        self.loss = SquaredLoss(loss_wt)
+    def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True, sparsity_wt = 0.0,weight_decay=0.0):
         self.params = []
+        self.loss_wt = loss_wt
         self.nparams = 0
+        self.sparsity_wt = sparsity_wt
         self.layers = layers
         self.post_layer = post_layer
         self.weight_decay = weight_decay
@@ -48,13 +49,20 @@ class NNetDyn(object):
         lbl = T.matrix('lbl')
 
         # Cannot be serialized
-        net_out, obj = self.fwd(data, lbl, training=True)
+        net_out = self.fwd(data, training=True)
+        if self.sparsity_wt != 0:
+            jacobian = theano.gradient.jacobian(net_out.flatten(), data)
+            self.loss = SumLoss([SquaredLoss(self.loss_wt), SparsityLoss(jacobian)], [1.0,self.sparsity_wt])
+            obj = self.loss.loss(lbl, net_out)
+        else:
+            self.loss = SquaredLoss(self.loss_wt)
+            obj = self.loss.loss(lbl, net_out)
         self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
         self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
 
         jac_data = T.vector('jacdata')
         jac_lbl = T.vector('jaclbl')
-        net_out, obj = self.fwd(jac_data, jac_lbl, training=False, post_layer=True)
+        net_out = self.fwd(jac_data, training=False)
         self.net_out_vec = theano.function(inputs=[jac_data], outputs=net_out)
         self.out_shape = theano.function(inputs=[jac_data], outputs=net_out.shape)
         data_grad = theano.gradient.jacobian(net_out, jac_data)
@@ -66,9 +74,10 @@ class NNetDyn(object):
             wts.append(layer)
         metadata = {
             'time': time.time(),
-            'losswt': self.loss.wt,
+            'loss_wt': self.loss_wt,
             'weight_decay': self.weight_decay,
-            'post_layer': self.post_layer
+            'post_layer': self.post_layer,
+            'sparsity_wt': self.sparsity_wt
         }
         return (metadata, wts)
 
@@ -76,26 +85,23 @@ class NNetDyn(object):
         metadata = net[0]
         wts = net[1]
         #self.loss = metadata['loss']
-        self.loss.wt = metadata['losswt']
+        self.loss_wt = metadata['loss_wt']
+        self.sparsity_wt = metadata['sparsity_wt']
 
         self.post_layer = metadata.get('post_layer', None)
 
-        self.loss.wt[0:7] = 5.0
-        self.loss.wt[7:14] = 2.0
-        #self.loss.wt[7:14] = 2.0
         self.weight_decay = metadata['weight_decay']
         self.layers = [None]*len(wts)
         for i in range(len(wts)):
             self.layers[i] = wts[i]
 
-    def fwd(self, data, labels, training=True, post_layer=True):
+    def fwd(self, data, training=True):
         net_out = data
         for layer in self.layers:
             net_out = layer.forward(net_out, training=training)
-        obj = self.loss.loss(labels, net_out)
-        if post_layer and self.post_layer:
-            net_out = self.post_layer.forward(net_out, training=training)
-        return net_out, obj 
+        #if post_layer and self.post_layer:
+        #    net_out = self.post_layer.forward(net_out, training=training)
+        return net_out 
 
     def fwd_single(self, xu):
         #xu = np.concatenate((xu, ONE))
@@ -336,6 +342,26 @@ class SquaredLoss(object):
         diff = diff*self.wt
         loss = T.sum(diff*diff)/diff.shape[0]
         return loss
+
+class SparsityLoss(object):
+    def __init__(self, expr):
+        super(SparsityLoss, self).__init__()
+        self.expr = expr
+
+    def loss(self, labels, predictions):
+        return T.sum(self.expr)
+
+class SumLoss(object):
+    def __init__(self, losses, wts):
+        super(SumLoss, self).__init__()
+        self.losses = losses
+        self.wts = wts
+
+    def loss(self, labels, predictions):
+        sumloss = self.wts[0]*self.losses[0].loss(labels, predictions)
+        for i in range(1, len(self.losses)):
+            sumloss += self.wts[i]*self.losses[i].loss(labels, predictions)
+        return sumloss
 
 def dummytest():
     np.random.seed(10)
