@@ -3,14 +3,18 @@ import numpy as np
 import sys
 
 def get_data():
-    data = scipy.io.loadmat('dyndata.mat')
+    data = scipy.io.loadmat('dyndata_trap_sim.mat')
     data_in = data['train_data'].T.astype(np.float32)
     #data_in = np.c_[data_in[:,0:27], data_in[:,45:52]]
     #data_in = np.c_[data_in[:,0:21], data_in[:,39:46]]
     print 'Data shape:', data_in.shape
     data_out = data['train_lbl'].T.astype(np.float32)
 
-    data2 = scipy.io.loadmat('dyn_data_Aug2.mat')
+    data2 = scipy.io.loadmat('dyndata_trapskid.mat')
+    test_data = data2['train_data'].T.astype(np.float32)
+    test_lbl = data2['train_lbl'].T.astype(np.float32)
+    print 'Test shape:', test_data.shape
+    """
     X = data2['data'].T # N x Dx+Du
     N = X.shape[0]
     test_data = []
@@ -25,10 +29,25 @@ def get_data():
             test_lbl.append(x_p1)
     test_data = np.array(test_data).astype(np.float32)
     test_lbl = np.array(test_lbl).astype(np.float32)
-    return data_in, data_out, test_data, test_lbl
+    scipy.io.savemat('dyndata_plane_extra.mat', {'data':test_data, 'label':test_lbl})
+    """
+    train_data = np.r_[data_in, test_data[:0,:]]
+    #train_data = np.r_[data_in]
+    train_lbl = np.r_[data_out, test_lbl[:0,:]]
+    #train_lbl = np.r_[data_out]
+    #test_data = test_data[2000:,:]
+    test_data = test_data[:,:]
+    test_lbl = test_lbl[:,:]
+    #test_lbl = test_lbl[2000:,:]
+
+    #train_data = np.c_[train_data[:,:14], train_data[:,39:46]]
+    #train_lbl = train_lbl[:,:14]
+    #test_data = np.c_[test_data[:,:14], test_data[:,39:46]]
+    #test_lbl = test_lbl[:,:14]
+    return train_data, train_lbl, test_data, test_lbl
 
 def train_dyn():
-    fname = 'trap_contact_%s.pkl' % sys.argv[1]
+    fname = '%s.pkl' % sys.argv[1]
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
     import scipy.io
@@ -44,11 +63,11 @@ def train_dyn():
     #data_in = data_in[perm]
     #data_out = data_out[perm]
 
-    wt = np.ones(39).astype(np.float32)
-    wt[0:7] = 5.0
-    wt[7:14] = 2.0
-    #norm1 = NormalizeLayer()
-    norm1 = WhitenLayer()
+    wt = np.ones(dout).astype(np.float32)
+    #wt[0:7] = 5.0
+    #wt[7:14] = 2.0
+    norm1 = NormalizeLayer()
+    #norm1 = WhitenLayer()
     norm1.generate_weights(data_in)
 
     """
@@ -61,9 +80,11 @@ def train_dyn():
     """
     #net = NNetDyn([norm1, FFIPLayer(din,200), TanhLayer, FFIPLayer(200,200) , ReLULayer, FFIPLayer(200,dout)], wt, weight_decay=0.0001)
     #net = NNetDyn([norm1, FFIPLayer(din,100), TanhLayer, FFIPLayer(100,100), ReLULayer, FFIPLayer(100,dout)], wt, weight_decay=0.0005)
-    #net = NNetDyn([norm1, FFIPLayer(din,100), TanhLayer, FFIPLayer(100,80), ReLULayer, FFIPLayer(80,dout)], wt, weight_decay=0.0001, sparsity_wt = 0.1)
-    net = NNetDyn([norm1, FFIPLayer(din,40), ReLULayer, FFIPLayer(40,dout)], wt, weight_decay=0.0001)
-    #net = NNetDyn([norm1, FFIPLayer(din,dout)], wt, weight_decay=0.0001) # loss ~0.13
+    #net = NNetDyn([norm1, FFIPLayer(din,60), TanhLayer, FFIPLayer(60,60), ReLULayer, FFIPLayer(60,dout)], wt, weight_decay=0.0000)
+    net = NNetDyn([norm1, FFIPLayer(din,20), ReLULayer, FFIPLayer(20,16), AccelLayer()], wt, weight_decay=0.0000, layer_reg=[{'layer_idx': 2, 'l2wt':1e-5}])
+    #net = NNetDyn([norm1, FFIPLayer(din,39)], wt, weight_decay=0.0000)
+    #net = NNetDyn([norm1, FFIPLayer(din,60), ReLULayer, FFIPLayer(60,dout)], wt, weight_decay=0.0000, sparsity_wt=0.000)
+    #net = NNetDyn([norm1, FFIPLayer(din,16), AccelLayer()], wt, weight_decay=0.0000) # loss ~0.13
 
     try:
         net = load_net(fname)
@@ -74,6 +95,8 @@ def train_dyn():
     for idx in [25]:
         pred =  net.fwd_single(data_in[idx])
         F, f = net.getF(data_in[idx] + 0.01*np.random.randn(din).astype(np.float32))
+        getFtrain = lambda idx: net.getF(data_in[idx])[0]
+        getFtest =  lambda idx: net.getF(test_data[idx])[0]
         print F
         print f
         pred2 = (F.dot(data_in[idx])+f)
@@ -81,9 +104,10 @@ def train_dyn():
         print 'net:',pred
         print 'tay:',pred2
         print 'lbl:',data_out[idx]
+        import pdb; pdb.set_trace()
 
-    bsize = 1
-    lr = 5.0/bsize
+    bsize = 50
+    lr = 100.0/bsize
     lr_schedule = {
             2000000: 0.2,
             4000000: 0.2,
@@ -110,10 +134,10 @@ def train_dyn():
         net.train(_din, _dout, lr, 0.90)
         if i in lr_schedule:
             lr *= lr_schedule[i]
-        if i % 5000 == 0:
+        if i % 1000 == 0:
             print 'Train:',i, net.obj_matrix(data_in, data_out), ' // Test :',i, net.obj_matrix(test_data, test_lbl)
             sys.stdout.flush()
-        if i % 50000 == 0:
+        if i % 10000 == 0:
             print 'Dumping weights'
             dump_net(fname, net)
 
@@ -132,7 +156,6 @@ def train_dyn():
 
 def get_net(name):
     net = load_net(name)
-    print net.getF(np.zeros(46).astype(np.float32))
     return net
 
 def test_norm():

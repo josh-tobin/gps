@@ -1,18 +1,21 @@
 import numpy as np
 
-from algorithm.cost.cost_utils import get_ramp_multiplier, RAMP_CONSTANT, evall1l2term, evall1l2term_fast
+from algorithm.cost.cost_utils import get_ramp_multiplier, RAMP_QUADRATIC, RAMP_LINEAR, RAMP_CONSTANT, evall1l2term, evall1l2term_fast
 
 class CostStateTracking(object):
     def __init__(self, wp, tgt):
         self.wp = wp
         self.mu = tgt
-        self.ramp_option = RAMP_CONSTANT
-        self.t_weight = 10.01
+        self.ref_len = tgt.shape[0]
+        self.ramp_option = RAMP_LINEAR
+        self.final_tgt = True
+        self.t_weight = 10.5
         self.l1 = 0.1
         self.l2 = 10.0
         self.alpha = 1e-5
         #self.wu = 1e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
-        self.wu = 5e-3/np.array([2.09,1.08,0.393,0.674,0.111,0.152,0.098])
+        self.wu = 2e-3/np.array([2.09,1.08,0.393,0.674,0.111,0.152,0.098])
+        self.wpm = get_ramp_multiplier(self.ramp_option, self.ref_len, wp_final_multiplier=1.0)
 
     def eval(self, X, U, t):
         # Constants.
@@ -20,8 +23,7 @@ class CostStateTracking(object):
         dU = U.shape[1]
         T = X.shape[0]
 
-        wpm = get_ramp_multiplier(self.ramp_option, T, wp_final_multiplier=1.0)
-        wp = self.wp*np.expand_dims(wpm, axis=-1)
+        wp = self.wp[:dX]*np.expand_dims(self.wpm[t:t+T], axis=-1)
 
         #l = np.zeros(T)
         l = 0.5 * np.sum(self.wu * (U ** 2), axis=1)
@@ -36,12 +38,14 @@ class CostStateTracking(object):
         Tmu = self.mu.shape[0]
         cand_idx = np.zeros(T)
         t_ramp = self.t_weight*np.arange(t,t+T)
-        query_pnts = np.c_[X, t_ramp]
-        tgt_points = np.c_[self.mu, self.t_weight*np.arange(Tmu)]
+        query_pnts = np.c_[X*self.wp, t_ramp]
+        tgt_points = np.c_[self.mu[:,:dX]*self.wp, self.t_weight*np.arange(Tmu)]
         for i in range(T):
             min_idx = nearest_neighbor(query_pnts[i], tgt_points)
+            if self.final_tgt:
+            	min_idx = self.ref_len-1
             cand_idx[i] = min_idx
-            tgt[i] = self.mu[min_idx]
+            tgt[i] = self.mu[min_idx,:dX]
         print cand_idx
         dist = X - tgt
         # Evaluate penalty term.
@@ -61,7 +65,6 @@ class CostStateTracking(object):
         tgt_points = np.c_[self.mu, self.t_weight*np.arange(Tmu)]
         for i in range(T):
             min_idx = nearest_neighbor(query_pnts[i], tgt_points)
-            #min_idx = 99
             cand_idx[i] = min_idx
         return cand_idx
 

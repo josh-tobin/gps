@@ -1,9 +1,10 @@
 import cPickle
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 def main():
-	with open('plot.pkl', 'r') as f:
+	with open(sys.argv[1], 'r') as f:
 		oc = cPickle.load(f)
 
 	idx_to_plot = slice(0,7)
@@ -15,6 +16,7 @@ def main():
 
 	fwd_info = oc.fwd_hist
 
+	"""
 	start_time = 5
 	print 'T=',start_time
 	fwd_mu = np.array([mu[idx_to_plot] for mu in oc.fwd_hist[start_time]['trajmu']])
@@ -39,6 +41,7 @@ def main():
 	u_offline = np.array([ oc.offline_K[t].dot(oc.inputs[t]['x'])+oc.offline_k[t]  for t in range(1,98)  ])
 	plt.plot(np.arange(97), u_offline)
 	plt.show()
+	"""
 	u_online = np.array([ oc.calculated[t]['u'] for t in range(97) ])
 	plt.plot(np.arange(2,97), u_online[2:])
 	plt.show()

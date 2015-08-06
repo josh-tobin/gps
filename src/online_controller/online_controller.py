@@ -28,17 +28,17 @@ class OnlineController(Policy):
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.4
+        self.gamma = 0.2
         self.maxT = 100
         self.min_mu = 1e-6 
         self.del0 = 2
         self.NSample = 1
 
         self.H = 10
-        self.empsig_N = 1
+        self.empsig_N = 3
         self.sigreg = 1e-6
         self.diag_dynamics = False
-        self.time_varying_dynamics = False
+        self.time_varying_dynamics = True
 
         self.prevX = None
         self.prevU = None
@@ -51,31 +51,40 @@ class OnlineController(Policy):
         self.dyn_init_sig = dyn_init_sig
         self.offline_sigma = big_dyn_sig
         self.copy_offline_traj = False
+        self.posvel_only = False
         self.offline_K = offline_K
         self.offline_k = offline_k
-        self.X = [] # History of Xs. For debugging
         self.inputs = []
         self.calculated = []
         self.fwd_hist = [None]*101
 
         #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        #self.dyn_net = theano_dynamics.get_net('trap_contact_whitened.pkl') 
+        self.dyn_net_ls = theano_dynamics.get_net('trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
+        self.dyn_net = theano_dynamics.get_net('trap_sim.pkl')
+        #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
+        #self.dyn_net = theano_dynamics.get_net('trap_contact_60tanh.pkl') 
+
+        self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, t):
+        if t == 0:
+            self.inputs = [] #debugging
+
         #start = time.time()
-        dX = self.dX
+        if self.posvel_only:
+            self.dX = 14
+            self.dU = 7
+            x = x[0:14]
+            prevx = prevx[0:14]
+
+        dX = self.dX 
         dU = self.dU
         #gamma = self.gamma
-        #self.mu = empmu
-        #self.sigma = empsig
         self.prevX = prevx
         self.prevU = prevu
-        self.X.append(x) # For debugging
         self.inputs.append({'x':x, 'empmu':empmu, 'empsig':empsig, 'prevx':prevx, 'prevu':prevu, 't':t})
 
         if t==0:
-            self.X = []
             # Execute something for first action.
             H = self.H
             K = np.zeros((H, dU, dX))
@@ -84,6 +93,10 @@ class OnlineController(Policy):
 
             self.mu = self.dyn_init_mu
             self.sigma = self.dyn_init_sig
+            if self.posvel_only:
+                self.mu = np.r_[self.mu[0:14], self.mu[39:60]]
+                self.sigma = np.c_[np.r_[self.sigma[:14,:14], self.sigma[39:60,:14]],
+                                    np.r_[self.sigma[:14,39:60], self.sigma[39:60,39:60]]]
             self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
             if self.copy_offline_traj:
                 for i in range(t,t+self.prev_policy.T):
@@ -131,6 +144,13 @@ class OnlineController(Policy):
         #u = self.offline_K[t].dot(x)+self.offline_k[t]
         #print 'Offline:', u
 
+        if self.posvel_only:
+            newK = np.zeros((self.prev_policy.T,7,39))
+            for i in range(self.prev_policy.T):
+                newK[i] = np.concatenate([self.prev_policy.K[i], np.zeros((7,39-14))], axis=1)
+            newpol = LinearGaussianPolicy(newK, self.prev_policy.k, None, None, None)
+            return newpol
+
         if self.copy_offline_traj:
             print 'CopyTraj!'
             for i in range(t,t+self.prev_policy.T):
@@ -139,6 +159,10 @@ class OnlineController(Policy):
         #self.prev_policy.K.fill(0.0)
         #self.prev_policy.k.fill(0.0)
 
+        noise = 0.00
+        self.prev_policy.k[0] += self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
+        if self.prev_policy.T > 1:
+            self.prev_policy.k[1] += self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
         # Store state and action.
         return self.prev_policy
  
@@ -341,6 +365,7 @@ class OnlineController(Policy):
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
         self.fwd_hist[cur_timestep] = {'trajmu': mu, 'trajsig': trajsig, 'F': F, 'f': f}
+        self.vis_forward_pass_joints = mu[:,0:7]
 
         #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))
@@ -427,16 +452,19 @@ class OnlineController(Policy):
         it = slice(dX+dU)
         ip = slice(dX+dU, dX+dU+dX)
 
-        if t<000:
+        xu = np.r_[cur_x, cur_action].astype(np.float32)
+        F2, f2 = self.dyn_net_ls.getF(xu)
+        if t<200:
             #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
             #offline_fd = self.offline_fd[t]
             #offline_fc = self.offline_fc[t]
             #offline_dynsig = self.offline_dynsig[t]
             #return offline_fd, offline_fc, offline_dynsig
-            print cur_action
-            xu = np.r_[cur_x, cur_action].astype(np.float32)
-            dynsig = np.eye(39)
+            dynsig = np.eye(dX)
             F, f = self.dyn_net.getF(xu)
+
+            #F[7:14] = F2[7:14]
+            #f[7:14] = f2[7:14]
             return F, f, dynsig
 
         xux = np.r_[prev_x, prev_u, cur_x]
@@ -451,15 +479,18 @@ class OnlineController(Policy):
         if self.diag_dynamics:
             empsig = self.diag_dyn(empsig, t)
 
-        sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-        #sigma = empsig;  # Moving average only
+        #sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+        sigma = empsig;  # Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
         sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 
         Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
         fv = mun[ip] - Fm.dot(mun[it]);
 
-        Fms = (np.linalg.pinv(self.sigma[it, it]).dot(self.sigma[it, ip])).T
+        #Fm[7:14] = F2[7:14]
+        #fv[7:14] = f2[7:14]
+
+        #Fms = (np.linalg.pinv(self.sigma[it, it]).dot(self.sigma[it, ip])).T
 
         dyn_covar = sigma[ip,ip] - Fm.dot(sigma[it,it]).dot(Fm.T)
         dyn_covar = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
@@ -541,3 +572,9 @@ class OnlineController(Policy):
 
         sigma = sigma+sigma.T
         return sigma
+
+    def get_forward_joint_states(self):
+        """ Joint states for visualizing forward pass in RVIZ
+            Returns an H x 7 array
+        """
+        return self.vis_forward_pass_joints

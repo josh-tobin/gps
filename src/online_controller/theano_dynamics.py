@@ -27,11 +27,11 @@ def load_net(fname):
     return net
 
 class NNetDyn(object):
-    def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True, sparsity_wt = 0.0,weight_decay=0.0):
+    def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True,weight_decay=0.0, layer_reg = []):
         self.params = []
         self.loss_wt = loss_wt
+        self.layer_reg = layer_reg
         self.nparams = 0
-        self.sparsity_wt = sparsity_wt
         self.layers = layers
         self.post_layer = post_layer
         self.weight_decay = weight_decay
@@ -49,20 +49,30 @@ class NNetDyn(object):
         lbl = T.matrix('lbl')
 
         # Cannot be serialized
-        net_out = self.fwd(data, training=True)
-        if self.sparsity_wt != 0:
-            jacobian = theano.gradient.jacobian(net_out.flatten(), data)
-            self.loss = SumLoss([SquaredLoss(self.loss_wt), SparsityLoss(jacobian)], [1.0,self.sparsity_wt])
-            obj = self.loss.loss(lbl, net_out)
-        else:
-            self.loss = SquaredLoss(self.loss_wt)
-            obj = self.loss.loss(lbl, net_out)
+        net_out, layers_out = self.fwd(data, training=True)
+
+        extra_loss = []
+        loss_wts = []
+        for lreg in self.layer_reg:
+            layer_idx = lreg['layer_idx']
+            wt = lreg['l2wt']
+            print 'Adding layer regularization of %f for layer %d!' % (wt, layer_idx)
+            layer = layers_out[layer_idx]
+            extra_loss.append(L2Reg(layer))
+            loss_wts.append(wt)
+
+        self.loss = SquaredLoss(self.loss_wt)
+        if extra_loss:
+            extra_loss.append(self.loss)
+            loss_wts.append(1.0)
+            self.loss = SumLoss(extra_loss, loss_wts)
+        obj = self.loss.loss(lbl, net_out)
         self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
         self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
 
         jac_data = T.vector('jacdata')
         jac_lbl = T.vector('jaclbl')
-        net_out = self.fwd(jac_data, training=False)
+        net_out, _ = self.fwd(jac_data, training=False)
         self.net_out_vec = theano.function(inputs=[jac_data], outputs=net_out)
         self.out_shape = theano.function(inputs=[jac_data], outputs=net_out.shape)
         data_grad = theano.gradient.jacobian(net_out, jac_data)
@@ -77,7 +87,7 @@ class NNetDyn(object):
             'loss_wt': self.loss_wt,
             'weight_decay': self.weight_decay,
             'post_layer': self.post_layer,
-            'sparsity_wt': self.sparsity_wt
+            'layer_reg': self.layer_reg
         }
         return (metadata, wts)
 
@@ -86,7 +96,7 @@ class NNetDyn(object):
         wts = net[1]
         #self.loss = metadata['loss']
         self.loss_wt = metadata['loss_wt']
-        self.sparsity_wt = metadata['sparsity_wt']
+        self.layer_reg = metadata.get('layer_reg', [])
 
         self.post_layer = metadata.get('post_layer', None)
 
@@ -97,13 +107,23 @@ class NNetDyn(object):
 
     def fwd(self, data, training=True):
         net_out = data
+        layers_out = []
         for layer in self.layers:
+            layer.set_input_data(data)
             net_out = layer.forward(net_out, training=training)
+            layers_out.append(net_out)
+        layers_out.append(net_out)
         #if post_layer and self.post_layer:
         #    net_out = self.post_layer.forward(net_out, training=training)
-        return net_out 
+        return net_out , layers_out
 
-    def fwd_single(self, xu):
+    def fwd_single(self, xu, layer=None):
+        if layer is not None:
+            data = T.vector('data')
+            _, layers_out = self.fwd(data, training=False)
+            layer_out = layers_out[layer]
+            net_out_vec = theano.function(inputs=[data], outputs=layer_out)
+            return net_out_vec(xu)
         #xu = np.concatenate((xu, ONE))
         return self.net_out_vec(xu)
 
@@ -142,7 +162,6 @@ def train_gd(obj, params, args):
     )
     return train    
 
-
 def train_gd_momentum(obj, params, args, scl=1.0, weight_decay=0.0):
     obj = obj
     scl = float(scl)
@@ -162,8 +181,27 @@ def train_gd_momentum(obj, params, args, scl=1.0, weight_decay=0.0):
     )
     return train
 
+class Layer(object):
+    def __init__(self):
+        pass
 
-class NormalizeLayer(object):
+    def set_input_data(self, data_in):
+        self.input_data = data_in
+
+    def params(self):
+        """ Return a list of trainable parameters """
+        return []
+    
+    def n_params(self):
+        return 0
+
+    def serialize(self):
+        return []
+
+    def unserialize(self, wts):
+        pass
+
+class NormalizeLayer(Layer):
     def __init__(self):
         self.reverse = False
         self.mean = 0
@@ -182,13 +220,6 @@ class NormalizeLayer(object):
         self.sig = sig
         self.reverse = reverse
 
-    def params(self):
-        """ Return a list of trainable parameters """
-        return []
-    
-    def n_params(self):
-        return 0
-
     def serialize(self):
         return [self.sig, self.mean, self.reverse]
 
@@ -200,7 +231,7 @@ class NormalizeLayer(object):
     def __str__(self):
         return "W:%s; b:%s" % (self.w.get_value(), self.b.get_value())
 
-class WhitenLayer(object):
+class WhitenLayer(Layer):
     def __init__(self):
         self.reverse = False
         self.mean = 0
@@ -222,13 +253,6 @@ class WhitenLayer(object):
             self.w = np.linalg.inv(self.w)
         self.reverse = reverse
 
-    def params(self):
-        """ Return a list of trainable parameters """
-        return []
-    
-    def n_params(self):
-        return 0
-
     def serialize(self):
         return [self.sig, self.mean, self.reverse]
 
@@ -240,8 +264,7 @@ class WhitenLayer(object):
     def __str__(self):
         return "W:%s; b:%s" % (self.w.get_value(), self.b.get_value())
 
-
-class FFIPLayer(object):
+class FFIPLayer(Layer):
     """ Feedforward inner product layer """
     n_instances = 0
     def __init__(self, n_in, n_out):
@@ -273,8 +296,44 @@ class FFIPLayer(object):
         return "W:%s; b:%s" % (self.w.get_value(), self.b.get_value())
         #return "W:%s" % (self.w.get_value())
 
-class DropoutLayer(object):
-    """ Feedforward inner product layer """
+class AccelLayer(Layer):
+    """ Acceleration Layer """
+    def __init__(self):
+        self.t = 0.05
+        self.idxpos = slice(0,7)
+        self.idxvel = slice(7,14)
+        self.idxprevu = slice(14,21)
+        self.idxeepos = slice(21,30)
+        self.idxeevel = slice(30,39)
+        self.idxu = slice(39,46)
+
+    def forward(self, prev_layer, training=True):
+        if training:
+            jnt_accel = prev_layer[:,:7]
+            ee_accel = prev_layer[:,7:16]
+            t = self.t
+            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
+            ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
+            prev_action = self.input_data[:,self.idxu]
+            return T.concatenate([jnt_pos, jnt_vel, prev_action, ee_pos, ee_vel], axis=1)
+        else:
+            jnt_accel = prev_layer[:7]
+            ee_accel = prev_layer[7:16]
+            t = self.t
+            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
+            ee_vel = self.input_data[self.idxeevel] + t*ee_accel
+            prev_action = self.input_data[self.idxu]
+            return T.concatenate([jnt_pos, jnt_vel, prev_action, ee_pos, ee_vel])
+
+    def __str__(self):
+        return "AccelLayer"
+
+
+class DropoutLayer(Layer):
     def __init__(self, n_in, rngseed=10):
         self.n_in = n_in
         self.rng = RandomStreams(seed=rngseed)
@@ -285,28 +344,15 @@ class DropoutLayer(object):
         else:
             return prev_layer * 0.5
 
-    def params(self):
-        """ Return a list of trainable parameters """
-        return []
-    
-    def n_params(self):
-        return 0
-
-    def serialize(self):
-        return []
-
-    def unserialize(self, wts):
-        pass
-
     def __str__(self):
         return "Dropout:%d" % self.n_in
 
-class ActivationLayer(object):
+class ActivationLayer(Layer):
     ACT_DICT = {
         'tanh': T.tanh,
         'sigmoid': T.nnet.sigmoid,
         'softmax': T.nnet.softmax,
-        'relu': lambda x: x * (x > 0) + (0.99*x * (x<0))
+        'relu': lambda x: x * (x > 0)
     }
     """ Activation layer """
     def __init__(self, act):
@@ -317,12 +363,6 @@ class ActivationLayer(object):
 
     def unserialize(self, wt):
         self.act = wt[0]
-
-    def params(self):
-        return []
-
-    def n_params(self):
-        return 0
 
     def forward(self, previous, training=True):
         return ActivationLayer.ACT_DICT[self.act](previous)
@@ -343,13 +383,21 @@ class SquaredLoss(object):
         loss = T.sum(diff*diff)/diff.shape[0]
         return loss
 
-class SparsityLoss(object):
+class L1Reg(object):
     def __init__(self, expr):
-        super(SparsityLoss, self).__init__()
+        super(L1Reg, self).__init__()
         self.expr = expr
 
     def loss(self, labels, predictions):
-        return T.sum(self.expr)
+        return T.sum(T.abs_(self.expr))/labels.shape[0]
+
+class L2Reg(object):
+    def __init__(self, expr):
+        super(L2Reg, self).__init__()
+        self.expr = expr
+
+    def loss(self, labels, predictions):
+        return T.sum(self.expr*self.expr)/labels.shape[0]
 
 class SumLoss(object):
     def __init__(self, losses, wts):
