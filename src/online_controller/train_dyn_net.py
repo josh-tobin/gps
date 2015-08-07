@@ -2,18 +2,42 @@ from theano_dynamics import *
 import numpy as np
 import sys
 
-def get_data():
-    data = scipy.io.loadmat('dyndata_trap_sim.mat')
-    data_in = data['train_data'].T.astype(np.float32)
-    #data_in = np.c_[data_in[:,0:27], data_in[:,45:52]]
-    #data_in = np.c_[data_in[:,0:21], data_in[:,39:46]]
-    print 'Data shape:', data_in.shape
-    data_out = data['train_lbl'].T.astype(np.float32)
+def load_matfile(matfile):
+    data = scipy.io.loadmat(matfile)
+    try:
+        dat = data['data']
+        lbl = data['label']
+    except KeyError:
+        dat = data['train_data'].T.astype(np.float32)
+        lbl = data['train_lbl'].T.astype(np.float32)
+    return dat, lbl
 
-    data2 = scipy.io.loadmat('dyndata_trapskid.mat')
-    test_data = data2['train_data'].T.astype(np.float32)
-    test_lbl = data2['train_lbl'].T.astype(np.float32)
-    print 'Test shape:', test_data.shape
+        
+
+def get_data(train, test):
+    train_data = [] 
+    train_label = []
+    for matfile in train:
+        data_in, data_out = load_matfile(matfile)
+        train_data.append(data_in)
+        #data_in = np.c_[data_in[:,0:27], data_in[:,45:52]]
+        #data_in = np.c_[data_in[:,0:21], data_in[:,39:46]]
+        train_label.append(data_out)
+        print 'Train data: Loaded %s. Shape: %s' % (matfile, data_in.shape)
+    train_data = np.concatenate(train_data)
+    train_label = np.concatenate(train_label)
+
+
+    test_data = [] 
+    test_label = []
+    for matfile in test:
+        data_in, data_out = load_matfile(matfile)
+        test_data.append(data_in)
+        test_label.append(data_out)
+        print 'Test data: Loaded %s. Shape: %s' % (matfile, data_in.shape)
+    test_data = np.concatenate(test_data)
+    test_label = np.concatenate(test_label)
+
     """
     X = data2['data'].T # N x Dx+Du
     N = X.shape[0]
@@ -31,13 +55,13 @@ def get_data():
     test_lbl = np.array(test_lbl).astype(np.float32)
     scipy.io.savemat('dyndata_plane_extra.mat', {'data':test_data, 'label':test_lbl})
     """
-    train_data = np.r_[data_in, test_data[:0,:]]
+    train_data = np.r_[train_data, test_data[:1000,:]]
     #train_data = np.r_[data_in]
-    train_lbl = np.r_[data_out, test_lbl[:0,:]]
+    train_lbl = np.r_[train_label, test_label[:1000,:]]
     #train_lbl = np.r_[data_out]
     #test_data = test_data[2000:,:]
-    test_data = test_data[:,:]
-    test_lbl = test_lbl[:,:]
+    test_data = test_data[1000:,:]
+    test_lbl = test_label[1000:,:]
     #test_lbl = test_lbl[2000:,:]
 
     #train_data = np.c_[train_data[:,:14], train_data[:,39:46]]
@@ -53,8 +77,10 @@ def train_dyn():
     import scipy.io
     din = 46#28
     dout = 39#21
-    data_in, data_out, test_data, test_lbl = get_data()
+    data_in, data_out, test_data, test_lbl = get_data(['dyndata_trapskid'],['dyndata_trap'])
     N = data_in.shape[0]
+    print data_in.shape
+    print test_data.shape
     #data_out = data_out[:,0:27]
     #data_out = data_out[:,0:21]
 
@@ -78,13 +104,8 @@ def train_dyn():
     data_out_unnorm = data_out
     data_out = data_out_normed
     """
-    #net = NNetDyn([norm1, FFIPLayer(din,200), TanhLayer, FFIPLayer(200,200) , ReLULayer, FFIPLayer(200,dout)], wt, weight_decay=0.0001)
-    #net = NNetDyn([norm1, FFIPLayer(din,100), TanhLayer, FFIPLayer(100,100), ReLULayer, FFIPLayer(100,dout)], wt, weight_decay=0.0005)
-    #net = NNetDyn([norm1, FFIPLayer(din,60), TanhLayer, FFIPLayer(60,60), ReLULayer, FFIPLayer(60,dout)], wt, weight_decay=0.0000)
-    net = NNetDyn([norm1, FFIPLayer(din,20), ReLULayer, FFIPLayer(20,16), AccelLayer()], wt, weight_decay=0.0000, layer_reg=[{'layer_idx': 2, 'l2wt':1e-5}])
-    #net = NNetDyn([norm1, FFIPLayer(din,39)], wt, weight_decay=0.0000)
-    #net = NNetDyn([norm1, FFIPLayer(din,60), ReLULayer, FFIPLayer(60,dout)], wt, weight_decay=0.0000, sparsity_wt=0.000)
-    #net = NNetDyn([norm1, FFIPLayer(din,16), AccelLayer()], wt, weight_decay=0.0000) # loss ~0.13
+    #net = NNetDyn([norm1, FFIPLayer(din,16), ReLULayer, FFIPLayer(16,16), AccelLayer()], wt, weight_decay=0.0000, layer_reg=[{'layer_idx': 2, 'l2wt':1e-5}])
+    net = NNetDyn([FFIPLayer(din,16), AccelLayer()], wt, weight_decay=0.0000) # loss ~0.13
 
     try:
         net = load_net(fname)

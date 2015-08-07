@@ -22,8 +22,8 @@ def get_controller(matfile):
 	# Read in mu for a CostStateOnline
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
-	#wp.fill(1.0)
-	wp[0:7] = 0.0
+	wp.fill(0.0)
+	#wp[0:7] = 1.0
 	wp[21:30] = 1.0
 	#wp[14:21] = 0.0
 	cost = CostStateTracking(wp, tgt)
@@ -65,10 +65,10 @@ def get_controller(matfile):
 	return oc
 
 def dyndata_init():
-    data = scipy.io.loadmat('dyndata_plane.mat')
+    data = scipy.io.loadmat('dyndata_trap.mat')
     data_in = data['train_data'].T.astype(np.float32)
     data_out = data['train_lbl'].T.astype(np.float32)
-    data = scipy.io.loadmat('dyndata_plane_extra.mat')
+    data = scipy.io.loadmat('dyndata_trap2.mat')
     data_in = np.r_[data_in, data['data'].astype(np.float32)]
     data_out = np.r_[data_out, data['label'].astype(np.float32)]
     xux = np.c_[data_in, data_out]

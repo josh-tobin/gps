@@ -28,7 +28,7 @@ class OnlineController(Policy):
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.2
+        self.gamma = 0.1
         self.maxT = 100
         self.min_mu = 1e-6 
         self.del0 = 2
@@ -38,7 +38,7 @@ class OnlineController(Policy):
         self.empsig_N = 3
         self.sigreg = 1e-6
         self.diag_dynamics = False
-        self.time_varying_dynamics = True
+        self.time_varying_dynamics = False
 
         self.prevX = None
         self.prevU = None
@@ -60,11 +60,12 @@ class OnlineController(Policy):
 
         #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
         self.dyn_net_ls = theano_dynamics.get_net('trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        self.dyn_net = theano_dynamics.get_net('trap_sim.pkl')
+        self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_60tanh.pkl') 
 
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
+        self.vis_forward_ee = None
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, t):
         if t == 0:
@@ -159,7 +160,7 @@ class OnlineController(Policy):
         #self.prev_policy.K.fill(0.0)
         #self.prev_policy.k.fill(0.0)
 
-        noise = 0.00
+        noise = 0.008
         self.prev_policy.k[0] += self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
         if self.prev_policy.T > 1:
             self.prev_policy.k[1] += self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
@@ -359,13 +360,14 @@ class OnlineController(Policy):
 
             if t < H-1:
                 # Estimate new dynamics here based on mu
-                if self.time_varying_dynamics and t>=1:
+                if self.time_varying_dynamics:
                     F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], empsig, cur_timestep+t, cur_action=cur_action);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
         self.fwd_hist[cur_timestep] = {'trajmu': mu, 'trajsig': trajsig, 'F': F, 'f': f}
         self.vis_forward_pass_joints = mu[:,0:7]
+        self.vis_forward_ee = mu[:,21:30]
 
         #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))
@@ -454,12 +456,13 @@ class OnlineController(Policy):
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
         F2, f2 = self.dyn_net_ls.getF(xu)
-        if t<200:
+        if t<000:
             #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
             #offline_fd = self.offline_fd[t]
             #offline_fc = self.offline_fc[t]
             #offline_dynsig = self.offline_dynsig[t]
             #return offline_fd, offline_fc, offline_dynsig
+
             dynsig = np.eye(dX)
             F, f = self.dyn_net.getF(xu)
 
@@ -578,3 +581,10 @@ class OnlineController(Policy):
             Returns an H x 7 array
         """
         return self.vis_forward_pass_joints
+
+    def get_forward_end_effector(self, pnt=0):
+        """ Joint states for visualizing forward pass in RVIZ
+            Returns an H x 3 array
+        """
+        if self.vis_forward_ee is not None:
+            return self.vis_forward_ee[:,pnt*3:pnt*3+3]

@@ -8,53 +8,38 @@ import rospy
 import logging
 import cPickle
 from matlab_interface import get_controller
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import WrenchStamped, Wrench, Twist, Vector3, Point
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
 
-BASE_LINK = 'torso_lift_link'
+BASE_LINK = '/torso_lift_link'
 
-def pub_viz_vec(viz_pub, ee_pos, v, color=[1.0,1.0,1.0], id=0, base_link='torso_lift_link'):
-    ee_pnt = Point()
-    ee_pnt.x = ee_pos[0]; ee_pnt.y = ee_pos[1]; ee_pnt.z=ee_pos[2]
-        # Vector end point
-    v_pnt = Point()
-    v_pnt.x = ee_pos[0]+v[0]; v_pnt.y = ee_pos[1]+v[1]; v_pnt.z=ee_pos[2]+v[2]
-
+def pub_viz_vec(viz_pub, points_to_viz, color=[1.0,1.0,1.0], id=0, base_link='/torso_lift_link', point_type=Marker.LINE_STRIP):
     points = Marker()
     points.header.frame_id = base_link
     points.id=id
-    points.type = Marker.LINE_LIST
-    points.points.append(ee_pnt)
-    points.points.append(v_pnt)
+    points.type = point_type
+    for point in points_to_viz:
+        pp = Point()
+        pp.x = point[0]; pp.y = point[1]; pp.z = point[2]
+        points.points.append(pp)
     points.color.r = color[0]
     points.color.g = color[1]
     points.color.b = color[2]
     points.color.a = 1.0 
+    points.scale.x = 0.01
+    points.scale.y = 0.01
+    points.scale.z = 1.0
     points.lifetime = rospy.Duration(1)  # 1 Second
     viz_pub.publish(points)
 
-def solve_fk():
-    rospy.wait_for_service('pr2_right_arm_kinematics/get_fk')
-    rospy.wait_for_service('pr2_right_arm_kinematics/get_fk_solver_info')
-    try:
-        getfk_info = rospy.ServiceProxy('pr2_right_arm_kinematics/get_fk_solver_info', GetKinematicSolverInfo)
-        fkinfo = getfk_info()
-        print 'fkinfo:', fkinfo
-
-        getfk = rospy.ServiceProxy('pr2_right_arm_kinematics/get_fk', GetPositionFK)
-        request = GetPositionFK.Request()
-        request.header.frame_id = BASE_LINK
-
-        return resp1.sum
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
-
-def visualize_forward_pass(fwd):
-    H, Djnt = fwd.shape
-    assert Djnt == 7
-    for t in range(H):
-        jnts = fwd[t,:]
+def visualize_forward_pass(fwd, viz_pub, color=[0.0,1.0,1.0], id=0):
+    H, Dee = fwd.shape
+    assert Dee == 3
+    pnts = [fwd[t,:] for t in range(H)] 
+    pub_viz_vec(viz_pub, pnts, color=color, id=id)
 
 def main():
     rospy.init_node('mpc_node')
@@ -81,6 +66,14 @@ def main():
         #if t==1:
         #	import pdb; pdb.set_trace()
         lgpol = controller.act_pol(X, empmu, empsig, prevx, prevu, t)
+
+        fwd_ee = controller.get_forward_end_effector(0)
+        if fwd_ee is not None:
+            visualize_forward_pass(controller.get_forward_end_effector(0), visualization_pub, color=[1.0,0.0,0.0], id=0)
+            visualize_forward_pass(controller.get_forward_end_effector(1), visualization_pub, color=[0.0,1.0,0.0], id=1)
+            visualize_forward_pass(controller.get_forward_end_effector(2), visualization_pub, color=[0.0,0.0,1.0], id=2)
+            eetgt = controller.cost.get_ee_tgt(99)
+            pub_viz_vec(visualization_pub, [eetgt[0:3], eetgt[3:6], eetgt[6:9]], point_type=Marker.POINTS, id=3)
         #action.fill(0.0)
 
         response = LGPolicy()
@@ -98,12 +91,8 @@ def main():
         elapsed_time = time.time()-start_time
         print 'Calculation took %f s for T=%d' % (elapsed_time, t)
 
-        # Set up forward pass visualization
-        fwd_jnt_states = controller.get_forward_joint_states() # H x 7 matrix
-        visualize_forward_pass(fwd_jnt_states)
-
-
     action_publisher = rospy.Publisher('/ddp/mat_controller_policy', LGPolicy)
+    visualization_pub = rospy.Publisher('/ddp/online_controller_viz', Marker)
     state_subscriber = rospy.Subscriber('/ddp/mat_controller_state', MPCState, state_callback)
 
     print 'Python controller initialized and spinning...'
