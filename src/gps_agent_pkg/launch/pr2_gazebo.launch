@@ -3,4 +3,5 @@
         <arg name="use_sim_time" value="false"/>
     </include>
 	<include file="$(find pr2_gazebo)/launch/pr2_no_controllers.launch" />
+    <param name="PR2Plugin/type" value="gps_agent_pkg/PR2Plugin" />
 </launch>

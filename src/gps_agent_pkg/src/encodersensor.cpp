@@ -128,7 +128,7 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
 }
 
 // Set data format and meta data on the provided sample.
-void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample> sample) const
+void EncoderSensor::set_sample_data_format(Sample* sample) const
 {
     // Set joint angles size and format.
     OptionsMap joints_metadata;
@@ -160,7 +160,7 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample> sample) con
 }
 
 // Set data on the provided sample.
-void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample> sample) const
+void EncoderSensor::set_sample_data(Sample* sample) const
 {
     // Set joint angles.
     sample->set_data(0,gps::SampleType::JOINT_ANGLES,&previous_angles_[0],previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);

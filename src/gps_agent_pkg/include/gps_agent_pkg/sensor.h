@@ -38,7 +38,7 @@ protected:
     double sensor_step_length_;
 public:
     // Factory function.
-    static Sensor create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin);
+    static Sensor* create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin);
     // Constructor.
     Sensor(ros::NodeHandle& n, RobotPlugin *plugin);
     // Destructor.
@@ -55,9 +55,9 @@ public:
     // Configure the Sensor (for Sensor-specific trial settings).
     virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
+    //virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.
-    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample);
+    //virtual void set_sample_data(boost::scoped_ptr<Sample>& sample);
 };
 
 }

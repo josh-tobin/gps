@@ -13,6 +13,7 @@ control law.
 
 namespace gps_control
 {
+/*
 
 class LinearGaussianController : public TrialController
 {
@@ -33,4 +34,5 @@ public:
     virtual void configure_controller(OptionsMap &options);
 };
 
+*/
 }

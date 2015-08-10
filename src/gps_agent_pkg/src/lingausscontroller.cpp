@@ -4,6 +4,7 @@
 using namespace gps_control;
 
 // Constructor.
+/*
 LinearGaussianController::LinearGaussianController()
 : TrialController()
 {
@@ -35,3 +36,4 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
         k_[i] = boost::get<Eigen::MatrixXd>(options["k_"+std::to_string(i)]);
     }
 }
+*/

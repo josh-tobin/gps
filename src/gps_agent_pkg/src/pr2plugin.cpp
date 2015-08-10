@@ -22,6 +22,7 @@ PR2Plugin::~PR2Plugin()
 bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 {
     // Variables.
+    /*
     std::string root_name, active_tip_name, passive_tip_name;
 
     // Store the robot state.
@@ -128,6 +129,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     initialize(n);
 
     // Tell the PR2 controller manager that we initialized everything successfully.
+    */
     return true;
 }
 
@@ -135,6 +137,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 void PR2Plugin::starting()
 {
     // Get current time.
+    /*
     last_update_time_ = robot_->getTime();
     controller_counter_ = 0;
 
@@ -151,6 +154,7 @@ void PR2Plugin::starting()
 
     // Reset trial controller, if any.
     if (trial_controller_ != NULL) trial_controller_->reset(last_update_time_);
+    */
 }
 
 // This is called by the controller manager before stopping the controller.
@@ -163,6 +167,7 @@ void PR2Plugin::stopping()
 void PR2Plugin::update()
 {
     // Get current time.
+    /*
     last_update_time_ = robot_->getTime();
 
     // Check if this is a controller step based on the current controller frequency.
@@ -173,7 +178,7 @@ void PR2Plugin::update()
     // Update the sensors and fill in the current step sample.
     update_sensors(last_update_time_,is_controller_step);
 
-    /* TODO: zero out torques */
+    // TODO: zero out torques /
 
     // Update the controllers.
     update_controllers(last_update_time_,is_controller_step);
@@ -183,6 +188,7 @@ void PR2Plugin::update()
         active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
     for (unsigned i = 0; i < passive_arm_joint_state_.size(); i++)
         passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
+    */
 }
 
 // Get current time.

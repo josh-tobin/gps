@@ -40,6 +40,9 @@ set(DDP_FILES src/robotplugin.cpp
               src/sample.cpp
 		      src/sensor.cpp
 		      src/lingausscontroller.cpp
+		      src/controller.cpp
+		      src/caffecontroller.cpp
+		      src/camerasensor.cpp
 		      src/positioncontroller.cpp
 		      src/trialcontroller.cpp
 		      src/encodersensor.cpp
@@ -72,6 +75,7 @@ if (USE_CAFFE)
 endif (USE_CAFFE)
 
 rosbuild_add_library(gps_agent_lib ${DDP_FILES})
+rosbuild_add_executable(main src/main.cpp)
 
 #rosbuild_add_executable(kinematic_baseline src/kinematic_baseline.cpp)
 

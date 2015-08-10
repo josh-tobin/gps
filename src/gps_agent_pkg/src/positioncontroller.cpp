@@ -1,9 +1,10 @@
-#include "gps_agent_pkg/robotplugin.h"
+//#include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/positioncontroller.h"
 
 using namespace gps_control;
 
 // Constructor.
+/*
 PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
 : Controller(n, arm)
 {
@@ -26,16 +27,16 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
     
 
     // Initialize Jacobian temporary storage.
-    temp_jacobian_.resize(6,current_angles_.rows());
+    //temp_jacobian_.resize(6,current_angles_.rows());
 
     // Set initial mode.
-    mode_ = NoControl;
+    //mode_ = NoControl;
 
     // Set initial time.
-    last_update_time_ = ros::Time(0.0);
+    //last_update_time_ = ros::Time(0.0);
 
     // Set arm.
-    arm_ = arm;
+    //arm_ = arm;
 }
 
 // Destructor.
@@ -144,3 +145,4 @@ void PositionController::reset(ros::Time time)
     // Clear update time.
     last_update_time_ = ros::Time(0.0);
 }
+*/

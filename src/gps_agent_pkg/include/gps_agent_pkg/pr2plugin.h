@@ -13,6 +13,8 @@ This is the PR2-specific version of the robot plugin.
 
 // Superclass.
 #include "gps_agent_pkg/robotplugin.h"
+#include "gps_agent_pkg/controller.h"
+#include "gps_agent_pkg/positioncontroller.h"
 
 namespace gps_control
 {

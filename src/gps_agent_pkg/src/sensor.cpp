@@ -3,7 +3,7 @@
 using namespace gps_control;
 
 // Factory function.
-static Sensor create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin)
+static Sensor* create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin)
 {
     switch (type)
     {
@@ -53,3 +53,15 @@ void Sensor::configure_sensor(const OptionsMap &options)
 {
     // Nothing to do.
 }
+
+/*
+void set_sample_data_format(boost::scoped_ptr<Sample>& sample)
+{
+
+}
+
+void set_sample_data(boost::scoped_ptr<Sample>& sample)
+{
+
+}
+*/

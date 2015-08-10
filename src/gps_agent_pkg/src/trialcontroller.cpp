@@ -3,6 +3,7 @@
 #include "gps_agent_pkg/ArmType.h"
 
 using namespace gps_control;
+/*
 
 // Constructor.
 TrialController::TrialController()
@@ -71,3 +72,5 @@ void TrialController::reset(ros::Time time)
     last_update_time_ = time;
     step_counter_ = 0;
 }
+*/
+

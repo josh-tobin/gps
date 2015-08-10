@@ -8,6 +8,7 @@ with the robot.
 #include <vector>
 #include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
 #include <kdl/chain.hpp>
@@ -21,6 +22,8 @@ with the robot.
 #include "gps_agent_pkg/SampleResult.h"
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/ArmType.h"
+#include "gps_agent_pkg/controller.h"
+#include "gps_agent_pkg/positioncontroller.h"
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -28,12 +31,10 @@ with the robot.
 namespace gps_control
 {
 
-
-
 // Forward declarations.
 // Controllers.
-class PositionController;
-class TrialController;
+//class PositionController;
+//class TrialController;
 // Sensors.
 class Sensor;
 // Sample.
@@ -55,15 +56,15 @@ protected:
     // Temporary storage for passive arm torques to be applied at each step.
     Eigen::VectorXd  passive_arm_torques_;
     // Position controller for passive arm.
-    boost::scoped_ptr<PositionController> passive_arm_controller_;
+    //boost::scoped_ptr<PositionController> passive_arm_controller_;
     // Position controller for active arm.
-    boost::scoped_ptr<PositionController> active_arm_controller_;
+    //boost::scoped_ptr<PositionController> active_arm_controller_;
     // Current trial controller (if any).
-    boost::scoped_ptr<TrialController> trial_controller_;
+    //boost::scoped_ptr<TrialController> trial_controller_;
     // Sensor data for the current time step.
     boost::scoped_ptr<Sample> current_time_step_sample_;
     // Sensors.
-    std::vector<Sensor> sensors_;
+    std::vector<boost::shared_ptr<Sensor>> sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
@@ -98,20 +99,20 @@ public:
     // TODO: Comment    
     virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
     // Publish the specified sample in a report.
-    virtual void publish_report(boost::scoped_ptr<Sample>& sample);
+    //virtual void publish_report(boost::scoped_ptr<Sample>& sample);
     // Run a trial.
-    virtual void run_trial(/* TODO: receive all of the trial parameters here */);
+    //virtual void run_trial(/* TODO: receive all of the trial parameters here */);
     // Move the arm.
-    virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
+    //virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
     // Subscriber callbacks.
     // Position command callback.
     virtual void position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg);
     // Trial command callback.
     virtual void trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg);
     // Relax command callback.
-    virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
+    //virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
     // Report request callback.
-    virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+    //virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Update functions.
     // Update the sensors at each time step.
     virtual void update_sensors(ros::Time current_time, bool is_controller_step);
