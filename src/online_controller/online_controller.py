@@ -12,14 +12,6 @@ import train_dyn_net as theano_dynamics
 
 LOGGER = logging.getLogger(__name__)
 
-def zero_offdiag(sigma, i, j, idx1, idx2):
-    if i in idx1 and j in idx2:
-        if (i-idx1[0]) != (j-idx2[0]):
-            sigma[i,j] = 0
-        return True
-    else:
-        return False
-
 class OnlineController(Policy):
     def __init__(self, dX, dU, dynprior, cost, maxT = 100, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
@@ -27,7 +19,7 @@ class OnlineController(Policy):
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.001
+        self.gamma = 0.0000
         self.maxT = maxT
         self.min_mu = 1e-6 
         self.del0 = 2
@@ -41,6 +33,7 @@ class OnlineController(Policy):
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
+        self.u_noise = 0.1
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
@@ -48,7 +41,7 @@ class OnlineController(Policy):
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
 
-        self.nn_dynamics = False
+        self.nn_dynamics = True
         self.copy_offline_traj = False
         self.offline_K = offline_K
         self.offline_k = offline_k
@@ -58,9 +51,9 @@ class OnlineController(Policy):
 
         #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
         #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        self.dyn_net = theano_dynamics.get_net('net/plane_relu.pkl')
+        #self.dyn_net = theano_dynamics.get_net('net/mjc_lsq_air.pkl')
+        self.dyn_net = theano_dynamics.get_net('net/mjc_relu_air.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
-        #self.dyn_net = theano_dynamics.get_net('trap_contact_60tanh.pkl') 
 
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
         self.vis_forward_ee = None
@@ -141,10 +134,9 @@ class OnlineController(Policy):
         #self.prev_policy.k.fill(0.0)
 
         #noise = 0.008
-        noise = 0.1
-        self.prev_policy.k[0] += np.random.randn(7)*noise #self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
+        self.prev_policy.k[0] += np.random.randn(7)*self.u_noise #self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
         if self.prev_policy.T > 1:
-            self.prev_policy.k[1] += np.random.randn(7)*noise #self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
+            self.prev_policy.k[1] += np.random.randn(7)*self.u_noise #self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
 
         # Store state and action.
         return self.prev_policy 
@@ -197,6 +189,7 @@ class OnlineController(Policy):
             u = self.offline_K[t].dot(x)+self.offline_k[t]
         else:
             u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
+        #u += self.u_noise*np.random.randn(7)
 
         # Store state and action.
         self.prevX = x
@@ -217,7 +210,9 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             pt = np.r_[prevx,prevu]
             lbl = cur_x
-            net.train_single(pt, lbl, lr=0.1, momentum=0.9)
+            for i in range(5):
+                # Lsq use 0.003
+                print 'Train:', self.dyn_net.train_single(pt, lbl, lr=0.07, momentum=0.9)
 
     def lqr(self, T, x, lgpolicy, empsig, reg_mu, reg_del):
         dX = self.dX

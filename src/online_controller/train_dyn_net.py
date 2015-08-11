@@ -23,7 +23,7 @@ def load_matfile(matfile):
 
         
 
-def get_data(train, test, shuffle_test=True):
+def get_data(train, test, shuffle_test=True, remove_ft=True):
     train_data = [] 
     train_label = []
     for matfile in train:
@@ -67,17 +67,21 @@ def get_data(train, test, shuffle_test=True):
     test_lbl = np.array(test_lbl).astype(np.float32)
     scipy.io.savemat('dyndata_plane_extra.mat', {'data':test_data, 'label':test_lbl})
     """
-    train_data = np.r_[train_data, test_data[:15000,:]]
+    test2train = 0
+    train_data = np.r_[train_data, test_data[:test2train,:]]
     #train_data = np.r_[data_in]
-    train_lbl = np.r_[train_label, test_label[:15000,:]]
+    train_lbl = np.r_[train_label, test_label[:test2train,:]]
     #train_lbl = np.r_[data_out]
-    test_data = test_data[15000:,:]
-    test_lbl = test_label[15000:,:]
+    test_data = test_data[test2train:,:]
+    test_lbl = test_label[test2train:,:]
 
-    train_data = np.c_[train_data[:,:21], train_data[:,27:]]
-    train_lbl = np.c_[train_lbl[:,:21], train_lbl[:,27:]]
-    test_data = np.c_[test_data[:,:21], test_data[:,27:]]
-    test_lbl = np.c_[test_lbl[:,:21], test_lbl[:,27:]]
+    if remove_ft:
+        train_data = np.c_[train_data[:,:21], train_data[:,27:]]
+        train_lbl = np.c_[train_lbl[:,:21], train_lbl[:,27:]]
+        test_data = np.c_[test_data[:,:21], test_data[:,27:]]
+        test_lbl = np.c_[test_lbl[:,:21], test_lbl[:,27:]]
+    train_data = train_data[:200,:]
+    train_lbl = train_lbl[:200,:]
     return train_data, train_lbl, test_data, test_lbl
 
 def train_dyn():
@@ -85,11 +89,13 @@ def train_dyn():
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
     import scipy.io
-    #din = 52#28
-    #dout = 45#21
-    din = 46
-    dout = 39
-    data_in, data_out, test_data, test_lbl = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
+    #din = 46
+    #dout = 39
+    #data_in, data_out, test_data, test_lbl = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
+
+    din = 33
+    dout = 26
+    data_in, data_out, test_data, test_lbl = get_data(['dyndata_mjc_air'],['dyndata_mjc_test'], remove_ft=False)
     N = data_in.shape[0]
     print data_in.shape
     print data_out.shape
@@ -113,8 +119,8 @@ def train_dyn():
     data_out = data_out_normed
     """
     #net = NNetDyn([FFIPLayer(din, 200), DropoutLayer(200), ReLULayer, FFIPLayer(200, 200), DropoutLayer(200), ReLULayer, FFIPLayer(200,22), AccelLayerFT()], wt)
-    #net = NNetDyn([FFIPLayer(din, 30), ReLULayer, FFIPLayer(30,16), AccelLayer()], wt)
-    net = NNetDyn([FFIPLayer(din, 70), DropoutLayer(70), ReLULayer, FFIPLayer(70,50), DropoutLayer(50, p=0.7), ReLULayer, FFIPLayer(50,16), AccelLayer()], wt)
+    net = NNetDyn([FFIPLayer(din, 40), ReLULayer, FFIPLayer(40,13), AccelLayerMJC()], wt)
+    #net = NNetDyn([FFIPLayer(din, 70), DropoutLayer(70), ReLULayer, FFIPLayer(70,50), DropoutLayer(50, p=0.7), ReLULayer, FFIPLayer(50,16), AccelLayer()], wt)
     #net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
 
     try:

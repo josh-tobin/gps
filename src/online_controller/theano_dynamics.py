@@ -133,14 +133,14 @@ class NNetDyn(object):
 
     def train_single(self, xu, tgt, lr, momentum):
         """Run SGD on a single (vector) data point """
-        xu = np.expand_dims(xu, axis=0)
-        tgt = np.expand_dims(tgt, axis=0)
-        self.train_sgd(xu, tgt, lr, momentum)
+        xu = np.expand_dims(xu, axis=0).astype(np.float32)
+        tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
+        return self.train_sgd(xu, tgt, lr, momentum)
 
     def train(self, xu, tgt, lr, momentum):
         """ Run SGD on matrix-formatted data (NxD) """
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
-        self.train_sgd(xu, tgt, lr, momentum)
+        return self.train_sgd(xu, tgt, lr, momentum)
 
     def obj_matrix(self, xu, tgt):
         """   """
@@ -338,6 +338,39 @@ class AccelLayer(Layer):
             ee_vel = self.input_data[self.idxeevel] + t*ee_accel
             prev_action = self.input_data[self.idxu]
             return T.concatenate([jnt_pos, jnt_vel, prev_action, ee_pos, ee_vel])
+
+    def __str__(self):
+        return "AccelLayer"
+
+class AccelLayerMJC(Layer):
+    """ Acceleration Layer """
+    def __init__(self):
+        self.t = 0.05
+        self.idxpos = slice(0,7)
+        self.idxvel = slice(7,14)
+        self.idxeepos = slice(14,20)
+        self.idxeevel = slice(20,26)
+        self.idxu = slice(26,33)
+
+    def forward(self, prev_layer, training=True):
+        if training:
+            jnt_accel = prev_layer[:,:7]
+            ee_accel = prev_layer[:,7:13]
+            t = self.t
+            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
+            ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
+            return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel], axis=1)
+        else:
+            jnt_accel = prev_layer[:7]
+            ee_accel = prev_layer[7:13]
+            t = self.t
+            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
+            ee_vel = self.input_data[self.idxeevel] + t*ee_accel
+            return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel])
 
     def __str__(self):
         return "AccelLayer"
