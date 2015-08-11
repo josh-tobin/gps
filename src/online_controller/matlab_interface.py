@@ -57,8 +57,8 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	#with open('plane_contact_gmm60.pkl') as f:
-	#	gmm = cPickle.load(f)
+	with open('plane_contact_gmm8.pkl') as f:
+		gmm = cPickle.load(f)
 
 	oc = OnlineController(dX, dU, dynprior, cost, dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig, big_dyn_sig=None)
 	#for t in range(100):
@@ -83,19 +83,12 @@ def dyndata_init():
 
 def newgmm():
     logging.basicConfig(level=logging.DEBUG)
-    data = scipy.io.loadmat('dyndata_plane.mat')
-    data_in = data['train_data'].T.astype(np.float32)
-    data_out = data['train_lbl'].T.astype(np.float32)
-
-    data = scipy.io.loadmat('dyndata_plane_extra.mat')
-    data_in = np.r_[data_in, data['data'].astype(np.float32)]
-    data_out = np.r_[data_out, data['label'].astype(np.float32)]
-
-    X = np.c_[data_in, data_out]
-    print X.shape
+    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
+    xux = np.c_[train_dat, train_lbl]
+    print xux.shape
     gmm = GMM()
-    gmm.update(X, 60)
-    with open('plane_contact_gmm60.pkl', 'w') as f:
+    gmm.update(xux, 8)
+    with open('plane_contact_gmm8.pkl', 'w') as f:
     	cPickle.dump(gmm, f)
 
 

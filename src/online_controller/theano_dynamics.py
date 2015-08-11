@@ -45,10 +45,9 @@ class NNetDyn(object):
             self.params.extend(layer.params())
             self.nparams += layer.n_params()
 
-        data = T.matrix('data')
-        lbl = T.matrix('lbl')
-
-        # Cannot be serialized
+        #Set up matrix functions
+        data = T.matrix('mdata')
+        lbl = T.matrix('mlbl')
         net_out, layers_out = self.fwd(data, training=True)
 
         extra_loss = []
@@ -70,13 +69,16 @@ class NNetDyn(object):
         self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
         self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
 
-        jac_data = T.vector('jacdata')
-        jac_lbl = T.vector('jaclbl')
-        net_out, _ = self.fwd(jac_data, training=False)
-        self.net_out_vec = theano.function(inputs=[jac_data], outputs=net_out)
-        self.out_shape = theano.function(inputs=[jac_data], outputs=net_out.shape)
-        data_grad = theano.gradient.jacobian(net_out, jac_data)
-        self.jac = theano.function(inputs=[jac_data], outputs=data_grad)
+
+        # Set up vector functions
+        data = T.vector('vdata')
+        lbl = T.vector('vlbl')
+        net_out, _ = self.fwd(data, training=False)
+
+        self.net_out_vec = theano.function(inputs=[data], outputs=net_out)
+        self.out_shape = theano.function(inputs=[data], outputs=net_out.shape)
+        data_grad = theano.gradient.jacobian(net_out, data)
+        self.jac = theano.function(inputs=[data], outputs=data_grad)
 
     def serialize(self):
         wts = []
@@ -106,6 +108,7 @@ class NNetDyn(object):
             self.layers[i] = wts[i]
 
     def fwd(self, data, training=True):
+        """Generate symbolic expressions for forward pass"""
         net_out = data
         layers_out = []
         for layer in self.layers:
@@ -118,6 +121,7 @@ class NNetDyn(object):
         return net_out , layers_out
 
     def fwd_single(self, xu, layer=None):
+        """ Run forward pass on a single data point and return numeric output """
         if layer is not None:
             data = T.vector('data')
             _, layers_out = self.fwd(data, training=False)
@@ -127,13 +131,19 @@ class NNetDyn(object):
         #xu = np.concatenate((xu, ONE))
         return self.net_out_vec(xu)
 
+    def train_single(self, xu, tgt, lr, momentum):
+        """Run SGD on a single (vector) data point """
+        xu = np.expand_dims(xu, axis=0)
+        tgt = np.expand_dims(tgt, axis=0)
+        self.train_sgd(xu, tgt, lr, momentum)
+
     def train(self, xu, tgt, lr, momentum):
-        """ Update dynamics via SGD """
+        """ Run SGD on matrix-formatted data (NxD) """
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
         self.train_sgd(xu, tgt, lr, momentum)
 
     def obj_matrix(self, xu, tgt):
-        """ Update dynamics via SGD """
+        """   """
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
         return self.obj(xu, tgt)
 

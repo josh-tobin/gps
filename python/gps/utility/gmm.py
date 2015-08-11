@@ -175,7 +175,7 @@ class GMM(object):
                 diff = (data[cluster_idx,:]-mu).T
                 sigma = (1.0/K)*(diff.dot(diff.T));
                 self.mu[i,:] = mu;
-                self.sigma[i,:,:] = sigma + np.eye(Do)*2e-6;
+                self.sigma[i,:,:] = sigma + np.eye(Do)*1e-3;
 
         prevll = -float('inf')
         for itr in range(max_iterations):

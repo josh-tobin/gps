@@ -10,10 +10,10 @@ class CostStateTracking(object):
         self.ramp_option = RAMP_CONSTANT
         self.final_tgt = True
         self.t_weight = 10.0
-        self.l1 = 0.0
+        self.l1 = 0.01
         self.l2 = 10.0
         self.alpha = 1e-5
-        self.wu = 3e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+        self.wu = 2e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
         #self.wu = 1.5e-4/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
         ramp_len = self.ref_len if maxT is None else maxT

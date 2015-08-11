@@ -12,7 +12,6 @@ import train_dyn_net as theano_dynamics
 
 LOGGER = logging.getLogger(__name__)
 
-
 def zero_offdiag(sigma, i, j, idx1, idx2):
     if i in idx1 and j in idx2:
         if (i-idx1[0]) != (j-idx2[0]):
@@ -22,13 +21,13 @@ def zero_offdiag(sigma, i, j, idx1, idx2):
         return False
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost, maxT = 100, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None, big_dyn_sig=None):
+    def __init__(self, dX, dU, dynprior, cost, maxT = 100, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
         self.LQR_iter = 1
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.0
+        self.gamma = 0.001
         self.maxT = maxT
         self.min_mu = 1e-6 
         self.del0 = 2
@@ -37,7 +36,6 @@ class OnlineController(Policy):
         self.H = 10
         self.empsig_N = 3
         self.sigreg = 1e-6
-        self.diag_dynamics = False
         self.time_varying_dynamics = False
 
         self.prevX = None
@@ -49,7 +47,8 @@ class OnlineController(Policy):
         self.offline_dynsig = offline_dynsig
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        self.offline_sigma = big_dyn_sig
+
+        self.nn_dynamics = False
         self.copy_offline_traj = False
         self.offline_K = offline_K
         self.offline_k = offline_k
@@ -58,7 +57,7 @@ class OnlineController(Policy):
         self.fwd_hist = [None]*self.maxT
 
         #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
+        #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
         self.dyn_net = theano_dynamics.get_net('net/plane_relu.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_60tanh.pkl') 
@@ -94,6 +93,7 @@ class OnlineController(Policy):
             return self.prev_policy
 
         self.update_emp_dynamics(prevx, prevu, x)
+        self.update_nn_dynamics(self.prevX, self.prevU, x)
 
         #pt = np.r_[self.prevX,self.prevU,x]
         #self.mu = self.mu*self.gamma + pt*(1-self.gamma)
@@ -141,14 +141,16 @@ class OnlineController(Policy):
         #self.prev_policy.k.fill(0.0)
 
         #noise = 0.008
-        noise = 0.02
-        self.prev_policy.k[0] += self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
+        noise = 0.1
+        self.prev_policy.k[0] += np.random.randn(7)*noise #self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
         if self.prev_policy.T > 1:
-            self.prev_policy.k[1] += self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
+            self.prev_policy.k[1] += np.random.randn(7)*noise #self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
+
         # Store state and action.
         return self.prev_policy 
 
     def act(self, x, obs, t, noise):
+        print 'T=', t
         #start = time.time()
         dX = self.dX
         dU = self.dU
@@ -157,8 +159,8 @@ class OnlineController(Policy):
         if t==0:
             # Execute something for first action.
             H = self.H
-            K = np.zeros((H, dU, dX))
-            k = np.zeros((H, dU))
+            K = self.offline_K[0:H,:] #np.zeros((H, dU, dX))
+            k = self.offline_k[0:H,:] #np.zeros((H, dU))
             k += np.random.randn(H, dU)*0.01
             cholPSig = np.zeros((H, dU, dU))
             U = K[0].dot(x) + k[0] #+ cholPSig[t].dot(np.random.randn(dU));
@@ -166,18 +168,21 @@ class OnlineController(Policy):
             self.prevU = U;
             self.prevX = x;
 
+
             self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
 
-            pt = np.r_[self.prevX,self.prevU,x]
-            self.mu = pt
-            self.sigma = np.outer(pt,pt)
+            #pt = np.r_[self.prevX,self.prevU,x]
+            #self.mu = pt
+            #self.sigma = np.outer(pt,pt)
+            self.mu = self.dyn_init_mu
+            self.sigma = self.dyn_init_sig
             return U
 
         # Update mean and covariance.
         # Since this works well *without* subtracting mean, could the same trick
         # work well with mfcgps GMM prior?
         self.update_emp_dynamics(self.prevX, self.prevU, x)
-
+        self.update_nn_dynamics(self.prevX, self.prevU, x)
 
         reg_mu = self.min_mu
         reg_del = self.del0
@@ -201,7 +206,6 @@ class OnlineController(Policy):
         return u
 
     def update_emp_dynamics(self, prevx, prevu, cur_x):
-
         pt = np.r_[prevx,prevu,cur_x]
         gamma = self.gamma
         self.mu = self.mu*(1-gamma) + pt*(gamma)
@@ -209,6 +213,11 @@ class OnlineController(Policy):
         self.sigma = self.sigma*(1-gamma) + np.outer(pt,pt)*(gamma)
         self.sigma = 0.5*(self.sigma+self.sigma.T)
 
+    def update_nn_dynamics(self, prevx, prevu, cur_x):
+        if self.nn_dynamics:
+            pt = np.r_[prevx,prevu]
+            lbl = cur_x
+            net.train_single(pt, lbl, lr=0.1, momentum=0.9)
 
     def lqr(self, T, x, lgpolicy, empsig, reg_mu, reg_del):
         dX = self.dX
@@ -346,7 +355,6 @@ class OnlineController(Policy):
                     F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], empsig, cur_timestep+t, cur_action=cur_action);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
-
         self.fwd_hist[cur_timestep] = {'trajmu': mu, 'trajsig': trajsig, 'F': F, 'f': f}
         self.vis_forward_pass_joints = mu[:,0:7]
         self.vis_forward_ee = mu[:,21:30]
@@ -437,7 +445,7 @@ class OnlineController(Policy):
         ip = slice(dX+dU, dX+dU+dX)
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
-        if t<000:
+        if self.nn_dynamics:
             #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
             #offline_fd = self.offline_fd[t]
             #offline_fc = self.offline_fc[t]
@@ -447,8 +455,6 @@ class OnlineController(Policy):
             dynsig = np.eye(dX)
             F, f = self.dyn_net.getF(xu)
 
-            #F[7:14] = F2[7:14]
-            #f[7:14] = f2[7:14]
             return F, f, dynsig
 
         xux = np.r_[prev_x, prev_u, cur_x]
@@ -459,11 +465,8 @@ class OnlineController(Policy):
 
         #empsig = 0.5*self.offline_sigma[t]+0.5*empsig
         empsig = self.sigma
-        if self.diag_dynamics:
-            empsig = self.diag_dyn(empsig, t)
 
-
-        #mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
+        mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
         #sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
         sigma = empsig;  # Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
@@ -481,82 +484,6 @@ class OnlineController(Policy):
         dyn_covar = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
 
         return Fm, fv, dyn_covar
-
-    def diag_dyn(self, sigma, t):
-        sigma = np.copy(sigma)
-        #Zero-out cross terms
-        dX = self.dX
-        dU = self.dU
-        iu = list(range(dX, dX+dU))
-        ijnt = list(range(0,7))
-        ivel = list(range(7,14))
-        iprevu = list(range(14,21))
-        ijnt_tgt = list(range(dX+dU,dX+dU+7))
-        ivel_tgt = list(range(dX+dU+7,dX+dU+14))
-        iprevu_tgt = list(range(dX+dU+14,dX+dU+21))
-
-
-        ieejnt = list(range(21,30))
-        ieevel = list(range(30,39))
-        ieejnt_tgt = list(range(dX+dU+21,dX+dU+30))
-        ieevel_tgt = list(range(dX+dU+30,dX+dU+39))
-        for (i, j), val in np.ndenumerate(sigma):
-            if i>j: #zero-out lower diagonal
-                sigma[i,j] = 0
-                continue
-            if i==j or i in iu:
-                sigma[i,j] = val/2  # Halve because we do X+X.T later
-                continue
-            dirty = False
-            # Joint pos
-            dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ijnt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ivel)
-            dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ijnt_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ijnt, ivel_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ijnt_tgt, ivel_tgt)
-
-            # Joint vel
-            dirty = dirty or zero_offdiag(sigma, i, j, ivel, ivel)
-            dirty = dirty or zero_offdiag(sigma, i, j, ivel, ijnt_tgt)
-            dirty = dirty or zero_offdiag(sigma, i, j, ivel, ivel_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ivel_tgt, ivel_tgt)
-
-            # Joint tgt pos
-            #dirty = dirty or zero_offdiag(sigma, i, j, ijnt_tgt, ijnt_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ijnt_tgt, ivel_tgt)
-
-            # Joint tgt vel
-            #dirty = dirty or zero_offdiag(sigma, i, j, ivel_tgt, ivel_tgt)
-
-            # PrevU
-            dirty = dirty or zero_offdiag(sigma, i, j, iprevu, iprevu_tgt)
-
-            # EE pos
-            dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieejnt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieevel)
-            dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieejnt_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieejnt, ieevel_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieejnt_tgt, ieevel_tgt)
-
-            # EE vel
-            dirty = dirty or zero_offdiag(sigma, i, j, ieevel, ieevel)
-            dirty = dirty or zero_offdiag(sigma, i, j, ieevel, ieejnt_tgt)
-            dirty = dirty or zero_offdiag(sigma, i, j, ieevel, ieevel_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieevel_tgt, ieevel_tgt)
-
-            # EE tgt pos
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieejnt_tgt, ieejnt_tgt)
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieejnt_tgt, ieevel_tgt)
-
-            # EE tgt vel
-            #dirty = dirty or zero_offdiag(sigma, i, j, ieevel_tgt, ieevel_tgt)
-
-            # Zero everything else
-            if not dirty:
-                sigma[i,j] = 0
-
-        sigma = sigma+sigma.T
-        return sigma
 
     def get_forward_joint_states(self):
         """ Joint states for visualizing forward pass in RVIZ

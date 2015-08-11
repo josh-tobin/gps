@@ -96,7 +96,7 @@ def run_lqr():
     N, T, dX = all_X.shape
     xux_data = []
     for n in range(N):
-        for t in range(T-1):
+        for t in range(1,T-1):
             xux_data.append(np.concatenate([all_X[n,t,:], all_U[n,t,:], all_X[n,t+1,:]]))
     xux_data = np.array(xux_data)
     dyn_init_mu = np.mean(xux_data, axis=0)
@@ -117,8 +117,9 @@ def run_lqr():
             }, f)
 
 def main():
-    sample_data, agent = setup_agent(T=100)
-    controller = get_controller('/home/justin/RobotRL/test/onlinecont_py.pkl', maxT=100)
+    T = 300
+    sample_data, agent = setup_agent(T=T)
+    controller = get_controller('/home/justin/RobotRL/test/onlinecont_py.pkl', maxT=T)
     agent.sample(controller, controller.maxT, 0)
 
 if __name__ == "__main__":
