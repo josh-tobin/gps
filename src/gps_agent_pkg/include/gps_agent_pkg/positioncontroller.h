@@ -62,19 +62,18 @@ private:
 public:
     // Constructor.
     PositionController(ros::NodeHandle& n, ArmType arm);
-    //PositionController();
     // Destructor.
-    //virtual ~PositionController();
+    virtual ~PositionController();
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.
-    //virtual void configure_controller(OptionsMap &options);
+    virtual void configure_controller(OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
     // Ask the controller to return the sample collected from its latest execution.
     virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Reset the controller -- this is typically called when the controller is turned on.
-    //virtual void reset(ros::Time update_time);
+    virtual void reset(ros::Time update_time);
 };
 
 }

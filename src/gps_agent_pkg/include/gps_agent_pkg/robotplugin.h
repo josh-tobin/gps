@@ -33,8 +33,8 @@ namespace gps_control
 
 // Forward declarations.
 // Controllers.
-//class PositionController;
-//class TrialController;
+class PositionController;
+class TrialController;
 // Sensors.
 class Sensor;
 // Sample.
@@ -56,11 +56,11 @@ protected:
     // Temporary storage for passive arm torques to be applied at each step.
     Eigen::VectorXd  passive_arm_torques_;
     // Position controller for passive arm.
-    //boost::scoped_ptr<PositionController> passive_arm_controller_;
+    boost::scoped_ptr<PositionController> passive_arm_controller_;
     // Position controller for active arm.
-    //boost::scoped_ptr<PositionController> active_arm_controller_;
+    boost::scoped_ptr<PositionController> active_arm_controller_;
     // Current trial controller (if any).
-    //boost::scoped_ptr<TrialController> trial_controller_;
+    boost::scoped_ptr<TrialController> trial_controller_;
     // Sensor data for the current time step.
     boost::scoped_ptr<Sample> current_time_step_sample_;
     // Sensors.

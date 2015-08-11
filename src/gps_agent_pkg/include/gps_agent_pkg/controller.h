@@ -34,17 +34,17 @@ public:
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques) = 0;
     // Configure the controller.
-    //virtual void configure_controller(OptionsMap &options);
+    virtual void configure_controller(OptionsMap &options);
     // Set update delay on the controller.
-    //virtual void set_update_delay(double new_step_length);
+    virtual void set_update_delay(double new_step_length);
     // Get update delay on the controller.
-    //virtual double get_update_delay();
+    virtual double get_update_delay();
     // Check if controller is finished with its current task.
     virtual bool is_finished() const = 0;
     // Ask the controller to return the sample collected from its latest execution.
     virtual boost::scoped_ptr<Sample>* get_sample() const = 0;
     // Reset the controller -- this is typically called when the controller is turned on.
-    //virtual void reset(ros::Time update_time);
+    virtual void reset(ros::Time update_time);
 };
 
 }

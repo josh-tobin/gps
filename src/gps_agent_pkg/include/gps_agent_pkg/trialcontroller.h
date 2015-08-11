@@ -17,7 +17,6 @@ a subclass.
 
 namespace gps_control
 {
-/*
 
 class TrialController : public Controller
 {
@@ -52,6 +51,5 @@ public:
     // Called when controller is turned on
     virtual void reset(ros::Time update_time);
 };
-*/
 
 }
