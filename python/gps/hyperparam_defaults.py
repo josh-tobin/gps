@@ -1,6 +1,7 @@
 from __future__ import division
 
 import datetime
+import os
 import numpy as np
 
 from agent.mjc.agent_mjc import AgentMuJoCo
@@ -16,8 +17,11 @@ from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from proto.gps_pb2 import *
 
+THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+GPS_ROOT_DIR = os.path.dirname(os.path.dirname(THIS_FILE_DIR))
+
 common = {
-    'conditions': 4,
+    'conditions': 1,
     'experiment_dir': 'experiments/default_experiment/',
     'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
 }
@@ -37,14 +41,14 @@ sample_data = {
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
+    'filename': os.path.join(GPS_ROOT_DIR, 'mjc_models/pr2_arm3d_old_mjc.xml'),
     'init_pose': np.concatenate([np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
-    'pos_body_offset': [np.array([0,0.2,0]), np.array([0,0.1,0]), np.array([0,-0.1,0]), np.array([0,-0.2,0])],
+    'pos_body_offset': [np.array([0,0.0,0])],
 }
 
 algorithm = {
@@ -74,14 +78,8 @@ torque_cost = {
 state_cost = {
     'type': CostState,
     'data_types' : {
-<<<<<<< HEAD
-        JointAngles: {
-            'wp': np.array([1,1,1,1,1,1,1]),
-            'wp_final_multiplier': 10.0,
-=======
         JOINT_ANGLES: {
             'wp': np.ones(sample_data['dU']),
->>>>>>> 9e211550480556a8e422aa3fae78ef174d0fd265
             # This should extend the arm out straight
             #'desired_state': np.array([0.0,0.,0.,0.,0.,0.,0.])
 

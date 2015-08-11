@@ -332,17 +332,57 @@ class AccelLayer(Layer):
     def __str__(self):
         return "AccelLayer"
 
-
-class DropoutLayer(Layer):
-    def __init__(self, n_in, rngseed=10):
-        self.n_in = n_in
-        self.rng = RandomStreams(seed=rngseed)
+class AccelLayerFT(Layer):
+    """ Acceleration Layer """
+    def __init__(self):
+        self.t = 0.05
+        self.idxpos = slice(0,7)
+        self.idxvel = slice(7,14)
+        self.idxprevu = slice(14,21)
+        self.idxft = slice(21,27)
+        self.idxeepos = slice(27,36)
+        self.idxeevel = slice(36,45)
+        self.idxu = slice(45,52)
 
     def forward(self, prev_layer, training=True):
         if training:
-            return prev_layer * gpu_host(self.rng.binomial(size=(self.n_in,),p=0.5).astype(theano.config.floatX))
+            jnt_accel = prev_layer[:,:7]
+            ee_accel = prev_layer[:,7:16]
+            nextft = prev_layer[:,16:22]
+            t = self.t
+            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
+            ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
+            prev_action = self.input_data[:,self.idxu]
+            return T.concatenate([jnt_pos, jnt_vel, prev_action, nextft, ee_pos, ee_vel], axis=1)
         else:
-            return prev_layer * 0.5
+            jnt_accel = prev_layer[:7]
+            ee_accel = prev_layer[7:16]
+            nextft = prev_layer[16:22]
+            t = self.t
+            nextft = self.input_data[self.idxft]+t*nextft
+            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
+            ee_vel = self.input_data[self.idxeevel] + t*ee_accel
+            prev_action = self.input_data[self.idxu]
+            return T.concatenate([jnt_pos, jnt_vel, prev_action, nextft, ee_pos, ee_vel])
+
+    def __str__(self):
+        return "AccelLayer"
+
+class DropoutLayer(Layer):
+    def __init__(self, n_in, rngseed=10, p=0.5):
+        self.n_in = n_in
+        self.rng = RandomStreams(seed=rngseed)
+        self.p = p
+
+    def forward(self, prev_layer, training=True):
+        if training:
+            return prev_layer * gpu_host(self.rng.binomial(size=(self.n_in,), p=self.p).astype(theano.config.floatX))
+        else:
+            return prev_layer * self.p
 
     def __str__(self):
         return "Dropout:%d" % self.n_in

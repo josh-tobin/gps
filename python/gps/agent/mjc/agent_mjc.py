@@ -51,48 +51,6 @@ class AgentMuJoCo(Agent):
         if self._hyperparams['rk']:
             options['integrator'] = 3  # Runge-Kutta
         else:
-<<<<<<< HEAD
-            options['integrator'] = 2  # 2 = Semi-implicit Euler
-        self._world.SetOption(options)
-        self._model = self._world.GetModel()
-        self._data = self._world.GetData()
-        self._options = self._world.GetOption()
-
-        self.n_joints = self._model['nq']
-        self._joint_idx = [i for i in range(self.n_joints) if i not in self._hyperparams['frozen_joints']]
-        self._vel_idx = [i+self.n_joints for i in self._joint_idx]
-
-        #TODO: This is a hack to initialize end-effector sites. 
-        """
-        self.init_pose = self._hyperparams['init_pose']
-        x0 = np.r_[self.init_pose, np.zeros_like(self.init_pose)]
-        self.init_mj_X = x0
-        self._world.Step(x0, np.zeros(self._model['nu']))
-
-        # Initialize x0
-        self._data = self._world.GetData()
-        sites = self._data['site_xpos'].flatten()
-        init_vel = np.zeros(len(self._vel_idx))
-        init_joints = np.array([self._model['qpos0'].flatten()[i] for i in self._joint_idx])
-        # TODO: Remove hardcoded indices from state
-        self.x0 = np.concatenate([init_joints, init_vel, sites, np.zeros_like(sites)])
-        """
-         #TODO: This is a hack to initialize end-effector sites.
-        self.init_pose = self._hyperparams['init_pose']
-        x0 = np.r_[self.init_pose, np.zeros_like(self.init_pose)]
-        self.init_mj_X = x0
-        #TODO: the next line is bad and will break things if, e.g., gravity is on
-        self._world.Step(x0, np.zeros(self._model['nu']))
-        # Initialize x0
-        self._data = self._world.GetData()
-        eepts = self._data['site_xpos'].flatten()
-        # TODO: Remove hardcoded indices from state
-        self._joint_idx = [i for i in range(self._model['nq']) if i not in self._hyperparams['frozen_joints']]
-        self._vel_idx = [i + self._model['nq'] for i in self._joint_idx]
-        self.x0 = np.concatenate([x0[self._joint_idx], x0[self._vel_idx], eepts, np.zeros_like(eepts)])
-
-    def sample(self, policy, T, verbose=True):
-=======
             options['integrator'] = 2  # Semi-implicit Euler
         self._world.set_option(options)
 
@@ -123,7 +81,6 @@ class AgentMuJoCo(Agent):
             self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
     def sample(self, policy, T, condition, verbose=True):
->>>>>>> 9e211550480556a8e422aa3fae78ef174d0fd265
         """
         Runs a trial and constructs and returns a new sample containing information
         about the trial.

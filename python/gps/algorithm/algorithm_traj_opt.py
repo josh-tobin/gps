@@ -42,6 +42,9 @@ class AlgorithmTrajOpt(Algorithm):
         init_args['dX'] = sample_data.dX
         init_args['dU'] = sample_data.dU
         init_args['T'] = sample_data.T
+        init_args['x0'] =  np.concatenate([np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0]), np.zeros(7), np.zeros(6), np.zeros(6)])
+        #def init_lqr(hyperparams, x0, dX, dU, dt, T):
+
 
         self.dynamics = [None]*self.M
         for m in range(self.M):

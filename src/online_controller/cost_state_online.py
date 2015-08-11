@@ -3,19 +3,21 @@ import numpy as np
 from algorithm.cost.cost_utils import get_ramp_multiplier, RAMP_QUADRATIC, RAMP_LINEAR, RAMP_CONSTANT, evall1l2term, evall1l2term_fast
 
 class CostStateTracking(object):
-    def __init__(self, wp, tgt):
+    def __init__(self, wp, tgt, maxT=None):
         self.wp = wp
         self.mu = tgt
         self.ref_len = tgt.shape[0]
-        self.ramp_option = RAMP_LINEAR
+        self.ramp_option = RAMP_CONSTANT
         self.final_tgt = True
         self.t_weight = 10.0
         self.l1 = 0.0
         self.l2 = 10.0
         self.alpha = 1e-5
-        #self.wu = 1e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
-        self.wu = 1.5e-4/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
-        self.wpm = get_ramp_multiplier(self.ramp_option, self.ref_len, wp_final_multiplier=1.0)
+        self.wu = 3e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+        #self.wu = 1.5e-4/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+
+        ramp_len = self.ref_len if maxT is None else maxT
+        self.wpm = get_ramp_multiplier(self.ramp_option, ramp_len, wp_final_multiplier=1.0)
 
     def eval(self, X, U, t):
         # Constants.
@@ -52,6 +54,8 @@ class CostStateTracking(object):
         #l, lx, lxx = evall1l2term( wp, dist, np.tile(np.eye(dX), [T, 1, 1]), np.zeros((T, dX, dX, dX)),
         #    self.l1, self.l2, self.alpha)
 
+        if wp.shape != tgt.shape:
+            import pdb; pdb.set_trace()
         l, lx, lxx = evall1l2term_fast( wp, dist, self.l1, self.l2, self.alpha)
 
         return l, lx, lu, lxx, luu, lux

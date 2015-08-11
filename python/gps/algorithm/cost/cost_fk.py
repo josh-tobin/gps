@@ -32,16 +32,10 @@ class CostFK(Cost):
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-<<<<<<< HEAD
-        T = sample.T
-        dX = sample.dX
-        dU = sample.dU
-=======
         T = self.sample_data.T
         dX = self.sample_data.dX
         dU = self.sample_data.dU
-        sample = self.sample_data.get_samples(idx=[sample_idx])[0]
->>>>>>> 9e211550480556a8e422aa3fae78ef174d0fd265
+        #sample = self.sample_data.get_samples(idx=[sample_idx])[0]
 
         wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
                                   wp_final_multiplier=self._hyperparams['wp_final_multiplier'])

@@ -1,24 +1,33 @@
 from theano_dynamics import *
 import numpy as np
 import sys
+import os
+
+DATA_DIR = 'data'
+NET_DIR = 'net'
 
 def load_matfile(matfile):
     data = scipy.io.loadmat(matfile)
     try:
-        dat = data['data']
-        lbl = data['label']
+        dat = data['data'].astype(np.float32)
+        lbl = data['label'].astype(np.float32)
     except KeyError:
         dat = data['train_data'].T.astype(np.float32)
         lbl = data['train_lbl'].T.astype(np.float32)
+
+    if dat.shape[1] > dat.shape[0]:
+        dat = dat.T
+    if lbl.shape[1] > lbl.shape[0]:
+        lbl = lbl.T
     return dat, lbl
 
         
 
-def get_data(train, test):
+def get_data(train, test, shuffle_test=True):
     train_data = [] 
     train_label = []
     for matfile in train:
-        data_in, data_out = load_matfile(matfile)
+        data_in, data_out = load_matfile(os.path.join(DATA_DIR,matfile))
         train_data.append(data_in)
         #data_in = np.c_[data_in[:,0:27], data_in[:,45:52]]
         #data_in = np.c_[data_in[:,0:21], data_in[:,39:46]]
@@ -27,17 +36,20 @@ def get_data(train, test):
     train_data = np.concatenate(train_data)
     train_label = np.concatenate(train_label)
 
-
     test_data = [] 
     test_label = []
     for matfile in test:
-        data_in, data_out = load_matfile(matfile)
+        data_in, data_out = load_matfile(os.path.join(DATA_DIR,matfile))
         test_data.append(data_in)
         test_label.append(data_out)
         print 'Test data: Loaded %s. Shape: %s' % (matfile, data_in.shape)
     test_data = np.concatenate(test_data)
     test_label = np.concatenate(test_label)
 
+    #shuffle
+    perm = np.random.permutation(test_data.shape[0])
+    test_data = test_data[perm]
+    test_label = test_label[perm]
     """
     X = data2['data'].T # N x Dx+Du
     N = X.shape[0]
@@ -55,39 +67,35 @@ def get_data(train, test):
     test_lbl = np.array(test_lbl).astype(np.float32)
     scipy.io.savemat('dyndata_plane_extra.mat', {'data':test_data, 'label':test_lbl})
     """
-    train_data = np.r_[train_data, test_data[:1000,:]]
+    train_data = np.r_[train_data, test_data[:15000,:]]
     #train_data = np.r_[data_in]
-    train_lbl = np.r_[train_label, test_label[:1000,:]]
+    train_lbl = np.r_[train_label, test_label[:15000,:]]
     #train_lbl = np.r_[data_out]
-    #test_data = test_data[2000:,:]
-    test_data = test_data[1000:,:]
-    test_lbl = test_label[1000:,:]
-    #test_lbl = test_lbl[2000:,:]
+    test_data = test_data[15000:,:]
+    test_lbl = test_label[15000:,:]
 
-    #train_data = np.c_[train_data[:,:14], train_data[:,39:46]]
-    #train_lbl = train_lbl[:,:14]
-    #test_data = np.c_[test_data[:,:14], test_data[:,39:46]]
-    #test_lbl = test_lbl[:,:14]
+    train_data = np.c_[train_data[:,:21], train_data[:,27:]]
+    train_lbl = np.c_[train_lbl[:,:21], train_lbl[:,27:]]
+    test_data = np.c_[test_data[:,:21], test_data[:,27:]]
+    test_lbl = np.c_[test_lbl[:,:21], test_lbl[:,27:]]
     return train_data, train_lbl, test_data, test_lbl
 
 def train_dyn():
-    fname = '%s.pkl' % sys.argv[1]
+    fname = os.path.join(NET_DIR, '%s.pkl' % sys.argv[1])
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
     import scipy.io
-    din = 46#28
-    dout = 39#21
-    data_in, data_out, test_data, test_lbl = get_data(['dyndata_trapskid'],['dyndata_trap'])
+    #din = 52#28
+    #dout = 45#21
+    din = 46
+    dout = 39
+    data_in, data_out, test_data, test_lbl = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
     N = data_in.shape[0]
     print data_in.shape
+    print data_out.shape
     print test_data.shape
     #data_out = data_out[:,0:27]
     #data_out = data_out[:,0:21]
-
-    #shuffle
-    #perm = np.random.permutation(N)
-    #data_in = data_in[perm]
-    #data_out = data_out[perm]
 
     wt = np.ones(dout).astype(np.float32)
     #wt[0:7] = 5.0
@@ -104,8 +112,10 @@ def train_dyn():
     data_out_unnorm = data_out
     data_out = data_out_normed
     """
-    #net = NNetDyn([norm1, FFIPLayer(din,16), ReLULayer, FFIPLayer(16,16), AccelLayer()], wt, weight_decay=0.0000, layer_reg=[{'layer_idx': 2, 'l2wt':1e-5}])
-    net = NNetDyn([FFIPLayer(din,16), AccelLayer()], wt, weight_decay=0.0000) # loss ~0.13
+    #net = NNetDyn([FFIPLayer(din, 200), DropoutLayer(200), ReLULayer, FFIPLayer(200, 200), DropoutLayer(200), ReLULayer, FFIPLayer(200,22), AccelLayerFT()], wt)
+    #net = NNetDyn([FFIPLayer(din, 30), ReLULayer, FFIPLayer(30,16), AccelLayer()], wt)
+    net = NNetDyn([FFIPLayer(din, 70), DropoutLayer(70), ReLULayer, FFIPLayer(70,50), DropoutLayer(50, p=0.7), ReLULayer, FFIPLayer(50,16), AccelLayer()], wt)
+    #net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
 
     try:
         net = load_net(fname)

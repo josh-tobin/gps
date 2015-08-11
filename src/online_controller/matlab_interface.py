@@ -11,6 +11,7 @@ from cost_state_online import CostStateTracking
 from algorithm.cost.cost_utils import approx_equal
 from algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from online_controller import OnlineController
+from train_dyn_net import get_data
 
 def get_controller(matfile):
     # Need to read out a controller from matlab
@@ -23,8 +24,8 @@ def get_controller(matfile):
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
-	#wp[0:7] = 1.0
-	wp[21:30] = 1.0
+	wp[0:7] = 1.0
+	#wp[21:30] = 1.0
 	#wp[14:21] = 0.0
 	cost = CostStateTracking(wp, tgt)
 
@@ -65,13 +66,8 @@ def get_controller(matfile):
 	return oc
 
 def dyndata_init():
-    data = scipy.io.loadmat('dyndata_trap.mat')
-    data_in = data['train_data'].T.astype(np.float32)
-    data_out = data['train_lbl'].T.astype(np.float32)
-    data = scipy.io.loadmat('dyndata_trap2.mat')
-    data_in = np.r_[data_in, data['data'].astype(np.float32)]
-    data_out = np.r_[data_out, data['label'].astype(np.float32)]
-    xux = np.c_[data_in, data_out]
+    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
+    xux = np.c_[train_dat, train_lbl]
 
     mu = np.mean(xux, axis=0)
     diff = xux-mu

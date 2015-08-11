@@ -22,14 +22,14 @@ def zero_offdiag(sigma, i, j, idx1, idx2):
         return False
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None, big_dyn_sig=None):
+    def __init__(self, dX, dU, dynprior, cost, maxT = 100, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None, big_dyn_sig=None):
         self.dynprior = dynprior
         self.LQR_iter = 1
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.1
-        self.maxT = 100
+        self.gamma = 0.0
+        self.maxT = maxT
         self.min_mu = 1e-6 
         self.del0 = 2
         self.NSample = 1
@@ -51,16 +51,15 @@ class OnlineController(Policy):
         self.dyn_init_sig = dyn_init_sig
         self.offline_sigma = big_dyn_sig
         self.copy_offline_traj = False
-        self.posvel_only = False
         self.offline_K = offline_K
         self.offline_k = offline_k
         self.inputs = []
         self.calculated = []
-        self.fwd_hist = [None]*101
+        self.fwd_hist = [None]*self.maxT
 
         #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        self.dyn_net_ls = theano_dynamics.get_net('trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
+        self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
+        self.dyn_net = theano_dynamics.get_net('net/plane_relu.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_60tanh.pkl') 
 
@@ -70,13 +69,6 @@ class OnlineController(Policy):
     def act_pol(self, x, empmu, empsig, prevx, prevu, t):
         if t == 0:
             self.inputs = [] #debugging
-
-        #start = time.time()
-        if self.posvel_only:
-            self.dX = 14
-            self.dU = 7
-            x = x[0:14]
-            prevx = prevx[0:14]
 
         dX = self.dX 
         dU = self.dU
@@ -94,10 +86,6 @@ class OnlineController(Policy):
 
             self.mu = self.dyn_init_mu
             self.sigma = self.dyn_init_sig
-            if self.posvel_only:
-                self.mu = np.r_[self.mu[0:14], self.mu[39:60]]
-                self.sigma = np.c_[np.r_[self.sigma[:14,:14], self.sigma[39:60,:14]],
-                                    np.r_[self.sigma[:14,39:60], self.sigma[39:60,39:60]]]
             self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
             if self.copy_offline_traj:
                 for i in range(t,t+self.prev_policy.T):
@@ -144,14 +132,6 @@ class OnlineController(Policy):
         #print 'Online:', u
         #u = self.offline_K[t].dot(x)+self.offline_k[t]
         #print 'Offline:', u
-
-        if self.posvel_only:
-            newK = np.zeros((self.prev_policy.T,7,39))
-            for i in range(self.prev_policy.T):
-                newK[i] = np.concatenate([self.prev_policy.K[i], np.zeros((7,39-14))], axis=1)
-            newpol = LinearGaussianPolicy(newK, self.prev_policy.k, None, None, None)
-            return newpol
-
         if self.copy_offline_traj:
             print 'CopyTraj!'
             for i in range(t,t+self.prev_policy.T):
@@ -160,13 +140,13 @@ class OnlineController(Policy):
         #self.prev_policy.K.fill(0.0)
         #self.prev_policy.k.fill(0.0)
 
-        noise = 0.008
+        #noise = 0.008
+        noise = 0.02
         self.prev_policy.k[0] += self.prev_policy.chol_pol_covar[0].dot(np.random.randn(7))*noise
         if self.prev_policy.T > 1:
             self.prev_policy.k[1] += self.prev_policy.chol_pol_covar[1].dot(np.random.randn(7))*noise
         # Store state and action.
-        return self.prev_policy
- 
+        return self.prev_policy 
 
     def act(self, x, obs, t, noise):
         #start = time.time()
@@ -179,6 +159,7 @@ class OnlineController(Policy):
             H = self.H
             K = np.zeros((H, dU, dX))
             k = np.zeros((H, dU))
+            k += np.random.randn(H, dU)*0.01
             cholPSig = np.zeros((H, dU, dU))
             U = K[0].dot(x) + k[0] #+ cholPSig[t].dot(np.random.randn(dU));
 
@@ -195,21 +176,22 @@ class OnlineController(Policy):
         # Update mean and covariance.
         # Since this works well *without* subtracting mean, could the same trick
         # work well with mfcgps GMM prior?
-        pt = np.r_[self.prevX,self.prevU,x]
-        self.mu = self.mu*gamma + pt*(1-gamma)
-        self.sigma = self.sigma*gamma + np.outer(pt,pt)*(1-gamma)
-        empsig = self.sigma
+        self.update_emp_dynamics(self.prevX, self.prevU, x)
+
 
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):
-            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, empsig, reg_mu, reg_del)
+            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, self.sigma, reg_mu, reg_del)
 
             # Store traj
             self.prev_policy = lgpolicy
 
         #TODO: Re-enable noise once this works.
-        u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
+        if self.copy_offline_traj:
+            u = self.offline_K[t].dot(x)+self.offline_k[t]
+        else:
+            u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
 
         # Store state and action.
         self.prevX = x
@@ -455,7 +437,6 @@ class OnlineController(Policy):
         ip = slice(dX+dU, dX+dU+dX)
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
-        F2, f2 = self.dyn_net_ls.getF(xu)
         if t<000:
             #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
             #offline_fd = self.offline_fd[t]
@@ -472,7 +453,6 @@ class OnlineController(Policy):
 
         xux = np.r_[prev_x, prev_u, cur_x]
         #xu = np.r_[prev_x, prev_u]
-        mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
 
         N = self.empsig_N
         mun = self.mu
@@ -482,6 +462,8 @@ class OnlineController(Policy):
         if self.diag_dynamics:
             empsig = self.diag_dyn(empsig, t)
 
+
+        #mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
         #sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
         sigma = empsig;  # Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
