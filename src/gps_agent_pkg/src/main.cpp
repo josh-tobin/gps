@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
   // Broadcast a simple log message
   ROS_INFO_STREAM("Hello, world!");
   // Process ROS callbacks until receiving a SIGINT (ctrl-c)
+  gps_control::PositionController funsies();
   ros::spin();
   // Stop the node's resources
   ros::shutdown();

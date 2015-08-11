@@ -15,6 +15,7 @@ This is the PR2-specific version of the robot plugin.
 #include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/encodersensor.h"
 
 namespace gps_control
 {

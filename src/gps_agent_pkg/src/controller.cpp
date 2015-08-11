@@ -1,4 +1,5 @@
 #include "gps_agent_pkg/controller.h"
+#include "gps_agent_pkg/positioncontroller.h"
 
 using namespace gps_control;
 
@@ -7,11 +8,12 @@ Controller::Controller(ros::NodeHandle& n, ArmType arm)
 {
 }
 
-//Controller::Controller()
-//{
-//}
+Controller::Controller()
+{
+}
 
 // Destructor.
 Controller::~Controller()
 {
 }
+

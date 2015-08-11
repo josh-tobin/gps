@@ -1,12 +1,12 @@
-//#include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/robotplugin.h"
 
 using namespace gps_control;
 
 // Constructor.
-/*
+
+// Constructor.
 PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
-: Controller(n, arm)
 {
     // Initialize PD gains.
     
@@ -38,6 +38,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
     // Set arm.
     //arm_ = arm;
 }
+/*
 
 // Destructor.
 PositionController::~PositionController()
@@ -45,8 +46,10 @@ PositionController::~PositionController()
 }
 
 // Update the controller (take an action).
+*/
 void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
+    /*
     // Get current joint angles.
     plugin->get_joint_encoder_readings(temp_angles_,arm_);
 
@@ -103,7 +106,9 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     // TODO: need to decide how we'll deal with samples
     // TODO: shall we just always return the latest sample, or actually accumulate?
     // TODO: might be better to just return the latest one...
+    */
 }
+/*
 
 // Configure the controller.
 void PositionController::configure_controller(OptionsMap &options)
@@ -121,20 +126,24 @@ void PositionController::configure_controller(OptionsMap &options)
 }
 
 // Check if controller is finished with its current task.
+*/
 bool PositionController::is_finished() const
 {
     // Check whether we are close enough to the current target.
     // TODO: implement.
     return true;
 }
+/*
 
 // Ask the controller to return the sample collected from its latest execution.
+*/
 boost::scoped_ptr<Sample>* PositionController::get_sample() const
 {
     // Return the sample that has been recorded so far.
     // TODO: implement.
     return NULL;
 }
+/*
 
 // Reset the controller -- this is typically called when the controller is turned on.
 void PositionController::reset(ros::Time time)

@@ -62,8 +62,9 @@ private:
 public:
     // Constructor.
     PositionController(ros::NodeHandle& n, ArmType arm);
+    //PositionController();
     // Destructor.
-    virtual ~PositionController();
+    //virtual ~PositionController();
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.

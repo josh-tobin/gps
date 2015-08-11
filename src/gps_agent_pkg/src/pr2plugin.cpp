@@ -1,6 +1,7 @@
 #include "gps_agent_pkg/pr2plugin.h"
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
+#include "gps_agent_pkg/encodersensor.h"
 
 namespace gps_control {
 
