@@ -15,6 +15,7 @@ public:
 	void StopAsyncRendering(); // 
 	void SetModel(const mjModel*);
 	void SetData(const mjData*);
+    void screenshot(const std::string filename);
 	void _UpdateTransforms();  
 
   // osg::ref_ptr<EventHandler> m_handler;

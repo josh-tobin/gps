@@ -400,6 +400,25 @@ void MujocoOSGViewer::SetData(const mjData* d) {
     mju_copy(m_data->qpos, d->qpos, m_model->nq);
 }
 
+#include <osgDB/WriteFile>
+void MujocoOSGViewer::screenshot(const std::string filename) {
+    std::cout << "Saving screenshot to " << filename << '\n';
+    /**
+    osgViewer::ScreenCaptureHandler* scm = new osgViewer::ScreenCaptureHandler();
+    osgViewer::ScreenCaptureHandler::WriteToFile* captureOper = new osgViewer::ScreenCaptureHandler::WriteToFile(tmpStr.m_szBuffer, "png");
+    scm->setCaptureOperation(captureOper);
+    scm->captureNextFrame(m_viewer);
+    m_viewer->frame();
+    **/
+    osg::ref_ptr<osg::Image> shot = new osg::Image();
+    shot->allocateImage(640, 480, 24, GL_RGB, GL_UNSIGNED_BYTE);
+    osg::ref_ptr<osg::Camera> camera = m_viewer.getCamera();
+    camera->attach(osg::Camera::COLOR_BUFFER, shot.get());
+    m_viewer.frame();
+    osgDB::writeImageFile(*shot, "test.png" );
+    camera->attach(osg::Camera::COLOR_BUFFER, shot.get());
+}
+
 
 void NewModelFromXML(const char* filename,mjModel*& model, mjOption*& option) {
     char errmsg[100];
