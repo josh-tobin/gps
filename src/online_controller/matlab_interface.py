@@ -24,8 +24,8 @@ def get_controller(matfile):
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
-	wp[0:7] = 1.0
-	#wp[21:30] = 1.0
+	#wp[0:7] = 1.0
+	wp[21:30] = 1.0
 	#wp[14:21] = 0.0
 	cost = CostStateTracking(wp, tgt)
 

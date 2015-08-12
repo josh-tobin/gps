@@ -30,7 +30,8 @@ def get_controller(pklfile, maxT=100):
     tgt = mat['cost_tgt_mu']
     wp = mat['cost_wp']
     wp.fill(0.0)
-    wp[0:7] = 1.0
+    #wp[0:7] = 1.0
+    wp[14:20] = 1.0
     #wp[14:20] = 1.0
     #wp[14:21] = 0.0
     cost = CostStateTracking(wp, tgt, maxT = maxT)
@@ -88,7 +89,7 @@ def run_lqr():
     dU = sample_data.dU
     tgt = sample_data.get_samples(idx=[-1])[0].get_X()
     wp = np.zeros(dX)
-    wp[0:7] = 1.0
+    wp[14:20] = 1.0  #EE Points
 
     K = algorithm.cur[0].traj_distr.K
     k = algorithm.cur[0].traj_distr.k
@@ -130,7 +131,10 @@ def main():
     T = 400
     sample_data, agent = setup_agent(T=T)
     controller = get_controller('/home/justin/RobotRL/test/onlinecont_py.pkl', maxT=T)
-    agent.sample(controller, controller.maxT, 0)
+    #sample = agent.sample(controller, controller.maxT, 0, screenshot_prefix='ss/mjc_relu_noupdate/img')
+    sample = agent.sample(controller, controller.maxT, 0)
+    l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
+    import pdb; pdb.set_trace()
 
 
 def remap_lbl():

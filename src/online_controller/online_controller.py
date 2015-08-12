@@ -19,7 +19,7 @@ class OnlineController(Policy):
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.0000
+        self.gamma = 0.00
         self.maxT = maxT
         self.min_mu = 1e-6 
         self.del0 = 2
@@ -33,7 +33,7 @@ class OnlineController(Policy):
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 0.1
+        self.u_noise = 0.05
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
@@ -52,7 +52,7 @@ class OnlineController(Policy):
         #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
         #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
         #self.dyn_net = theano_dynamics.get_net('net/mjc_lsq_air.pkl')
-        self.dyn_net = theano_dynamics.get_net('net/mjc_relu_air.pkl')
+        self.dyn_net = theano_dynamics.get_net('net/mjcnet.pkl')
         #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
 
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
@@ -85,8 +85,10 @@ class OnlineController(Policy):
                     self.prev_policy.k[i-t] = self.offline_k[i]
             return self.prev_policy
 
-        self.update_emp_dynamics(prevx, prevu, x)
-        self.update_nn_dynamics(self.prevX, self.prevU, x)
+        if self.nn_dynamics:
+            self.update_nn_dynamics(prevx, prevu, x)
+        else:
+            self.update_emp_dynamics(prevx, prevu, x)
 
         #pt = np.r_[self.prevX,self.prevU,x]
         #self.mu = self.mu*self.gamma + pt*(1-self.gamma)
@@ -156,6 +158,7 @@ class OnlineController(Policy):
             k += np.random.randn(H, dU)*0.01
             cholPSig = np.zeros((H, dU, dU))
             U = K[0].dot(x) + k[0] #+ cholPSig[t].dot(np.random.randn(dU));
+            U.fill(0.0)
 
             self.prevU = U;
             self.prevX = x;
@@ -173,8 +176,10 @@ class OnlineController(Policy):
         # Update mean and covariance.
         # Since this works well *without* subtracting mean, could the same trick
         # work well with mfcgps GMM prior?
-        self.update_emp_dynamics(self.prevX, self.prevU, x)
-        self.update_nn_dynamics(self.prevX, self.prevU, x)
+        if self.nn_dynamics:
+            self.update_nn_dynamics(self.prevX, self.prevU, x)
+        else:
+            self.update_emp_dynamics(self.prevX, self.prevU, x)
 
         reg_mu = self.min_mu
         reg_del = self.del0
@@ -189,8 +194,8 @@ class OnlineController(Policy):
             u = self.offline_K[t].dot(x)+self.offline_k[t]
         else:
             u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
-        #u += self.u_noise*np.random.randn(7)
-
+        u += self.u_noise*np.random.randn(7)
+        print u
         # Store state and action.
         self.prevX = x
         self.prevU = u
@@ -207,12 +212,11 @@ class OnlineController(Policy):
         self.sigma = 0.5*(self.sigma+self.sigma.T)
 
     def update_nn_dynamics(self, prevx, prevu, cur_x):
-        if self.nn_dynamics:
-            pt = np.r_[prevx,prevu]
-            lbl = cur_x
-            for i in range(5):
-                # Lsq use 0.003
-                print 'Train:', self.dyn_net.train_single(pt, lbl, lr=0.07, momentum=0.9)
+        pt = np.r_[prevx, prevu]
+        lbl = cur_x
+        for i in range(5):
+            # Lsq use 0.003
+            print 'NN Dynamics Loss:', self.dyn_net.train_single(pt, lbl, lr=0.000, momentum=0.99)
 
     def lqr(self, T, x, lgpolicy, empsig, reg_mu, reg_del):
         dX = self.dX
@@ -462,8 +466,8 @@ class OnlineController(Policy):
         empsig = self.sigma
 
         mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
-        #sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-        sigma = empsig;  # Moving average only
+        sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+        #sigma = empsig;  # Moving average only
         #controller.sigma = sigma;  % TODO: Update controller.sigma here?
         sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 

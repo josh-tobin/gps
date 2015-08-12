@@ -80,8 +80,8 @@ def get_data(train, test, shuffle_test=True, remove_ft=True):
         train_lbl = np.c_[train_lbl[:,:21], train_lbl[:,27:]]
         test_data = np.c_[test_data[:,:21], test_data[:,27:]]
         test_lbl = np.c_[test_lbl[:,:21], test_lbl[:,27:]]
-    train_data = train_data[:200,:]
-    train_lbl = train_lbl[:200,:]
+    #train_data = train_data[:200,:]
+    #train_lbl = train_lbl[:200,:]
     return train_data, train_lbl, test_data, test_lbl
 
 def train_dyn():
@@ -119,9 +119,9 @@ def train_dyn():
     data_out = data_out_normed
     """
     #net = NNetDyn([FFIPLayer(din, 200), DropoutLayer(200), ReLULayer, FFIPLayer(200, 200), DropoutLayer(200), ReLULayer, FFIPLayer(200,22), AccelLayerFT()], wt)
-    net = NNetDyn([FFIPLayer(din, 40), ReLULayer, FFIPLayer(40,13), AccelLayerMJC()], wt)
+    #net = NNetDyn([FFIPLayer(din, 40), ReLULayer, FFIPLayer(40,13), AccelLayerMJC()], wt)
     #net = NNetDyn([FFIPLayer(din, 70), DropoutLayer(70), ReLULayer, FFIPLayer(70,50), DropoutLayer(50, p=0.7), ReLULayer, FFIPLayer(50,16), AccelLayer()], wt)
-    #net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
+    net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
 
     try:
         net = load_net(fname)

@@ -80,7 +80,7 @@ class AgentMuJoCo(Agent):
         for x0 in self._hyperparams['init_pose']:
             self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
-    def sample(self, policy, T, condition, verbose=True):
+    def sample(self, policy, T, condition, verbose=True, screenshot_prefix=None):
         """
         Runs a trial and constructs and returns a new sample containing information
         about the trial.
@@ -113,6 +113,13 @@ class AgentMuJoCo(Agent):
             U[t,:] = mj_U
             if verbose:
                 self._world.plot(mj_X)
+                if screenshot_prefix:
+                    imgname = screenshot_prefix+'_'+str(t)+'.png'
+                    import pyscreenshot as ImageGrab
+                    x = 65
+                    y = 50
+                    im=ImageGrab.grab(bbox=(x,y,x+640,y+480))
+                    im.save(imgname)
             if (t+1) < T:
                 for step in range(self._hyperparams['substeps']):
                     mj_X, _ = self._world.step(mj_X, mj_U)
