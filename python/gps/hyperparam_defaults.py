@@ -1,6 +1,6 @@
 from __future__ import division
 
-import datetime
+from datetime import datetime
 import numpy as np
 
 from agent.mjc.agent_mjc import AgentMuJoCo
@@ -19,20 +19,21 @@ from proto.gps_pb2 import *
 common = {
     'conditions': 4,
     'experiment_dir': 'experiments/default_experiment/',
-    'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
-    'dX': 26,
-    'dU': 7,
-    'dO': 26,
+    'sensor_dims': {
+        JOINT_ANGLES: 7,
+        JOINT_VELOCITIES: 7,
+        END_EFFECTOR_POINTS: 6,
+        END_EFFECTOR_POINT_VELOCITIES: 6,
+        ACTION: 7,
+    },
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
     'obs_include': [],
-    # TODO - Have sample data compute this, and instead feed in the dimensionalities of each sensor
-    'state_idx': [list(range(7)), list(range(7, 14)), list(range(14, 20)), list(range(20, 26))],
-    'obs_idx': [],
 }
 
 agent = {
@@ -62,7 +63,7 @@ algorithm['init_traj_distr'] = {
             'init_var': 1.0,
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5
-            },
+        },
         'dt': agent['dt'],
     }
 }
