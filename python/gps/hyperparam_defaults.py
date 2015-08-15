@@ -16,6 +16,18 @@ from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from proto.gps_pb2 import *
 
+
+SENSOR_DIMS = {
+    JOINT_ANGLES: 7,
+    JOINT_VELOCITIES: 7,
+    END_EFFECTOR_POINTS: 6,
+    END_EFFECTOR_POINT_VELOCITIES: 6,
+    ACTION: 7,
+}
+
+PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+
+
 common = {
     'conditions': 4,
     'experiment_dir': 'experiments/default_experiment/',
@@ -25,13 +37,7 @@ common = {
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
-    'sensor_dims': {
-        JOINT_ANGLES: 7,
-        JOINT_VELOCITIES: 7,
-        END_EFFECTOR_POINTS: 6,
-        END_EFFECTOR_POINT_VELOCITIES: 6,
-        ACTION: 7,
-    },
+    'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
     'obs_include': [],
 }
@@ -39,13 +45,14 @@ sample_data = {
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
-    'init_pose': np.concatenate([np.array([0.1,0.1,-1.54,-1.7,1.54,-0.2,0]), np.zeros(7)]),
+    'init_pose': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
-    'pos_body_offset': [np.array([0,0.2,0]), np.array([0,0.1,0]), np.array([0,-0.1,0]), np.array([0,-0.2,0])],
+    'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
+        np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
 }
 
 algorithm = {
@@ -53,16 +60,15 @@ algorithm = {
     'conditions': common['conditions'],
 }
 
-PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'args': {
         'hyperparams': {
-            'init_gains':  1.0/PR2_GAINS,
-            'init_acc': np.zeros(sample_data['dU']),
+            'init_gains':  1.0 / PR2_GAINS,
+            'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
             'init_var': 1.0,
             'init_stiffness': 1.0,
-            'init_stiffness_vel': 0.5
+            'init_stiffness_vel': 0.5,
         },
         'dt': agent['dt'],
     }
@@ -70,18 +76,15 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-5/PR2_GAINS
+    'wu': 5e-5/PR2_GAINS,
 }
 state_cost = {
     'type': CostState,
     'data_types' : {
         JOINT_ANGLES: {
-            'wp': np.ones(sample_data['dU']),
-            # This should extend the arm out straight
-            #'desired_state': np.array([0.0,0.,0.,0.,0.,0.,0.])
-
-            # This should insert into the hold
-            'desired_state': np.array([0.617830101225870,0.298009357128493,-2.26613599619067,-1.83180464491005,1.44102734751961,-0.488554457910043,-0.311987910094871])
+            'wp': np.ones(SENSOR_DIMS[ACTION]),
+            'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
+                -1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
         },
     },
 }
@@ -90,18 +93,18 @@ fk_cost = {
     'type': CostFK,
     'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
     'analytic_jacobian': False,
-    'wp': np.array([1,1,1,1,1,1]),
+    'wp': np.array([1, 1, 1, 1, 1, 1]),
 }
 
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, fk_cost],
-    'weights': [1.0, 1.0]
+    'weights': [1.0, 1.0],
 }
 
 algorithm['dynamics'] = {
     'type': DynamicsLRPrior,
-    'regularization': 1e-6
+    'regularization': 1e-6,
 }
 
 algorithm['traj_opt'] = {

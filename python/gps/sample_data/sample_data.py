@@ -28,14 +28,14 @@ class SampleData(object):
         self.obs_data_types = self._hyperparams['obs_include']
         # list of indices for each data type in state X
         self._state_idx, i = [], 0
-        for sensor in self._state_data_types:
+        for sensor in self.x_data_types:
             dim = self._hyperparams['sensor_dims'][sensor]
             self._state_idx.append(list(range(i, i+dim)))
             i += dim
         self.dX = i
         # list of indices for each data type in observation
         self._obs_idx, i = [], 0
-        for sensor in self._obs_data_types:
+        for sensor in self.obs_data_types:
             dim = self._hyperparams['sensor_dims'][sensor]
             self._obs_idx.append(list(range(i, i+dim)))
             i += dim

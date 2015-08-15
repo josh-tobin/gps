@@ -1,5 +1,4 @@
 import numpy as np
-import scipy as sp
 import scipy.linalg
 import logging
 
@@ -66,8 +65,8 @@ class GMM(object):
         cconst = np.zeros((1,1,1,K))
 
         for i in range(K):
-            U = sp.linalg.cholesky(self.sigma[i, :Di, :Di], check_finite=False)
-            Pdiff[:,:,0,i] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True, check_finite=False), check_finite=False)
+            U = scipy.linalg.cholesky(self.sigma[i, :Di, :Di], check_finite=False)
+            Pdiff[:,:,0,i] = scipy.linalg.solve_triangular(U, scipy.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True, check_finite=False), check_finite=False)
             cconst[0,0,0,i] = -np.sum(np.log(np.diag(U))) - 0.5*Di*np.log(2*np.pi)
 
         logobs = -0.5*np.sum(diff*Pdiff,axis=0, keepdims=True)+cconst
