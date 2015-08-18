@@ -19,7 +19,7 @@ class OnlineController(Policy):
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.05
+        self.gamma = 0.1
         self.maxT = maxT
         self.min_mu = 1e-6 
         self.del0 = 2
@@ -33,7 +33,7 @@ class OnlineController(Policy):
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 5.0
+        self.u_noise = 0.1
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
@@ -43,8 +43,8 @@ class OnlineController(Policy):
         self.dyn_init_sig = dyn_init_sig
         self.use_prior_dyn = False
 
-        self.nn_dynamics = True
-        self.copy_offline_traj = False
+        self.nn_dynamics = False
+        self.copy_offline_traj = True
         self.offline_K = offline_K
         self.offline_k = offline_k
         self.inputs = []
@@ -55,7 +55,7 @@ class OnlineController(Policy):
         #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
 
         #self.dyn_net = theano_dynamics.get_net('net/plane_relu3.pkl')
-        netname = 'net/plane_relu5.pkl'
+        netname = 'net/plane_relu.pkl'
         self.dyn_net = theano_dynamics.get_net(netname)
         self.dyn_net_ref = theano_dynamics.get_net(netname)
 
@@ -143,19 +143,21 @@ class OnlineController(Policy):
                 newK[i-t] = self.offline_K[i]
                 newk[i-t] = self.offline_k[i]
             return LinearGaussianPolicy(newK, newk, None, None, None)
-        #self.prev_policy.K.fill(0.0)
-        #self.prev_policy.k.fill(0.0)
 
         # Generate noise - jacobian transpose method
-        noise_dir = np.array([0,0,1])
+        """
+        noise_dir = np.array([0,0,-1])
         noise_vec = eejac[0:3,:].T.dot(noise_dir)
         noise_vec = noise_vec/np.linalg.norm(noise_vec)
-        noise_covar = np.outer(noise_vec,noise_vec)
-        final_noise = noise_covar.dot(np.random.randn(7))
+        final_noise = noise_vec*np.random.randn(1)
+        #noise_covar = np.outer(noise_vec,noise_vec)
+        #print 'noise_covar', noise_covar
+        #final_noise = noise_covar.dot(np.random.randn(7))
         noise_vec = self.u_noise*final_noise
+        """
 
         # Generate noise - 
-        #noise_vec = self.u_noise*np.random.randn(7)
+        noise_vec = self.u_noise*np.random.randn(7)
 
         self.prev_policy.k[0] += noise_vec
         if self.prev_policy.T > 1:
@@ -165,7 +167,7 @@ class OnlineController(Policy):
         return self.prev_policy 
 
     def act(self, x, obs, t, noise):
-        print 'T=', t
+        LOGGER.debug('T=%d', t)
         #start = time.time()
         dX = self.dX
         dU = self.dU
@@ -200,7 +202,7 @@ class OnlineController(Policy):
             self.update_nn_dynamics(self.prevX, self.prevU, x)
         else:
             self.update_emp_dynamics(self.prevX, self.prevU, x)
-            self.prior_dynamics_heuristic_switch(self, self.prevX, self.prevU, x)
+            #self.prior_dynamics_heuristic_switch(self, self.prevX, self.prevU, x)
 
         reg_mu = self.min_mu
         reg_del = self.del0
@@ -217,7 +219,7 @@ class OnlineController(Policy):
             u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
             u += self.prev_policy.chol_pol_covar[0].dot(self.u_noise*np.random.randn(7))
 
-        print u
+        LOGGER.debug('Action commanded: %s',u)
         # Store state and action.
         self.prevX = x
         self.prevU = u
@@ -241,6 +243,7 @@ class OnlineController(Policy):
         priorerr = np.linalg.norm(priorFm.dot(pt) + priorfv - curx)
         print 'PRIOR?:', self.use_prior_dyn,' emperr:', emperr, ' // priorerr:', priorerr
 
+        """
         if self.use_prior_dyn:
             if emperr < priorerr:
                 print 'Switching to emp dynamics!'
@@ -249,11 +252,13 @@ class OnlineController(Policy):
             if emperr > 2*priorerr:
                 print 'Switching to prior dynamics!'
                 self.use_prior_dyn = True
+        """
 
     def update_emp_dynamics(self, prevx, prevu, cur_x):
         pt = np.r_[prevx,prevu,cur_x]
         gamma = self.gamma
         self.mu = self.mu*(1-gamma) + pt*(gamma)
+
         pt = pt-self.mu
         self.sigma = self.sigma*(1-gamma) + np.outer(pt,pt)*(gamma)
         self.sigma = 0.5*(self.sigma+self.sigma.T)
@@ -261,9 +266,9 @@ class OnlineController(Policy):
     def update_nn_dynamics(self, prevx, prevu, cur_x):
         pt = np.r_[prevx, prevu]
         lbl = cur_x
-        for i in range(0):
+        for i in range(1):
             # Lsq use 0.003
-            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.001, momentum=0.99), self.dyn_net_ref.obj_vec(pt, lbl))
+            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.000, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
 
     def lqr(self, T, x, lgpolicy, reg_mu, reg_del):
         dX = self.dX
@@ -327,7 +332,7 @@ class OnlineController(Policy):
                 else:
                     reg_del = max(del0, reg_del*del0)
                     reg_mu = max(min_mu, reg_mu*reg_del)
-                    LOGGER.debug('Increasing mu -> %f', reg_mu)
+                    LOGGER.debug('[LQR reg] Increasing mu -> %f', reg_mu)
             elif decrease_mu:
                 reg_del = min(1/del0, reg_del/del0)
                 delmu = reg_del*reg_mu
@@ -335,7 +340,7 @@ class OnlineController(Policy):
                     reg_mu = delmu;
                 else:
                     reg_mu = min_mu;
-                LOGGER.debug('Decreasing mu -> %f', reg_mu)
+                LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
 
         policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
         return policy, reg_mu, reg_del        

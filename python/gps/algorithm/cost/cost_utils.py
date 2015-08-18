@@ -345,3 +345,58 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
     lxx += 0.5 * sec + 0.5 * np.transpose(sec, [0,2,1])
 
     return l, lx, lxx
+
+def evallogl2term_fast(wp, d, l1, l2, alpha):
+    """
+    Evaluate and compute derivatives for combined l1/l2 norm penalty.
+
+    loss = (0.5 * l2 * d^2) + (0.5 * l1 * log(alpha + d^2))
+
+    Args:
+        wp:
+            T x D matrix containing weights for each dimension and timestep
+        d:
+            T x D states to evaluate norm on
+        l1: l1 loss weight
+        l2: l2 loss weight
+        alpha:
+
+    Returns:
+        l: T, Evaluated loss
+        lx: T x Dx First derivative
+        lxx: T x Dx x Dx Second derivative
+    """
+    # Get trajectory length.
+    T, _ = d.shape
+
+    # Compute scaled quantities.
+    sqrtwp = np.sqrt(wp)
+    dsclsq = d * sqrtwp
+    dscl = d * wp
+    dscls = d * (wp ** 2)
+
+    # Compute total cost.
+    l = 0.5 * np.sum(dsclsq ** 2, axis=1) * l2 \
+        + 0.5*np.log(alpha + np.sum(dscl ** 2, axis=1)) * l1
+
+    # First order derivative terms.
+    d1 = dscl * l2 + (dscls / (alpha + np.sum(dscl ** 2, axis=1, keepdims=True)) * l1)
+    lx = d1 #np.sum(Jd * np.expand_dims(d1, axis=2), axis=1)
+
+    # Second order terms.
+    psq = np.expand_dims((alpha + np.sum(dscl ** 2, axis=1, keepdims=True)), axis=1)
+    d2 = l1 * ((np.expand_dims(np.eye(wp.shape[1]), axis=0) * (np.expand_dims(wp ** 2, axis=1) / psq)) -
+               ((np.expand_dims(dscls, axis=1) * np.expand_dims(dscls, axis=2)) / psq ** 2))
+    d2 += l2 * (np.expand_dims(wp, axis=2) * np.tile(np.eye(wp.shape[1]), [T, 1, 1]))
+
+    #d1_expand = np.expand_dims(np.expand_dims(d1, axis=-1), axis=-1)
+    #sec = np.sum(d1_expand * Jdd, axis=1)
+
+    #Jd_expand_1 = np.expand_dims(np.expand_dims(Jd, axis=2), axis=4)
+    #Jd_expand_2 = np.expand_dims(np.expand_dims(Jd, axis=1), axis=3)
+    #d2_expand = np.expand_dims(np.expand_dims(d2, axis=-1), axis=-1)
+    #lxx = np.sum(np.sum((Jd_expand_1 * Jd_expand_2) * d2_expand, axis=1), axis=1)
+
+    lxx += d2 #0.5 * sec + 0.5 * np.transpose(sec, [0,2,1])
+
+    return l, lx, lxx

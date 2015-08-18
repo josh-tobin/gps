@@ -25,8 +25,8 @@ def get_controller(matfile):
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
-	wp[0:7] = 1.0
-	#wp[21:30] = 1.0
+	wp[0:7] = 0.5
+	wp[21:30] = 1.0
 	#wp[14:21] = 0.0
 	cost = CostStateTracking(wp, tgt, maxT=T)
 
@@ -71,7 +71,7 @@ def get_controller(matfile):
 	return oc
 
 def dyndata_init():
-    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_ft', 'dyndata_plane_ft_2'],['dyndata_plane_ft_2'], remove_ft=True)
+    train_dat, train_lbl, _, _ = get_data(['dyndata_armwave'],['dyndata_plane_ft_2'], remove_ft=True)
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
     xux = np.c_[train_dat, train_lbl]

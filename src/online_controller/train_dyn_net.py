@@ -104,7 +104,7 @@ def train_dyn():
     import scipy.io
     din = 46
     dout = 39
-    data_in, data_out, test_data, test_lbl = get_data(['dyndata_plane_ft', 'dyndata_plane_ft_2'],['dyndata_plane_relu'], remove_ft=True)
+    data_in, data_out, test_data, test_lbl = get_data(['dyndata_armwave', 'dyndata_armwave_2'],['dyndata_plane_relu'], remove_ft=True)
     #data_in, data_out, test_data, test_lbl = get_data(['dyndata_plane_ft', 'dyndata_plane_ft_2'],['dyndata_plane_ft_2'], remove_ft=True, ee_tgt_adjust=None)
 
     #data_in, data_out, test_data, test_lbl = get_data(['dyndata_trap_sim'],['dyndata_trap_sim'], remove_ft=False, ee_tgt_adjust=slice(21,30))
@@ -141,7 +141,8 @@ def train_dyn():
     #net = NNetDyn([FFIPLayer(din, 70), DropoutLayer(70), ReLULayer, FFIPLayer(70,50), DropoutLayer(50, p=0.7), ReLULayer, FFIPLayer(50,16), AccelLayer()], wt)
 
     #net = NNetDyn([norm1, FFIPLayer(din, 50), ReLU5Layer, FFIPLayer(50,16), AccelLayer()], wt)
-    net = NNetDyn([norm1, FFIPLayer(din, 200), ReLU5Layer, DropoutLayer(200, p=0.5), FFIPLayer(200, 200), ReLU5Layer, DropoutLayer(200, p=0.5), FFIPLayer(200,dout)], wt)
+    net = NNetDyn([norm1, FFIPLayer(din, 60), ReLU5Layer, FFIPLayer(60,dout)], wt)
+    net = NNetDyn([norm1, FFIPLayer(din, 60), ReLU5Layer, FFIPLayer(60, 60), ReLU5Layer, FFIPLayer(60,dout)], wt)
     #net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
 
     try:
@@ -175,12 +176,12 @@ def train_dyn():
     data_out = data_out[perm]
 
     bsize = 50
-    lr = 50.0/bsize
+    lr = 100.0/bsize
     lr_schedule = {
-            100000: 0.5,
             200000: 0.5,
-            300000: 0.5,
             400000: 0.5,
+            600000: 0.5,
+            800000: 0.5,
             }
 
     epochs = 0

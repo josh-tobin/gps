@@ -98,6 +98,7 @@ class NNetDyn(object):
         wts = net[1]
         #self.loss = metadata['loss']
         self.loss_wt = metadata['loss_wt']
+        self.loss_wt[0:7] = 2.0
         print 'Loss wt:', self.loss_wt
         self.layer_reg = metadata.get('layer_reg', [])
 
@@ -448,7 +449,9 @@ class ActivationLayer(Layer):
         'sigmoid': T.nnet.sigmoid,
         'softmax': T.nnet.softmax,
         'relu': lambda x: x * (x > 0),
-        'relu5': lambda x: x * (x > 0) + 0.5*x*(x<0)
+        'relu5': lambda x: x * (x > 0) + 0.5*x*(x<0),
+        'relunop': lambda x: x * (x > 0) + 1.0*x*(x<0) #Debugging
+
     }
     """ Activation layer """
     def __init__(self, act):
@@ -468,6 +471,7 @@ SigmLayer = ActivationLayer('sigmoid')
 SoftMaxLayer = ActivationLayer('softmax')
 ReLULayer = ActivationLayer('relu')
 ReLU5Layer = ActivationLayer('relu5')
+ReLUNopLayer = ActivationLayer('relunop')
 
 class SquaredLoss(object):
     def __init__(self, wt):

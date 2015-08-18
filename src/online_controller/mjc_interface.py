@@ -1,15 +1,11 @@
 import time
+import os
 import numpy as np
 import scipy
 import scipy.io
-import roslib
-roslib.load_manifest('ddp_controller_pkg')
-from sensor_msgs.msg import JointState
-from ddp_controller_pkg.msg import LGPolicy, MPCState
-import rospy
 import logging
+import argparse
 import cPickle
-from visualization_msgs.msg import Marker
 from hyperparam_defaults import defaults
 from sample_data.sample_data import SampleData
 from cost_state_online import CostStateTracking
@@ -18,9 +14,14 @@ from algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
+THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
-def get_controller(pklfile, maxT=100):
-    with open(pklfile) as f:
+def get_controller(controllerfile, maxT=100):
+    """
+    Load an online controller from controllerfile 
+    maxT specifies the 
+    """
+    with open(controllerfile) as f:
         mat = cPickle.load(f)
 
     dX = mat['Dx']
@@ -30,8 +31,10 @@ def get_controller(pklfile, maxT=100):
     tgt = mat['cost_tgt_mu']
     wp = mat['cost_wp']
     wp.fill(0.0)
-    wp[0:7] = 0.05
-    wp[14:20] = 1.0
+
+    # --- 
+    wp[0:7] = 1.0
+    #wp[14:20] = 1.0
     #wp[14:20] = 1.0
     #wp[14:21] = 0.0
     cost = CostStateTracking(wp, tgt, maxT = maxT)
@@ -69,17 +72,20 @@ def setup_agent(T=100):
     agent = defaults['agent']['type'](defaults['agent'], sample_data)
     return sample_data, agent
 
-def run_lqr():
+def run_offline(controllerfile, verbose):
+    """
+    Run offline controller, and save results to controllerfile
+    """
     sample_data, agent = setup_agent()
     algorithm = defaults['algorithm']['type'](defaults['algorithm'], sample_data)
     conditions = 1
     idxs = [[] for _ in range(conditions)]
-    for itr in range(4):
+    for itr in range(10):
         for m in range(conditions):
             for i in range(5):
                 n = sample_data.num_samples()
                 pol = algorithm.cur[m].traj_distr
-                sample = agent.sample(pol, sample_data.T, m, verbose=True)
+                sample = agent.sample(pol, sample_data.T, m, verbose=verbose)
                 sample_data.add_samples(sample)
                 idxs[m].append(n)
         algorithm.iteration([idx[-15:] for idx in idxs])
@@ -87,7 +93,7 @@ def run_lqr():
     gmm = algorithm.prev[0].traj_info.dynamics.prior.gmm
     dX = sample_data.dX
     dU = sample_data.dU
-    tgt = sample_data.get_samples(idx=[-1])[0].get_X()
+    tgtmu = sample_data.get_samples(idx=[-1])[0].get_X()
     wp = np.zeros(dX)
     wp[14:20] = 1.0  #EE Points
 
@@ -111,13 +117,12 @@ def run_lqr():
     dyn_init_mu = np.mean(xux_data, axis=0)
     dyn_init_sig = np.cov(xux_data.T)
 
-    scipy.io.savemat('data/dyndata_mjc_air.mat', {'data': nn_train_data, 'label': nn_train_lbl})
-    """
-    with open('/home/justin/RobotRL/test/onlinecont_py.pkl', 'w') as f:
+    #scipy.io.savemat('data/dyndata_mjc_air.mat', {'data': nn_train_data, 'label': nn_train_lbl})
+    with open(controllerfile, 'w') as f:
         mat = cPickle.dump({
                 'dyn_init_mu': dyn_init_mu,
                 'dyn_init_sig': dyn_init_sig,
-                'cost_tgt_mu': tgt,
+                'cost_tgt_mu': tgtmu,
                 'cost_wp': wp,
                 'Dx': dX,
                 'Du': dU,
@@ -125,40 +130,63 @@ def run_lqr():
                 'offline_K': K,
                 'offline_k': k
             }, f)
-    """
 
-def main():
-    T = 500
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
+    parser.add_argument('-t', '--train', action='store_true', default=False, help='Train an offline controller')
+    parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
+    parser.add_argument('-v', '--noverbose', action='store_true', default=False, help='Disable plotting')
+
+    mkdirp(os.path.join(THIS_FILE_DIR, 'controller'))
+    default_file =  os.path.join(THIS_FILE_DIR, 'controller', 'mjc_online.pkl')
+    parser.add_argument('-c', '--controllerfile', type=str, default=default_file, help='Online controller filename. Controller will be saved/loaded from here')
+    args = parser.parse_args()
+    return args
+
+def run_online(T, controllerfile, verbose=True):
+    """
+    Run online controller and save sample data to train dynamics
+    """
     sample_data, agent = setup_agent(T=T)
-    controller = get_controller('/home/justin/RobotRL/test/onlinecont_py.pkl', maxT=T)
+    controller = get_controller(controllerfile, maxT=T)
     #sample = agent.sample(controller, controller.maxT, 0, screenshot_prefix='ss/mjc_relu_noupdate/img')
-    sample = agent.sample(controller, controller.maxT, 0)
+    sample = agent.sample(controller, controller.maxT, 0, verbose=verbose)
     l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
-    aaa = 1
-    import pdb; pdb.set_trace()
 
     X = sample.get_X()
     U = sample.get_U()
     xu = np.concatenate([X[:-1,:], U[:-1,:]], axis=1)
     xnext = X[1:,:]
 
-    dynmat_file = 'data/dyndata_mjc_expr.mat'
-    if aaa == 2:
-        dynmat_file = 'data/dyndata_mjc_expr_hard.mat'
+    mkdirp(os.path.join(THIS_FILE_DIR, 'data'))
+    dynmat_file = os.path.join(THIS_FILE_DIR, 'data', 'dyndata_mjc_expr.mat')
     try:
         dynmat = scipy.io.loadmat(dynmat_file)
         dynmat['data'] = np.concatenate([dynmat['data'], xu])
         dynmat['label'] = np.concatenate([dynmat['label'], xnext])
-        print 'New expr data: ', dynmat['data'].shape
+        print 'New dynamics data size: ', dynmat['data'].shape
         scipy.io.savemat(dynmat_file, {'data': dynmat['data'], 'label': dynmat['label']})
     except IOError:
+        print 'Creating new dynamics data at:', dynmat_file
         scipy.io.savemat(dynmat_file, {'data': xu, 'label': xnext})
 
+def mkdirp(dirname):
+    """ mkdir -p """
+    try:
+        os.mkdir(dirname)
+    except OSError:
+        pass
+
+def main():
+    args = parse_args()
+    if args.train:
+        run_offline(args.controllerfile, verbose=not args.noverbose)
+    else:
+        run_online(args.timesteps, args.controllerfile, verbose=not args.noverbose)
 
 def remap_lbl():
     mat = scipy.io.loadmat('data/dyndata_mjc_test.mat')
     scipy.io.savemat('data/dyndata_mjc_test.mat', {'data': mat['data'], 'label': mat['lbl']})
 
 if __name__ == "__main__":
-    #run_lqr()
     main()
