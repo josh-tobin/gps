@@ -32,7 +32,7 @@ def pub_viz_vec(viz_pub, points_to_viz, color=[1.0,1.0,1.0], id=0, base_link='/t
     points.scale.x = 0.01
     points.scale.y = 0.01
     points.scale.z = 1.0
-    points.lifetime = rospy.Duration(1)  # 1 Second
+    points.lifetime = rospy.Duration(60)  # 1 Second
     viz_pub.publish(points)
 
 def visualize_forward_pass(fwd, viz_pub, color=[0.0,1.0,1.0], id=0):
@@ -40,6 +40,32 @@ def visualize_forward_pass(fwd, viz_pub, color=[0.0,1.0,1.0], id=0):
     assert Dee == 3
     pnts = [fwd[t,:] for t in range(H)] 
     pub_viz_vec(viz_pub, pnts, color=color, id=id)
+
+def process_jac(jac, eerot, ee_sites, dX):
+    n_sites = ee_sites.shape[0]
+    n_actuator = jac.shape[1]
+
+    Jx = np.zeros((3*n_sites, dX))
+    Jr = np.zeros((3*n_sites, dX))
+
+    iq = slice(0,n_actuator)
+    # Process each site.
+    for i in range(n_sites):
+        site_start = i*3
+        site_end = (i+1)*3
+        # Initialize.
+        ovec = ee_sites[i]
+        
+        Jx[site_start:site_end, iq] = jac[0:3,:]
+        Jr[site_start:site_end, iq] = jac[3:6,:]
+        
+        # Compute site Jacobian.
+        ovec = eerot.dot(ovec)
+        Jx[site_start:site_end, iq] += \
+            np.c_[Jr[site_start+1, iq].dot(ovec[2]) - Jr[site_start+2, iq].dot(ovec[1]) , 
+             Jr[site_start+2, iq].dot(ovec[0]) - Jr[site_start, iq].dot(ovec[2]) , 
+             Jr[site_start, iq].dot(ovec[1]) - Jr[site_start+1, iq].dot(ovec[0])].T
+    return Jx
 
 def main():
     rospy.init_node('mpc_node')
@@ -62,10 +88,13 @@ def main():
         empmu = np.array(msg.dynamics_mu).reshape(dT+msg.dX)
         prevx = np.array(msg.prevx).reshape(msg.dX)
         prevu = np.array(msg.prevu).reshape(msg.dU)
+        eerot = np.array(msg.eerot).reshape(3,3).T
+        eejac = np.array(msg.jacobian).reshape(msg.dU, 6).T
+        sitejac = process_jac(eejac, eerot, controller.ee_sites, msg.dX)
 
         #if t==1:
         #	import pdb; pdb.set_trace()
-        lgpol = controller.act_pol(X, empmu, empsig, prevx, prevu, t)
+        lgpol = controller.act_pol(X, empmu, empsig, prevx, prevu, sitejac, eejac, t)
 
         fwd_ee = controller.get_forward_end_effector(0)
         if fwd_ee is not None:

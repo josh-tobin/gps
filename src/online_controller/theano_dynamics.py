@@ -98,11 +98,13 @@ class NNetDyn(object):
         wts = net[1]
         #self.loss = metadata['loss']
         self.loss_wt = metadata['loss_wt']
+        print 'Loss wt:', self.loss_wt
         self.layer_reg = metadata.get('layer_reg', [])
 
         self.post_layer = metadata.get('post_layer', None)
 
         self.weight_decay = metadata['weight_decay']
+        print 'Weight Decay:', self.weight_decay
         self.layers = [None]*len(wts)
         for i in range(len(wts)):
             self.layers[i] = wts[i]
@@ -120,11 +122,11 @@ class NNetDyn(object):
         #    net_out = self.post_layer.forward(net_out, training=training)
         return net_out , layers_out
 
-    def fwd_single(self, xu, layer=None):
+    def fwd_single(self, xu, layer=None, training=False):
         """ Run forward pass on a single data point and return numeric output """
         if layer is not None:
             data = T.vector('data')
-            _, layers_out = self.fwd(data, training=False)
+            _, layers_out = self.fwd(data, training=training)
             layer_out = layers_out[layer]
             net_out_vec = theano.function(inputs=[data], outputs=layer_out)
             return net_out_vec(xu)
@@ -135,7 +137,7 @@ class NNetDyn(object):
         """Run SGD on a single (vector) data point """
         xu = np.expand_dims(xu, axis=0).astype(np.float32)
         tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
-        return self.train_sgd(xu, tgt, lr, momentum)
+        return self.train_sgd(xu, tgt, lr, momentum)[0]
 
     def train(self, xu, tgt, lr, momentum):
         """ Run SGD on matrix-formatted data (NxD) """
@@ -146,6 +148,12 @@ class NNetDyn(object):
         """   """
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
         return self.obj(xu, tgt)
+
+    def obj_vec(self, xu, tgt):
+        """   """
+        xu = np.expand_dims(xu, axis=0).astype(np.float32)
+        tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
+        return self.obj_matrix(xu, tgt)
 
     def getF(self, xu):
         """ Return F, f - 1st order Taylor expansion of network around xu """
@@ -302,6 +310,10 @@ class FFIPLayer(Layer):
         self.w.set_value(wts[0])
         self.b.set_value(wts[1])
 
+    def set_weights(self, wt, bias):
+        self.w.set_value(wt)
+        self.b.set_value(bias)
+
     def __str__(self):
         return "W:%s; b:%s" % (self.w.get_value(), self.b.get_value())
         #return "W:%s" % (self.w.get_value())
@@ -435,7 +447,8 @@ class ActivationLayer(Layer):
         'tanh': T.tanh,
         'sigmoid': T.nnet.sigmoid,
         'softmax': T.nnet.softmax,
-        'relu': lambda x: x * (x > 0)
+        'relu': lambda x: x * (x > 0),
+        'relu5': lambda x: x * (x > 0) + 0.5*x*(x<0)
     }
     """ Activation layer """
     def __init__(self, act):
@@ -454,6 +467,7 @@ TanhLayer = ActivationLayer('tanh')
 SigmLayer = ActivationLayer('sigmoid')
 SoftMaxLayer = ActivationLayer('softmax')
 ReLULayer = ActivationLayer('relu')
+ReLU5Layer = ActivationLayer('relu5')
 
 class SquaredLoss(object):
     def __init__(self, wt):

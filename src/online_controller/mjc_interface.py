@@ -30,7 +30,7 @@ def get_controller(pklfile, maxT=100):
     tgt = mat['cost_tgt_mu']
     wp = mat['cost_wp']
     wp.fill(0.0)
-    #wp[0:7] = 1.0
+    wp[0:7] = 0.05
     wp[14:20] = 1.0
     #wp[14:20] = 1.0
     #wp[14:21] = 0.0
@@ -128,13 +128,31 @@ def run_lqr():
     """
 
 def main():
-    T = 400
+    T = 500
     sample_data, agent = setup_agent(T=T)
     controller = get_controller('/home/justin/RobotRL/test/onlinecont_py.pkl', maxT=T)
     #sample = agent.sample(controller, controller.maxT, 0, screenshot_prefix='ss/mjc_relu_noupdate/img')
     sample = agent.sample(controller, controller.maxT, 0)
     l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
+    aaa = 1
     import pdb; pdb.set_trace()
+
+    X = sample.get_X()
+    U = sample.get_U()
+    xu = np.concatenate([X[:-1,:], U[:-1,:]], axis=1)
+    xnext = X[1:,:]
+
+    dynmat_file = 'data/dyndata_mjc_expr.mat'
+    if aaa == 2:
+        dynmat_file = 'data/dyndata_mjc_expr_hard.mat'
+    try:
+        dynmat = scipy.io.loadmat(dynmat_file)
+        dynmat['data'] = np.concatenate([dynmat['data'], xu])
+        dynmat['label'] = np.concatenate([dynmat['label'], xnext])
+        print 'New expr data: ', dynmat['data'].shape
+        scipy.io.savemat(dynmat_file, {'data': dynmat['data'], 'label': dynmat['label']})
+    except IOError:
+        scipy.io.savemat(dynmat_file, {'data': xu, 'label': xnext})
 
 
 def remap_lbl():

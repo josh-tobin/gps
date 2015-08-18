@@ -17,6 +17,7 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
+	T = 100
 	dX = mat['Dx']
 	dU = mat['Du']
 
@@ -24,10 +25,10 @@ def get_controller(matfile):
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
-	#wp[0:7] = 1.0
-	wp[21:30] = 1.0
+	wp[0:7] = 1.0
+	#wp[21:30] = 1.0
 	#wp[14:21] = 0.0
-	cost = CostStateTracking(wp, tgt)
+	cost = CostStateTracking(wp, tgt, maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
@@ -37,10 +38,13 @@ def get_controller(matfile):
 	dyn_init_mu = mat['dyn_init_mu'][:,0]
 	dyn_init_sig = mat['dyn_init_sig']
 	dyn_init_mu, dyn_init_sig = dyndata_init()
-	
+
 	# Read in prev controller
 	K = mat['traj_K'].transpose(2,0,1)
 	k = mat['traj_k'].T
+
+	# EE Sites
+	eesites = mat['ee_sites'].T
 
 	# Read in dynprior sigma, mu, N, mass, logmass
 	gmm = GMM()
@@ -57,16 +61,19 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	with open('plane_contact_gmm8.pkl') as f:
-		gmm = cPickle.load(f)
+	#with open('powerplug_gmm8.pkl') as f:
+	#	gmm = cPickle.load(f)
 
-	oc = OnlineController(dX, dU, dynprior, cost, dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig, big_dyn_sig=None)
+	oc = OnlineController(dX, dU, dynprior, cost, maxT=T, ee_sites=eesites,
+			dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
 	#for t in range(100):
 	#	print oc.act(tgt[t,:dX], None, t, None)
 	return oc
 
 def dyndata_init():
-    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
+    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_ft', 'dyndata_plane_ft_2'],['dyndata_plane_ft_2'], remove_ft=True)
+    #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
+    #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
     xux = np.c_[train_dat, train_lbl]
 
     mu = np.mean(xux, axis=0)
@@ -75,6 +82,8 @@ def dyndata_init():
 
     it = slice(0,46)
     ip = slice(46,85)
+    #it = slice(0,40)
+    #ip = slice(40,73)
     Fm = (np.linalg.pinv(sig[it, it]).dot(sig[it, ip])).T
     fv = mu[ip] - Fm.dot(mu[it]);
     print Fm
@@ -83,12 +92,12 @@ def dyndata_init():
 
 def newgmm():
     logging.basicConfig(level=logging.DEBUG)
-    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_ft'],['dyndata_plane_ft_2'])
+    train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'], remove_ft=True)
     xux = np.c_[train_dat, train_lbl]
     print xux.shape
     gmm = GMM()
     gmm.update(xux, 8)
-    with open('plane_contact_gmm8.pkl', 'w') as f:
+    with open('powerplug_gmm8.pkl', 'w') as f:
     	cPickle.dump(gmm, f)
 
 
