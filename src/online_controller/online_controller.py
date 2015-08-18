@@ -15,25 +15,25 @@ LOGGER = logging.getLogger(__name__)
 class OnlineController(Policy):
     def __init__(self, dX, dU, dynprior, cost, maxT = 100, ee_sites=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
-        self.LQR_iter = 1
+        self.LQR_iter = 1  # Number of LQR iterations to take
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.1
+        self.gamma = 0.1  # Moving average parameter
         self.maxT = maxT
-        self.min_mu = 1e-6 
-        self.del0 = 2
+        self.min_mu = 1e-6 # LQR regularization
+        self.del0 = 2 # LQR regularization
         self.NSample = 1
 
-        self.H = 10
-        self.empsig_N = 3
-        self.sigreg = 1e-6
+        self.H = 10 # Horizon
+        self.empsig_N = 3 # Weight of least squares vs GMM prior
+        self.sigreg = 1e-6 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
 
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 0.1
+        self.u_noise = 0.1 # Noise to add
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
@@ -43,8 +43,10 @@ class OnlineController(Policy):
         self.dyn_init_sig = dyn_init_sig
         self.use_prior_dyn = False
 
-        self.nn_dynamics = False
-        self.copy_offline_traj = True
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.copy_offline_traj = True  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
+
+    
         self.offline_K = offline_K
         self.offline_k = offline_k
         self.inputs = []
@@ -55,20 +57,17 @@ class OnlineController(Policy):
         #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
 
         #self.dyn_net = theano_dynamics.get_net('net/plane_relu3.pkl')
-        netname = 'net/plane_relu.pkl'
-        self.dyn_net = theano_dynamics.get_net(netname)
-        self.dyn_net_ref = theano_dynamics.get_net(netname)
-
-        #self.dyn_net = theano_dynamics.get_net('net/mjc_lsq_air.pkl')
-        #self.dyn_net = theano_dynamics.get_net('net/mjcnet_lsq.pkl')
-        #self.dyn_net = theano_dynamics.get_net('net/mjcnet_lsq.pkl')
-        #self.dyn_net_ref = theano_dynamics.get_net('net/mjcnet_relu.pkl')
-        #self.dyn_net = theano_dynamics.get_net('trap_contact_small.pkl')
+        #netname = 'net/plane_relu.pkl'
+        #self.dyn_net = theano_dynamics.get_net(netname)
+        #self.dyn_net_ref = theano_dynamics.get_net(netname)
 
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
         self.vis_forward_ee = None
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, sitejac, eejac, t):
+        """
+        Return a policy to execute rather than an action
+        """
         if t == 0:
             self.inputs = [] #debugging
 
@@ -167,6 +166,9 @@ class OnlineController(Policy):
         return self.prev_policy 
 
     def act(self, x, obs, t, noise):
+        """
+        Given a state, returns action to take
+        """
         LOGGER.debug('T=%d', t)
         #start = time.time()
         dX = self.dX
@@ -228,6 +230,9 @@ class OnlineController(Policy):
         return u
 
     def prior_dynamics_heuristic_switch(self, prevx, prevu, curx):
+        """
+        Compare losses and switch to prior if it is lower by a threhsold.
+        """
         dX = self.dX
         dU = self.dU
         it = slice(dX+dU)
@@ -255,6 +260,9 @@ class OnlineController(Policy):
         """
 
     def update_emp_dynamics(self, prevx, prevu, cur_x):
+        """
+        Update linear dynamics via moving average
+        """
         pt = np.r_[prevx,prevu,cur_x]
         gamma = self.gamma
         self.mu = self.mu*(1-gamma) + pt*(gamma)
@@ -264,6 +272,9 @@ class OnlineController(Policy):
         self.sigma = 0.5*(self.sigma+self.sigma.T)
 
     def update_nn_dynamics(self, prevx, prevu, cur_x):
+        """
+        Update neural network dynamics via SGD
+        """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
         for i in range(1):
@@ -450,6 +461,7 @@ class OnlineController(Policy):
 
     def trajsamples(self, dX, dU, T, mu, sigma, lgpolicy, N):
         """
+        UNUSED!
         Compute samples
         """
         # Constants.
@@ -486,6 +498,7 @@ class OnlineController(Policy):
 
     def getdynamics(self, prev_x, prev_u, cur_x, t, cur_action=None):
         """
+        Returns linear dynamics given state, timestep
         """
         dX = self.dX
         dU = self.dU
