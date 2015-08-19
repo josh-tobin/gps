@@ -7,6 +7,9 @@ Also need to add gps/python/gps to PYTHONPATH
 ex.
 export PYTHONPATH=/home/<>/gps/python/gps
 """
+
+#TODO: this test script is outdated, not sure if we want to update it?
+
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 import numpy as np
 from algorithm.cost.cost_state import CostState
