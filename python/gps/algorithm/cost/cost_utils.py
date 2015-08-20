@@ -397,6 +397,6 @@ def evallogl2term_fast(wp, d, l1, l2, alpha):
     #d2_expand = np.expand_dims(np.expand_dims(d2, axis=-1), axis=-1)
     #lxx = np.sum(np.sum((Jd_expand_1 * Jd_expand_2) * d2_expand, axis=1), axis=1)
 
-    lxx += d2 #0.5 * sec + 0.5 * np.transpose(sec, [0,2,1])
+    lxx = d2 #0.5 * sec + 0.5 * np.transpose(sec, [0,2,1])
 
     return l, lx, lxx

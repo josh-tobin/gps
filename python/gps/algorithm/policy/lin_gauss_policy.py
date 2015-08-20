@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 
 from policy import Policy
 
@@ -17,7 +18,7 @@ class LinearGaussianPolicy(Policy):
         chol_pol_covar: T x Du x Du
         inv_pol_covar: T x Du x Du
     """
-    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar):
+    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar, cache_kldiv_info=False):
         Policy.__init__(self)
         #TODO: Pull dimensions from somewhere else
         self.T = K.shape[0]
@@ -31,6 +32,15 @@ class LinearGaussianPolicy(Policy):
         self.inv_pol_covar = inv_pol_covar
         self.T = K.shape[0]
         self.dU = k.shape[1]
+
+        # KL Div stuff
+        if cache_kldiv_info:
+            self.logdet_psig = np.zeros(self.T)
+            self.precision = np.zeros((self.T, self.dU, self.dU))
+            for t in range(self.T):
+                self.logdet_psig[t] = 2*sum(np.log(np.diag(chol_pol_covar[t])))
+                self.precision[t] = sp.linalg.solve_triangular(chol_pol_covar[t],sp.linalg.solve_triangular(chol_pol_covar[t].T, np.eye(self.dU), lower=True, check_finite=False), check_finite=False)
+
 
     def act(self, x, obs, t, noise=None):
         """

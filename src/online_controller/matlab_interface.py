@@ -25,8 +25,9 @@ def get_controller(matfile):
 	tgt = mat['cost_tgt_mu'].T
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
-	wp[0:7] = 0.5
-	wp[21:30] = 1.0
+
+	wp[0:7] = 1.0
+	#wp[21:30] = 1.0
 	#wp[14:21] = 0.0
 	cost = CostStateTracking(wp, tgt, maxT=T)
 
@@ -37,7 +38,7 @@ def get_controller(matfile):
 	#big_dyn_sig = mat['dyn_big_sig'].transpose(2,0,1)
 	dyn_init_mu = mat['dyn_init_mu'][:,0]
 	dyn_init_sig = mat['dyn_init_sig']
-	dyn_init_mu, dyn_init_sig = dyndata_init()
+	#dyn_init_mu, dyn_init_sig = dyndata_init()
 
 	# Read in prev controller
 	K = mat['traj_K'].transpose(2,0,1)
@@ -71,7 +72,7 @@ def get_controller(matfile):
 	return oc
 
 def dyndata_init():
-    train_dat, train_lbl, _, _ = get_data(['dyndata_armwave'],['dyndata_plane_ft_2'], remove_ft=True)
+    train_dat, train_lbl, _, _ = get_data(['dyndata_armwave', 'dyndata_armwave_moretq3'],['dyndata_plane_ft_2'], remove_ft=True)
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
     xux = np.c_[train_dat, train_lbl]
@@ -82,8 +83,8 @@ def dyndata_init():
 
     it = slice(0,46)
     ip = slice(46,85)
-    #it = slice(0,40)
-    #ip = slice(40,73)
+    #it = slice(0,39)
+    #ip = slice(39,71)
     Fm = (np.linalg.pinv(sig[it, it]).dot(sig[it, ip])).T
     fv = mu[ip] - Fm.dot(mu[it]);
     print Fm

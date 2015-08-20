@@ -23,10 +23,11 @@ class OnlineController(Policy):
         self.maxT = maxT
         self.min_mu = 1e-6 # LQR regularization
         self.del0 = 2 # LQR regularization
+        self.eta = 1.0 # Initial eta for DGD w/ KL-div constrant
         self.NSample = 1
 
         self.H = 10 # Horizon
-        self.empsig_N = 3 # Weight of least squares vs GMM prior
+        self.empsig_N = 3 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-6 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
 
@@ -41,12 +42,15 @@ class OnlineController(Policy):
         self.ee_sites = ee_sites
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
+        #self.dyn_init_mu.fill(0.0)
+        #self.dyn_init_sig.fill(0.0)
         self.use_prior_dyn = False
 
         self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.copy_offline_traj = True  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
+        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
-    
+
         self.offline_K = offline_K
         self.offline_k = offline_k
         self.inputs = []
@@ -57,16 +61,20 @@ class OnlineController(Policy):
         #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
 
         #self.dyn_net = theano_dynamics.get_net('net/plane_relu3.pkl')
-        #netname = 'net/plane_relu.pkl'
+        #netname = 'net/armwave_softplus.pkl'
         #self.dyn_net = theano_dynamics.get_net(netname)
         #self.dyn_net_ref = theano_dynamics.get_net(netname)
 
+        #RVIZ stuff
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
         self.vis_forward_ee = None
+        self.dyn_hist_list = [None]*self.maxT
+        self.rviz_traj = [None]*self.maxT
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, sitejac, eejac, t):
         """
-        Return a policy to execute rather than an action
+        Return a policy to execute rather than an action.
+        Used by ROS, since this sends an entire policy to the robot.
         """
         if t == 0:
             self.inputs = [] #debugging
@@ -77,13 +85,14 @@ class OnlineController(Policy):
         self.prevX = prevx
         self.prevU = prevu
         self.inputs.append({'x':x, 'empmu':empmu, 'empsig':empsig, 'prevx':prevx, 'prevu':prevu, 'eejac':eejac, 't':t})
+        horizon = min(self.H, self.maxT-t);
 
         if t==0:
             # Execute something for first action.
             H = self.H
             K = np.zeros((H, dU, dX))
             k = np.zeros((H, dU))
-            cholPSig = np.zeros((H, dU, dU))
+            cholPSig = np.zeros((H, dU, dU)) #TODO
 
             self.mu = self.dyn_init_mu
             self.sigma = self.dyn_init_sig
@@ -94,16 +103,10 @@ class OnlineController(Policy):
                     self.prev_policy.k[i-t] = self.offline_k[i]
             return self.prev_policy
 
+
+        self.update_emp_dynamics(prevx, prevu, x) # Always update movinv average
         if self.nn_dynamics:
             self.update_nn_dynamics(prevx, prevu, x)
-        else:
-            self.update_emp_dynamics(prevx, prevu, x)
-            self.prior_dynamics_heuristic_switch(self.prevX, self.prevU, x)
-
-        #pt = np.r_[self.prevX,self.prevU,x]
-        #self.mu = self.mu*self.gamma + pt*(1-self.gamma)
-        #self.sigma = self.sigma*self.gamma + np.outer(pt,pt)*(1-self.gamma)
-        #empsig = self.sigma
 
         reg_mu = self.min_mu
         reg_del = self.del0
@@ -113,23 +116,12 @@ class OnlineController(Policy):
             # Store traj
             self.prev_policy = lgpolicy
         
-        #Trick
-        """
-        self.prev_policy.T = 2;
-        new_K = np.zeros((2, dU, dX))
-        new_k = np.zeros((2, dU))
-        new_K[0] = self.prev_policy.K[0]
-        new_K[1] = self.prev_policy.K[0]
-        new_k[0] = self.prev_policy.k[0]
-        new_k[1] = self.prev_policy.k[0]
-        self.prev_policy.K = new_K
-        self.prev_policy.k = new_k
-        """
-        
         u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
         self.calculated.append({
             'u':u, 'K':np.copy(self.prev_policy.K), 'k':np.copy(self.prev_policy.k), 't':t
             })
+        self.rviz_traj[t] = np.r_[x, u]
+
 
         #print 'Online:', u
         #u = self.offline_K[t].dot(x)+self.offline_k[t]
@@ -141,6 +133,9 @@ class OnlineController(Policy):
             for i in range(t,t+self.prev_policy.T):
                 newK[i-t] = self.offline_K[i]
                 newk[i-t] = self.offline_k[i]
+
+            u = self.offline_K[t].dot(x)+self.offline_k[t]  
+            self.rviz_traj[t] = np.r_[x, u]
             return LinearGaussianPolicy(newK, newk, None, None, None)
 
         # Generate noise - jacobian transpose method
@@ -167,13 +162,15 @@ class OnlineController(Policy):
 
     def act(self, x, obs, t, noise):
         """
-        Given a state, returns action to take
+        Given a state, returns action to take.
+        Used by MuJoCo
         """
         LOGGER.debug('T=%d', t)
         #start = time.time()
         dX = self.dX
         dU = self.dU
         gamma = self.gamma
+        horizon = min(self.H, self.maxT-t);
 
         if t==0:
             # Execute something for first action.
@@ -181,14 +178,23 @@ class OnlineController(Policy):
             K = self.offline_K[0:H,:] #np.zeros((H, dU, dX))
             k = self.offline_k[0:H,:] #np.zeros((H, dU))
             k += np.random.randn(H, dU)*0.01
-            cholPSig = np.zeros((H, dU, dU))
+            init_noise = 1
+            cholPSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H, 1, 1])
+            PSig = np.tile(init_noise*np.eye(dU), [H, 1, 1])
+            invPSig = np.tile(1/init_noise*np.eye(dU), [H, 1, 1])
+
+            # Copy offline traj to use on first timestep
+            for i in range(t,t+H):
+                K[i-t] = self.offline_K[i]
+                k[i-t] = self.offline_k[i]
+
             U = K[0].dot(x) + k[0] #+ cholPSig[t].dot(np.random.randn(dU));
             U.fill(0.0)
 
             self.prevU = U;
             self.prevX = x;
 
-            self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
+            self.prev_policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
 
             #pt = np.r_[self.prevX,self.prevU,x]
             #self.mu = pt
@@ -204,12 +210,16 @@ class OnlineController(Policy):
             self.update_nn_dynamics(self.prevX, self.prevU, x)
         else:
             self.update_emp_dynamics(self.prevX, self.prevU, x)
-            #self.prior_dynamics_heuristic_switch(self, self.prevX, self.prevU, x)
 
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):
-            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del)
+            # This is plain LQR
+            #lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del)
+
+            # This is LQR with a KL-div constraint
+            lgpolicy, eta = self.lqr_kl(horizon, x, self.eta, self.prev_policy, t)
+            #self.eta = eta  # Update eta for the next iteration
 
             # Store traj
             self.prev_policy = lgpolicy
@@ -229,36 +239,6 @@ class OnlineController(Policy):
         #print 'Controller Act:', elapsed
         return u
 
-    def prior_dynamics_heuristic_switch(self, prevx, prevu, curx):
-        """
-        Compare losses and switch to prior if it is lower by a threhsold.
-        """
-        dX = self.dX
-        dU = self.dU
-        it = slice(dX+dU)
-        ip = slice(dX+dU, dX+dU+dX)
-        pt = np.r_[prevx,prevu]
-
-        empFm = (np.linalg.pinv(self.sigma[it, it]).dot(self.sigma[it, ip])).T
-        empfv = self.mu[ip] - empFm.dot(self.mu[it]);
-        emperr = np.linalg.norm(empFm.dot(pt) + empfv - curx)
-
-        priorFm = (np.linalg.pinv(self.dyn_init_sig[it, it]).dot(self.dyn_init_sig[it, ip])).T
-        priorfv = self.dyn_init_mu[ip] - priorFm.dot(self.dyn_init_mu[it]);
-        priorerr = np.linalg.norm(priorFm.dot(pt) + priorfv - curx)
-        print 'PRIOR?:', self.use_prior_dyn,' emperr:', emperr, ' // priorerr:', priorerr
-
-        """
-        if self.use_prior_dyn:
-            if emperr < priorerr:
-                print 'Switching to emp dynamics!'
-                self.use_prior_dyn = False
-        else:
-            if emperr > 2*priorerr:
-                print 'Switching to prior dynamics!'
-                self.use_prior_dyn = True
-        """
-
     def update_emp_dynamics(self, prevx, prevu, cur_x):
         """
         Update linear dynamics via moving average
@@ -277,11 +257,14 @@ class OnlineController(Policy):
         """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
-        for i in range(1):
+        for i in range(0):
             # Lsq use 0.003
-            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.000, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
+            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.001, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
 
     def lqr(self, T, x, lgpolicy, reg_mu, reg_del):
+        """
+        Plain LQR
+        """
         dX = self.dX
         dU = self.dU
         ix = slice(dX)
@@ -290,9 +273,10 @@ class OnlineController(Policy):
         ip = slice(dX+dU, dX+dU+dX)
         horizon = min(self.H, self.maxT-T);
 
-        cv, Cm, Fd, fc = self.estimate_cost(horizon, x, lgpolicy, T)
+        # Compute forward pass
+        cv, Cm, Fd, fc, _, _ = self.estimate_cost(horizon, x, lgpolicy, T)
 
-        # Compute optimal action with short horizon MPC.
+        # Compute optimal policy with short horizon MPC.
         fail = True;
         decrease_mu = True;
         del0 = self.del0;
@@ -356,9 +340,213 @@ class OnlineController(Policy):
         policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
         return policy, reg_mu, reg_del        
 
+    def lqr_kl(self, H, x, prev_eta, prev_traj_distr, cur_timestep):
+        """
+        LQR with KL-divergence constraint
+        """
+        # Set KL-divergence step size (epsilon)
+        kl_step = 0.5 #self._hyperparams['kl_step'] * step_mult
+
+        #line_search = LineSearch(self._hyperparams['min_eta'])
+        min_eta = -np.Inf
+        cv, Cm, F, f, new_mu, new_sigma = self.estimate_cost(H, x, prev_traj_distr, cur_timestep)  # Forward pass using prev traj
+
+        alpha = 0.5 # Step size between 0 and 1
+        DGD_MAX_ITER = 1
+        THRESHA = 1e-4  # First convergence threshold
+        THRESHB = 1e-3  # Second convergence threshold
+        MIN_ETA = 1e-4
+
+        for itr in range(DGD_MAX_ITER):
+            new_traj_distr, new_eta = self.bwd_kl(H, prev_traj_distr, prev_eta, Cm, cv, F, f)
+            _, _, _, _, new_mu, new_sigma = self.estimate_cost(H, x, new_traj_distr, cur_timestep)  # Forward pass
+
+            # Update min eta if we had a correction after running backward
+            if new_eta > prev_eta:
+                min_eta = new_eta
+
+            # Compute KL divergence between previous and new distribuition
+            kl_div = self.kldiv(new_mu, new_sigma, new_traj_distr,
+                                   prev_traj_distr, prev_traj_t_offset=1)
+
+            # Main convergence check - constraint satisfaction
+            if (abs(kl_div - kl_step*H) < 0.1*kl_step*H or
+                    (itr >= 20 and kl_div < kl_step*H)):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged",
+                             itr, kl_div, kl_step*H)
+                eta = prev_eta  # TODO - should this actually be new_eta? (matlab code does this.)
+                break
+
+            # Adjust eta via EG
+            sign = (kl_div - H*kl_step)/ np.abs(kl_div - H*kl_step)
+            eta = np.exp( np.log(new_eta) + alpha*sign)
+            #eta = np.exp( np.log(new_eta) + alpha*new_eta*(kl_div-H*kl_step))
+            #eta = max(new_eta + alpha*(kl_div-H*kl_step), 1e-6)
+
+            # Convergence check - dual variable change when min_eta hit
+            if (abs(prev_eta - eta) < THRESHA and
+                        eta == max(min_eta, MIN_ETA)):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (eta limit)",
+                             itr, kl_div, kl_step*H)
+                break
+
+            # Convergence check - constraint satisfaction, kl not changing much
+            if (itr > 2 and abs(kl_div - prev_kl_div) < THRESHB and
+                        kl_div < kl_step*H):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)",
+                             itr, kl_div, kl_step*H)
+                break
+            
+            prev_kl_div = kl_div
+            LOGGER.debug('Iteration %i, KL: %f / %f eta: %f -> %f',
+                         itr, kl_div, kl_step*H, prev_eta, eta)
+            prev_eta = eta
+            #prev_traj_distr = new_traj_distr
+        #if kl_div > kl_step*T and abs(kl_div - kl_step*T) > 0.1*kl_step*T:
+        #    LOGGER.warning("Final KL divergence after DGD convergence is too high")
+
+        return new_traj_distr, eta
+
+    def kldiv(self, new_mu, new_sigma, new_traj_distr, prev_traj_distr, prev_traj_t_offset=0):
+        """Compute KL divergence between new and the previous trajectory
+        distributions.
+
+        Args:
+            new_mu: T x dX, mean of new trajectory, computed from forward
+            new_sigma: T x dX x dX, variance of new trajectory, computed from forward
+            new_traj_distr: A linear gaussian policy object, new distribution
+            prev_traj_distr: A linear gaussian policy object, previous distribution
+        Returns:
+            kl_div: KL divergence between new and previous trajectories
+        """
+        offset = prev_traj_t_offset
+
+        # Constants
+        T = new_mu.shape[0]-prev_traj_t_offset
+        dU = new_traj_distr.dU
+
+        # Initialize vector of divergences for each time step
+        kl_div = np.zeros(T)
+
+        # Step through trajectory
+        for t in range(T):
+            # Fetch matrices and vectors from trajectory distributions
+            mu_t = new_mu[t,:]
+            sigma_t = new_sigma[t,:,:]
+            K_prev = prev_traj_distr.K[t+offset,:,:]
+            K_new = new_traj_distr.K[t,:,:]
+            k_prev = prev_traj_distr.k[t+offset,:]
+            k_new = new_traj_distr.k[t,:]
+            #chol_prev = prev_traj_distr.chol_pol_covar[t,:,:]
+            #chol_new = new_traj_distr.chol_pol_covar[t,:,:]
+
+            # Compute log determinants and precision matrices
+            logdet_prev = prev_traj_distr.logdet_psig[t+offset] #2*sum(np.log(np.diag(chol_prev)))
+            logdet_new = new_traj_distr.logdet_psig[t] #2*sum(np.log(np.diag(chol_new)))
+            prc_prev = prev_traj_distr.precision[t+offset] #sp.linalg.solve_triangular(chol_prev,sp.linalg.solve_triangular(chol_prev.T, np.eye(dU), lower=True))
+            prc_new = new_traj_distr.precision[t]#sp.linalg.solve_triangular(chol_new,sp.linalg.solve_triangular(chol_new.T, np.eye(dU), lower=True))
+
+            # Construct matrix, vector, and constants
+            M_prev = np.r_[np.c_[K_prev.T.dot(prc_prev).dot(K_prev),-K_prev.T.dot(prc_prev)],
+                           np.c_[-prc_prev.dot(K_prev), prc_prev]]
+            M_new = np.r_[np.c_[K_new.T.dot(prc_new).dot(K_new),-K_new.T.dot(prc_new)],
+                           np.c_[-prc_new.dot(K_new), prc_new]]
+            v_prev = np.r_[K_prev.T.dot(prc_prev).dot(k_prev),
+                           -prc_prev.dot(k_prev)]
+            v_new = np.r_[K_new.T.dot(prc_new).dot(k_new),
+                           -prc_new.dot(k_new)]
+            c_prev = 0.5*k_prev.T.dot(prc_prev).dot(k_prev)
+            c_new = 0.5*k_new.T.dot(prc_new).dot(k_new)
+
+            # Compute KL divergence at timestep t
+            kl_div[t] = max(0, -0.5*mu_t.T.dot((M_new-M_prev)).dot(mu_t) -
+                mu_t.T.dot((v_new-v_prev))  - c_new + c_prev - 0.5*np.sum(sigma_t*(M_new-M_prev)) -
+                0.5*logdet_new + 0.5*logdet_prev)
+
+        # Add up divergences across time to get total divergence
+        return np.sum(kl_div)
+
+    def bwd_kl(self, horizon, prevpolicy, eta, Cm, cv, Fd, fc):
+        dX = self.dX
+        dU = self.dU
+        ix = slice(dX)
+        iu = slice(dX, dX+dU)
+        it = slice(dX+dU)
+        ip = slice(dX+dU, dX+dU+dX)
+        #horizon = min(self.H, self.maxT-T);
+
+        # Compute optimal action with short horizon MPC.
+        K = np.zeros((horizon,dU, dX))
+        PSig = np.zeros((horizon, dU, dU))
+        cholPSig = np.zeros((horizon, dU, dU))
+        invPSig = np.zeros((horizon, dU, dU))
+        precision = np.zeros((horizon, dU, dU))
+        k = np.zeros((horizon, dU))
+        fail = True
+        while fail:
+            Vxx = np.zeros((dX, dX))
+            Vx = np.zeros(dX)
+            fail = False
+            for t in range(horizon-1, -1, -1):
+                F = Fd[t]
+                f = fc[t]
+
+                Qtt = Cm[t]/eta
+                Qt = cv[t]/eta
+
+                # Add in the trajectory divergence term.
+                if t == horizon-1:
+                    # Regularization: Add a small diagonal to last Qtt
+                    Qtt[iu,iu] += 1e-6*np.eye(dU)
+                if t < horizon-1:
+                    Qtt = Qtt + np.vstack([
+                        np.hstack([prevpolicy.K[t+1].T.dot(prevpolicy.inv_pol_covar[t+1]).dot(prevpolicy.K[t+1]),
+                                   -prevpolicy.K[t+1].T.dot(prevpolicy.inv_pol_covar[t+1])]),  # X x (X+U)
+                        np.hstack([-prevpolicy.inv_pol_covar[t+1].dot(prevpolicy.K[t+1]),
+                                   prevpolicy.inv_pol_covar[t+1]])  # U x (X+U)
+                    ])
+                    Qt = Qt + np.hstack([prevpolicy.K[t+1].T.dot(prevpolicy.inv_pol_covar[t+1]).dot(
+                        prevpolicy.k[t+1]), -prevpolicy.inv_pol_covar[t+1].dot(prevpolicy.k[t+1])])
+
+                Vxx = Vxx 
+                Qtt = Qtt + F.T.dot(Vxx.dot(F))
+                Qt = Qt + F.T.dot(Vx)+F.T.dot(Vxx).dot(f)
+
+                Qtt = 0.5*(Qtt+Qtt.T)
+
+
+
+                try:
+                    U = sp.linalg.cholesky(Qtt[iu,iu], check_finite=False)
+                    L = U.T
+                except LinAlgError:
+                    fail = True
+                    decrease_mu = False
+                    break
+
+                K[t] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qtt[iu, ix], lower=True, check_finite=False), check_finite=False)
+                k[t] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qt[iu], lower=True, check_finite=False), check_finite=False)
+                PSig[t] = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, np.eye(dU), lower=True, check_finite=False), check_finite=False)
+                cholPSig[t] = sp.linalg.cholesky(PSig[t], check_finite=False)
+                invPSig[t] = np.linalg.inv(PSig[t])
+
+                # Compute value function.
+                Vxx = Qtt[ix, ix] + Qtt[ix, iu].dot(K[t])
+                Vx = Qt[ix] + Qtt[ix, iu].dot(k[t])
+                Vxx = 0.5 * (Vxx + Vxx.T)
+
+            if fail:
+                if eta > 1e5:
+                    raise ValueError("Failed to find SPD solution")
+                eta = eta*2
+                LOGGER.debug('[LQR reg] Increasing eta -> %f', eta)
+
+        policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
+        return policy, eta
+
     def estimate_cost(self, horizon, x0, lgpolicy, cur_timestep):
         """
-        Returns cost matrices and dynamics
+        Returns cost matrices and dynamics via a forward pass
         """
         # Cost + dynamics estimation
 
@@ -380,10 +568,10 @@ class OnlineController(Policy):
         #Run forward pass
 
         # Allocate space.
-        #trajsig = np.zeros((H,dT, dT))
+        trajsig = np.zeros((H,dT, dT))
         mu = np.zeros((H,dT))
 
-        #trajsig[0,ix,ix] = np.zeros((dX, dX))
+        trajsig[0,ix,ix] = np.zeros((dX, dX))
         mu[0,ix] = x0;
 
         F = np.zeros((H, dX, dT))
@@ -395,10 +583,10 @@ class OnlineController(Policy):
         # Perform forward pass.
         for t in range(H):
             PSig = cholPSig[t].T.dot(cholPSig[t])
-            #trajsig[t] = np.r_[
-            #                    np.c_[trajsig[t,ix,ix], trajsig[t,ix,ix].dot(K[t].T)],
-            #                    np.c_[K[t].dot(trajsig[t,ix,ix]), K[t].dot(trajsig[t,ix,ix]).dot(K[t].T) + PSig]
-            #                 ]
+            trajsig[t] = np.r_[
+                                np.c_[trajsig[t,ix,ix], trajsig[t,ix,ix].dot(K[t].T)],
+                                np.c_[K[t].dot(trajsig[t,ix,ix]), K[t].dot(trajsig[t,ix,ix]).dot(K[t].T) + PSig]
+                             ]
             cur_action = K[t].dot(mu[t,ix])+k[t]
             mu[t] = np.r_[mu[t,ix], cur_action]
             #mu[t] = np.r_[mu[t,ix], np.zeros(dU)]
@@ -415,11 +603,14 @@ class OnlineController(Policy):
                 # Estimate new dynamics here based on mu
                 if self.time_varying_dynamics:
                     F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action);
-                #trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
+                trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
+
         self.fwd_hist[cur_timestep] = {'trajmu': mu, 'F': F, 'f': f}
         self.vis_forward_pass_joints = mu[:,0:7]
-        self.vis_forward_ee = mu[:,21:30]
+        #self.vis_forward_ee = mu[:,21:30]
+        self.vis_forward_ee = mu[:,21-7:30-7]
+        self.dyn_hist_list[cur_timestep] = (F[0], f[0])
 
         #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))
@@ -457,44 +648,7 @@ class OnlineController(Policy):
         #cc = mean(cc,3);
         cv = np.mean(cv, axis=0)
         Cm = np.mean(Cm, axis=0)
-        return cv, Cm, F, f
-
-    def trajsamples(self, dX, dU, T, mu, sigma, lgpolicy, N):
-        """
-        UNUSED!
-        Compute samples
-        """
-        # Constants.
-        ix = slice(dX)
-        iu = slice(dX, dX+dU)
-
-        # Allocate space.
-        pX = np.zeros((N,T, dX))
-        pU = np.zeros((N,T, dU))
-        #pProb = np.zeros(1,T,N);
-
-        for t in range(T):
-            samps = np.random.randn(dX,N);
-            sigma[t, ix,ix] = 0.5*(sigma[t,ix,ix]+sigma[t,ix,ix].T)
-
-            # Fix small eigenvalues only.
-            #[val, vec] = np.linalg.eig(sigma[t,ix,ix])
-            #val0 = val;
-            #val = np.real(val)
-            #val = np.maximum(val,1e-6);
-            #sigma[t, ix,ix] = vec.dot(np.diag(val)).dot(vec.T)
-            sigma[t, ix, ix] += 1e-6*np.eye(dX)  # Much faster
-
-            # Store sample probabilities.
-            #pProb[:,t,:] = -0.5*np.sum(samps**2,axis=0) - 0.5*np.sum(np.log(val));
-
-            # Draw samples.
-            samps = sp.linalg.cholesky(sigma[t,ix,ix], overwrite_a=True, check_finite=False).T.dot(samps)+np.expand_dims(mu[t, ix], axis=1)
-
-            pX[:,t,:] = samps.T #np.expand_dims(samps, axis=1)
-            pU[:,t,:] = (lgpolicy.K[t].dot(samps)+np.expand_dims(lgpolicy.k[t], axis=1) + \
-                lgpolicy.chol_pol_covar[t].dot(np.random.randn(dU, N))).T
-        return pX, pU
+        return cv, Cm, F, f, mu, trajsig
 
     def getdynamics(self, prev_x, prev_u, cur_x, t, cur_action=None):
         """
@@ -508,43 +662,36 @@ class OnlineController(Policy):
         it = slice(dX+dU)
         ip = slice(dX+dU, dX+dU+dX)
 
+        if self.use_prior_dyn:
+            mun = self.dyn_init_mu
+            empsig = self.dyn_init_sig
+        else:
+            mun = self.mu
+            empsig = self.sigma
+        N = self.empsig_N
+
         xu = np.r_[cur_x, cur_action].astype(np.float32)
+        xux = np.r_[prev_x, prev_u, cur_x]
+
         if self.nn_dynamics:
-            #nearest_idx = self.cost.compute_nearest_neighbors(prev_x.reshape(1,dX), prev_u.reshape(1,dU), t)[0]
-            #offline_fd = self.offline_fd[t]
-            #offline_fc = self.offline_fc[t]
-            #offline_dynsig = self.offline_dynsig[t]
-            #return offline_fd, offline_fc, offline_dynsig
-
-            dynsig = np.eye(dX)
+            dynsig = np.zeros((dX,dX))
             F, f = self.dyn_net.getF(xu)
-
+            nn_Phi, nnf = self.mix_nn_prior(F, f, use_least_squares=False)
+            if self.nn_prior:
+                #Mix
+                sigma = (N*empsig + nn_Phi)/(N+1)
+                F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
+                f = mun[ip] - F.dot(mun[it])
             return F, f, dynsig
         else:
-            xux = np.r_[prev_x, prev_u, cur_x]
-            #xu = np.r_[prev_x, prev_u]
-
-            N = self.empsig_N
-
-            if self.use_prior_dyn:
-                mun = self.dyn_init_mu
-                empsig = self.dyn_init_sig
-            else:
-                mun = self.mu
-                empsig = self.sigma
-
-            mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
-            sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-            #sigma = empsig;  # Moving average only
-            #controller.sigma = sigma;  % TODO: Update controller.sigma here?
+            #mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
+            #sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+            sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 
             #(np.linalg.pinv(empsig[it, it]).dot(empsig[it, ip])).T
             Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
             fv = mun[ip] - Fm.dot(mun[it]);
-
-            #Fm[7:14] = F2[7:14]
-            #fv[7:14] = f2[7:14]
 
             #Fms = (np.linalg.pinv(self.sigma[it, it]).dot(self.sigma[it, ip])).T
 
@@ -552,6 +699,28 @@ class OnlineController(Policy):
             dyn_covar = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
 
             return Fm, fv, dyn_covar
+
+    def mix_nn_prior(self, nnF, nnf, strength=1.0, use_least_squares=False):
+        """
+        Provide a covariance/bias term for mixing NN with least squares model.
+        """
+        dX = self.dX
+        dU = self.dU
+
+        ix = slice(dX)
+        iu = slice(dX, dX+dU)
+        it = slice(dX+dU)
+        ip = slice(dX+dU, dX+dU+dX)
+
+        if use_least_squares:
+            sigX = self.dyn_init_sig[it,it]
+        else:
+            sigX = np.eye(dX+dU)*strength
+
+        sigXK = sigX.dot(nnF.T)
+        nn_Phi = np.r_[np.c_[sigX, sigXK],
+                       np.c_[sigXK.T, np.zeros((dX,dX))]]
+        return nn_Phi, nnf
 
     def get_forward_joint_states(self):
         """ Joint states for visualizing forward pass in RVIZ
@@ -565,3 +734,4 @@ class OnlineController(Policy):
         """
         if self.vis_forward_ee is not None:
             return self.vis_forward_ee[:,pnt*3:pnt*3+3]
+
