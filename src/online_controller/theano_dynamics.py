@@ -56,17 +56,6 @@ class NNetDyn(object):
         self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
         self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=1.0, weight_decay=self.weight_decay)
 
-        if self.recurse is not None:
-            print 'Setting up recursion!'
-            num_recurse = self.recurse['t']
-            recurse_out = self.fwd_recurse(data, self.recurse['dX'], self.recurse['dU'], num_recurse, training=True)
-            obj = self.loss.loss(lbl, recurse_out)
-            self.obj_rec = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
-            self.train_sgd_rec = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
-            self.net_out_vec_rec = theano.function(inputs=[data], outputs=recurse_out)
-            self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
-
-
         # Set up vector functions
         data = T.vector('vdata')
         lbl = T.vector('vlbl')
@@ -95,18 +84,11 @@ class NNetDyn(object):
         wts = net[1]
         #self.loss = metadata['loss']
         self.loss_wt = metadata['loss_wt']
-        self.loss_wt[0:7] = 2.0
-        print 'Loss wt:', self.loss_wt
         self.layer_reg = metadata.get('layer_reg', [])
 
         self.post_layer = metadata.get('post_layer', None)
 
         self.weight_decay = metadata['weight_decay']
-        self.weight_decay = 1e-5
-        print 'Weight Decay:', self.weight_decay
-
-        if False:
-            self.recurse = {'t': 1, 'dX': 32, 'dU':7}
 
         self.layers = [None]*len(wts)
         for i in range(len(wts)):
@@ -122,23 +104,6 @@ class NNetDyn(object):
             layers_out.append(net_out)
         layers_out.append(net_out)
         return net_out , layers_out
-
-    def fwd_recurse(self, data, dX, dU, N, training=True):
-        """Generate symbolic expressions for forward pass"""
-        X = data[:,0:dX]
-        cur_idx = dX
-        prev_out = X
-        for n in range(N):
-            U = data[:,cur_idx:cur_idx+dU]
-            XU = T.concatenate([prev_out, U], axis=1)
-            cur_idx += dU
-            prev_out, _ = self.fwd(XU, training=training)
-        return prev_out
-
-    def fwd_recurse_single(self, xuu, training=True):
-        """  """
-        xuu = np.expand_dims(xuu, axis=0).astype(np.float32)
-        return self.net_out_vec_rec(xuu)
 
     def fwd_single(self, xu, layer=None, training=False):
         """ Run forward pass on a single data point and return numeric output """
@@ -162,11 +127,6 @@ class NNetDyn(object):
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
         return self.train_sgd(xu, tgt, lr, momentum)
 
-    def train_rec(self, xu, tgt, lr, momentum):
-        """ Run SGD on matrix-formatted data (NxD) """
-        #xu = np.c_[xu, np.ones((xu.shape[0],1))]
-        return self.train_sgd_rec(xu, tgt, lr, momentum)
-
     def obj_matrix(self, xu, tgt):
         """   """
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
@@ -184,7 +144,7 @@ class NNetDyn(object):
         f = -F.dot(xu)+self.fwd_single(xu)
         return F, f
 
-    def getFpxu(self, prevxu, xu):
+    def getF_prevstate(self, prevxu, xu):
         """ Return F, f - 1st order Taylor expansion of network around xu
             For the f(xt-1, ut-1, xt, ut) -> xt+1 network
          """
@@ -199,7 +159,6 @@ class NNetDyn(object):
 
     def __str__(self):
         return str(self.layers)
-
 
 def train_gd(obj, params, args):
     obj = obj
@@ -576,60 +535,3 @@ class SumLoss(object):
         for i in range(1, len(self.losses)):
             sumloss += self.wts[i]*self.losses[i].loss(labels, predictions)
         return sumloss
-
-def dummytest():
-    np.random.seed(10)
-    N = 1000
-    din = 15
-    dout = 9
-    FFF = np.random.randn(dout, din)
-    data_in = np.random.randn(N,din)
-    data_out = FFF.dot(data_in.T).T+ 0.00*np.random.randn(N, dout)
-
-    net = NNetDyn([din,200,60,dout])
-
-    lr = 0.08
-    lr = lr/1
-    lr_schedule = {
-            2000: 0.5,
-            3500: 0.5,
-            7000: 0.5
-            }
-
-    # Train one example at a time - use high momentum
-    for i in range(10*N):
-        data_idx = i%N
-        _din = np.expand_dims(data_in[data_idx], axis=0)
-        _dout = np.expand_dims(data_out[data_idx], axis=0)
-        #_din = data_in
-        #_dout = data_out
-        net.train(_din, _dout, lr, 0.99)
-        if i in lr_schedule:
-            lr *= lr_schedule[i]
-        if i % 200 == 0:
-            print i, net.obj_matrix(data_in, data_out)
-
-    #print FFF.T
-    print 'Pred:'
-    idx = 3
-    pred =  net.fwd_single(data_in[idx])
-    F, f = net.getF(data_in[idx] + 0.1*np.random.randn(din))
-    print 'F:', F.T
-    print 'f;',f
-    pred2 = (F.dot(data_in[idx])+f)
-    print pred
-    print pred2
-    print data_out[idx]
-    print FFF.dot(data_in[idx])
-
-def test_whiten():
-    w = WhitenLayer()
-    data = np.random.randn(30,5)
-    w.generate_weights(data)
-    whitened = w.forward(data)
-    import pdb; pdb.set_trace()
-
-if __name__ == "__main__":
-    #get_net()
-    #train_dyn()
-    test_whiten()
