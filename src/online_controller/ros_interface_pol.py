@@ -41,7 +41,7 @@ def visualize_forward_pass(fwd, viz_pub, color=[0.0,1.0,1.0], id=0):
     pnts = [fwd[t,:] for t in range(H)] 
     pub_viz_vec(viz_pub, pnts, color=color, id=id)
 
-def visualize_dynamics(traj, dynamics, viz_pub, ee_idx=slice(14,23)):
+def visualize_dynamics(traj, dynamics, viz_pub, ee_idx=slice(14,23), nnet=None):
     traj_line = Marker()
     traj_line.header.frame_id = BASE_LINK
     traj_line.id=0
@@ -50,7 +50,7 @@ def visualize_dynamics(traj, dynamics, viz_pub, ee_idx=slice(14,23)):
     traj_line.color.a = 1.0
     traj_line.scale.x = 0.01
     traj_line.scale.y = 0.01
-    traj_line.scale.z = 1.0
+    traj_line.scale.z = 0.1
     traj_line.lifetime = rospy.Duration(60)  # 1 Second
 
     dyn_line = Marker()
@@ -61,26 +61,52 @@ def visualize_dynamics(traj, dynamics, viz_pub, ee_idx=slice(14,23)):
     dyn_line.color.a = 1.0
     dyn_line.scale.x = 0.01
     dyn_line.scale.y = 0.01
-    dyn_line.scale.z = 1.0
+    dyn_line.scale.z = 0.1
     dyn_line.lifetime = rospy.Duration(60)  # 1 Second
+
+    if nnet:
+        nnet_line = Marker()
+        nnet_line.header.frame_id = BASE_LINK
+        nnet_line.id=999
+        nnet_line.type = Marker.LINE_LIST
+        nnet_line.color.g = 1.0
+        nnet_line.color.a = 1.0
+        nnet_line.scale.x = 0.01
+        nnet_line.scale.y = 0.01
+        nnet_line.scale.z = 0.1
+        nnet_line.lifetime = rospy.Duration(60)  # 1 Second
 
     for t in range(1,len(traj)):
         if t%2 == 0: # Too dense
-            continue
+            pass
+            #continue
         xu = traj[t]
+
         eept = xu[ee_idx]
         pp = Point()
         pp.x = eept[0]; pp.y = eept[1]; pp.z = eept[2]
         traj_line.points.append(pp)
         dyn_line.points.append(pp)
+        if nnet:
+            nnet_line.points.append(pp)
 
         F, f = dynamics[t]
         x_next = F.dot(xu) + f 
         eept = x_next[ee_idx]
         pp = Point(); pp.x = eept[0]; pp.y = eept[1]; pp.z = eept[2]
         dyn_line.points.append(pp)
+
+        if nnet:
+            x_next = nnet.fwd_single(xu.astype(np.float32))
+            #print np.all(x_next[ee_idx] == eept)
+            eept = x_next[ee_idx]
+            pp = Point(); pp.x = eept[0]; pp.y = eept[1]; pp.z = eept[2]
+            nnet_line.points.append(pp)
+
+
     viz_pub.publish(traj_line)
     viz_pub.publish(dyn_line)
+    viz_pub.publish(nnet_line)
 
 def process_jac(jac, eerot, ee_sites, dX):
     n_sites = ee_sites.shape[0]
@@ -158,7 +184,7 @@ def main():
         print 'Calculation took %f s for T=%d' % (elapsed_time, t)
 
         if t==controller.maxT-1:
-            visualize_dynamics(controller.rviz_traj, controller.dyn_hist_list, visualization_pub)
+            visualize_dynamics(controller.rviz_traj, controller.dyn_hist_list, visualization_pub, nnet=controller.dyn_net)
 
     action_publisher = rospy.Publisher('/ddp/mat_controller_policy', LGPolicy)
     visualization_pub = rospy.Publisher('/ddp/online_controller_viz', Marker)

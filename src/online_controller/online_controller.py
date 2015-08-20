@@ -27,7 +27,7 @@ class OnlineController(Policy):
         self.NSample = 1
 
         self.H = 10 # Horizon
-        self.empsig_N = 3 # Weight of least squares vs GMM/NN prior
+        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-6 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
 
@@ -42,11 +42,11 @@ class OnlineController(Policy):
         self.ee_sites = ee_sites
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        #self.dyn_init_mu.fill(0.0)
-        #self.dyn_init_sig.fill(0.0)
+        self.dyn_init_mu.fill(0.0)
+        self.dyn_init_sig.fill(0.0)
         self.use_prior_dyn = False
 
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
@@ -57,13 +57,9 @@ class OnlineController(Policy):
         self.calculated = []
         self.fwd_hist = [None]*self.maxT
 
-        #self.dyn_net = theano_dynamics.get_net('trap_contact_full_state.pkl') #theano_dynamics.load_net('norm_net.pkl')
-        #self.dyn_net_ls = theano_dynamics.get_net('net/trap_contact_small.pkl') #theano_dynamics.load_net('norm_net.pkl')
-
-        #self.dyn_net = theano_dynamics.get_net('net/plane_relu3.pkl')
-        #netname = 'net/armwave_softplus.pkl'
-        #self.dyn_net = theano_dynamics.get_net(netname)
-        #self.dyn_net_ref = theano_dynamics.get_net(netname)
+        netname = 'net/mjcnet.pkl'
+        self.dyn_net = theano_dynamics.get_net(netname)
+        self.dyn_net_ref = theano_dynamics.get_net(netname)
 
         #RVIZ stuff
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
@@ -259,7 +255,7 @@ class OnlineController(Policy):
         lbl = cur_x
         for i in range(0):
             # Lsq use 0.003
-            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.001, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
+            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.01, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
 
     def lqr(self, T, x, lgpolicy, reg_mu, reg_del):
         """

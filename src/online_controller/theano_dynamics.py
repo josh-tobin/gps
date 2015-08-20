@@ -27,7 +27,7 @@ def load_net(fname):
     return net
 
 class NNetDyn(object):
-    def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True,weight_decay=0.0, layer_reg = []):
+    def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True,weight_decay=0.0, layer_reg = [], recurse=None):
         self.params = []
         self.loss_wt = loss_wt
         self.layer_reg = layer_reg
@@ -35,6 +35,7 @@ class NNetDyn(object):
         self.layers = layers
         self.post_layer = post_layer
         self.weight_decay = weight_decay
+        self.recurse = recurse
         if init_funcs:
             self.init_funcs()
 
@@ -48,26 +49,22 @@ class NNetDyn(object):
         #Set up matrix functions
         data = T.matrix('mdata')
         lbl = T.matrix('mlbl')
-        net_out, layers_out = self.fwd(data, training=True)
-
-        extra_loss = []
-        loss_wts = []
-        for lreg in self.layer_reg:
-            layer_idx = lreg['layer_idx']
-            wt = lreg['l2wt']
-            print 'Adding layer regularization of %f for layer %d!' % (wt, layer_idx)
-            layer = layers_out[layer_idx]
-            extra_loss.append(L2Reg(layer))
-            loss_wts.append(wt)
-
         self.loss = SquaredLoss(self.loss_wt)
-        if extra_loss:
-            extra_loss.append(self.loss)
-            loss_wts.append(1.0)
-            self.loss = SumLoss(extra_loss, loss_wts)
+
+        net_out, layers_out = self.fwd(data, training=True)
         obj = self.loss.loss(lbl, net_out)
         self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
-        self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
+        self.train_sgd = train_gd_momentum(obj, self.params, [data, lbl], scl=1.0, weight_decay=self.weight_decay)
+
+        if self.recurse is not None:
+            print 'Setting up recursion!'
+            num_recurse = self.recurse['t']
+            recurse_out = self.fwd_recurse(data, self.recurse['dX'], self.recurse['dU'], num_recurse, training=True)
+            obj = self.loss.loss(lbl, recurse_out)
+            self.obj_rec = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
+            self.train_sgd_rec = train_gd_momentum(obj, self.params, [data, lbl], scl=self.nparams, weight_decay=self.weight_decay)
+            self.net_out_vec_rec = theano.function(inputs=[data], outputs=recurse_out)
+            self.obj = theano.function(inputs=[data, lbl], outputs=obj, on_unused_input='warn')
 
 
         # Set up vector functions
@@ -105,7 +102,12 @@ class NNetDyn(object):
         self.post_layer = metadata.get('post_layer', None)
 
         self.weight_decay = metadata['weight_decay']
+        self.weight_decay = 1e-5
         print 'Weight Decay:', self.weight_decay
+
+        if False:
+            self.recurse = {'t': 1, 'dX': 32, 'dU':7}
+
         self.layers = [None]*len(wts)
         for i in range(len(wts)):
             self.layers[i] = wts[i]
@@ -119,9 +121,24 @@ class NNetDyn(object):
             net_out = layer.forward(net_out, training=training)
             layers_out.append(net_out)
         layers_out.append(net_out)
-        #if post_layer and self.post_layer:
-        #    net_out = self.post_layer.forward(net_out, training=training)
         return net_out , layers_out
+
+    def fwd_recurse(self, data, dX, dU, N, training=True):
+        """Generate symbolic expressions for forward pass"""
+        X = data[:,0:dX]
+        cur_idx = dX
+        prev_out = X
+        for n in range(N):
+            U = data[:,cur_idx:cur_idx+dU]
+            XU = T.concatenate([prev_out, U], axis=1)
+            cur_idx += dU
+            prev_out, _ = self.fwd(XU, training=training)
+        return prev_out
+
+    def fwd_recurse_single(self, xuu, training=True):
+        """  """
+        xuu = np.expand_dims(xuu, axis=0).astype(np.float32)
+        return self.net_out_vec_rec(xuu)
 
     def fwd_single(self, xu, layer=None, training=False):
         """ Run forward pass on a single data point and return numeric output """
@@ -145,6 +162,11 @@ class NNetDyn(object):
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
         return self.train_sgd(xu, tgt, lr, momentum)
 
+    def train_rec(self, xu, tgt, lr, momentum):
+        """ Run SGD on matrix-formatted data (NxD) """
+        #xu = np.c_[xu, np.ones((xu.shape[0],1))]
+        return self.train_sgd_rec(xu, tgt, lr, momentum)
+
     def obj_matrix(self, xu, tgt):
         """   """
         #xu = np.c_[xu, np.ones((xu.shape[0],1))]
@@ -160,6 +182,19 @@ class NNetDyn(object):
         """ Return F, f - 1st order Taylor expansion of network around xu """
         F = self.jac(xu)
         f = -F.dot(xu)+self.fwd_single(xu)
+        return F, f
+
+    def getFpxu(self, prevxu, xu):
+        """ Return F, f - 1st order Taylor expansion of network around xu
+            For the f(xt-1, ut-1, xt, ut) -> xt+1 network
+         """
+        dXU = xu.shape[0]
+        xuxu = np.concatenate(prevxu, xu)
+        F_full = self.jac(xuxu)
+        f_full = -F.dot(xuxu)+self.fwd_single(xuxu)
+
+        F = F[:,dXU:2*dXU] 
+        f = f_full + F[:,0:dXU].dot(prevxu)
         return F, f
 
     def __str__(self):
@@ -428,6 +463,34 @@ class AccelLayerFT(Layer):
     def __str__(self):
         return "AccelLayer"
 
+class GatedLayer(Layer):
+    """ Acceleration Layer """
+    def __init__(self, layers, din, dout):
+        self.layers = layers
+        self.ffip = FFIPLayer(din, dout)
+
+    def forward(self, prev_layer, training=True):
+        ip = self.ffip.forward(prev_layer, training=training)
+        gates = prev_layer
+        for layer in layers:
+            gates = layer.forward(gates, training=training)
+        return gates * ip
+
+    def __str__(self):
+        return "GatedLayer"
+
+class ControlAffine(Layer):
+    """ ControlAffine Layer """
+    def __init__(self, layers, dx):
+        self.layers = layers
+        self.ffip = FFIPLayer(din, dout)
+
+    def forward(self, prev_layer, training=True):
+        pass
+
+    def __str__(self):
+        return "ControlAffine"
+
 class DropoutLayer(Layer):
     def __init__(self, n_in, rngseed=10, p=0.5):
         self.n_in = n_in
@@ -448,6 +511,7 @@ class ActivationLayer(Layer):
         'tanh': T.tanh,
         'sigmoid': T.nnet.sigmoid,
         'softmax': T.nnet.softmax,
+        'softplus': T.nnet.softplus,
         'relu': lambda x: x * (x > 0),
         'relu5': lambda x: x * (x > 0) + 0.5*x*(x<0),
         'relunop': lambda x: x * (x > 0) + 1.0*x*(x<0) #Debugging
@@ -470,6 +534,7 @@ TanhLayer = ActivationLayer('tanh')
 SigmLayer = ActivationLayer('sigmoid')
 SoftMaxLayer = ActivationLayer('softmax')
 ReLULayer = ActivationLayer('relu')
+SoftPlusLayer = ActivationLayer('softplus')
 ReLU5Layer = ActivationLayer('relu5')
 ReLUNopLayer = ActivationLayer('relunop')
 
