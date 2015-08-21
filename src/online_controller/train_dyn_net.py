@@ -125,7 +125,11 @@ def train_dyn():
 
     #net = NNetDyn([norm1, FFIPLayer(din, 50), ReLU5Layer, FFIPLayer(50,16), AccelLayer()], wt)
     #net = NNetDyn([norm1, FFIPLayer(din, 150), ReLU5Layer, DropoutLayer(150, p=0.8), FFIPLayer(150,dout)], wt)
-    net = NNetDyn([norm1, FFIPLayer(din, 50), SoftPlusLayer, FFIPLayer(50,dout)], wt)
+    #net = NNetDyn([norm1, FFIPLayer(din, 50), SoftPlusLayer, FFIPLayer(50,dout)], wt)
+    net = NNetDyn([norm1, 
+        GatedLayer([FFIPLayer(din, 50), SigmLayer] ,din, 50),
+        FFIPLayer(50, dout)],
+        wt)
     #net = NNetDyn([norm1, FFIPLayer(din, 60), ReLU5Layer, FFIPLayer(60, 60), ReLU5Layer, FFIPLayer(60,dout)], wt)
     #net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
 
@@ -144,7 +148,7 @@ def train_dyn():
         print 'net_out:',pred_net
         print 'taylor:',predict_taylor
         print 'label:',data_out[idx]
-        #import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
 
 
     #Randomize training

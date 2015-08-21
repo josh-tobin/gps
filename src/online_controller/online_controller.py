@@ -4,6 +4,7 @@ import scipy as sp
 import scipy.linalg
 import logging
 import time
+from proto.gps_pb2 import *
 
 from algorithm.policy.policy import Policy
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
@@ -42,14 +43,13 @@ class OnlineController(Policy):
         self.ee_sites = ee_sites
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        self.dyn_init_mu.fill(0.0)
-        self.dyn_init_sig.fill(0.0)
+        #self.dyn_init_mu.fill(0.0)
+        #self.dyn_init_sig.fill(0.0)
         self.use_prior_dyn = False
 
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
-
 
         self.offline_K = offline_K
         self.offline_k = offline_k
@@ -58,8 +58,8 @@ class OnlineController(Policy):
         self.fwd_hist = [None]*self.maxT
 
         netname = 'net/mjcnet.pkl'
-        self.dyn_net = theano_dynamics.get_net(netname)
-        self.dyn_net_ref = theano_dynamics.get_net(netname)
+        #self.dyn_net = theano_dynamics.get_net(netname)
+        #self.dyn_net_ref = theano_dynamics.get_net(netname)
 
         #RVIZ stuff
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
@@ -156,7 +156,7 @@ class OnlineController(Policy):
         # Store state and action.
         return self.prev_policy 
 
-    def act(self, x, obs, t, noise):
+    def act(self, x, obs, t, noise, sample):
         """
         Given a state, returns action to take.
         Used by MuJoCo
@@ -167,6 +167,7 @@ class OnlineController(Policy):
         dU = self.dU
         gamma = self.gamma
         horizon = min(self.H, self.maxT-t);
+        jacobian = sample.get(END_EFFECTOR_JACOBIANS, t=t)
 
         if t==0:
             # Execute something for first action.
@@ -211,10 +212,10 @@ class OnlineController(Policy):
         reg_del = self.del0
         for _ in range(self.LQR_iter):
             # This is plain LQR
-            #lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del)
+            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del, jacobian=jacobian)
 
             # This is LQR with a KL-div constraint
-            lgpolicy, eta = self.lqr_kl(horizon, x, self.eta, self.prev_policy, t)
+            #lgpolicy, eta = self.lqr_kl(horizon, x, self.eta, self.prev_policy, t, jacobian=jacobian)
             #self.eta = eta  # Update eta for the next iteration
 
             # Store traj
@@ -257,7 +258,7 @@ class OnlineController(Policy):
             # Lsq use 0.003
             print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.01, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
 
-    def lqr(self, T, x, lgpolicy, reg_mu, reg_del):
+    def lqr(self, T, x, lgpolicy, reg_mu, reg_del, jacobian=None):
         """
         Plain LQR
         """
@@ -270,7 +271,7 @@ class OnlineController(Policy):
         horizon = min(self.H, self.maxT-T);
 
         # Compute forward pass
-        cv, Cm, Fd, fc, _, _ = self.estimate_cost(horizon, x, lgpolicy, T)
+        cv, Cm, Fd, fc, _, _ = self.estimate_cost(horizon, x, lgpolicy, T, jacobian=jacobian)
 
         # Compute optimal policy with short horizon MPC.
         fail = True;
@@ -336,7 +337,7 @@ class OnlineController(Policy):
         policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
         return policy, reg_mu, reg_del        
 
-    def lqr_kl(self, H, x, prev_eta, prev_traj_distr, cur_timestep):
+    def lqr_kl(self, H, x, prev_eta, prev_traj_distr, cur_timestep, jacobian=None):
         """
         LQR with KL-divergence constraint
         """
@@ -355,7 +356,7 @@ class OnlineController(Policy):
 
         for itr in range(DGD_MAX_ITER):
             new_traj_distr, new_eta = self.bwd_kl(H, prev_traj_distr, prev_eta, Cm, cv, F, f)
-            _, _, _, _, new_mu, new_sigma = self.estimate_cost(H, x, new_traj_distr, cur_timestep)  # Forward pass
+            _, _, _, _, new_mu, new_sigma = self.estimate_cost(H, x, new_traj_distr, cur_timestep, jacobian=jacobian)  # Forward pass
 
             # Update min eta if we had a correction after running backward
             if new_eta > prev_eta:
@@ -510,8 +511,6 @@ class OnlineController(Policy):
 
                 Qtt = 0.5*(Qtt+Qtt.T)
 
-
-
                 try:
                     U = sp.linalg.cholesky(Qtt[iu,iu], check_finite=False)
                     L = U.T
@@ -540,7 +539,7 @@ class OnlineController(Policy):
         policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
         return policy, eta
 
-    def estimate_cost(self, horizon, x0, lgpolicy, cur_timestep):
+    def estimate_cost(self, horizon, x0, lgpolicy, cur_timestep, jacobian=None):
         """
         Returns cost matrices and dynamics via a forward pass
         """
@@ -611,14 +610,13 @@ class OnlineController(Policy):
         #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))
         Cm = np.zeros((N, H, dT, dT))
-        #Xs, Us = self.trajsamples(dX, dU, H, mu, trajsig, lgpolicy, N)
 
         for n in range(N):
             # Get costs.
             #l,lx,lu,lxx,luu,lux = self.cost.eval(Xs[n],Us[n], cur_timestep);
             #newmu = np.zeros_like(mu[:,iu]) 
             newmu = mu[:,iu]
-            l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix], newmu, cur_timestep);
+            l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix], newmu, cur_timestep, jac=jacobian);
             #[cc(:,:,i),lx,lu,lxx,luu,lux] = controller.cost.eval(Xs(:,:,i),Us(:,:,i),[],cost_infos(:,:,i));
 
             #cs(:,:,i) = cc(:,:,i);

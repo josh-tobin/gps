@@ -9,6 +9,7 @@ import cPickle
 from hyperparam_defaults import defaults
 from sample_data.sample_data import SampleData
 from cost_state_online import CostStateTracking
+from cost_fk_online import CostFKOnline
 from online_controller import OnlineController
 from algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 
@@ -32,12 +33,16 @@ def get_controller(controllerfile, maxT=100):
     wp = mat['cost_wp']
     wp.fill(0.0)
 
-    # --- 
+
+    #Joint state cost
     wp[0:7] = 1.0
-    #wp[14:20] = 1.0
-    #wp[14:20] = 1.0
-    #wp[14:21] = 0.0
-    cost = CostStateTracking(wp, tgt, maxT = maxT)
+    #cost = CostStateTracking(wp, tgt, maxT = maxT)
+
+    # End effector cost
+    ee_idx = slice(14,20)
+    jnt_idx = slice(0,7)
+    eetgt = tgt[-1, ee_idx]
+    cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT)
 
     # Read in offline dynamics
     dyn_init_mu = mat['dyn_init_mu']
@@ -158,6 +163,7 @@ def parse_args():
     parser.add_argument('-t', '--train', action='store_true', default=False, help='Train an offline controller')
     parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
     parser.add_argument('-v', '--noverbose', action='store_true', default=False, help='Disable plotting')
+    parser.add_argument('-s', '--savedata', action='store_true', default=False, help='Save dynamics data after running')
 
     mkdirp(os.path.join(THIS_FILE_DIR, 'controller'))
     default_file =  os.path.join(THIS_FILE_DIR, 'controller', 'mjc_online.pkl')
@@ -165,7 +171,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def run_online(T, controllerfile, verbose=True):
+def run_online(T, controllerfile, verbose=True, savedata=False):
     """
     Run online controller and save sample data to train dynamics
     """
@@ -173,7 +179,9 @@ def run_online(T, controllerfile, verbose=True):
     controller = get_controller(controllerfile, maxT=T)
     #sample = agent.sample(controller, controller.maxT, 0, screenshot_prefix='ss/mjc_relu_noupdate/img')
     sample = agent.sample(controller, controller.maxT, 0, verbose=verbose)
-    l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
+    #l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
+    if not savedata:
+        return
 
     X = sample.get_X()
     U = sample.get_U()
@@ -204,7 +212,7 @@ def main():
     if args.train:
         run_offline(args.controllerfile, verbose=not args.noverbose)
     else:
-        run_online(args.timesteps, args.controllerfile, verbose=not args.noverbose)
+        run_online(args.timesteps, args.controllerfile, verbose=not args.noverbose, savedata=args.savedata)
 
 def remap_lbl():
     mat = scipy.io.loadmat('data/dyndata_mjc_test.mat')

@@ -431,7 +431,7 @@ class GatedLayer(Layer):
     def forward(self, prev_layer, training=True):
         ip = self.ffip.forward(prev_layer, training=training)
         gates = prev_layer
-        for layer in layers:
+        for layer in self.layers:
             gates = layer.forward(gates, training=training)
         return gates * ip
 
