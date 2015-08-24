@@ -42,7 +42,7 @@ class LinearGaussianPolicy(Policy):
                 self.precision[t] = sp.linalg.solve_triangular(chol_pol_covar[t],sp.linalg.solve_triangular(chol_pol_covar[t].T, np.eye(self.dU), lower=True, check_finite=False), check_finite=False)
 
 
-    def act(self, x, obs, t, noise=None):
+    def act(self, x, obs, t, noise=None, sample=None):
         """
         Return an action for a state.
 

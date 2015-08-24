@@ -11,7 +11,7 @@ class Policy(object):
         pass
 
     @abc.abstractmethod
-    def act(self, x, obs, t, noise):
+    def act(self, x, obs, t, noise=None, sample=None):
         """
 
         Args:

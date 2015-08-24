@@ -1,3 +1,4 @@
 caffe/snapshot/*
+caffe/output/*
 *.hdf5
 data/*

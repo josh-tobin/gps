@@ -109,7 +109,7 @@ class AgentMuJoCo(Agent):
         for t in range(T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
-            mj_U = policy.act(X_t, obs_t, t, noise[t,:])
+            mj_U = policy.act(X_t, obs_t, t, noise[t,:], sample=new_sample)
             U[t,:] = mj_U
             if verbose:
                 self._world.plot(mj_X)

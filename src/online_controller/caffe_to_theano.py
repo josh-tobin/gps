@@ -40,7 +40,7 @@ def main():
         else:
             print 'Unknown layer %s; Skipping' % layer.type
 
-    theano_net = theano_dynamics.NNetDyn(theano_layers, np.ones(39))
+    theano_net = theano_dynamics.NNetDyn(theano_layers, np.ones(32))
     theano_dynamics.dump_net(args.outfile, theano_net)
 
 if __name__ == "__main__":

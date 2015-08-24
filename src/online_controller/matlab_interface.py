@@ -8,6 +8,7 @@ from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from sample_data.sample_data import SampleData
 from utility.gmm import GMM
 from cost_state_online import CostStateTracking
+from cost_fk_online import CostFKOnline
 from algorithm.cost.cost_utils import approx_equal
 from algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from online_controller import OnlineController
@@ -17,7 +18,7 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
-	T = 200
+	T = 500
 	dX = mat['Dx']
 	dU = mat['Du']
 
@@ -28,8 +29,10 @@ def get_controller(matfile):
 
 	wp[0:7] = 1.0
 	#wp[14:23] = 1.0
-	#wp[14:21] = 0.0
-	cost = CostStateTracking(wp, tgt, maxT=T)
+
+
+	#cost = CostStateTracking(wp, tgt, maxT=T)
+	cost = CostFKOnline(tgt[-1,14:23], ee_idx=slice(14,23), jnt_idx=slice(0,7), maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
@@ -72,7 +75,7 @@ def get_controller(matfile):
 	return oc
 
 def dyndata_init():
-    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_nopu', 'dyndata_armwave_moretq3'],['dyndata_plane_ft_2'], remove_ft=True, remove_prevu=True)
+    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_nopu', 'dyndata_armwave_all'],['dyndata_plane_ft_2'], remove_ft=True, remove_prevu=True)
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
     xux = np.c_[train_dat, train_lbl]
@@ -81,10 +84,10 @@ def dyndata_init():
     diff = xux-mu
     sig = diff.T.dot(diff)
 
-    it = slice(0,46)
-    ip = slice(46,85)
-    #it = slice(0,39)
-    #ip = slice(39,71)
+    #t = slice(0,46)
+    #ip = slice(46,85)
+    it = slice(0,39)
+    ip = slice(39,71)
     Fm = (np.linalg.pinv(sig[it, it]).dot(sig[it, ip])).T
     fv = mu[ip] - Fm.dot(mu[it]);
     print Fm

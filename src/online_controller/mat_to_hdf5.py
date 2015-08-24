@@ -8,9 +8,11 @@ import os
 #prefix, ext = os.path.splitext(fname)
 infiles = sys.argv[1].split(',')
 outfile = h5py.File(sys.argv[2])
-data, lbl, _, _ = train_dyn_net.get_data(infiles, infiles, remove_ft=True)
+a = {}
+data, lbl, _, _ = train_dyn_net.get_data(infiles, infiles, remove_ft=True, remove_prevu=True, clip_dict=a)
 
 outfile['data'] = data
 outfile['label'] = lbl
+outfile['clip'] = a['clip']
 
 outfile.flush()

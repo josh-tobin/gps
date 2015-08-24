@@ -3,13 +3,15 @@ import numpy as np
 import roslib
 roslib.load_manifest('ddp_controller_pkg')
 from sensor_msgs.msg import JointState
-from ddp_controller_pkg.msg import LGPolicy, MPCState
+from ddp_controller_pkg.msg import LGPolicy, MPCState, JacRequest, JacResponse
 import rospy
 import logging
 import cPickle
 from matlab_interface import get_controller
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import WrenchStamped, Wrench, Twist, Vector3, Point
+from std_msgs.msg import Float64MultiArray
+from agent.ros.ros_utils import ServiceEmulator
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
@@ -64,7 +66,8 @@ def visualize_dynamics(traj, dynamics, viz_pub, ee_idx=slice(14,23), nnet=None):
     dyn_line.scale.z = 0.1
     dyn_line.lifetime = rospy.Duration(60)  # 1 Second
 
-    if nnet:
+    nnet = None
+    if nnet is not None:
         nnet_line = Marker()
         nnet_line.header.frame_id = BASE_LINK
         nnet_line.id=999
@@ -106,7 +109,8 @@ def visualize_dynamics(traj, dynamics, viz_pub, ee_idx=slice(14,23), nnet=None):
 
     viz_pub.publish(traj_line)
     viz_pub.publish(dyn_line)
-    viz_pub.publish(nnet_line)
+    if nnet:
+        viz_pub.publish(nnet_line)
 
 def process_jac(jac, eerot, ee_sites, dX):
     n_sites = ee_sites.shape[0]
@@ -136,7 +140,30 @@ def process_jac(jac, eerot, ee_sites, dX):
 
 def main():
     rospy.init_node('mpc_node')
+
+    #True Init jacobian service
+    jacserv = ServiceEmulator('ddp/jacobian_request', JacRequest, 'ddp/jacobian_result', JacResponse)
+    def get_jacobian(joints):
+        """ Query robot for jacobians """
+        msg = JacRequest()
+        dJnt = joints.shape[1]
+        T = joints.shape[0]
+        msg.T = T
+        msg.joints = np.reshape(joints, [joints.shape[0]*joints.shape[1]])
+        msg.joint_dim = dJnt
+        jac_msg = jacserv.publish_and_wait(msg, wait_time=0.0001, timeout=0.01)  # Allow up to 10ms to compute
+        jacobians = np.array(jac_msg.jacs).reshape(T,dJnt,6).transpose([0,2,1])
+        ee_pnts = np.array(jac_msg.ee_pos).reshape(T, 3)
+        ee_rots = np.array(jac_msg.ee_rot).reshape(T, 3, 3).transpose([0,2,1])
+        ee_sites = controller.ee_sites
+        nsites = ee_sites.shape[0]
+        Jx_t = np.zeros((T, 3*nsites, controller.dX))
+        for t in range(T):
+            Jx_t[t] = process_jac(jacobians[t], ee_rots[t], ee_sites, controller.dX)
+        return Jx_t
     controller = get_controller('/home/justin/RobotRL/test/onlinecont.mat')
+    controller.jac_service = get_jacobian
+
     def state_callback(msg):
         start_time = time.time()
 
@@ -189,6 +216,8 @@ def main():
     action_publisher = rospy.Publisher('/ddp/mat_controller_policy', LGPolicy)
     visualization_pub = rospy.Publisher('/ddp/online_controller_viz', Marker)
     state_subscriber = rospy.Subscriber('/ddp/mat_controller_state', MPCState, state_callback)
+
+
 
     print 'Python controller initialized and spinning...'
     rospy.spin()

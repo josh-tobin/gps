@@ -26,6 +26,12 @@ def load_net(fname):
         net.init_funcs()
     return net
 
+def load_rec_net(fname, dX, dU):
+    with open(fname, 'r') as pklfile:
+        layers = cPickle.load(pklfile)
+    net = NNetRecursive(dX, dU, 1, layers)
+    return net
+
 class NNetDyn(object):
     def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True,weight_decay=0.0, layer_reg = [], recurse=None):
         self.params = []
@@ -82,14 +88,10 @@ class NNetDyn(object):
     def unserialize(self, net):
         metadata = net[0]
         wts = net[1]
-        #self.loss = metadata['loss']
         self.loss_wt = metadata['loss_wt']
         self.layer_reg = metadata.get('layer_reg', [])
-
         self.post_layer = metadata.get('post_layer', None)
-
         self.weight_decay = metadata['weight_decay']
-
         self.layers = [None]*len(wts)
         for i in range(len(wts)):
             self.layers[i] = wts[i]
@@ -159,6 +161,138 @@ class NNetDyn(object):
 
     def __str__(self):
         return str(self.layers)
+
+class NNetRecursive(object):
+    @staticmethod
+    def prepare_data(data, lbl, clip, dX, dU, lookahead):
+        N = data.shape[0]
+        Xs = data[:,:dX]
+        Us = data[:,dX:dX+dU]
+
+        data_X = []
+        data_U = []
+        tgt_X = []
+        for n in range(N):
+            x = Xs[n]
+            us = []
+            tgt_x = []
+
+            fail = False
+            for t in range(lookahead):
+                #print 'clip:',clip[n+t], '>', clip[n+t+1]
+                # Doing clip this way loses 1 data point per trial (which is stored in lbl)
+                if (n+t>=N) or (t>0 and clip[n+t] == 0): # Hit a boundary
+                    fail = True
+                    break
+                us.append(Us[n+t])
+                tgt_x.append(lbl[n+t])
+
+            if not fail:
+                us = np.concatenate(us)
+                tgt_x = np.concatenate(tgt_x)
+
+                data_X.append(x)
+                data_U.append(us)
+                tgt_X.append(tgt_x)
+
+        data_X = np.c_[data_X]
+        data_U = np.c_[data_U]
+        tgt_X = np.c_[tgt_X]
+        return data_X, data_U, tgt_X
+
+    # Train a feedforward net to predict multiple timesteps
+    def __init__(self, dX, dU, T, layers, weight_decay=0, init_funcs=True):
+        self.dX = dX
+        self.dU = dU
+        self.layers = layers
+        self.T = T
+        self.weight_decay = weight_decay
+        if init_funcs:
+            self.init_funcs()
+
+    def init_funcs(self):
+        self.params = []
+        self.nparams = 0
+        for layer in self.layers:
+            self.params.extend(layer.params())
+            self.nparams += layer.n_params()
+
+        #Set up matrix functions
+        X = T.matrix('mX')
+        U = T.matrix('mU')
+        Xtgt = T.matrix('mXtgt')
+        self.loss = SquaredLoss()
+
+        obj = self.obj_rec_symbolic(X, U, Xtgt, training=True)
+        self.obj = theano.function(inputs=[X, U, Xtgt], outputs=obj, on_unused_input='warn')
+        self.train_sgd = train_gd_momentum(obj, self.params, [X, U, Xtgt], scl=1.0, weight_decay=self.weight_decay)
+
+        # Set up vector functions
+        X = T.vector('vX')
+        U = T.vector('vU')
+        Xtgt = T.vector('vXtgt')
+        net_out = self.fwd_symbolic_single(X, U, training=False)
+        self.net_out_vec = theano.function(inputs=[X, U], outputs=net_out)
+        self.out_shape = theano.function(inputs=[X, U], outputs=net_out.shape)
+
+        x_grad = theano.gradient.jacobian(net_out, X)
+        u_grad = theano.gradient.jacobian(net_out, U)
+        data_grad = T.concatenate([x_grad, u_grad], axis=1)
+        self.jac = theano.function(inputs=[X, U], outputs=data_grad)
+
+    def fwd_symbolic_single(self, x, u, training=True):
+        xu = T.concatenate([x, u])
+        net_out = xu
+        for layer in self.layers:
+            layer.set_input_data(xu)
+            net_out = layer.forward(net_out, training=training)
+        return net_out
+
+    def fwd_symbolic(self, x, u, training=True):
+        xu = T.concatenate([x, u], axis=1)
+        net_out = xu
+        for layer in self.layers:
+            layer.set_input_data(xu)
+            net_out = layer.forward(net_out, training=training)
+        return net_out
+
+    def getF(self, xu):
+        """ Return F, f - 1st order Taylor expansion of network around xu """
+        x = xu[0:self.dX]
+        u = xu[self.dX:self.dX+self.dU]
+        return self.getFxu(x,u)
+
+    def getFxu(self, x, u):
+        """ Return F, f - 1st order Taylor expansion of network around xu """
+        F = self.jac(x, u)
+        f = -F.dot(np.concatenate([x, u]))+self.net_out_vec(x, u)
+        return F, f
+
+    def obj_rec_symbolic(self, X, U, Xtgt, training=True):
+        prevX = X
+        loss = None
+        for t in range(self.T):
+            u = U[:,t*self.dU:(t+1)*self.dU]
+            lbl = Xtgt[:,t*self.dX:(t+1)*self.dX]
+            net_out = self.fwd_symbolic(prevX, u, training=training)
+            l = self.loss.loss(net_out, lbl)
+            if loss is None:
+                loss = l
+            else:
+                loss += l
+            prevX = net_out
+        return loss
+
+    def train(self, xs, us, xtgt, lr=0.1, momentum=0.9):
+        return self.train_sgd(xs, us, xtgt, lr, momentum)
+
+    def train_single(self, xu, tgt, lr, momentum):
+        """Run SGD on a single (vector) data point """
+        xu = np.expand_dims(xu, axis=0).astype(np.float32)
+        x = xu[:,0:self.dX]
+        u = xu[:,self.dX:self.dX+self.dU]
+        tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
+        return self.train_sgd(x, u, tgt, lr, momentum)[0]
 
 def train_gd(obj, params, args):
     obj = obj
@@ -319,10 +453,10 @@ class AccelLayer(Layer):
         self.t = 0.05
         self.idxpos = slice(0,7)
         self.idxvel = slice(7,14)
-        self.idxprevu = slice(14,21)
-        self.idxeepos = slice(21,30)
-        self.idxeevel = slice(30,39)
-        self.idxu = slice(39,46)
+        #self.idxprevu = slice(14,21)
+        self.idxeepos = slice(14,23)
+        self.idxeevel = slice(23,32)
+        self.idxu = slice(32,39)
 
     def forward(self, prev_layer, training=True):
         if training:
@@ -333,8 +467,7 @@ class AccelLayer(Layer):
             jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
             ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
             ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
-            prev_action = self.input_data[:,self.idxu]
-            return T.concatenate([jnt_pos, jnt_vel, prev_action, ee_pos, ee_vel], axis=1)
+            return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel], axis=1)
         else:
             jnt_accel = prev_layer[:7]
             ee_accel = prev_layer[7:16]
@@ -343,8 +476,7 @@ class AccelLayer(Layer):
             jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
             ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
             ee_vel = self.input_data[self.idxeevel] + t*ee_accel
-            prev_action = self.input_data[self.idxu]
-            return T.concatenate([jnt_pos, jnt_vel, prev_action, ee_pos, ee_vel])
+            return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel])
 
     def __str__(self):
         return "AccelLayer"
@@ -364,66 +496,26 @@ class AccelLayerMJC(Layer):
             jnt_accel = prev_layer[:,:7]
             ee_accel = prev_layer[:,7:13]
             t = self.t
-            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + t*t*jnt_accel
             jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
-            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
+            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + t*t*ee_accel
             ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
             return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel], axis=1)
         else:
             jnt_accel = prev_layer[:7]
             ee_accel = prev_layer[7:13]
             t = self.t
-            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + t*t*jnt_accel
             jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
-            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
+            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + t*t*ee_accel
             ee_vel = self.input_data[self.idxeevel] + t*ee_accel
             return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel])
 
     def __str__(self):
         return "AccelLayer"
 
-class AccelLayerFT(Layer):
-    """ Acceleration Layer """
-    def __init__(self):
-        self.t = 0.05
-        self.idxpos = slice(0,7)
-        self.idxvel = slice(7,14)
-        self.idxprevu = slice(14,21)
-        self.idxft = slice(21,27)
-        self.idxeepos = slice(27,36)
-        self.idxeevel = slice(36,45)
-        self.idxu = slice(45,52)
-
-    def forward(self, prev_layer, training=True):
-        if training:
-            jnt_accel = prev_layer[:,:7]
-            ee_accel = prev_layer[:,7:16]
-            nextft = prev_layer[:,16:22]
-            t = self.t
-            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + 0.5*t*t*jnt_accel
-            jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
-            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
-            ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
-            prev_action = self.input_data[:,self.idxu]
-            return T.concatenate([jnt_pos, jnt_vel, prev_action, nextft, ee_pos, ee_vel], axis=1)
-        else:
-            jnt_accel = prev_layer[:7]
-            ee_accel = prev_layer[7:16]
-            nextft = prev_layer[16:22]
-            t = self.t
-            nextft = self.input_data[self.idxft]+t*nextft
-            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + 0.5*t*t*jnt_accel
-            jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
-            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
-            ee_vel = self.input_data[self.idxeevel] + t*ee_accel
-            prev_action = self.input_data[self.idxu]
-            return T.concatenate([jnt_pos, jnt_vel, prev_action, nextft, ee_pos, ee_vel])
-
-    def __str__(self):
-        return "AccelLayer"
-
 class GatedLayer(Layer):
-    """ Acceleration Layer """
+    """ Gated Layer """
     def __init__(self, layers, din, dout):
         self.layers = layers
         self.ffip = FFIPLayer(din, dout)
@@ -498,13 +590,14 @@ ReLU5Layer = ActivationLayer('relu5')
 ReLUNopLayer = ActivationLayer('relunop')
 
 class SquaredLoss(object):
-    def __init__(self, wt):
+    def __init__(self, wt=None):
         super(SquaredLoss, self).__init__()
         self.wt = wt
 
     def loss(self, labels, predictions):
         diff = labels-predictions
-        diff = diff*self.wt
+        if self.wt is not None:
+            diff = diff*self.wt
         loss = T.sum(diff*diff)/diff.shape[0]
         return loss
 

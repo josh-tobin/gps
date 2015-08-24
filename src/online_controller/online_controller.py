@@ -5,6 +5,7 @@ import scipy.linalg
 import logging
 import time
 from proto.gps_pb2 import *
+from agent.agent_utils import generate_noise
 
 from algorithm.policy.policy import Policy
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
@@ -14,7 +15,7 @@ import train_dyn_net as theano_dynamics
 LOGGER = logging.getLogger(__name__)
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost, maxT = 100, ee_sites=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
+    def __init__(self, dX, dU, dynprior, cost, maxT = 100, ee_sites=None, jac_service=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
         self.LQR_iter = 1  # Number of LQR iterations to take
         self.dX = dX
@@ -27,27 +28,30 @@ class OnlineController(Policy):
         self.eta = 1.0 # Initial eta for DGD w/ KL-div constrant
         self.NSample = 1
 
-        self.H = 10 # Horizon
-        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
+        self.H = 20 # Horizon
+        self.empsig_N = 3 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-6 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
 
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 0.1 # Noise to add
+        self.u_noise = 0.02 # Noise to add
+        #self.noise_gamma = 0.3 # Noise moving average
+        self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=2.0, renorm=True)
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
         self.offline_dynsig = offline_dynsig
         self.ee_sites = ee_sites
+        self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        #self.dyn_init_mu.fill(0.0)
-        #self.dyn_init_sig.fill(0.0)
+        self.dyn_init_mu.fill(0.0)
+        self.dyn_init_sig.fill(0.0)
         self.use_prior_dyn = False
 
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
@@ -57,9 +61,11 @@ class OnlineController(Policy):
         self.calculated = []
         self.fwd_hist = [None]*self.maxT
 
-        netname = 'net/mjcnet.pkl'
-        #self.dyn_net = theano_dynamics.get_net(netname)
-        #self.dyn_net_ref = theano_dynamics.get_net(netname)
+        netname = 'net/rec_armwave_softplus.pkl'
+        #netname = 'net/armwave_lsq_nopu2.pkl'
+        rec = True
+        self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
+        self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
 
         #RVIZ stuff
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
@@ -97,6 +103,7 @@ class OnlineController(Policy):
                 for i in range(t,t+self.prev_policy.T):
                     self.prev_policy.K[i-t] = self.offline_K[i]
                     self.prev_policy.k[i-t] = self.offline_k[i]
+            self.rviz_traj[t] == [x, self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]]
             return self.prev_policy
 
 
@@ -107,7 +114,7 @@ class OnlineController(Policy):
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):
-            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del)
+            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del, jacobian=sitejac)
 
             # Store traj
             self.prev_policy = lgpolicy
@@ -147,7 +154,7 @@ class OnlineController(Policy):
         """
 
         # Generate noise - 
-        noise_vec = self.u_noise*np.random.randn(7)
+        noise_vec = self.u_noise*self.prev_policy.chol_pol_covar[0].dot(self.noise[t])
 
         self.prev_policy.k[0] += noise_vec
         if self.prev_policy.T > 1:
@@ -244,7 +251,7 @@ class OnlineController(Policy):
         gamma = self.gamma
         self.mu = self.mu*(1-gamma) + pt*(gamma)
 
-        pt = pt-self.mu
+        #pt = pt -self.mu
         self.sigma = self.sigma*(1-gamma) + np.outer(pt,pt)*(gamma)
         self.sigma = 0.5*(self.sigma+self.sigma.T)
 
@@ -254,9 +261,9 @@ class OnlineController(Policy):
         """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
-        for i in range(0):
+        for i in range(3):
             # Lsq use 0.003
-            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.01, momentum=0.90), self.dyn_net_ref.obj_vec(pt, lbl))
+            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.001, momentum=0.90), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
 
     def lqr(self, T, x, lgpolicy, reg_mu, reg_del, jacobian=None):
         """
@@ -602,8 +609,18 @@ class OnlineController(Policy):
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
         self.fwd_hist[cur_timestep] = {'trajmu': mu, 'F': F, 'f': f}
+
+        #TODO: Hardcoded joint indexes
+        jacobians = None
+        if self.jac_service:
+            try:
+                #pass
+                jacobians = self.jac_service(mu[:,0:7])
+            except:
+                print 'Warning - jacobians timed out!'
+                pass
+
         self.vis_forward_pass_joints = mu[:,0:7]
-        #self.vis_forward_ee = mu[:,21:30]
         self.vis_forward_ee = mu[:,21-7:30-7]
         self.dyn_hist_list[cur_timestep] = (F[0], f[0])
 
@@ -616,7 +633,10 @@ class OnlineController(Policy):
             #l,lx,lu,lxx,luu,lux = self.cost.eval(Xs[n],Us[n], cur_timestep);
             #newmu = np.zeros_like(mu[:,iu]) 
             newmu = mu[:,iu]
-            l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix], newmu, cur_timestep, jac=jacobian);
+            if jacobians is not None:
+                l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix], newmu, cur_timestep, jac=jacobians);
+            else:
+                l,lx,lu,lxx,luu,lux = self.cost.eval(mu[:,ix], newmu, cur_timestep, jac=jacobian);
             #[cc(:,:,i),lx,lu,lxx,luu,lux] = controller.cost.eval(Xs(:,:,i),Us(:,:,i),[],cost_infos(:,:,i));
 
             #cs(:,:,i) = cc(:,:,i);
@@ -661,7 +681,7 @@ class OnlineController(Policy):
             empsig = self.dyn_init_sig
         else:
             mun = self.mu
-            empsig = self.sigma
+            empsig = self.sigma - np.outer(self.mu, self.mu)
         N = self.empsig_N
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)

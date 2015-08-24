@@ -1,18 +1,18 @@
 net: "caffe/dyn_relu.proto"
 solver_type: SGD
 test_state: { stage: 'test-on-val' }
-test_iter: 300
+test_iter: 1
 test_state: { stage: 'test-on-train' }
-test_iter: 100
+test_iter: 1
 test_interval: 5000
 
-base_lr: 2e-4
+base_lr: 5e-4
 lr_policy: "step"
 gamma: 0.5
-stepsize: 40000
+stepsize: 20000
 
 display: 1000
-max_iter: 800000
+max_iter: 1
 momentum: 0.9
 weight_decay: 1e-5
 snapshot: 10000

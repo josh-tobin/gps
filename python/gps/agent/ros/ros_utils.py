@@ -1,6 +1,9 @@
 import rospy
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
-from gps_agent_pkg.msg import ControllerParams, LinGaussParams
+#from gps_agent_pkg.msg import ControllerParams, LinGaussParams
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 def construct_sample_from_ros_msg(ros_msg):
@@ -41,7 +44,7 @@ class ServiceEmulator(object):
         sub_topic (string): Subscriber topic
         sub_type (class): Subscriber message type. Must have a header field (for seq id checking)
     """
-    def __init__(self, pub_topic, pub_type, sub_topic, sub_type):
+    def __init__(self, pub_topic, pub_type, sub_topic, sub_type, ):
         self._pub = rospy.Publisher(pub_topic, pub_type)
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
 
@@ -49,36 +52,41 @@ class ServiceEmulator(object):
         self._header_seq = -1
         self._subscriber_msg = None
 
+        rospy.sleep(1.0) # Wait a little
+
     def _callback(self, message):
         if self._waiting:
-            if message.header.seq != self._header_seq:
-                return
+            #if message.header.seq != self._header_seq:
+            #    return
             self._subscriber_msg = message
             self._waiting = False
-            self._header_seq = -1
+            #self._header_seq = -1
 
     def publish(self, pub_msg):
         """ Publish a message without waiting for response """
         self._pub.publish(pub_msg)
 
-    def publish_and_wait(self, pub_msg, timeout=5.0):
+    def publish_and_wait(self, pub_msg, wait_time=0.01, timeout=5.0):
         """
         Publish a message and wait for the response.
 
         Args:
             pub_msg (pub_type): Message to publish
+            wait_time (float, optional): Time to wait in sec between checking if message has arrived. Default 0.01s
             timeout (float, optional): Timeout in seconds. Default 5.0
         Returns:
             sub_msg (sub_type): Subscriber message
         """
         self._waiting = True
-        self._header_seq = pub_msg.header.seq
+        #self._header_seq = pub_msg.header.seq
         self.publish(pub_msg)
 
         time_waited = 0
         while self._waiting:
-            rospy.sleep(0.01)
-            time_waited += 0.01
+            rospy.sleep(wait_time)
+            time_waited += wait_time
             if time_waited > timeout:
                 raise TimeoutException(time_waited)
+        print 'Time waited=', time_waited
+        LOGGER.debug('ServiceEmulator time waited = %f', time_waited)
         return self._subscriber_msg
