@@ -21,14 +21,16 @@ class OnlineController(Policy):
         self.dX = dX
         self.dU = dU
         self.cost = cost
-        self.gamma = 0.1  # Moving average parameter
+        self.gamma = 0.01  # Moving average parameter
         self.maxT = maxT
         self.min_mu = 1e-6 # LQR regularization
         self.del0 = 2 # LQR regularization
-        self.eta = 1.0 # Initial eta for DGD w/ KL-div constrant
         self.NSample = 1
 
-        self.H = 20 # Horizon
+        self.eta = 1.0 # Initial eta for DGD w/ KL-div constrant
+        self.use_kl_constraint = True
+
+        self.H = 15 # Horizon
         self.empsig_N = 3 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-6 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
@@ -36,7 +38,7 @@ class OnlineController(Policy):
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 0.02 # Noise to add
+        self.u_noise = 0.01 # Noise to add
         #self.noise_gamma = 0.3 # Noise moving average
         self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=2.0, renorm=True)
 
@@ -47,12 +49,14 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        self.dyn_init_mu.fill(0.0)
-        self.dyn_init_sig.fill(0.0)
+        #self.dyn_init_mu.fill(0.0)
+        #self.dyn_init_sig.fill(0.0)
         self.use_prior_dyn = False
 
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_update_iters = 1  # Number of SGD iterations to take per timestep
+        self.nn_lr = 0.001  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
         self.offline_K = offline_K
@@ -80,6 +84,7 @@ class OnlineController(Policy):
         """
         if t == 0:
             self.inputs = [] #debugging
+        self.t = t
 
         dX = self.dX 
         dU = self.dU
@@ -218,12 +223,14 @@ class OnlineController(Policy):
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):
-            # This is plain LQR
-            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del, jacobian=jacobian)
+            if self.use_kl_constraint:
+                # This is LQR with a KL-div constraint
+                lgpolicy, eta = self.lqr_kl(horizon, x, self.eta, self.prev_policy, t, jacobian=jacobian)
+                self.eta = eta  # Update eta for the next iteration
+            else:
+                # This is plain LQR
+                lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del, jacobian=jacobian)
 
-            # This is LQR with a KL-div constraint
-            #lgpolicy, eta = self.lqr_kl(horizon, x, self.eta, self.prev_policy, t, jacobian=jacobian)
-            #self.eta = eta  # Update eta for the next iteration
 
             # Store traj
             self.prev_policy = lgpolicy
@@ -255,15 +262,27 @@ class OnlineController(Policy):
         self.sigma = self.sigma*(1-gamma) + np.outer(pt,pt)*(gamma)
         self.sigma = 0.5*(self.sigma+self.sigma.T)
 
+        # Debug - print log prob
+        """
+        empsig = self.sigma - np.outer(self.mu, self.mu)
+        diff = pt-self.mu
+        try:
+            logprob = np.log(diff.T.dot(np.linalg.inv(empsig)).dot(diff)) - 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
+        except:
+            logprob = np.log(diff.T.dot(np.linalg.inv(empsig)).dot(diff)) - np.log(np.linalg.det(empsig))
+        self.inputs[self.t]['logprob'] = logprob
+        print 'Logprob:', logprob
+        """
+
     def update_nn_dynamics(self, prevx, prevu, cur_x):
         """
         Update neural network dynamics via SGD
         """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
-        for i in range(3):
+        for i in range(self.nn_update_iters):
             # Lsq use 0.003
-            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=0.001, momentum=0.90), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
+            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=self.nn_lr, momentum=0.90), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
 
     def lqr(self, T, x, lgpolicy, reg_mu, reg_del, jacobian=None):
         """
@@ -353,10 +372,10 @@ class OnlineController(Policy):
 
         #line_search = LineSearch(self._hyperparams['min_eta'])
         min_eta = -np.Inf
-        cv, Cm, F, f, new_mu, new_sigma = self.estimate_cost(H, x, prev_traj_distr, cur_timestep)  # Forward pass using prev traj
+        cv, Cm, F, f, new_mu, new_sigma = self.estimate_cost(H, x, prev_traj_distr, cur_timestep, jacobian=jacobian)  # Forward pass using prev traj
 
         alpha = 0.5 # Step size between 0 and 1
-        DGD_MAX_ITER = 1
+        DGD_MAX_ITER = 4
         THRESHA = 1e-4  # First convergence threshold
         THRESHB = 1e-3  # Second convergence threshold
         MIN_ETA = 1e-4

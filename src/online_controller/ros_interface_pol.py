@@ -211,6 +211,8 @@ def main():
         print 'Calculation took %f s for T=%d' % (elapsed_time, t)
 
         if t==controller.maxT-1:
+            with open('controller_dump.pkl', 'w') as ctrlfile:
+                cPickle.dump([controller.inputs, controller.fwd_hist], ctrlfile)
             visualize_dynamics(controller.rviz_traj, controller.dyn_hist_list, visualization_pub, nnet=controller.dyn_net)
 
     action_publisher = rospy.Publisher('/ddp/mat_controller_policy', LGPolicy)

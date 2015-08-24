@@ -18,7 +18,7 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
-	T = 500
+	T = 200
 	dX = mat['Dx']
 	dU = mat['Du']
 
@@ -27,8 +27,8 @@ def get_controller(matfile):
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
 
-	wp[0:7] = 1.0
-	#wp[14:23] = 1.0
+	#wp[0:7] = 1.0
+	wp[14:23] = 1.0
 
 
 	#cost = CostStateTracking(wp, tgt, maxT=T)

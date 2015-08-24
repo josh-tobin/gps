@@ -9,11 +9,12 @@ class CostStateTracking(object):
         self.ref_len = tgt.shape[0]
         self.ramp_option = RAMP_CONSTANT
         self.final_tgt = True
+        self.final_penalty = 10.0  # weight = sum of remaining weight * final penalty
         self.t_weight = 10.0
         self.l1 = 0.01
         self.l2 = 1.0
         self.alpha = 1e-5
-        self.wu = 1e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        self.wu = 10e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
 
         #self.wu = 1e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # MJC
 
@@ -27,6 +28,8 @@ class CostStateTracking(object):
         T = X.shape[0]
 
         wp = self.wp[:dX]*np.expand_dims(self.wpm[t:t+T], axis=-1)
+        remaining_weight = np.sum(self.wpm[t+T:])
+        wp[-1,:] *= self.final_penalty
 
         #l = np.zeros(T)
         l = 0.5 * np.sum(self.wu * (U ** 2), axis=1)

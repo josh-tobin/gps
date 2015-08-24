@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+np.set_printoptions(suppress=True)
 def main():
 	with open(sys.argv[1], 'r') as f:
 		oc = cPickle.load(f)
@@ -11,10 +12,11 @@ def main():
 	#idx_to_plot = slice(21,30)
 	#idx_to_plot = slice(7,14)
 	#idx_to_plot = slice(14,21)
-	actual_info = oc.inputs
+	actual_info = oc[0]
 	actual_x = np.array([inp['x'][idx_to_plot] for inp in actual_info])
 
-	fwd_info = oc.fwd_hist
+	fwd_info = oc[1]
+
 
 	"""
 	start_time = 5
@@ -42,9 +44,14 @@ def main():
 	plt.plot(np.arange(97), u_offline)
 	plt.show()
 	"""
-	u_online = np.array([ oc.calculated[t]['u'] for t in range(97) ])
-	plt.plot(np.arange(2,97), u_online[2:])
-	plt.show()
+	#u_online = np.array([ oc.calculated[t]['u'] for t in range(97) ])
+	#plt.plot(np.arange(2,97), u_online[2:])
+	#plt.show()
+
+	dynamics = oc[1]
+	F = np.array([dynamics[t]['F'][0] for t in range(1,len(dynamics))])
+	f = np.array([dynamics[t]['f'][0] for t in range(1,len(dynamics))])
+	import pdb; pdb.set_trace()
 
 
 main()

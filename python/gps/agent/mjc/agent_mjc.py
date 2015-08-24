@@ -110,6 +110,7 @@ class AgentMuJoCo(Agent):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
             mj_U = policy.act(X_t, obs_t, t, noise[t,:], sample=new_sample)
+            mj_U = np.clip(mj_U, -self._hyperparams['max_U'], self._hyperparams['max_U'])
             U[t,:] = mj_U
             if verbose:
                 self._world.plot(mj_X)

@@ -11,11 +11,12 @@ class CostFKOnline(object):
         self.ee_idx = ee_idx
         self.jnt_idx = jnt_idx
 
+        self.final_penalty = 10.0  # weight = sum of remaining weight * final penalty
         self.ramp_option = RAMP_CONSTANT
         self.l1 = 0.01
         self.l2 = 1.0
         self.alpha = 1e-5
-        self.wu = 1e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        self.wu = 5e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
 
         ramp_len = self.ref_len if maxT is None else maxT
         self.wpm = get_ramp_multiplier(self.ramp_option, ramp_len, wp_final_multiplier=1.0)
@@ -27,6 +28,8 @@ class CostFKOnline(object):
         T = X.shape[0]
 
         wp = self.wp*np.expand_dims(self.wpm[t:t+T], axis=-1)
+        remaining_weight = np.sum(self.wpm[t+T:])
+        wp[-1,:] *= self.final_penalty
 
         l = 0.5 * np.sum(self.wu * (U ** 2), axis=1)
         lu = self.wu*U

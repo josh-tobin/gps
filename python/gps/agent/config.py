@@ -42,4 +42,5 @@ agent = {
 agent_mujoco = deepcopy(agent)
 agent_mujoco.update({
     'substeps': 1,
+    'max_U': 15.0
 })
