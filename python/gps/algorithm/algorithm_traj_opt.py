@@ -73,6 +73,7 @@ class AlgorithmTrajOpt(Algorithm):
 
         self.advance_iteration_variables()
 
+    # TODO - this can probably go in super class
     def update_dynamics(self):
         """
         Instantiate dynamics objects and update prior.
@@ -97,6 +98,7 @@ class AlgorithmTrajOpt(Algorithm):
                 N = len(cur_idx)
                 self.cur[m].traj_info.x0sigma += Phi + ((N*priorm)/(N+priorm))*np.outer(x0mu-mu0,x0mu-mu0)/(N+n0)
 
+    # TODO - can this go in super class
     def update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function for all conditions and samples
@@ -108,6 +110,7 @@ class AlgorithmTrajOpt(Algorithm):
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
 
+    # TODO - this code can probably go in super class.
     def update_trajectories(self):
         """
         Compute new linear gaussian controllers.
@@ -188,6 +191,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur[m].mispred_std = mispred_std
         self.cur[m].polkl = polkl
 
+    # TODO - move to super class or util?
     def eval_cost(self, m):
         """
         Evaluate costs for all samples for a condition
@@ -232,6 +236,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur[m].traj_info.Cm = np.mean(Cm, 0)  # Cost, 2nd deriv
         self.cur[m].cs = cs
 
+    # TODO - move to super class
     def advance_iteration_variables(self):
         """
         Move all 'cur' variables to 'prev'.
