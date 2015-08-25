@@ -9,7 +9,7 @@ import os
 infiles = sys.argv[1].split(',')
 outfile = h5py.File(sys.argv[2])
 a = {}
-data, lbl, _, _ = train_dyn_net.get_data(infiles, infiles, remove_ft=True, remove_prevu=True, clip_dict=a)
+data, lbl, _, _ = train_dyn_net.get_data(infiles, infiles, remove_ft=False, remove_prevu=True, clip_dict=a)
 
 outfile['data'] = data
 outfile['label'] = lbl

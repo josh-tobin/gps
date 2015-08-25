@@ -35,7 +35,8 @@ def get_controller(controllerfile, maxT=100):
 
 
     #Joint state cost
-    wp[0:7] = 1.0
+    #wp[0:7] = 1.0
+    wp[14:20] = 1.0
     #cost = CostStateTracking(wp, tgt, maxT = maxT)
 
     # End effector cost
@@ -46,7 +47,7 @@ def get_controller(controllerfile, maxT=100):
 
     # Read in offline dynamics
     dyn_init_mu = mat['dyn_init_mu']
-    dyn_init_sig = mat['dyn_init_sig']
+    dyn_init_sig = mat['dyn_init_sig']+np.outer(dyn_init_mu, dyn_init_mu)
     #dyn_init_mu, dyn_init_sig = dyndata_init()
     
     K = mat['offline_K']
@@ -187,6 +188,8 @@ def run_online(T, controllerfile, verbose=True, savedata=False):
     U = sample.get_U()
     xu = np.concatenate([X[:-1,:], U[:-1,:]], axis=1)
     xnext = X[1:,:]
+    import matplotlib.pyplot as plt
+    import pdb; pdb.set_trace()
 
     mkdirp(os.path.join(THIS_FILE_DIR, 'data'))
     dynmat_file = os.path.join(THIS_FILE_DIR, 'data', 'dyndata_mjc_expr.mat')

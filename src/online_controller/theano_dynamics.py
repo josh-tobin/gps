@@ -463,23 +463,62 @@ class AccelLayer(Layer):
             jnt_accel = prev_layer[:,:7]
             ee_accel = prev_layer[:,7:16]
             t = self.t
-            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + t*t*jnt_accel
             jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
-            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + 0.5*t*t*ee_accel
+            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + t*t*ee_accel
             ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
             return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel], axis=1)
         else:
             jnt_accel = prev_layer[:7]
             ee_accel = prev_layer[7:16]
             t = self.t
-            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + 0.5*t*t*jnt_accel
+            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + t*t*jnt_accel
             jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
-            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + 0.5*t*t*ee_accel
+            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + t*t*ee_accel
             ee_vel = self.input_data[self.idxeevel] + t*ee_accel
             return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel])
 
     def __str__(self):
         return "AccelLayer"
+
+class AccelLayerFT(Layer):
+    """ Acceleration Layer """
+    def __init__(self):
+        self.t = 0.05
+        self.idxpos = slice(0,7)
+        self.idxvel = slice(7,14)
+        self.idxft = slice(14,20)
+        self.idxeepos = slice(20,29)
+        self.idxeevel = slice(29,38)
+        self.idxu = slice(38,45)
+
+    def forward(self, prev_layer, training=True):
+        if training:
+            jnt_accel = prev_layer[:,:7]
+            ee_accel = prev_layer[:,7:16]
+            nextft = prev_layer[:,16:22]
+            t = self.t
+            jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + t*t*jnt_accel
+            jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + t*t*ee_accel
+            ee_vel = self.input_data[:,self.idxeevel] + t*ee_accel
+            nextft = nextft + self.input_data[:,self.idxft]
+            return T.concatenate([jnt_pos, jnt_vel, nextft, ee_pos, ee_vel], axis=1)
+        else:
+            jnt_accel = prev_layer[:7]
+            ee_accel = prev_layer[7:16]
+            nextft = prev_layer[16:22]
+            t = self.t
+            jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + t*t*jnt_accel
+            jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
+            ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + t*t*ee_accel
+            ee_vel = self.input_data[self.idxeevel] + t*ee_accel
+            nextft = nextft + self.input_data[self.idxft]
+            return T.concatenate([jnt_pos, jnt_vel, nextft, ee_pos, ee_vel])
+
+    def __str__(self):
+        return "AccelLayerFT"
+
 
 class AccelLayerMJC(Layer):
     """ Acceleration Layer """

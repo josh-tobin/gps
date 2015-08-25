@@ -213,17 +213,19 @@ def train_dyn_rec():
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
 
-    dX = 32
+    dX = 32+6
     dU = 7
-    T = 2
-    train_data, train_lbl, train_clip = get_data_hdf5('data/dyndata_armwave_all.hdf5')
+    T = 1
+    train_data, train_lbl, train_clip = get_data_hdf5('data/dyndata_armwave_ft.hdf5.train')
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
 
-    test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_armwave_all.hdf5.test')
+    test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_armwave_ft.hdf5.test')
     test_X, test_U, test_tgt = NNetRecursive.prepare_data(test_data, test_lbl, test_clip, dX, dU, T)
 
     N = train_X.shape[0]
-    print 'N:', N
+    print 'N:', N, train_X.shape
+    print train_U.shape
+    print train_tgt.shape
 
     # Input normalization
     #norm1 = NormalizeLayer()
@@ -234,13 +236,17 @@ def train_dyn_rec():
         with open(fname, 'r') as pklfile:
             layers = cPickle.load(pklfile)
     except:
-        layers = [FFIPLayer(dX+dU, 50), SoftPlusLayer, FFIPLayer(50, 16), AccelLayer()]
-        #layers = [FFIPLayer(dX+dU,dX)]
+        print 'Creating new net!'
+        # Input normalization
+        norm1 = NormalizeLayer()
+        norm1.generate_weights(train_data)
+        #layers = [norm1, FFIPLayer(dX+dU, 50), ReLULayer, FFIPLayer(50, 50), ReLULayer, FFIPLayer(50, 16+6), AccelLayerFT()] 
+        layers = [FFIPLayer(dX+dU,dX)]
         #layers = [
         #    GatedLayer([FFIPLayer(dX+dU, 80), SigmLayer] ,dX+dU, 80),
         #    FFIPLayer(80, dX)]
 
-    """
+    #"""
     xux = np.c_[train_data, train_lbl]
     mu = np.mean(xux, axis=0)
     diff = xux-mu
@@ -251,7 +257,7 @@ def train_dyn_rec():
     fv = mu[ip] - Fm.dot(mu[it]);
     layers[0].w.set_value(Fm.T)
     layers[0].b.set_value(fv)
-    """
+    #"""
 
     net = NNetRecursive(dX, dU, T, layers, weight_decay=0)
 
@@ -265,7 +271,7 @@ def train_dyn_rec():
         import pdb; pdb.set_trace()
 
     bsize = 50
-    lr = 4e-3/bsize
+    lr = 1.0e-3/bsize
     lr_schedule = {
             100000: 0.2,
             200000: 0.2,

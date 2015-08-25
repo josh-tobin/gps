@@ -27,12 +27,12 @@ def get_controller(matfile):
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
 
-	#wp[0:7] = 1.0
-	wp[14:23] = 1.0
+	wp[0:7] = 1.0
+	#wp[14:23] = 1.0
 
 
-	#cost = CostStateTracking(wp, tgt, maxT=T)
-	cost = CostFKOnline(tgt[-1,14:23], ee_idx=slice(14,23), jnt_idx=slice(0,7), maxT=T)
+	cost = CostStateTracking(wp, tgt, maxT=T)
+	#cost = CostFKOnline(tgt[-1,14:23], ee_idx=slice(14,23), jnt_idx=slice(0,7), maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
@@ -41,7 +41,7 @@ def get_controller(matfile):
 	#big_dyn_sig = mat['dyn_big_sig'].transpose(2,0,1)
 	dyn_init_mu = mat['dyn_init_mu'][:,0]
 	dyn_init_sig = mat['dyn_init_sig']
-	dyn_init_mu, dyn_init_sig = dyndata_init()
+	#dyn_init_mu, dyn_init_sig = dyndata_init()
 
 	# Read in prev controller
 	K = mat['traj_K'].transpose(2,0,1)

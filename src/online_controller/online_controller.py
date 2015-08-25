@@ -27,20 +27,24 @@ class OnlineController(Policy):
         self.del0 = 2 # LQR regularization
         self.NSample = 1
 
-        self.eta = 1.0 # Initial eta for DGD w/ KL-div constrant
-        self.use_kl_constraint = True
+        self.eta = 0.1 # Initial eta for DGD w/ KL-div constrant
+        self.use_kl_constraint = False
 
         self.H = 15 # Horizon
-        self.empsig_N = 3 # Weight of least squares vs GMM/NN prior
+        self.empsig_N = 5 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-6 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
 
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 0.01 # Noise to add
+        self.u_noise = 0.1 # Noise to add
         #self.noise_gamma = 0.3 # Noise moving average
+        self.noise_decay = 0.99
+        # Pre-generate noise
         self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=2.0, renorm=True)
+        for t in range(self.maxT):  # Apply noise decay
+            self.noise[t] *= self.noise_decay ** t
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
@@ -54,8 +58,8 @@ class OnlineController(Policy):
         self.use_prior_dyn = False
 
         self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 1  # Number of SGD iterations to take per timestep
+        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.001  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
@@ -63,18 +67,18 @@ class OnlineController(Policy):
         self.offline_k = offline_k
         self.inputs = []
         self.calculated = []
-        self.fwd_hist = [None]*self.maxT
+        self.fwd_hist = [{} for _ in range(self.maxT)]
 
-        netname = 'net/rec_armwave_softplus.pkl'
-        #netname = 'net/armwave_lsq_nopu2.pkl'
-        rec = True
-        self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
-        self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
+        if self.nn_dynamics:
+            netname = 'net/rec_armwave_lsq_ft.pkl'
+            #netname = 'net/armwave_lsq_nopu2.pkl'
+            rec = True
+            self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
+            self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
 
         #RVIZ stuff
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
         self.vis_forward_ee = None
-        self.dyn_hist_list = [None]*self.maxT
         self.rviz_traj = [None]*self.maxT
 
     def act_pol(self, x, empmu, empsig, prevx, prevu, sitejac, eejac, t):
@@ -84,6 +88,7 @@ class OnlineController(Policy):
         """
         if t == 0:
             self.inputs = [] #debugging
+            self.calculated = []
         self.t = t
 
         dX = self.dX 
@@ -177,7 +182,7 @@ class OnlineController(Policy):
         #start = time.time()
         dX = self.dX
         dU = self.dU
-        gamma = self.gamma
+        gamma = self.gamma #* (0.99 ** t)
         horizon = min(self.H, self.maxT-t);
         jacobian = sample.get(END_EFFECTOR_JACOBIANS, t=t)
 
@@ -244,6 +249,8 @@ class OnlineController(Policy):
 
         LOGGER.debug('Action commanded: %s',u)
         # Store state and action.
+        np.clip(u, -10,10)
+
         self.prevX = x
         self.prevU = u
         #elapsed = time.time()-start
@@ -256,6 +263,18 @@ class OnlineController(Policy):
         """
         pt = np.r_[prevx,prevu,cur_x]
         gamma = self.gamma
+
+        # Select gamma based on log probability under current empsig
+        empsig = self.sigma - np.outer(self.mu, self.mu)
+        empsig += self.sigreg*np.eye(empsig.shape[0])
+        diff = pt-self.mu
+
+        logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
+        logprob = -0.5*(diff.T.dot(np.linalg.inv(empsig)).dot(diff))
+        #gamma = 1.5* 1.0/logprob 
+        print 'Logprob:', logprob, logdet, logprob+(-0.5*logdet)
+        print 'New gamma:', gamma
+
         self.mu = self.mu*(1-gamma) + pt*(gamma)
 
         #pt = pt -self.mu
@@ -267,9 +286,9 @@ class OnlineController(Policy):
         empsig = self.sigma - np.outer(self.mu, self.mu)
         diff = pt-self.mu
         try:
-            logprob = np.log(diff.T.dot(np.linalg.inv(empsig)).dot(diff)) - 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
+            logprob = np.log(diff.T.dot(np.linalg.inv(empsig)).dot(diff)) + 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
         except:
-            logprob = np.log(diff.T.dot(np.linalg.inv(empsig)).dot(diff)) - np.log(np.linalg.det(empsig))
+            logprob = np.log(diff.T.dot(np.linalg.inv(empsig)).dot(diff)) + np.log(np.linalg.det(empsig))
         self.inputs[self.t]['logprob'] = logprob
         print 'Logprob:', logprob
         """
@@ -297,7 +316,7 @@ class OnlineController(Policy):
         horizon = min(self.H, self.maxT-T);
 
         # Compute forward pass
-        cv, Cm, Fd, fc, _, _ = self.estimate_cost(horizon, x, lgpolicy, T, jacobian=jacobian)
+        cv, Cm, Fd, fc, _, _ = self.estimate_cost(horizon, x, lgpolicy, T, jacobian=jacobian, hist_key='old')
 
         # Compute optimal policy with short horizon MPC.
         fail = True;
@@ -318,7 +337,7 @@ class OnlineController(Policy):
                 Qtt = Cm[t]
                 Qt = cv[t]
 
-                Vxx = Vxx + reg_mu*np.eye(dX)
+                Vxx = Vxx #+ reg_mu*np.eye(dX)
                 #Qtt = Qtt + F.T.dot(Vxx.dot(F))
                 Qtt = Qtt + F.T.dot(Vxx.dot(F))
                 Qt = Qt + F.T.dot(Vx)+F.T.dot(Vxx).dot(f)
@@ -332,7 +351,6 @@ class OnlineController(Policy):
                     fail = True
                     decrease_mu = False
                     break
-
                 K[t] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qtt[iu, ix], lower=True, check_finite=False), check_finite=False)
                 k[t] = -sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, Qt[iu], lower=True, check_finite=False), check_finite=False)
                 pol_covar = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, np.eye(dU), lower=True, check_finite=False), check_finite=False)
@@ -361,6 +379,10 @@ class OnlineController(Policy):
                 LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
 
         policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
+
+        #plot new
+        #self.forward(horizon, x, lgpolicy, T, hist_key='new')
+
         return policy, reg_mu, reg_del        
 
     def lqr_kl(self, H, x, prev_eta, prev_traj_distr, cur_timestep, jacobian=None):
@@ -368,14 +390,14 @@ class OnlineController(Policy):
         LQR with KL-divergence constraint
         """
         # Set KL-divergence step size (epsilon)
-        kl_step = 0.5 #self._hyperparams['kl_step'] * step_mult
+        kl_step = 1.0 #self._hyperparams['kl_step'] * step_mult
 
         #line_search = LineSearch(self._hyperparams['min_eta'])
         min_eta = -np.Inf
         cv, Cm, F, f, new_mu, new_sigma = self.estimate_cost(H, x, prev_traj_distr, cur_timestep, jacobian=jacobian)  # Forward pass using prev traj
 
         alpha = 0.5 # Step size between 0 and 1
-        DGD_MAX_ITER = 4
+        DGD_MAX_ITER = 1
         THRESHA = 1e-4  # First convergence threshold
         THRESHB = 1e-3  # Second convergence threshold
         MIN_ETA = 1e-4
@@ -401,10 +423,16 @@ class OnlineController(Policy):
                 break
 
             # Adjust eta via EG
-            sign = (kl_div - H*kl_step)/ np.abs(kl_div - H*kl_step)
-            eta = np.exp( np.log(new_eta) + alpha*sign)
+            #sign = (kl_div - H*kl_step)/ np.abs(kl_div - H*kl_step)
+            #eta = np.exp( np.log(new_eta) + alpha*sign)
             #eta = np.exp( np.log(new_eta) + alpha*new_eta*(kl_div-H*kl_step))
             #eta = max(new_eta + alpha*(kl_div-H*kl_step), 1e-6)
+            #"""
+            step = alpha*new_eta*(kl_div-H*kl_step)
+            max_step = 5.0
+            step = min(max(-max_step,step),max_step)
+            eta = np.exp( np.log(new_eta) + step )
+            #"""
 
             # Convergence check - dual variable change when min_eta hit
             if (abs(prev_eta - eta) < THRESHA and
@@ -557,6 +585,8 @@ class OnlineController(Policy):
                 Vxx = 0.5 * (Vxx + Vxx.T)
 
             if fail:
+                if eta==0 or np.isinf(eta) or np.isnan(eta):
+                    raise ValueError("eta is 0/inf/NaN: %f" % eta)
                 if eta > 1e5:
                     raise ValueError("Failed to find SPD solution")
                 eta = eta*2
@@ -565,7 +595,72 @@ class OnlineController(Policy):
         policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
         return policy, eta
 
-    def estimate_cost(self, horizon, x0, lgpolicy, cur_timestep, jacobian=None):
+    def forward(self, horizon, x0, lgpolicy, cur_timestep, hist_key=''):
+        """
+        Returns cost matrices and dynamics via a forward pass
+        """
+        # Cost + dynamics estimation
+
+        H = horizon
+
+        N = self.NSample;
+
+        cholPSig = lgpolicy.chol_pol_covar
+        #PSig = lgpolicy.pol_covar
+        K = lgpolicy.K
+        k = lgpolicy.k
+
+        dX = K.shape[2]
+        dU = K.shape[1]
+        dT = dX+dU
+        ix = slice(dX)
+        iu = slice(dX, dX+dU)
+
+        #Run forward pass
+
+        # Allocate space.
+        trajsig = np.zeros((H,dT, dT))
+        mu = np.zeros((H,dT))
+
+        trajsig[0,ix,ix] = np.zeros((dX, dX))
+        mu[0,ix] = x0;
+
+        F = np.zeros((H, dX, dT))
+        f = np.zeros((H, dX))
+        dynsig = np.zeros((H,dX, dX))
+
+        K = lgpolicy.K
+        k = lgpolicy.k
+        # Perform forward pass.
+        for t in range(H):
+            #PSig = cholPSig[t].T.dot(cholPSig[t])
+            #trajsig[t] = np.r_[
+            #                    np.c_[trajsig[t,ix,ix], trajsig[t,ix,ix].dot(K[t].T)],
+            #                    np.c_[K[t].dot(trajsig[t,ix,ix]), K[t].dot(trajsig[t,ix,ix]).dot(K[t].T) + PSig]
+            #                 ]
+            cur_action = K[t].dot(mu[t,ix])+k[t]
+            mu[t] = np.r_[mu[t,ix], cur_action]
+            #mu[t] = np.r_[mu[t,ix], np.zeros(dU)]
+
+            # Reuse old dynamics
+            if not self.time_varying_dynamics:
+                if t==0: 
+                    F[0], f[0], dynsig[0] = self.getdynamics(self.prevX, self.prevU, x0, cur_timestep, cur_action=cur_action);
+                F[t] = F[0]
+                f[t] = f[0]
+                dynsig[t] = dynsig[0]
+
+            if t < H-1:
+                # Estimate new dynamics here based on mu
+                if self.time_varying_dynamics:
+                    F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action);
+                #trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
+                mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
+
+        self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f}
+        return mu, trajsig
+
+    def estimate_cost(self, horizon, x0, lgpolicy, cur_timestep, jacobian=None, hist_key=''):
         """
         Returns cost matrices and dynamics via a forward pass
         """
@@ -627,7 +722,7 @@ class OnlineController(Policy):
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
-        self.fwd_hist[cur_timestep] = {'trajmu': mu, 'F': F, 'f': f}
+        self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f}
 
         #TODO: Hardcoded joint indexes
         jacobians = None
@@ -641,7 +736,6 @@ class OnlineController(Policy):
 
         self.vis_forward_pass_joints = mu[:,0:7]
         self.vis_forward_ee = mu[:,21-7:30-7]
-        self.dyn_hist_list[cur_timestep] = (F[0], f[0])
 
         #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))
@@ -717,9 +811,9 @@ class OnlineController(Policy):
                 f = mun[ip] - F.dot(mun[it])
             return F, f, dynsig
         else:
-            #mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
-            #sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-            sigma = empsig;  # Moving average only
+            mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
+            sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+            #sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 
             #(np.linalg.pinv(empsig[it, it]).dot(empsig[it, ip])).T
