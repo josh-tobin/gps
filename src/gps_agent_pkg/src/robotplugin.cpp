@@ -26,7 +26,7 @@ RobotPlugin::~RobotPlugin()
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     // Initialize all ROS communication infrastructure.
-    //initialize_ros(n);
+    initialize_ros(n);
 
     // Initialize all sensors.
     //initialize_sensors(n);
@@ -69,7 +69,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 
     // Create current state sample and populate it using the sensors.
     current_time_step_sample_.reset(new Sample(1));
-    initialize_sample(current_time_step_sample_);
+    //initialize_sample(current_time_step_sample_);
 }
 
 // Initialize position controllers.

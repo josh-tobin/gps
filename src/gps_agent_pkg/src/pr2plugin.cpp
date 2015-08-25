@@ -31,7 +31,6 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Create FK solvers.
     // Get the name of the root.
     // TODO: uncomment this and set up params in launch file.
-    /*
     if(!n.getParam("root_name", root_name)) {
         ROS_ERROR("Property root_name not found in namespace: '%s'", n.getNamespace().c_str());
         return false;
@@ -58,7 +57,6 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
         ROS_ERROR("Controller could not use the chain from '%s' to '%s'", root_name.c_str(), passive_tip_name.c_str());
         return false;
     }
-    */
 
     // Create KDL chains, solvers, etc.
     // KDL chains.
@@ -82,11 +80,16 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this active joint exists.
         std::string joint_name;
-        if(!n.getParam(std::string("active_arm_joint_name_" + std::to_string(joint_index)).c_str(), joint_name))
+        std::string param_name = std::string("/active_arm_joint_name_" + std::to_string(joint_index));
+        if(!n.getParam(param_name.c_str(), joint_name))
             break;
 
         // Push back the joint state and name.
-        active_arm_joint_state_.push_back(robot_->getJointState(joint_name));
+        pr2_mechanism_model::JointState* jointState = robot_->getJointState(joint_name);
+        active_arm_joint_state_.push_back(jointState);
+        if (jointState == NULL)
+            ROS_INFO_STREAM("jointState: " + joint_name + " is null");
+
         active_arm_joint_names_.push_back(joint_name);
 
         // Increment joint index.
@@ -95,6 +98,8 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Validate that the number of joints in the chain equals the length of the active arm joint state.
     if (active_arm_fk_chain_.getNrOfJoints() != active_arm_joint_state_.size())
     {
+        ROS_INFO_STREAM("num_fk_chain: " + std::to_string(active_arm_fk_chain_.getNrOfJoints()));
+        ROS_INFO_STREAM("num_joint_state: " + std::to_string(active_arm_joint_state_.size()));
         ROS_ERROR("Number of joints in the active arm FK chain does not match the number of joints in the active arm joint state!");
         return false;
     }
@@ -105,11 +110,15 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this passive joint exists.
         std::string joint_name;
-        if(!n.getParam(std::string("passive_arm_joint_name_" + std::to_string(joint_index)).c_str(), joint_name))
+        std::string param_name = std::string("/passive_arm_joint_name_" + std::to_string(joint_index));
+        if(!n.getParam(param_name, joint_name))
             break;
 
         // Push back the joint state and name.
-        passive_arm_joint_state_.push_back(robot_->getJointState(joint_name));
+        pr2_mechanism_model::JointState* jointState = robot_->getJointState(joint_name);
+        passive_arm_joint_state_.push_back(jointState);
+        if (jointState == NULL)
+            ROS_INFO_STREAM("jointState: " + joint_name + " is null");
         passive_arm_joint_names_.push_back(joint_name);
 
         // Increment joint index.
@@ -118,6 +127,8 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Validate that the number of joints in the chain equals the length of the active arm joint state.
     if (passive_arm_fk_chain_.getNrOfJoints() != passive_arm_joint_state_.size())
     {
+        ROS_INFO_STREAM("num_fk_chain: " + std::to_string(passive_arm_fk_chain_.getNrOfJoints()));
+        ROS_INFO_STREAM("num_joint_state: " + std::to_string(passive_arm_joint_state_.size()));
         ROS_ERROR("Number of joints in the passive arm FK chain does not match the number of joints in the passive arm joint state!");
         return false;
     }
@@ -144,17 +155,17 @@ void PR2Plugin::starting()
 
     // Reset all the sensors. This is important for sensors that try to keep
     // track of the previous state somehow.
-    for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
-    {
+    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
+    //{
         //sensors_[sensor].reset(this,last_update_time_);
-    }
+    //}
 
     // Reset position controllers.
-    passive_arm_controller_->reset(last_update_time_);
-    active_arm_controller_->reset(last_update_time_);
+    //passive_arm_controller_->reset(last_update_time_);
+    //active_arm_controller_->reset(last_update_time_);
 
     // Reset trial controller, if any.
-    if (trial_controller_ != NULL) trial_controller_->reset(last_update_time_);
+    //if (trial_controller_ != NULL) trial_controller_->reset(last_update_time_);
 }
 
 // This is called by the controller manager before stopping the controller.
@@ -175,18 +186,21 @@ void PR2Plugin::update()
     bool is_controller_step = (controller_counter_ == 0);
 
     // Update the sensors and fill in the current step sample.
-    update_sensors(last_update_time_,is_controller_step);
+    //update_sensors(last_update_time_,is_controller_step);
 
     // TODO: zero out torques /
 
     // Update the controllers.
-    update_controllers(last_update_time_,is_controller_step);
+    //update_controllers(last_update_time_,is_controller_step);
 
     // Store the torques.
     for (unsigned i = 0; i < active_arm_joint_state_.size(); i++)
-        active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
-    for (unsigned i = 0; i < passive_arm_joint_state_.size(); i++)
-        passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
+        active_arm_joint_state_[i]->commanded_effort_ = 0.5;
+        //active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
+    passive_arm_joint_state_[0]->commanded_effort_ = 0.5;
+    for (unsigned i = 1; i < passive_arm_joint_state_.size(); i++)
+        passive_arm_joint_state_[i]->commanded_effort_ = -0.5;
+        //passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
 }
 
 // Get current time.

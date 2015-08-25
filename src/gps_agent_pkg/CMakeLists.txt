@@ -75,7 +75,8 @@ if (USE_CAFFE)
 endif (USE_CAFFE)
 
 rosbuild_add_library(gps_agent_lib ${DDP_FILES})
-rosbuild_add_executable(main src/main.cpp)
+#uncomment for test executable
+#rosbuild_add_executable(main src/main.cpp)
 
 #rosbuild_add_executable(kinematic_baseline src/kinematic_baseline.cpp)
 
