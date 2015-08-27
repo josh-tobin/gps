@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import scipy.io
 import cPickle
+import logging
 
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from sample_data.sample_data import SampleData
@@ -12,7 +13,9 @@ from cost_fk_online import CostFKOnline
 from algorithm.cost.cost_utils import approx_equal
 from algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from online_controller import OnlineController
-from train_dyn_net import get_data
+from train_dyn_net import get_data, get_data_hdf5
+
+logging.basicConfig(level=logging.DEBUG)
 
 def get_controller(matfile):
     # Need to read out a controller from matlab
@@ -27,12 +30,22 @@ def get_controller(matfile):
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
 
-	wp[0:7] = 1.0
+	#wp[0:7] = 1.0
 	#wp[14:23] = 1.0
 
+	#cost = CostStateTracking(wp, tgt, maxT=T)
 
-	cost = CostStateTracking(wp, tgt, maxT=T)
-	#cost = CostFKOnline(tgt[-1,14:23], ee_idx=slice(14,23), jnt_idx=slice(0,7), maxT=T)
+	site_jac = True
+	if site_jac:
+		ee_idx = slice(14,23)
+	else:
+		ee_idx = slice(14,20)
+
+	#Joint hack
+	#jnt_wp = np.ones(7)*0.00; jnt_wp[6] = 0.0
+	#jnt_tgt = tgt[-1,0:7]
+	#cost = CostFKOnline(tgt[-1,ee_idx], jnt_tgt=jnt_tgt, jnt_wp=jnt_wp, ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
+	cost = CostFKOnline(tgt[-1,ee_idx], ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
@@ -41,7 +54,7 @@ def get_controller(matfile):
 	#big_dyn_sig = mat['dyn_big_sig'].transpose(2,0,1)
 	dyn_init_mu = mat['dyn_init_mu'][:,0]
 	dyn_init_sig = mat['dyn_init_sig']
-	#dyn_init_mu, dyn_init_sig = dyndata_init()
+	dyn_init_mu, dyn_init_sig = dyndata_init()
 
 	# Read in prev controller
 	K = mat['traj_K'].transpose(2,0,1)
@@ -65,17 +78,19 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	#with open('powerplug_gmm8.pkl') as f:
+	#with open('plane_gmm10.pkl') as f:
 	#	gmm = cPickle.load(f)
 
-	oc = OnlineController(dX, dU, dynprior, cost, maxT=T, ee_sites=eesites,
+	oc = OnlineController(dX, dU, dynprior, cost, maxT=T, ee_idx=ee_idx, ee_sites=eesites, use_ee_sites=site_jac,
 			dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
 	#for t in range(100):
 	#	print oc.act(tgt[t,:dX], None, t, None)
 	return oc
 
 def dyndata_init():
-    train_dat, train_lbl, _, _ = get_data(['dyndata_plane_nopu', 'dyndata_armwave_all'],['dyndata_plane_ft_2'], remove_ft=True, remove_prevu=True)
+    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
+    #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
     xux = np.c_[train_dat, train_lbl]
@@ -93,15 +108,15 @@ def dyndata_init():
     print Fm
     return mu, sig
 
-
 def newgmm():
     logging.basicConfig(level=logging.DEBUG)
-    train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'], remove_ft=True)
+    #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'], remove_ft=True)
+    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
     xux = np.c_[train_dat, train_lbl]
     print xux.shape
     gmm = GMM()
-    gmm.update(xux, 8)
-    with open('powerplug_gmm8.pkl', 'w') as f:
+    gmm.update(xux, 10)
+    with open('armwave_gmm10.pkl', 'w') as f:
     	cPickle.dump(gmm, f)
 
 

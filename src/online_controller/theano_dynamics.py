@@ -32,6 +32,10 @@ def load_rec_net(fname, dX, dU):
     net = NNetRecursive(dX, dU, 1, layers)
     return net
 
+def dump_rec_net(fname, net):
+    with open(fname, 'w') as f:
+        cPickle.dump(net.layers, f)
+
 class NNetDyn(object):
     def __init__(self, layers, loss_wt, post_layer=None, init_funcs=True,weight_decay=0.0, layer_reg = [], recurse=None):
         self.params = []
@@ -224,8 +228,9 @@ class NNetRecursive(object):
         self.loss = SquaredLoss()
 
         obj = self.obj_rec_symbolic(X, U, Xtgt, training=True)
-        self.obj = theano.function(inputs=[X, U, Xtgt], outputs=obj, on_unused_input='warn')
         self.train_sgd = train_gd_momentum(obj, self.params, [X, U, Xtgt], scl=1.0, weight_decay=self.weight_decay)
+        #obj = self.obj_rec_symbolic(X, U, Xtgt, training=False) # Test objective
+        self.obj = theano.function(inputs=[X, U, Xtgt], outputs=obj, on_unused_input='warn')
 
         # Set up vector functions
         X = T.vector('vX')
@@ -414,13 +419,16 @@ class WhitenLayer(Layer):
 class FFIPLayer(Layer):
     """ Feedforward inner product layer """
     n_instances = 0
-    def __init__(self, n_in, n_out):
+    def __init__(self, n_in, n_out, bias=True):
         FFIPLayer.n_instances += 1
         self.n_in = n_in
         self.n_out = n_out
         self.layer_id = FFIPLayer.n_instances
         self.w = theano.shared(NN_INIT*np.random.randn(n_in, n_out).astype(np.float32), name="ff_ip_w_"+str(self.layer_id))
-        self.b = theano.shared(NN_INIT*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
+        if bias:
+            self.b = theano.shared(NN_INIT*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
+        else:
+            self.b = theano.shared(0*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
 
     def forward(self, prev_layer, training=True):
         return prev_layer.dot(self.w) + self.b

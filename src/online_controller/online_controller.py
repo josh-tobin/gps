@@ -15,7 +15,7 @@ import train_dyn_net as theano_dynamics
 LOGGER = logging.getLogger(__name__)
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost, maxT = 100, ee_sites=None, jac_service=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
+    def __init__(self, dX, dU, dynprior, cost, maxT = 100, use_ee_sites=True, ee_idx=None, ee_sites=None, jac_service=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
         self.LQR_iter = 1  # Number of LQR iterations to take
         self.dX = dX
@@ -30,26 +30,25 @@ class OnlineController(Policy):
         self.eta = 0.1 # Initial eta for DGD w/ KL-div constrant
         self.use_kl_constraint = False
 
-        self.H = 15 # Horizon
-        self.empsig_N = 5 # Weight of least squares vs GMM/NN prior
-        self.sigreg = 1e-6 # Regularization on dynamics covariance
+        self.H = 20 # Horizon
+        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
+        self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
 
         self.prevX = None
         self.prevU = None
         self.prev_policy = None
-        self.u_noise = 0.1 # Noise to add
+        self.u_noise = 0.00 # Noise to add
         #self.noise_gamma = 0.3 # Noise moving average
-        self.noise_decay = 0.99
         # Pre-generate noise
-        self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=2.0, renorm=True)
-        for t in range(self.maxT):  # Apply noise decay
-            self.noise[t] *= self.noise_decay ** t
+        self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=1.0, renorm=True)
 
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
         self.offline_dynsig = offline_dynsig
         self.ee_sites = ee_sites
+        self.ee_idx = ee_idx
+        self.use_ee_sites = use_ee_sites
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
@@ -57,10 +56,10 @@ class OnlineController(Policy):
         #self.dyn_init_sig.fill(0.0)
         self.use_prior_dyn = False
 
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
-        self.nn_lr = 0.001  # SGD learning rate
+        self.nn_update_iters = 3  # Number of SGD iterations to take per timestep
+        self.nn_lr = 0.0005  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
         self.offline_K = offline_K
@@ -70,11 +69,12 @@ class OnlineController(Policy):
         self.fwd_hist = [{} for _ in range(self.maxT)]
 
         if self.nn_dynamics:
-            netname = 'net/rec_armwave_lsq_ft.pkl'
-            #netname = 'net/armwave_lsq_nopu2.pkl'
+            netname = 'net/rec_plane_acc_soft.pkl'
+            #netname = 'net/rec_armwave_acc.pkl'
             rec = True
-            self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
-            self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
+            self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
+            #if self.nn_update_iters>0:  # Keep a reference for overfitting
+            #    self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
 
         #RVIZ stuff
         self.vis_forward_pass_joints = None  # Holds joint state for visualizing forward pass
@@ -90,6 +90,10 @@ class OnlineController(Policy):
             self.inputs = [] #debugging
             self.calculated = []
         self.t = t
+        if self.use_ee_sites:
+            jacobian_to_use = sitejac
+        else:
+            jacobian_to_use = eejac
 
         dX = self.dX 
         dU = self.dU
@@ -100,15 +104,25 @@ class OnlineController(Policy):
         horizon = min(self.H, self.maxT-t);
 
         if t==0:
+            #with open('net/rec_plane_dump.pkl', 'w') as pklfile:
+            #    import cPickle
+            #    cPickle.dump(self.dyn_net.layers, pklfile)
+            #    print 'Dumped net!!'
+
             # Execute something for first action.
+            self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=1.0, renorm=True)
             H = self.H
             K = np.zeros((H, dU, dX))
             k = np.zeros((H, dU))
-            cholPSig = np.zeros((H, dU, dU)) #TODO
+
+            init_noise = 1
+            cholPSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H, 1, 1])
+            PSig = np.tile(init_noise*np.eye(dU), [H, 1, 1])
+            invPSig = np.tile(1/init_noise*np.eye(dU), [H, 1, 1])
 
             self.mu = self.dyn_init_mu
             self.sigma = self.dyn_init_sig
-            self.prev_policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
+            self.prev_policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
             if self.copy_offline_traj:
                 for i in range(t,t+self.prev_policy.T):
                     self.prev_policy.K[i-t] = self.offline_K[i]
@@ -124,7 +138,13 @@ class OnlineController(Policy):
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):
-            lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del, jacobian=sitejac)
+            if self.use_kl_constraint:
+                # This is LQR with a KL-div constraint
+                lgpolicy, eta = self.lqr_kl(horizon, x, self.eta, self.prev_policy, t, jacobian=jacobian_to_use)
+                self.eta = eta  # Update eta for the next iteration
+            else:
+                # This is plain LQR
+                lgpolicy, reg_mu, reg_del = self.lqr(t, x, self.prev_policy, reg_mu, reg_del, jacobian=jacobian_to_use)
 
             # Store traj
             self.prev_policy = lgpolicy
@@ -265,6 +285,7 @@ class OnlineController(Policy):
         gamma = self.gamma
 
         # Select gamma based on log probability under current empsig
+        """
         empsig = self.sigma - np.outer(self.mu, self.mu)
         empsig += self.sigreg*np.eye(empsig.shape[0])
         diff = pt-self.mu
@@ -274,6 +295,7 @@ class OnlineController(Policy):
         #gamma = 1.5* 1.0/logprob 
         print 'Logprob:', logprob, logdet, logprob+(-0.5*logdet)
         print 'New gamma:', gamma
+        """
 
         self.mu = self.mu*(1-gamma) + pt*(gamma)
 
@@ -301,7 +323,7 @@ class OnlineController(Policy):
         lbl = cur_x
         for i in range(self.nn_update_iters):
             # Lsq use 0.003
-            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=self.nn_lr, momentum=0.90), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
+            print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=self.nn_lr, momentum=0.95), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
 
     def lqr(self, T, x, lgpolicy, reg_mu, reg_del, jacobian=None):
         """
@@ -413,7 +435,6 @@ class OnlineController(Policy):
             # Compute KL divergence between previous and new distribuition
             kl_div = self.kldiv(new_mu, new_sigma, new_traj_distr,
                                    prev_traj_distr, prev_traj_t_offset=1)
-
             # Main convergence check - constraint satisfaction
             if (abs(kl_div - kl_step*H) < 0.1*kl_step*H or
                     (itr >= 20 and kl_div < kl_step*H)):
@@ -735,7 +756,7 @@ class OnlineController(Policy):
                 pass
 
         self.vis_forward_pass_joints = mu[:,0:7]
-        self.vis_forward_ee = mu[:,21-7:30-7]
+        self.vis_forward_ee = mu[:,self.ee_idx] #TODO: Remove hardcoded indices
 
         #cc = np.zeros((N, H))
         cv = np.zeros((N, H, dT))

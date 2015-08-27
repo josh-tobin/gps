@@ -43,13 +43,21 @@ def load_matfile(matfile, remove_ft=False, remove_prevu=False):
         if 'noprevu' in data:
             print 'Skipping removeprevu!'
         else:
+            print 'removing prevu'
             dat = np.c_[dat[:,:14], dat[:,21:]]
             lbl = np.c_[lbl[:,:14], lbl[:,21:]]
 
-    clip = None #REMOVE
-    if 'clip' in data: #REMOVE
-        clip = data['clip'][0] #REMOVE
-        print 'CLIP:', clip.shape
+    clip = None 
+    if 'clip' in data:
+        clip = data['clip'][0]
+        clip = np.expand_dims(clip, axis=-1)
+        print 'Existing CLIP:', clip.shape
+    else:
+        print 'Auto-generating clip with T=200'
+        clip = np.ones((dat.shape[0],1))
+        for t in range(dat.shape[0]):
+            if t%199 == 0:
+                clip[t] = 0
     return dat, lbl, clip
 
 def get_data(train, test, shuffle_test=True, remove_ft=True, remove_prevu=False, clip_dict=None):
@@ -204,28 +212,68 @@ def train_dyn():
             dump_net(fname, net)
             print 'Total train error:', net.obj_matrix(data_in, data_out)
 
-def get_data_hdf5(fname):
-    f = h5py.File(fname)
-    return f['data'], f['label'], f['clip']
+def get_data_hdf5(fnames):
+    if type(fnames) == str:
+        fnames = [fnames]
+
+    total_data = []
+    total_lbl = []
+    total_clip = []
+    for fname in fnames:
+        f = h5py.File(fname)
+        total_data.append(f['data'])
+        total_lbl.append(f['label'])
+        total_clip.append(f['clip'])
+    print 'Datasets loaded:', total_data
+    print total_lbl
+    print total_clip
+    return np.concatenate(total_data), \
+           np.concatenate(total_lbl), \
+           np.concatenate(total_clip)
+
+def merge_datasets():
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_all.hdf5.test'])
+    import h5py
+    f = h5py.File('data/dyndata_plane_combined.hdf5', 'w')
+    f['data'] = train_data
+    f['label'] = train_lbl
+    f['clip'] = train_clip
+    pass
 
 def train_dyn_rec():
+    np.random.seed(123)
     fname = os.path.join(NET_DIR, '%s.pkl' % sys.argv[1])
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
 
-    dX = 32+6
+    dX = 32
     dU = 7
-    T = 1
-    train_data, train_lbl, train_clip = get_data_hdf5('data/dyndata_armwave_ft.hdf5.train')
+    T = 8
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
+    #test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_plane_expr_nopu2.hdf5')
+    #test_X, test_U, test_tgt = NNetRecursive.prepare_data(test_data, test_lbl, test_clip, dX, dU, T)
 
-    test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_armwave_ft.hdf5.test')
-    test_X, test_U, test_tgt = NNetRecursive.prepare_data(test_data, test_lbl, test_clip, dX, dU, T)
+    # Randomly select a test set out of training data
+    perm = np.random.permutation(train_X.shape[0])
+    train_X = train_X[perm]
+    train_U = train_U[perm]
+    train_tgt = train_tgt[perm]
+    Ntrain = int(0.8*train_X.shape[0])
+    test_X = train_X[Ntrain:]
+    test_U = train_U[Ntrain:]
+    test_tgt = train_tgt[Ntrain:]
+    train_X = train_X[:Ntrain]
+    train_U = train_U[:Ntrain]
+    train_tgt = train_tgt[:Ntrain]
 
     N = train_X.shape[0]
     print 'N:', N, train_X.shape
     print train_U.shape
     print train_tgt.shape
+
+
 
     # Input normalization
     #norm1 = NormalizeLayer()
@@ -241,9 +289,18 @@ def train_dyn_rec():
         norm1 = NormalizeLayer()
         norm1.generate_weights(train_data)
         #layers = [norm1, FFIPLayer(dX+dU, 50), ReLULayer, FFIPLayer(50, 50), ReLULayer, FFIPLayer(50, 16+6), AccelLayerFT()] 
-        layers = [FFIPLayer(dX+dU,dX)]
+
+        #layers = [norm1, FFIPLayer(dX+dU, 50), ReLULayer, FFIPLayer(50, 16), AccelLayer()] 
+        #layers = [FFIPLayer(dX+dU,dX)]
+
+        # Net 3
+        #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
+        layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, FFIPLayer(80, 16), AccelLayer()] 
+
+
+        # Net 4
         #layers = [
-        #    GatedLayer([FFIPLayer(dX+dU, 80), SigmLayer] ,dX+dU, 80),
+        #    GatedLayer([FFIPLayer(dX+dU, 80), ReLULayer, DropoutLayer(80, p=0.6), FFIPLayer(80,80), SigmLayer] ,dX+dU, 80),
         #    FFIPLayer(80, dX)]
 
     #"""
@@ -255,11 +312,11 @@ def train_dyn_rec():
     ip = slice(dX+dU,dX+dU+dX)
     Fm = (np.linalg.pinv(sig[it, it]).dot(sig[it, ip])).T
     fv = mu[ip] - Fm.dot(mu[it]);
-    layers[0].w.set_value(Fm.T)
-    layers[0].b.set_value(fv)
+    #layers[0].w.set_value(Fm.T)
+    #layers[0].b.set_value(fv)
     #"""
 
-    net = NNetRecursive(dX, dU, T, layers, weight_decay=0)
+    net = NNetRecursive(dX, dU, T, layers, weight_decay=1e-5)
 
     for i in [25]:
         x = train_X[i]
@@ -271,17 +328,14 @@ def train_dyn_rec():
         import pdb; pdb.set_trace()
 
     bsize = 50
-    lr = 1.0e-3/bsize
+    lr = 8.0e-3/bsize
     lr_schedule = {
-            100000: 0.2,
-            200000: 0.2,
             400000: 0.2,
             800000: 0.2,
-            1000000: 0.2,
             }
 
     epochs = 0
-    for i in range(10*1000*1000):
+    for i in range(1200000):
         bstart = i*bsize % N
         bend = (i+1)*bsize % N
         if bend < bstart:

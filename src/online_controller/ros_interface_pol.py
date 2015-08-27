@@ -143,7 +143,7 @@ def main():
 
     #True Init jacobian service
     jacserv = ServiceEmulator('ddp/jacobian_request', JacRequest, 'ddp/jacobian_result', JacResponse)
-    def get_jacobian(joints):
+    def get_site_jacobian(joints):
         """ Query robot for jacobians """
         msg = JacRequest()
         dJnt = joints.shape[1]
@@ -161,8 +161,23 @@ def main():
         for t in range(T):
             Jx_t[t] = process_jac(jacobians[t], ee_rots[t], ee_sites, controller.dX)
         return Jx_t
+
+    def get_ee_jacobian(joints):
+        """ Query robot for jacobians """
+        msg = JacRequest()
+        dJnt = joints.shape[1]
+        T = joints.shape[0]
+        msg.T = T
+        msg.joints = np.reshape(joints, [joints.shape[0]*joints.shape[1]])
+        msg.joint_dim = dJnt
+        jac_msg = jacserv.publish_and_wait(msg, wait_time=0.0001, timeout=0.01)  # Allow up to 10ms to compute
+        jacobians = np.array(jac_msg.jacs).reshape(T,dJnt,6).transpose([0,2,1])
+        return jacobians
     controller = get_controller('/home/justin/RobotRL/test/onlinecont.mat')
-    controller.jac_service = get_jacobian
+    if controller.use_ee_sites:
+        controller.jac_service = get_site_jacobian
+    else:
+        controller.jac_service = get_ee_jacobian
 
     def state_callback(msg):
         start_time = time.time()
@@ -181,19 +196,28 @@ def main():
         eerot = np.array(msg.eerot).reshape(3,3).T
         eejac = np.array(msg.jacobian).reshape(msg.dU, 6).T
         sitejac = process_jac(eejac, eerot, controller.ee_sites, msg.dX)
-
         #if t==1:
         #	import pdb; pdb.set_trace()
         lgpol = controller.act_pol(X, empmu, empsig, prevx, prevu, sitejac, eejac, t)
 
-        fwd_ee = controller.get_forward_end_effector(0)
-        if fwd_ee is not None:
-            visualize_forward_pass(controller.get_forward_end_effector(0), visualization_pub, color=[1.0,0.0,0.0], id=0)
-            visualize_forward_pass(controller.get_forward_end_effector(1), visualization_pub, color=[0.0,1.0,0.0], id=1)
-            visualize_forward_pass(controller.get_forward_end_effector(2), visualization_pub, color=[0.0,0.0,1.0], id=2)
-            eetgt = controller.cost.get_ee_tgt(99)
-            pub_viz_vec(visualization_pub, [eetgt[0:3], eetgt[3:6], eetgt[6:9]], point_type=Marker.POINTS, id=3)
-        #action.fill(0.0)
+        if controller.use_ee_sites:
+            fwd_ee = controller.get_forward_end_effector(0)
+            if fwd_ee is not None:
+                visualize_forward_pass(controller.get_forward_end_effector(0), visualization_pub, color=[1.0,0.0,0.0], id=0)
+                visualize_forward_pass(controller.get_forward_end_effector(1), visualization_pub, color=[0.0,1.0,0.0], id=1)
+                visualize_forward_pass(controller.get_forward_end_effector(2), visualization_pub, color=[0.0,0.0,1.0], id=2)
+                eetgt = controller.cost.get_ee_tgt(99)
+                pub_viz_vec(visualization_pub, [eetgt[0:3], eetgt[3:6], eetgt[6:9]], point_type=Marker.POINTS, id=3)
+        else:
+            fwd_ee = controller.get_forward_end_effector(0)
+            fwd_rot = controller.get_forward_end_effector(1)
+            if fwd_ee is not None:
+                visualize_forward_pass(controller.get_forward_end_effector(0), visualization_pub, color=[1.0,0.0,0.0], id=0)
+                pub_viz_vec(visualization_pub, [fwd_ee[0,0:3], fwd_ee[0,0:3]+fwd_rot[0,0:3]], point_type=Marker.LINE_STRIP, color=[0.0,1.0,0.0],id=1)
+                eetgt = controller.cost.get_ee_tgt(99)
+                pub_viz_vec(visualization_pub, [eetgt[0:3]], point_type=Marker.POINTS, id=3)
+                pub_viz_vec(visualization_pub, [eetgt[0:3], eetgt[0:3]+eetgt[3:6]], point_type=Marker.LINE_STRIP, color=[0.1,0.1,1.0],id=4)
+
 
         response = LGPolicy()
         response.dX = msg.dX
