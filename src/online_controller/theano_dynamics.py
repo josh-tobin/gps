@@ -579,11 +579,18 @@ class GatedLayer(Layer):
 
 class ControlAffine(Layer):
     """ ControlAffine Layer """
-    def __init__(self, layers, dx):
+    def __init__(self, layers, dx, du):
         self.layers = layers
-        self.ffip = FFIPLayer(din, dout)
+        self.ffip = FFIPLayer(du, dx)
 
     def forward(self, prev_layer, training=True):
+        X = prev_layer[:,:self.dx]
+        U = self.ffip.forward(prev_layer[:,self.dx:], training=training)
+        for layer in self.layers:
+            X = layer.forward(X, training=training)
+        return X+U
+
+
         pass
 
     def __str__(self):

@@ -17,32 +17,6 @@ LOGGER = logging.getLogger(__name__)
 class OnlineController(Policy):
     def __init__(self, dX, dU, dynprior, cost, maxT = 100, use_ee_sites=True, ee_idx=None, ee_sites=None, jac_service=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
-        self.LQR_iter = 1  # Number of LQR iterations to take
-        self.dX = dX
-        self.dU = dU
-        self.cost = cost
-        self.gamma = 0.01  # Moving average parameter
-        self.maxT = maxT
-        self.min_mu = 1e-6 # LQR regularization
-        self.del0 = 2 # LQR regularization
-        self.NSample = 1
-
-        self.eta = 0.1 # Initial eta for DGD w/ KL-div constrant
-        self.use_kl_constraint = False
-
-        self.H = 20 # Horizon
-        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
-        self.sigreg = 1e-5 # Regularization on dynamics covariance
-        self.time_varying_dynamics = False
-
-        self.prevX = None
-        self.prevU = None
-        self.prev_policy = None
-        self.u_noise = 0.00 # Noise to add
-        #self.noise_gamma = 0.3 # Noise moving average
-        # Pre-generate noise
-        self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=1.0, renorm=True)
-
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
         self.offline_dynsig = offline_dynsig
@@ -54,7 +28,39 @@ class OnlineController(Policy):
         self.dyn_init_sig = dyn_init_sig
         #self.dyn_init_mu.fill(0.0)
         #self.dyn_init_sig.fill(0.0)
+        self.dX = dX
+        self.dU = dU
+        self.cost = cost
+        self.maxT = maxT
+        self.prevX = None
+        self.prevU = None
+        self.prev_policy = None
+        self.noise = None
+        self.offline_K = offline_K
+        self.offline_k = offline_k
+
+        # Algorithm Settings
+        self.H = 20 # Horizon
+
+        # LQR
+        self.LQR_iter = 1  # Number of LQR iterations to take
+        self.min_mu = 1e-6 # LQR regularization
+        self.del0 = 2 # LQR regularization
+
+        # KL Div constraint
+        self.eta = 0.1 # Initial eta for DGD w/ KL-div constrant
+        self.use_kl_constraint = False
+
+        # Noise scaling
+        self.u_noise = 0.04 # Noise to add
+
+        #Dynamics settings
+        self.gamma = 0.02  # Moving average parameter
+        self.empsig_N = 2 # Weight of least squares vs GMM/NN prior
+        self.sigreg = 1e-5 # Regularization on dynamics covariance
+        self.time_varying_dynamics = False
         self.use_prior_dyn = False
+        self.fit_prior_residuals = False
 
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
@@ -62,15 +68,13 @@ class OnlineController(Policy):
         self.nn_lr = 0.0005  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
-        self.offline_K = offline_K
-        self.offline_k = offline_k
         self.inputs = []
         self.calculated = []
         self.fwd_hist = [{} for _ in range(self.maxT)]
 
         if self.nn_dynamics:
-            netname = 'net/rec_plane_acc_soft.pkl'
-            #netname = 'net/rec_armwave_acc.pkl'
+            #netname = 'net/rec_plane_acc_soft.pkl'
+            netname = 'net/rec_armwave_acc.pkl'
             rec = True
             self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
@@ -110,7 +114,9 @@ class OnlineController(Policy):
             #    print 'Dumped net!!'
 
             # Execute something for first action.
-            self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=1.0, renorm=True)
+            self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=3.0, renorm=True)
+            self.noise[:,0] *=2
+
             H = self.H
             K = np.zeros((H, dU, dX))
             k = np.zeros((H, dU))
@@ -624,8 +630,6 @@ class OnlineController(Policy):
 
         H = horizon
 
-        N = self.NSample;
-
         cholPSig = lgpolicy.chol_pol_covar
         #PSig = lgpolicy.pol_covar
         K = lgpolicy.K
@@ -689,7 +693,7 @@ class OnlineController(Policy):
 
         H = horizon
 
-        N = self.NSample;
+        N = 1
 
         cholPSig = lgpolicy.chol_pol_covar
         #PSig = lgpolicy.pol_covar

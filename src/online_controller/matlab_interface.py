@@ -21,7 +21,7 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
-	T = 200
+	T = 100
 	dX = mat['Dx']
 	dU = mat['Du']
 
@@ -88,8 +88,8 @@ def get_controller(matfile):
 	return oc
 
 def dyndata_init():
-    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
-    #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+    #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
+    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
 
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)

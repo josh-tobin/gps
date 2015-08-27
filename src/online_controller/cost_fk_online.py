@@ -50,9 +50,9 @@ class CostFKOnline(object):
 
 
         # Derivatives w.r.t. EE dimensions
-        l_ee, lx_ee, lxx_ee = evallogl2term_fast(wp, dist, self.l1, self.l2, self.alpha)
-        lx[:, self.ee_idx] = lx_ee
-        lxx[:, self.ee_idx, self.ee_idx] = lxx_ee
+        #l_ee, lx_ee, lxx_ee = evallogl2term_fast(wp, dist, self.l1, self.l2, self.alpha)
+        #lx[:, self.ee_idx] = lx_ee
+        #lxx[:, self.ee_idx, self.ee_idx] = lxx_ee
 
         if self.jnt_tgt is not None:
             jwp = self.jnt_wp*np.expand_dims(self.wpm[t:t+T], axis=-1)
