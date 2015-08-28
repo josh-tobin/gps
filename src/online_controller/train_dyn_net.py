@@ -39,7 +39,7 @@ def load_matfile(matfile, remove_ft=False, remove_prevu=False):
         else:
             print 'No FT idx for ', matfile
 
-    if remove_prevu:
+    if False:
         if 'noprevu' in data:
             print 'Skipping removeprevu!'
         else:
@@ -248,7 +248,7 @@ def train_dyn_rec():
 
     dX = 32
     dU = 7
-    T = 8
+    T = 1
     train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
@@ -283,6 +283,8 @@ def train_dyn_rec():
     try:
         with open(fname, 'r') as pklfile:
             layers = cPickle.load(pklfile)
+        for layer in layers:
+            layer.fix_gpu_vars()
     except:
         print 'Creating new net!'
         # Input normalization
@@ -295,7 +297,14 @@ def train_dyn_rec():
 
         # Net 3
         #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
-        layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, FFIPLayer(80, 16), AccelLayer()] 
+        layers = [norm1, FFIPLayer(dX+dU, 12), SoftPlusLayer, FFIPLayer(12, 16), AccelLayer()] 
+
+        #layers = [AccelV2Layer([FFIPLayer(dX, 7), SigmLayer],
+        #                       [FFIPLayer(dX, 9), SigmLayer])]
+
+        #layers = [ControlAffine([FFIPLayer(dX, 20), SoftPlusLayer, FFIPLayer(20, 16)], 
+        #    [FFIPLayer(dX, 16*dU)],
+        #    dX, dU, 16), AccelLayer()] 
 
 
         # Net 4
@@ -328,7 +337,7 @@ def train_dyn_rec():
         import pdb; pdb.set_trace()
 
     bsize = 50
-    lr = 8.0e-3/bsize
+    lr = 8.0e-2/bsize
     lr_schedule = {
             400000: 0.2,
             800000: 0.2,
@@ -356,8 +365,9 @@ def train_dyn_rec():
             print 'LR=', lr, ' // Train:',i, objval
             sys.stdout.flush()
         if i % 10000 == 0:
-            with open(fname, 'w') as pklfile:
-                cPickle.dump(net.layers, pklfile)
+            if i>0:
+                with open(fname, 'w') as pklfile:
+                    cPickle.dump(net.layers, pklfile)
             total_err = net.obj(train_X, train_U, train_tgt)
             print 'Total train error:', total_err
             total_err = net.obj(test_X, test_U, test_tgt)

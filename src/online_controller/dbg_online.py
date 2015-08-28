@@ -49,8 +49,19 @@ def main():
 	#plt.show()
 
 	dynamics = oc[1]
-	F = np.array([dynamics[t]['F'][0] for t in range(1,len(dynamics))])
-	f = np.array([dynamics[t]['f'][0] for t in range(1,len(dynamics))])
+	F = []
+	f = []
+	empsig = []
+	for t in range(1, len(dynamics)):
+		if 'old' not in dynamics[t]:
+			print dynamics[t].keys()
+			continue
+		else:
+			print t
+		F.append(dynamics[t]['old']['F'][0])
+		f.append(dynamics[t]['old']['f'][0])
+		empsig.append(dynamics[t]['old']['empsig'])
+
 	import pdb; pdb.set_trace()
 
 

@@ -5,13 +5,31 @@ import cPickle
 import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
-import theano.sandbox.cuda.basic_ops as tcuda
 import scipy.io
 ONE = np.array([1])
 
 NN_INIT = 0.1
 
-gpu_host = tcuda.gpu_from_host
+def hasgpu():
+    """
+    Returns if device == 'gpu*'
+    """
+    return theano.config.device.startswith('gpu')
+
+# Functions defined in gpu mode but not cpu mode, or vice versa
+# This allows for cpu/gpu independent code
+if hasgpu():
+    import theano.sandbox.cuda.basic_ops as tcuda
+    gpu_host = tcuda.gpu_from_host
+else:
+    gpu_host = lambda x: x
+print 'Theano Device:', theano.config.device, gpu_host
+
+def gpu_transfer_fix(shared_variable):
+    if hasgpu():
+        if type(shared_variable) == theano.sandbox.cuda.var.CudaNdarraySharedVariable:
+            return theano.shared(shared_variable.get_value(), name=shared_variable.name)
+    return shared_variable
 
 
 def dump_net(fname, net):
@@ -29,6 +47,8 @@ def load_net(fname):
 def load_rec_net(fname, dX, dU):
     with open(fname, 'r') as pklfile:
         layers = cPickle.load(pklfile)
+    for layer in layers:
+        layer.fix_gpu_vars()
     net = NNetRecursive(dX, dU, 1, layers)
     return net
 
@@ -343,6 +363,9 @@ class Layer(object):
     def params(self):
         """ Return a list of trainable parameters """
         return []
+
+    def fix_gpu_vars(self):
+        pass
     
     def n_params(self):
         return 0
@@ -425,10 +448,11 @@ class FFIPLayer(Layer):
         self.n_out = n_out
         self.layer_id = FFIPLayer.n_instances
         self.w = theano.shared(NN_INIT*np.random.randn(n_in, n_out).astype(np.float32), name="ff_ip_w_"+str(self.layer_id))
-        if bias:
-            self.b = theano.shared(NN_INIT*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
-        else:
-            self.b = theano.shared(0*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
+
+    def fix_gpu_vars(self):
+        self.w = gpu_transfer_fix(self.w)
+        self.b = gpu_transfer_fix(self.b)
 
     def forward(self, prev_layer, training=True):
         return prev_layer.dot(self.w) + self.b
@@ -458,7 +482,6 @@ class FFIPLayer(Layer):
 class AccelLayer(Layer):
     """ Acceleration Layer """
     def __init__(self):
-        self.t = 0.05
         self.idxpos = slice(0,7)
         self.idxvel = slice(7,14)
         #self.idxprevu = slice(14,21)
@@ -466,11 +489,34 @@ class AccelLayer(Layer):
         self.idxeevel = slice(23,32)
         self.idxu = slice(32,39)
 
+        self.construct_forward_matrices()
+
+    def construct_forward_matrices(self):
+        t = 0.05
+        forward_mat = np.zeros((39, 32))
+        forward_mat[self.idxpos, self.idxpos] = np.eye(7)
+        forward_mat[self.idxvel, self.idxvel] = np.eye(7)
+        forward_mat[self.idxvel, self.idxpos] = t*np.eye(7)
+        forward_mat[self.idxeepos, self.idxeepos] = np.eye(9)
+        forward_mat[self.idxeevel, self.idxeevel] = np.eye(9)
+        forward_mat[self.idxeevel, self.idxeepos] = t*np.eye(9)
+        self.forward_mat = theano.shared(forward_mat.astype(np.float32), name="acc_forward_mat")
+
+        jnt_mat = np.zeros((16, 32))
+        jnt_mat[:7, self.idxpos] = t*t*np.eye(7)
+        jnt_mat[:7, self.idxvel] = t*np.eye(7)
+        jnt_mat[7:16, self.idxeepos] = t*t*np.eye(9)
+        jnt_mat[7:16, self.idxeevel] = t*np.eye(9)
+        self.jnt_mat = theano.shared(jnt_mat.astype(np.float32), name="acc_jnt_mat")
+
     def forward(self, prev_layer, training=True):
+        if not hasattr(self, 'forward_mat'): # Support for older versions of AccelLayer
+            self.construct_forward_matrices()
+        return self.input_data.dot(self.forward_mat) + prev_layer.dot(self.jnt_mat)
+        """
         if training:
             jnt_accel = prev_layer[:,:7]
             ee_accel = prev_layer[:,7:16]
-            t = self.t
             jnt_pos = self.input_data[:,self.idxpos] + t*self.input_data[:,self.idxvel] + t*t*jnt_accel
             jnt_vel = self.input_data[:,self.idxvel] + t*jnt_accel
             ee_pos = self.input_data[:,self.idxeepos]+ t*self.input_data[:,self.idxeevel] + t*t*ee_accel
@@ -479,12 +525,78 @@ class AccelLayer(Layer):
         else:
             jnt_accel = prev_layer[:7]
             ee_accel = prev_layer[7:16]
-            t = self.t
             jnt_pos = self.input_data[self.idxpos] + t*self.input_data[self.idxvel] + t*t*jnt_accel
             jnt_vel = self.input_data[self.idxvel] + t*jnt_accel
             ee_pos = self.input_data[self.idxeepos]+ t*self.input_data[self.idxeevel] + t*t*ee_accel
             ee_vel = self.input_data[self.idxeevel] + t*ee_accel
             return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel])
+        """
+
+    def __str__(self):
+        return "AccelLayer"
+
+class AccelV2Layer(Layer):
+    """ Acceleration Layer """
+    def __init__(self, gate1layers, gate2layers):
+        self.t = 0.05
+        self.idxpos = slice(0,7)
+        self.idxvel = slice(7,14)
+        #self.idxprevu = slice(14,21)
+        self.idxeepos = slice(14,23)
+        self.idxeevel = slice(23,32)
+        self.idxu = slice(32,39)
+        self.idxx = slice(0,32)
+
+        self.gate1layers = gate1layers
+        self.gate2layers = gate2layers
+        self.action_scale = theano.shared(np.random.randn(7).astype(np.float32), name="action_scale")
+        self.eejac = theano.shared(np.random.randn(7, 9).astype(np.float32), name="action_jac")
+
+    def forward(self, prev_layer, training=True):
+        t = self.t
+        if training:
+            input_jnt_pos = self.input_data[:,self.idxpos]
+            input_jnt_vel = self.input_data[:,self.idxvel]
+            input_ee_pos = self.input_data[:,self.idxeepos]
+            input_ee_vel = self.input_data[:,self.idxeevel]
+            input_action = self.input_data[:,self.idxu]
+            input_state = self.input_data[:,self.idxx]
+        else:
+            input_jnt_pos = self.input_data[self.idxpos]
+            input_jnt_vel = self.input_data[self.idxvel]
+            input_ee_pos = self.input_data[self.idxeepos]
+            input_ee_vel = self.input_data[self.idxeevel]
+            input_action = self.input_data[self.idxu]
+            input_state = self.input_data[self.idxx]
+
+        jnt_acc = self.action_scale*input_action
+        ee_acc = jnt_acc.dot(self.eejac)
+
+        gate1 = input_state
+        for layer in self.gate1layers:
+            gate1 = layer.forward(gate1, training=training)
+
+        gate2 = input_state
+        for layer in self.gate2layers:
+            gate2 = layer.forward(gate2, training=training)
+
+        jnt_pos = input_jnt_pos + gate1*t*input_jnt_vel + gate1*t*t*jnt_acc
+        jnt_vel = input_jnt_vel + gate1*t*jnt_acc 
+        ee_pos = input_ee_pos + gate2*t*input_ee_vel + gate2*t*t*ee_acc
+        ee_vel = input_ee_vel + gate2*t*ee_acc
+
+        if training:
+            return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel], axis=1)
+        else:
+            return T.concatenate([jnt_pos, jnt_vel, ee_pos, ee_vel])
+
+    def params(self):
+        params = []
+        for layer in self.gate1layers:
+            params.extend(layer.params())
+        for layer in self.gate2layers:
+            params.extend(layer.params())
+        return params+[self.action_scale, self.eejac]
 
     def __str__(self):
         return "AccelLayer"
@@ -574,24 +686,75 @@ class GatedLayer(Layer):
             gates = layer.forward(gates, training=training)
         return gates * ip
 
+    def params(self):
+        """ Return a list of trainable parameters """
+        return self.ffip.params()+[[param for param in layer.params()] for layer in self.layers]
+
     def __str__(self):
         return "GatedLayer"
 
 class ControlAffine(Layer):
     """ ControlAffine Layer """
-    def __init__(self, layers, dx, du):
-        self.layers = layers
-        self.ffip = FFIPLayer(du, dx)
+    def __init__(self, affinelayers, controllayers, dx, du, dacc):
+        self.affinelayers = affinelayers
+        self.controllayers = controllayers
+        self.dx=dx
+        self.du=du
+        self.dacc=dacc
 
     def forward(self, prev_layer, training=True):
-        X = prev_layer[:,:self.dx]
-        U = self.ffip.forward(prev_layer[:,self.dx:], training=training)
-        for layer in self.layers:
-            X = layer.forward(X, training=training)
-        return X+U
+        if training:
+            X = prev_layer[:,:self.dx]
+            U = prev_layer[:,self.dx:]
+            N = prev_layer.shape[0]
+        else:
+            X = prev_layer[:self.dx]
+            U = prev_layer[self.dx:]
 
+        control_mat = X
+        for layer in self.controllayers:
+            control_mat = layer.forward(control_mat, training=training)
 
-        pass
+        if training:
+            control_mat = T.reshape(control_mat, (N, self.dacc*self.du))
+            # Loop and apply
+            def fn(cmat, u):
+                cmat = cmat.reshape((self.dacc, self.du))
+                return cmat.dot(u)
+            result, updates = theano.scan(fn=fn,
+                                          #outputs_info=T.ones_like(A),
+                                          sequences=[control_mat, U],
+                                          n_steps=N)
+            action_output = result
+            """
+            control_mat = T.tensor(control_mat)
+            control_mat = T.reshape(control_mat, (N, self.dacc, self.du), ndims=3)
+            # Loop and apply
+            def fn(cmat, u):
+                return cmat.dot(u)
+            result, updates = theano.scan(fn=fn,
+                                          #outputs_info=T.ones_like(A),
+                                          sequences=[control_mat, U],
+                                          n_steps=T)
+            action_output = result
+            """
+        else:
+            control_mat = control_mat.reshape((self.dacc, self.du))
+            action_output = control_mat.dot(U)
+
+        bias = X
+        for layer in self.affinelayers:
+            bias = layer.forward(bias, training=training)
+        return action_output
+
+    def params(self):
+        params = []
+        for layer in self.affinelayers:
+            #params.extend(layer.params())
+            pass
+        for layer in self.controllayers:
+            params.extend(layer.params())
+        return params
 
     def __str__(self):
         return "ControlAffine"

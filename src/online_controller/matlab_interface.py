@@ -21,7 +21,7 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
-	T = 100
+	T = 200
 	dX = mat['Dx']
 	dU = mat['Du']
 
@@ -30,10 +30,10 @@ def get_controller(matfile):
 	wp = mat['cost_wp'][:,0]
 	wp.fill(0.0)
 
-	#wp[0:7] = 1.0
+	wp[0:7] = 1.0
 	#wp[14:23] = 1.0
 
-	#cost = CostStateTracking(wp, tgt, maxT=T)
+	cost = CostStateTracking(wp, tgt, maxT=T)
 
 	site_jac = True
 	if site_jac:
@@ -45,7 +45,7 @@ def get_controller(matfile):
 	#jnt_wp = np.ones(7)*0.00; jnt_wp[6] = 0.0
 	#jnt_tgt = tgt[-1,0:7]
 	#cost = CostFKOnline(tgt[-1,ee_idx], jnt_tgt=jnt_tgt, jnt_wp=jnt_wp, ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
-	cost = CostFKOnline(tgt[-1,ee_idx], ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
+	#cost = CostFKOnline(tgt[-1,ee_idx], ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
@@ -78,8 +78,8 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	#with open('plane_gmm10.pkl') as f:
-	#	gmm = cPickle.load(f)
+	with open('gear_gmm20.pkl') as f:
+		gmm = cPickle.load(f)
 
 	oc = OnlineController(dX, dU, dynprior, cost, maxT=T, ee_idx=ee_idx, ee_sites=eesites, use_ee_sites=site_jac,
 			dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
@@ -89,7 +89,8 @@ def get_controller(matfile):
 
 def dyndata_init():
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
-    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+    #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_gear.hdf5'])
 
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
@@ -111,12 +112,14 @@ def dyndata_init():
 def newgmm():
     logging.basicConfig(level=logging.DEBUG)
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'], remove_ft=True)
-    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+    #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_gear.hdf5'])
+
     xux = np.c_[train_dat, train_lbl]
     print xux.shape
     gmm = GMM()
-    gmm.update(xux, 10)
-    with open('armwave_gmm10.pkl', 'w') as f:
+    gmm.update(xux, 20)
+    with open('gear_gmm20.pkl', 'w') as f:
     	cPickle.dump(gmm, f)
 
 

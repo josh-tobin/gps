@@ -40,7 +40,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 20 # Horizon
+        self.H = 15 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -52,18 +52,19 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.04 # Noise to add
+        self.u_noise = 0.1 # Noise to add
 
         #Dynamics settings
-        self.gamma = 0.02  # Moving average parameter
+        self.gamma = 0.1  # Moving average parameter
         self.empsig_N = 2 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
         self.use_prior_dyn = False
+        self.gmm_prior = True
         self.fit_prior_residuals = False
 
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 3  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0005  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
@@ -115,7 +116,6 @@ class OnlineController(Policy):
 
             # Execute something for first action.
             self.noise = generate_noise(self.maxT, self.dU, smooth=True, var=3.0, renorm=True)
-            self.noise[:,0] *=2
 
             H = self.H
             K = np.zeros((H, dU, dX))
@@ -307,6 +307,7 @@ class OnlineController(Policy):
 
         #pt = pt -self.mu
         self.sigma = self.sigma*(1-gamma) + np.outer(pt,pt)*(gamma)
+        print self.sigma
         self.sigma = 0.5*(self.sigma+self.sigma.T)
 
         # Debug - print log prob
@@ -747,7 +748,7 @@ class OnlineController(Policy):
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
 
-        self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f}
+        self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f, 'empsig':(self.sigma - np.outer(self.mu, self.mu))}
 
         #TODO: Hardcoded joint indexes
         jacobians = None
@@ -836,9 +837,11 @@ class OnlineController(Policy):
                 f = mun[ip] - F.dot(mun[it])
             return F, f, dynsig
         else:
-            mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
-            sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-            #sigma = empsig;  # Moving average only
+            if self.gmm_prior:
+                mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
+                sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+            else:
+                sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
 
             #(np.linalg.pinv(empsig[it, it]).dot(empsig[it, ip])).T
