@@ -65,18 +65,21 @@ class RecurrentLayer(BaseLayer):
         clip_mask = input_batch.get_data(self.clip_blob)
 
         init_state_data = self.init_recurrent_state().astype(np.float32)
-        init_state = theano.shared(init_state_data, name='rnn_state_'+str(self.layer_id))
+        hidden_state = theano.shared(init_state_data, name='rnn_state_'+str(self.layer_id))
 
         def scan_fn(input_layer, clip, prev_state):
-            prev_state = clip*prev_state
+            #prev_state = clip*prev_state
             next_layer, next_state = self.forward(input_layer, prev_state)
             return next_layer, next_state
 
         ([layer_out, hidden_states], updates) = theano.scan(fn=scan_fn,
-                                      outputs_info=[None, dict(initial=init_state, taps=[-1])],
+                                      outputs_info=[None, dict(initial=hidden_state, taps=[-1])],
                                       sequences=[input_data, clip_mask])
+        #theano.printing.debugprint(hidden_states)
+        #theano.printing.debugprint(layer_out)
         input_batch.set_data(self.output_blob, layer_out)
         #input_batch.set_data('dbg_hidden_state', hidden_states)
+        return updates
 
 class FeedforwardLayer(BaseLayer):
     def __init__(self, input_blobs, output_blob):
@@ -91,6 +94,7 @@ class FeedforwardLayer(BaseLayer):
         inputs = {blob: input_batch.get_data(blob) for blob in self.input_blobs}
         output = self.forward(inputs)
         input_batch.set_data(self.output_blob, output)
+        return []
 
 class ActivationLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob):
@@ -114,12 +118,26 @@ class ReLULayer(ActivationLayer):
     def activation(self, prev_layer):
         return prev_layer*(prev_layer>0)
 
+class SoftplusLayer(ActivationLayer):
+    def __init__(self, input_blob, output_blob):
+        super(SoftplusLayer, self).__init__(input_blob, output_blob)
+
+    def activation(self, prev_layer):
+        return T.nnet.softplus(prev_layer)
+
 class SigmoidLayer(ActivationLayer):
     def __init__(self, input_blob, output_blob):
         super(SigmoidLayer, self).__init__(input_blob, output_blob)
 
     def activation(self, prev_layer):
         return T.nnet.sigmoid(prev_layer)
+
+class TanhLayer(ActivationLayer):
+    def __init__(self, input_blob, output_blob):
+        super(TanhLayer, self).__init__(input_blob, output_blob)
+
+    def activation(self, prev_layer):
+        return T.nnet.tanh(prev_layer)
 
 class RNNIPLayer(RecurrentLayer):
     def __init__(self, input_blob, output_blob, clip_blob, din, dout):
@@ -140,7 +158,7 @@ class RNNIPLayer(RecurrentLayer):
 
     def params(self):
         #return [self.wff, self.wr, self.b]
-        return [self.wff, self.b]
+        return [self.wff, self.wr, self.b]
 
 class FFIPLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, dout):
@@ -157,36 +175,41 @@ class FFIPLayer(FeedforwardLayer):
         return [self.w, self.b]
 
 class AccelLayer(FeedforwardLayer):
-    """ Acceleration Layer """
-    def __init__(self, data_blob, accel_blob, output_blob):
+    """ Mix known dynamics with predicted acceleration based on state """
+    def __init__(self, data_blob, accel_blob, output_blob, djnt, dee, du):
         super(AccelLayer, self).__init__([data_blob, accel_blob], output_blob)  
         self.data_blob = data_blob
         self.accel_blob = accel_blob
 
-        self.idxpos = slice(0,7)
-        self.idxvel = slice(7,14)
-        self.idxeepos = slice(14,23)
-        self.idxeevel = slice(23,32)
-        self.idxu = slice(32,39)
+        idx = 0
+        self.djnt = djnt
+        self.dee = dee
+        self.du = du
+        self.dx = 2*djnt+2*dee
+        self.idxpos = slice(idx,idx+djnt); idx+=djnt
+        self.idxvel = slice(idx,idx+djnt); idx+=djnt
+        self.idxeepos = slice(idx,idx+dee); idx+=dee
+        self.idxeevel = slice(idx,idx+dee); idx+=dee
+        self.idxu = slice(self.dx,self.dx+du)
 
         self.construct_forward_matrices()
 
     def construct_forward_matrices(self):
         t = 0.05
-        forward_mat = np.zeros((39, 32))
-        forward_mat[self.idxpos, self.idxpos] = np.eye(7)
-        forward_mat[self.idxvel, self.idxvel] = np.eye(7)
-        forward_mat[self.idxvel, self.idxpos] = t*np.eye(7)
-        forward_mat[self.idxeepos, self.idxeepos] = np.eye(9)
-        forward_mat[self.idxeevel, self.idxeevel] = np.eye(9)
-        forward_mat[self.idxeevel, self.idxeepos] = t*np.eye(9)
+        forward_mat = np.zeros((self.dx+self.du, self.dx))
+        forward_mat[self.idxpos, self.idxpos] = np.eye(self.djnt)
+        forward_mat[self.idxvel, self.idxvel] = np.eye(self.djnt)
+        forward_mat[self.idxvel, self.idxpos] = t*np.eye(self.djnt)
+        forward_mat[self.idxeepos, self.idxeepos] = np.eye(self.dee)
+        forward_mat[self.idxeevel, self.idxeevel] = np.eye(self.dee)
+        forward_mat[self.idxeevel, self.idxeepos] = t*np.eye(self.dee)
         self.forward_mat = theano.shared(forward_mat.astype(np.float32), name="AccLayer_forward_mat_"+str(self.layer_id))
 
-        jnt_mat = np.zeros((16, 32))
-        jnt_mat[:7, self.idxpos] = t*t*np.eye(7)
-        jnt_mat[:7, self.idxvel] = t*np.eye(7)
-        jnt_mat[7:16, self.idxeepos] = t*t*np.eye(9)
-        jnt_mat[7:16, self.idxeevel] = t*np.eye(9)
+        jnt_mat = np.zeros((self.djnt+self.dee, self.dx))
+        jnt_mat[:self.djnt, self.idxpos] = t*t*np.eye(self.djnt)
+        jnt_mat[:self.djnt, self.idxvel] = t*np.eye(self.djnt)
+        jnt_mat[self.djnt:self.djnt+self.dee, self.idxeepos] = t*t*np.eye(self.dee)
+        jnt_mat[self.djnt:self.djnt+self.dee, self.idxeevel] = t*np.eye(self.dee)
         self.jnt_mat = theano.shared(jnt_mat.astype(np.float32), name="AccLayer_acc_mat_"+str(self.layer_id))
 
     def forward(self, input_data):
@@ -214,18 +237,20 @@ class SquaredLoss(object):
         obj = self.loss(lbl, pred)
         return obj
 
-def train_gd_momentum(obj, params, args, scl=1.0, weight_decay=0.0):
+def train_gd_momentum(obj, params, args, updates=None, scl=1.0, weight_decay=0.0):
     obj = obj
     scl = float(scl)
     gradients = T.grad(obj, params)
     eta = T.scalar('lr')
     momentum = T.scalar('momentum')
     momentums = [theano.shared(np.copy(param.get_value())) for param in params]
+    #if updates is None:
     updates = []
     for i in range(len(gradients)):
         update_gradient = (gradients[i])+momentum*momentums[i]+weight_decay*params[i]
         updates.append((params[i], gpu_host(params[i]-(eta/scl)*update_gradient)))
         updates.append((momentums[i], gpu_host(update_gradient)))
+
     train = theano.function(
         inputs=args+[eta, momentum],
         outputs=[obj],
@@ -247,27 +272,25 @@ class Network(object):
         for input_var in self.inputs:
             batch.set_data(input_var.name, input_var)
 
+        updates = []
         for layer in self.layers:
-            layer.forward_batch(batch)
+            updates.extend(list(layer.forward_batch(batch)))
         obj = self.loss.forward_batch(batch)
-        return obj
+        return obj, updates, batch
 
     def set_net_inputs(self, inputs):
         self.inputs = inputs
 
-    def get_train_function(self, objective):
-        return train_gd_momentum(objective, self.params, self.inputs)
+    def get_train_function(self, objective, updates):
+        return train_gd_momentum(objective, self.params, self.inputs, updates=updates)
 
-    def get_loss_function(self, objective):
-        return theano.function(inputs=self.inputs, outputs=[objective])
+    def get_loss_function(self, objective, updates):
+        return theano.function(inputs=self.inputs, outputs=[objective], updates=updates, on_unused_input='warn')
 
     def taylor_expansion(self, x):
         raise NotImplementedError()
 
-    def get_hidden_state(self):
-        raise NotImplementedError()
-
-    def set_hidden_state(self, state):
+    def forward_single(self, input, hidden_state=None):
         raise NotImplementedError()
 
     def __getstate__(self):  # For pickling
@@ -291,26 +314,36 @@ def rnntest():
     np.random.seed(123)
     logging.basicConfig(level=logging.DEBUG)
 
-    bsize = 50
-    N = 500
+    bsize = 20
+    N = 200
 
-    data = np.random.randn(N,40).astype(np.float32)
-    K = np.random.randn(40,20).astype(np.float32)
-    label = data.dot(K)
-    clip = np.zeros((N,)).astype(np.float32)
+    data = np.zeros((N, 10))
+    label = np.zeros((N, 10))
+    clip = np.ones((N,)).astype(np.float32)
+    tmp = None
+    for i in range(N):
+        if i%bsize == 0:
+            clip[i] = 0
+            tmp = np.random.randn(10)
+            data[i] = tmp
+        label[i] = tmp
+    data = data.astype(np.float32)
+    label = label.astype(np.float32)
 
-    ip1 = RNNIPLayer('data', 'ip1', 'clip', 40, 20) 
+    ip1 = RNNIPLayer('data', 'ip1', 'clip', 10, 10) 
     loss = SquaredLoss('ip1', 'lbl')
     net = Network([ip1], loss)
     #net = unpickle_net('test.pkl')
 
     net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
-    obj = net.symbolic_forward()
-    train_gd = net.get_train_function(obj)
-    total_obj = net.get_loss_function(obj)
+    obj, updates, batch = net.symbolic_forward()
+    train_gd = net.get_train_function(obj, updates)
+    total_obj = net.get_loss_function(obj, updates)
+
+    rnn_out = net.get_loss_function(batch.get_data('ip1'), updates)
 
 
-    lr = 5e-3/bsize
+    lr = 1e-3/bsize
     lr_schedule = {
         400000: 0.2,
         800000: 0.2,
@@ -321,10 +354,10 @@ def rnntest():
         bend = (i+1)*bsize % N
         if bend < bstart:
             epochs += 1
-            perm = np.random.permutation(N)
-            data = data[perm]
-            label = label[perm]
-            clip = clip[perm]
+            #perm = np.random.permutation(N)
+            #data = data[perm]
+            #label = label[perm]
+            #clip = clip[perm]
             continue
         _data = data[bstart:bend]
         _label = label[bstart:bend]
@@ -335,7 +368,7 @@ def rnntest():
             lr *= lr_schedule[i]
         if i % 500 == 0:
             print 'LR=', lr, ' // Train:',i, objval
-            #import pdb; pdb.set_trace()
+            ip1= rnn_out(_data, _label, _clip)
         if i % 10000 == 0:
             pass
             #if i>0:
