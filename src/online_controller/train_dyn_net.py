@@ -273,8 +273,6 @@ def train_dyn_rec():
     print train_U.shape
     print train_tgt.shape
 
-
-
     # Input normalization
     #norm1 = NormalizeLayer()
     #norm1.generate_weights(train_data)

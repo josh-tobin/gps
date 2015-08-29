@@ -21,7 +21,7 @@ THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 GPS_ROOT_DIR = os.path.dirname(os.path.dirname(THIS_FILE_DIR))
 
 common = {
-    'conditions': 1,
+    'conditions': 10,
     'experiment_dir': 'experiments/default_experiment/',
     'experiment_name': 'my_experiment_'+datetime.datetime.strftime(datetime.datetime.now(), '%m-%d-%y_%H-%M'),
 }
@@ -48,7 +48,8 @@ agent = {
     'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
-    'pos_body_offset': [np.array([0,0.0,0])],
+    'pos_body_offset': [np.array([-0.5,0.2,0.1]), np.array([0,0.0,-0.2]), np.array([-0.4,0.1,0.1]), np.array([0,0.0,0]), np.array([0.1,-0.2,0]), np.array([-0.1,0.0,0.2]),
+    np.array([-0.3,0.1,0.1]), np.array([-0.2,0.3,0]), np.array([-0.4,0.0,0.2]), np.array([0.2,-0.1,0.1])]
 }
 
 algorithm = {

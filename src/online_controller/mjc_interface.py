@@ -84,17 +84,18 @@ def run_offline(controllerfile, verbose):
     """
     sample_data, agent = setup_agent()
     algorithm = defaults['algorithm']['type'](defaults['algorithm'], sample_data)
-    conditions = 1
+    conditions = 10
     idxs = [[] for _ in range(conditions)]
-    for itr in range(10):
+    for itr in range(10): # Iterations
         for m in range(conditions):
-            for i in range(5):
+            for i in range(20): # Trials per iteration
                 n = sample_data.num_samples()
                 pol = algorithm.cur[m].traj_distr
                 sample = agent.sample(pol, sample_data.T, m, verbose=verbose)
                 sample_data.add_samples(sample)
                 idxs[m].append(n)
-        algorithm.iteration([idx[-15:] for idx in idxs])
+        algorithm.iteration([idx[-20:] for idx in idxs])
+        print 'Finished itr ', itr
 
     gmm = algorithm.prev[0].traj_info.dynamics.prior.gmm
     dX = sample_data.dX
@@ -120,32 +121,37 @@ def run_offline(controllerfile, verbose):
     xux_data = np.array(xux_data)
     nn_train_data = np.array(nn_train_data)
     nn_train_lbl = np.array(nn_train_lbl)
+    clip = np.ones(nn_train_data.shape[0])
+    for i in range(0,nn_train_data.shape[0], T-1):
+        clip[i] = 0
+    import pdb; pdb.set_trace()
+
     dyn_init_mu = np.mean(xux_data, axis=0)
     dyn_init_sig = np.cov(xux_data.T)
 
 
     # Randomly shuffle data
-    N = nn_train_data.shape[0]
-    perm = np.random.permutation(N)
-    nn_train_data = nn_train_data[perm]
-    nn_train_lbl = nn_train_lbl[perm]
+    #N = nn_train_data.shape[0]
+    #perm = np.random.permutation(N)
+    #nn_train_data = nn_train_data[perm]
+    #nn_train_lbl = nn_train_lbl[perm]
 
     # Split train/test
-    ntrain = int(N*0.8)
-    nn_test_data = nn_train_data[ntrain:]
-    nn_test_lbl = nn_train_lbl[ntrain:]
-    nn_train_data = nn_train_data[:ntrain]
-    nn_train_lbl = nn_train_lbl[:ntrain]
+    #ntrain = int(N*0.8)
+    #nn_test_data = nn_train_data[ntrain:]
+    #nn_test_lbl = nn_train_lbl[ntrain:]
+    #nn_train_data = nn_train_data[:ntrain]
+    #nn_train_lbl = nn_train_lbl[:ntrain]
 
     # Print shapes
     print 'Data shape:'
     print 'Train data:', nn_train_data.shape
     print 'Train lbl:', nn_train_lbl.shape
-    print 'Test data:', nn_test_data.shape
-    print 'Test lbl:', nn_test_lbl.shape
+    #print 'Test data:', nn_test_data.shape
+    #print 'Test lbl:', nn_test_lbl.shape
 
     scipy.io.savemat('data/dyndata_mjc.mat', {'data': nn_train_data, 'label': nn_train_lbl})
-    scipy.io.savemat('data/dyndata_mjc_test.mat', {'data': nn_test_data, 'label': nn_test_lbl})
+    #scipy.io.savemat('data/dyndata_mjc_test.mat', {'data': nn_test_data, 'label': nn_test_lbl})
     with open(controllerfile, 'w') as f:
         mat = cPickle.dump({
                 'dyn_init_mu': dyn_init_mu,

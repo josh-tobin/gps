@@ -26,6 +26,10 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
+        dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig))))
+        # Rescale initial covariance
+        self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet)
+
         #self.dyn_init_mu.fill(0.0)
         #self.dyn_init_sig.fill(0.0)
         self.dX = dX
@@ -55,6 +59,7 @@ class OnlineController(Policy):
         self.u_noise = 0.1 # Noise to add
 
         #Dynamics settings
+        self.adaptive_gamma = False
         self.gamma = 0.1  # Moving average parameter
         self.empsig_N = 2 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
@@ -290,25 +295,26 @@ class OnlineController(Policy):
         pt = np.r_[prevx,prevu,cur_x]
         gamma = self.gamma
 
-        # Select gamma based on log probability under current empsig
-        """
-        empsig = self.sigma - np.outer(self.mu, self.mu)
+        # Adjust gamma based on log probability under current empsig
+        empsig = self.sigma 
         empsig += self.sigreg*np.eye(empsig.shape[0])
         diff = pt-self.mu
-
         logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
         logprob = -0.5*(diff.T.dot(np.linalg.inv(empsig)).dot(diff))
         #gamma = 1.5* 1.0/logprob 
         print 'Logprob:', logprob, logdet, logprob+(-0.5*logdet)
-        print 'New gamma:', gamma
-        """
+        self.gamma = self.gamma
+        print 'New gamma:', self.gamma
+        self.empsig_N = 1/gamma
+        print 'New empsig N:', self.empsig_N
+
 
         self.mu = self.mu*(1-gamma) + pt*(gamma)
 
         #pt = pt -self.mu
-        self.sigma = self.sigma*(1-gamma) + np.outer(pt,pt)*(gamma)
-        print self.sigma
-        self.sigma = 0.5*(self.sigma+self.sigma.T)
+        self.xxt = self.xxt*(1-gamma) + np.outer(pt,pt)*(gamma)
+        self.xxt = 0.5*(self.xxt+self.xxt.T)
+        self.sigma = self.xxt - np.outer(self.mu, self.mu)
 
         # Debug - print log prob
         """
@@ -820,7 +826,7 @@ class OnlineController(Policy):
             empsig = self.dyn_init_sig
         else:
             mun = self.mu
-            empsig = self.sigma - np.outer(self.mu, self.mu)
+            empsig = self.sigma
         N = self.empsig_N
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
