@@ -32,30 +32,49 @@ def rnntest():
     fname = 'net/rnntest.pkl'
     logging.basicConfig(level=logging.DEBUG)
 
-    data, label, clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
-    test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
+    data, label, clip = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
+    test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     bsize = 50
     N = data.shape[0]
 
     try:
         net = unpickle_net(fname)
     except IOError as e:
+        print "Making new net!"
+        #"""
         ip1 = RNNIPLayer('data', 'ip1', 'clip', 39, 12) 
         act1 = SoftplusLayer('ip1', 'act1')
         ip2 = RNNIPLayer('act1', 'ip2', 'clip', 12, 16) 
         acc = AccelLayer('data', 'ip2', 'acc', 7, 9, 7)
         loss = SquaredLoss('acc', 'lbl')
-        net = Network([ip1, act1, ip2, acc], loss)
+        net = RecurrentDynamicsNetwork([ip1, act1, ip2, acc], loss)
+        #"""
+        """
+        ip1 = FFIPLayer('data', 'ip1', 39, 12) 
+        act1 = SoftplusLayer('ip1', 'act1')
+        ip2 = FFIPLayer('act1', 'ip2', 12, 16) 
+        acc = AccelLayer('data', 'ip2', 'acc', 7, 9, 7)
+        loss = SquaredLoss('acc', 'lbl')
+        net = RecurrentDynamicsNetwork([ip1, act1, ip2, acc], loss)
         #net = unpickle_net('test.pkl')
+        """
 
-
+    net.init_functions(output_blob='ip1')
+    """
     net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
-    obj, updates, batch = net.symbolic_forward()
+    obj, updates = net.symbolic_forward()
     train_gd = net.get_train_function(obj, updates)
     total_obj = net.get_loss_function(obj, updates)
     rnn_out = net.get_loss_function(batch.get_data('acc'), updates)
+    """
+    for idx in [25]:
+        pred_net =  net.fwd_single(data[idx])
+        perturbed_input = data[idx] + 0.01*np.random.randn(din).astype(np.float32)
+        F, f = net.getF(perturbed_input)
+        predict_taylor = (F.dot(data_in[idx,:din])+f)
+        import pdb; pdb.set_trace()
 
-    lr = 8e-3/bsize
+    lr = 4e-3/bsize
     lr_schedule = {
         5000000: 0.2,
         10000000: 0.2,
@@ -71,7 +90,7 @@ def rnntest():
         _data = data[bstart:bend]
         _label = label[bstart:bend]
         _clip = clip[bstart:bend]
-        objval = train_gd(_data, _label, _clip, lr, 0.90)
+        objval = net.train_gd(_data, _label, _clip, lr, 0.90)
 
         if i in lr_schedule:
             lr *= lr_schedule[i]
@@ -82,7 +101,9 @@ def rnntest():
         if i % 10000 == 0:
             if i>0:
                 net.pickle(fname)
-            total_err = total_obj(data, label, clip)
+            total_err = net.total_obj(data, label, clip)
             print 'Total train error:', total_err
+            total_err = net.total_obj(test_data, test_label, test_clip)
+            print 'Total test error:', total_err
 
 rnntest()

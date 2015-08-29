@@ -70,9 +70,9 @@ class OnlineController(Policy):
         self.gmm_prior = True
         self.fit_prior_residuals = False
 
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 3  # Number of SGD iterations to take per timestep
+        self.nn_update_iters = 2  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0005  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
@@ -82,9 +82,10 @@ class OnlineController(Policy):
 
         if self.nn_dynamics:
             #netname = 'net/rec_plane_acc_soft.pkl'
-            netname = 'net/rec_armwave_acc.pkl'
+            #netname = 'net/rec_armwave_acc.pkl'
+            netname = 'net/mjc_accel.pkl'
             rec = True
-            self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=32, dU=7)
+            self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=self.dX, dU=self.dU)
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
             #    self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
 
@@ -452,7 +453,7 @@ class OnlineController(Policy):
                     reg_mu = delmu;
                 else:
                     reg_mu = min_mu;
-                LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
+                #LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
 
         policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
 

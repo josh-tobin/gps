@@ -3,7 +3,7 @@ import numpy as np
 from algorithm.cost.cost_utils import get_ramp_multiplier, RAMP_CONSTANT, evall1l2term, evallogl2term, evallogl2term_fast
 
 class CostFKOnline(object):
-    def __init__(self, eetgt, jnt_tgt=None, jnt_wp=None, ee_idx=None, jnt_idx=None, maxT=None):
+    def __init__(self, eetgt, jnt_tgt=None, jnt_wp=None, ee_idx=None, jnt_idx=None, use_jacobian=True, maxT=None):
         self.dim_ee = ee_idx.stop-ee_idx.start
         self.dim_jnt = jnt_idx.stop - jnt_idx.start
         self.wp = np.ones(self.dim_ee)
@@ -13,6 +13,7 @@ class CostFKOnline(object):
         self.jnt_idx = jnt_idx
         self.jnt_tgt = jnt_tgt
         self.jnt_wp = jnt_wp
+        self.use_jacobian = use_jacobian
 
         self.final_penalty = 3.0  # weight = sum of remaining weight * final penalty
         self.ramp_option = RAMP_CONSTANT
@@ -51,9 +52,9 @@ class CostFKOnline(object):
 
 
         # Derivatives w.r.t. EE dimensions
-        #l_ee, lx_ee, lxx_ee = evallogl2term_fast(wp, dist, self.l1, self.l2, self.alpha)
-        #lx[:, self.ee_idx] = lx_ee
-        #lxx[:, self.ee_idx, self.ee_idx] = lxx_ee
+        l_ee, lx_ee, lxx_ee = evallogl2term_fast(wp, dist, self.l1, self.l2, self.alpha)
+        lx[:, self.ee_idx] = lx_ee
+        lxx[:, self.ee_idx, self.ee_idx] = lxx_ee
 
         if self.jnt_tgt is not None:
             jwp = self.jnt_wp*np.expand_dims(self.wpm[t:t+T], axis=-1)
@@ -67,11 +68,12 @@ class CostFKOnline(object):
         #dist = dist[:,0:3]
         #Jd = Jd[:,0:3,:]
         #wp = wp[:,0:3]
-        Jdd = np.zeros((T, self.dim_ee, self.dim_jnt, self.dim_jnt))
-        l_fk, lx_fk, lxx_fk = evallogl2term( wp, dist, Jd, Jdd, self.l1, self.l2, self.alpha)
-        l += l_fk
-        lx[:, self.jnt_idx] += lx_fk
-        lxx[:, self.jnt_idx, self.jnt_idx] += lxx_fk
+        if self.use_jacobian:
+            Jdd = np.zeros((T, self.dim_ee, self.dim_jnt, self.dim_jnt))
+            l_fk, lx_fk, lxx_fk = evallogl2term( wp, dist, Jd, Jdd, self.l1, self.l2, self.alpha)
+            l += l_fk
+            lx[:, self.jnt_idx] += lx_fk
+            lxx[:, self.jnt_idx, self.jnt_idx] += lxx_fk
 
         #TODO: Add derivatives for the actual end-effector dimensions of state
         #Right now only derivatives w.r.t. joints are considered

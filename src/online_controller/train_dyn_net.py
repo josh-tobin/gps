@@ -8,6 +8,13 @@ import cPickle
 DATA_DIR = 'data'
 NET_DIR = 'net'
 
+def get_net(name, rec=True, dX=32, dU=7):
+    if rec:
+        net = load_rec_net(name, dX=dX, dU=dU)
+    else:
+        net = load_net(name)
+    return net
+
 def load_matfile(matfile, remove_ft=False, remove_prevu=False):
     data = scipy.io.loadmat(matfile)
     adjust_eetgt = False
@@ -53,14 +60,15 @@ def load_matfile(matfile, remove_ft=False, remove_prevu=False):
         clip = np.expand_dims(clip, axis=-1)
         print 'Existing CLIP:', clip.shape
     else:
-        print 'Auto-generating clip with T=200'
+        print 'Auto-generating clip with T=100'
         clip = np.ones((dat.shape[0],1))
         for t in range(dat.shape[0]):
-            if t%199 == 0:
+            if t%99 == 0:
                 clip[t] = 0
     return dat, lbl, clip
 
 def get_data(train, test, shuffle_test=True, remove_ft=True, remove_prevu=False, clip_dict=None):
+    """ Get data in matfile format """
     train_data = [] 
     train_label = []
     clip = [] #REMOVE
@@ -108,110 +116,6 @@ def get_data(train, test, shuffle_test=True, remove_ft=True, remove_prevu=False,
     #train_lbl = train_lbl[:200,:]
     return train_data, train_label, test_data, test_label
 
-def train_dyn():
-    fname = os.path.join(NET_DIR, '%s.pkl' % sys.argv[1])
-    #np.random.seed(10)
-    np.set_printoptions(suppress=True)
-
-    din = 46-7
-    dout = 39-7
-    data_in, data_out, test_data, test_lbl = get_data(['dyndata_armwave_all'], ['dyndata_plane_nopu'], remove_ft=True, remove_prevu=True)
-
-    #din = 33
-    #dout = 26
-    #data_in, data_out, test_data, test_lbl = get_data(['dyndata_mjc'], ['dyndata_mjc_test'])
-
-    N = data_in.shape[0]
-    print data_in.shape
-    print data_out.shape
-    print test_data.shape
-
-    # Loss weight
-    wt = np.ones(dout).astype(np.float32)
-
-    # Input normalization
-    norm1 = NormalizeLayer()
-    norm1.generate_weights(data_in)
-
-    """
-    #Output normalization
-    norm2 = NormalizeLayer()
-    norm2.generate_weights(data_out)
-    data_out_normed = norm2.forward(data_out)
-    norm2.generate_weights(data_out, reverse=True)
-    data_out_unnorm = data_out
-    data_out = data_out_normed
-    """
-
-    #net = NNetDyn([norm1, FFIPLayer(din, 50), ReLU5Layer, FFIPLayer(50,16), AccelLayer()], wt)
-    #net = NNetDyn([norm1, FFIPLayer(din, 150), ReLU5Layer, DropoutLayer(150, p=0.8), FFIPLayer(150,dout)], wt)
-    #net = NNetDyn([norm1, FFIPLayer(din, 50), SoftPlusLayer, FFIPLayer(50,dout)], wt)
-    #net = NNetDyn([norm1, 
-    #    GatedLayer([FFIPLayer(din, 50), SigmLayer] ,din, 50),
-    #    FFIPLayer(50, dout)],
-    #    wt)
-    #net = NNetDyn([norm1, FFIPLayer(din, 60), ReLU5Layer, FFIPLayer(60, 60), ReLU5Layer, FFIPLayer(60,dout)], wt)
-    net = NNetDyn([FFIPLayer(din,dout)], wt, weight_decay=0.0000) # loss ~0.13
-
-    try:
-        net = load_net(fname)
-        print 'Loaded net!'
-    except IOError:
-        print 'Initializing new network!'
-
-    for idx in [25]:
-        pred_net =  net.fwd_single(data_in[idx,:din])
-        perturbed_input = data_in[idx,:din] + 0.01*np.random.randn(din).astype(np.float32)
-        F, f = net.getF(perturbed_input)
-        predict_taylor = (F.dot(data_in[idx,:din])+f)
-        print 'input:',data_in[idx]
-        print 'net_out:',pred_net
-        print 'taylor:',predict_taylor
-        print 'label:',data_out[idx]
-        import pdb; pdb.set_trace()
-
-    #Randomize training
-    perm = np.random.permutation(data_in.shape[0])
-    data_in = data_in[perm]
-    data_out = data_out[perm]
-
-    bsize = 50
-    lr = 1e-3/bsize
-    lr_schedule = {
-            500000: 0.5,
-            1000000: 0.5,
-            1500000: 0.5,
-            2000000: 0.5,
-            }
-
-    epochs = 0
-    for i in range(10*1000*1000):
-        bstart = i*bsize % N
-        bend = (i+1)*bsize % N
-        if bend < bstart:
-            epochs += 1
-            perm = np.random.permutation(N)
-            data_in = data_in[perm]
-            data_out = data_out[perm]
-            continue
-        _din = data_in[bstart:bend]
-        _dout = data_out[bstart:bend]
-        #_din = data_in
-        #_dout = data_out
-
-        net.train(_din, _dout, lr, 0.90)
-
-        if i in lr_schedule:
-            lr *= lr_schedule[i]
-
-        if i % 2000 == 0:
-            print 'LR=', lr, ' // Train:',i, net.obj_matrix(_din, _dout), ' // Test :', net.obj_matrix(test_data, test_lbl)
-            sys.stdout.flush()
-        if i % 10000 == 0:
-            print 'Dumping weights'
-            dump_net(fname, net)
-            print 'Total train error:', net.obj_matrix(data_in, data_out)
-
 def get_data_hdf5(fnames):
     if type(fnames) == str:
         fnames = [fnames]
@@ -246,11 +150,12 @@ def train_dyn_rec():
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
 
-    dX = 32
+    dX = 26
     dU = 7
     T = 1
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
-    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
+    #data_in, data_out, test_data, test_lbl = get_data(['dyndata_armwave_all'], ['dyndata_plane_nopu'], remove_ft=True, remove_prevu=True)
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
     #test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_plane_expr_nopu2.hdf5')
     #test_X, test_U, test_tgt = NNetRecursive.prepare_data(test_data, test_lbl, test_clip, dX, dU, T)
@@ -269,17 +174,9 @@ def train_dyn_rec():
     train_tgt = train_tgt[:Ntrain]
 
     N = train_X.shape[0]
-    print 'N:', N, train_X.shape
-    print train_U.shape
-    print train_tgt.shape
+    print 'N train:', N, train_X.shape
+    print 'U shape:', train_U.shape
 
-
-
-    # Input normalization
-    #norm1 = NormalizeLayer()
-    #norm1.generate_weights(train_data)
-
-    #net = NNetRecursive(dX, dU, T, [FFIPLayer(dX+dU,dX)], weight_decay=0.0000)
     try:
         with open(fname, 'r') as pklfile:
             layers = cPickle.load(pklfile)
@@ -290,21 +187,13 @@ def train_dyn_rec():
         # Input normalization
         norm1 = NormalizeLayer()
         norm1.generate_weights(train_data)
-        #layers = [norm1, FFIPLayer(dX+dU, 50), ReLULayer, FFIPLayer(50, 50), ReLULayer, FFIPLayer(50, 16+6), AccelLayerFT()] 
 
-        #layers = [norm1, FFIPLayer(dX+dU, 50), ReLULayer, FFIPLayer(50, 16), AccelLayer()] 
+        # Least Squares
         #layers = [FFIPLayer(dX+dU,dX)]
 
         # Net 3
         #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
-        layers = [norm1, FFIPLayer(dX+dU, 12), SoftPlusLayer, FFIPLayer(12, 16), AccelLayer()] 
-
-        #layers = [AccelV2Layer([FFIPLayer(dX, 7), SigmLayer],
-        #                       [FFIPLayer(dX, 9), SigmLayer])]
-
-        #layers = [ControlAffine([FFIPLayer(dX, 20), SoftPlusLayer, FFIPLayer(20, 16)], 
-        #    [FFIPLayer(dX, 16*dU)],
-        #    dX, dU, 16), AccelLayer()] 
+        layers = [norm1, FFIPLayer(dX+dU, 20), SoftPlusLayer, FFIPLayer(20, 13), AccelLayerMJC()] 
 
 
         # Net 4
@@ -312,7 +201,7 @@ def train_dyn_rec():
         #    GatedLayer([FFIPLayer(dX+dU, 80), ReLULayer, DropoutLayer(80, p=0.6), FFIPLayer(80,80), SigmLayer] ,dX+dU, 80),
         #    FFIPLayer(80, dX)]
 
-    #"""
+    """
     xux = np.c_[train_data, train_lbl]
     mu = np.mean(xux, axis=0)
     diff = xux-mu
@@ -323,7 +212,7 @@ def train_dyn_rec():
     fv = mu[ip] - Fm.dot(mu[it]);
     #layers[0].w.set_value(Fm.T)
     #layers[0].b.set_value(fv)
-    #"""
+    """
 
     net = NNetRecursive(dX, dU, T, layers, weight_decay=1e-5)
 
@@ -337,7 +226,7 @@ def train_dyn_rec():
         import pdb; pdb.set_trace()
 
     bsize = 50
-    lr = 8.0e-2/bsize
+    lr = 1.0e-2/bsize
     lr_schedule = {
             400000: 0.2,
             800000: 0.2,
@@ -373,24 +262,6 @@ def train_dyn_rec():
             total_err = net.obj(test_X, test_U, test_tgt)
             print 'Total test error:', total_err
 
-
-def get_net(name, rec=True, dX=32, dU=7):
-    if rec:
-        net = load_rec_net(name, dX=dX, dU=dU)
-    else:
-        net = load_net(name)
-    return net
-
-def test_norm():
-    data = scipy.io.loadmat('dyndata.mat')
-    data_in = data['train_data'].T.astype(np.float32)
-    print data_in.shape
-    norm = NormalizeLayer()
-    norm.generate_weights(data_in)
-    norm_data = norm.forward(data_in)
-    norm.reverse = True
-    norm_data_rev = norm.forward(norm_data)
-    import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":

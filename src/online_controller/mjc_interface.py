@@ -30,21 +30,23 @@ def get_controller(controllerfile, condition=0, maxT=100):
     dU = mat['Du']
 
     # Read in mu for a CostStateOnline
-    tgt = mat['cost_tgt_mu']
+    #tgt = mat['cost_tgt_mu']
+    tgt = np.zeros(26)
+    tgt[14:20] = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
+
     wp = np.zeros(26)
     wp.fill(0.0)
-
 
     #Joint state cost
     #wp[0:7] = 1.0
     wp[14:20] = 1.0
-    cost = CostStateTracking(wp, tgt, maxT = maxT)
+    #cost = CostStateTracking(wp, tgt, maxT = maxT)
 
     # End effector cost
     ee_idx = slice(14,20)
     jnt_idx = slice(0,7)
-    eetgt = tgt[-1, ee_idx]
-    #cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT)
+    eetgt = tgt[ee_idx] #[-1, ee_idx]
+    cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT, use_jacobian=False)
 
     # Read in offline dynamics
     dyn_init_mu = mat['dyn_init_mu']
@@ -148,14 +150,16 @@ def run_offline(controllerfile, verbose):
 
     controllers = []
     for condition in range(conditions):
-        gmm = algorithm.prev[0].traj_info.dynamics.prior.gmm
+        gmm = algorithm.prev[condition].traj_info.dynamics.prior.gmm
         tgtmu = sample_data.get_samples(idx=[-1])[0].get_X()
-        K = algorithm.cur[0].traj_distr.K
-        k = algorithm.cur[0].traj_distr.k
+        #tgtmu = algorithm.cur[condition].
+        K = algorithm.cur[condition].traj_distr.K
+        k = algorithm.cur[condition].traj_distr.k
         controller_dict = {
                 'dyn_init_mu': dyn_init_mu,
                 'dyn_init_sig': dyn_init_sig,
                 'cost_tgt_mu': tgtmu,
+                'eetgt': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
                 'Dx': dX,
                 'Du': dU,
                 'gmm': gmm,

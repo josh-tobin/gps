@@ -285,7 +285,8 @@ def train_gd_momentum(obj, params, args, updates=None, scl=1.0, weight_decay=0.0
     train = theano.function(
         inputs=args+[eta, momentum],
         outputs=[obj],
-        updates=updates
+        updates=updates,
+        on_unused_input='warn'
     )
     return train
 
@@ -366,7 +367,7 @@ class RecurrentDynamicsNetwork(Network):
         self.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
         obj, updates = self.symbolic_forward()
         self.train_gd = self.get_train_function(obj, updates)
-        self.total_obj = self.get_loss_function(obj, updates)
+        self.total_obj = self.get_loss_function(obj)
 
         self.rnn_out = self.get_output(output_blob, inputs=['data', 'clip'], updates=updates)
         jac = self.get_jac(output_blob, 'data', inputs=['data', 'clip'])
@@ -390,6 +391,7 @@ def unpickle_net(fname):
     LOGGER.debug('Loading network from: %s', fname)
     with open(fname, 'r') as pklfile:
         net = cPickle.load(pklfile)
+    LOGGER.debug('Successfully loaded!')
     return net
 
 def rnntest():
