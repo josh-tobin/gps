@@ -10,7 +10,7 @@ class CostStateTracking(object):
         self.ramp_option = RAMP_CONSTANT
         self.final_tgt = True
         self.final_penalty = 1.0  # weight = sum of remaining weight * final penalty
-        self.t_weight = 10.0
+        self.t_weight = 5.0
         self.l1 = 0.01
         self.l2 = 10.0
         self.alpha = 1e-5

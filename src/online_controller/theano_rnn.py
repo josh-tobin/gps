@@ -215,7 +215,10 @@ class AccelLayer(FeedforwardLayer):
     def forward(self, input_data):
         acc = input_data[self.accel_blob]
         jnts_data = input_data[self.data_blob]
-        return jnts_data.dot(self.forward_mat) + acc.dot(self.acc_mat)
+        return jnts_data.dot(self.forward_mat) + acc.dot(self.jnt_mat)
+
+    def params(self):
+        return []
 
 class SquaredLoss(object):
     def __init__(self, predict_blob, lbl_blob, wt=None):

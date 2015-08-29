@@ -335,9 +335,9 @@ class OnlineController(Policy):
                 k = 1.05
                 # Simple update rule
                 if diff > 0:
-                    self.gamma *= 0.9
+                    self.gamma *= 1/k
                 else:
-                    self.gamma *= 1.2
+                    self.gamma *= k
 
 
                 self.gamma = min(0.1, self.gamma)

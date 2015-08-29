@@ -224,7 +224,7 @@ def main():
     if args.train:
         run_offline(args.controllerfile, verbose=not args.noverbose)
     else:
-        run_online(args.timesteps, args.controllerfile, verbose=not args.noverbose, savedata=args.savedata)
+        run_online(args.timesteps, args.controllerfile, condition=args.condition, verbose=not args.noverbose, savedata=args.savedata)
 
 def remap_lbl():
     mat = scipy.io.loadmat('data/dyndata_mjc_test.mat')
