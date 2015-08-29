@@ -44,6 +44,13 @@ class BaseLayer(object):
     def params(self):
         raise NotImplementedError()
 
+    def set_state_value(self, state): #Recurrent state
+        # Default: Do nothing
+        pass
+
+    def get_state_value(self): #Recurrent state
+        return None
+
     def __str__(self):
         return self.__class__.__name__+str(self.layer_id)
 
@@ -60,12 +67,22 @@ class RecurrentLayer(BaseLayer):
     def init_recurrent_state(self):
         raise NotImplementedError()
 
+    def set_state_value(self, state):
+        raise NotImplementedError()
+
+    def get_state_value(self):
+        raise NotImplementedError()
+
+    def get_state_var(self):
+        raise NotImplementedError()
+
     def forward_batch(self, input_batch):
         input_data = input_batch.get_data(self.input_blob)
         clip_mask = input_batch.get_data(self.clip_blob)
 
-        init_state_data = self.init_recurrent_state().astype(np.float32)
-        hidden_state = theano.shared(init_state_data, name='rnn_state_'+str(self.layer_id))
+        #init_state_data = self.init_recurrent_state().astype(np.float32)
+        #hidden_state = theano.shared(init_state_data, name='rnn_state_'+str(self.layer_id))
+        hidden_state = self.get_state_var()
 
         def scan_fn(input_layer, clip, prev_state):
             prev_state = clip*prev_state
@@ -79,7 +96,7 @@ class RecurrentLayer(BaseLayer):
         #theano.printing.debugprint(layer_out)
         input_batch.set_data(self.output_blob, layer_out)
         #input_batch.set_data('dbg_hidden_state', hidden_states)
-        return []
+        return [(hidden_state,  hidden_states[-1])]
 
 class FeedforwardLayer(BaseLayer):
     def __init__(self, input_blobs, output_blob):
@@ -146,6 +163,7 @@ class RNNIPLayer(RecurrentLayer):
         self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_ip_wff_'+str(self.layer_id))
         self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_ip_wr_'+str(self.layer_id))
         self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_ip_b_'+str(self.layer_id))
+        self.state = theano.shared(np.zeros(dout).astype(np.float32), name='rnn_ip_state_'+str(self.layer_id))
 
     def forward(self, prev_layer, prev_state):
         #output = prev_layer.dot(self.wff) + prev_state.dot(self.wr) + self.b
@@ -155,6 +173,15 @@ class RNNIPLayer(RecurrentLayer):
 
     def init_recurrent_state(self):
         return np.zeros(self.dout)
+
+    def set_state_value(self, state):
+        self.state.set_value(state)
+
+    def get_state_value(self):
+        return self.state.get_value()
+
+    def get_state_var(self):
+        return self.state
 
     def params(self):
         #return [self.wff, self.wr, self.b]
@@ -248,6 +275,7 @@ def train_gd_momentum(obj, params, args, updates=None, scl=1.0, weight_decay=0.0
     momentum = T.scalar('momentum')
     momentums = [theano.shared(np.copy(param.get_value())) for param in params]
     #if updates is None:
+    #TODO: Incorporate updates. For some reason the state magically updates
     updates = []
     for i in range(len(gradients)):
         update_gradient = (gradients[i])+momentum*momentums[i]+weight_decay*params[i]
@@ -272,6 +300,7 @@ class Network(object):
 
     def symbolic_forward(self):
         batch = Batch()
+        self.batch = batch
         for input_var in self.inputs:
             batch.set_data(input_var.name, input_var)
 
@@ -279,22 +308,44 @@ class Network(object):
         for layer in self.layers:
             updates.extend(list(layer.forward_batch(batch)))
         obj = self.loss.forward_batch(batch)
-        return obj, updates, batch
+        return obj, updates
 
     def set_net_inputs(self, inputs):
         self.inputs = inputs
 
-    def get_train_function(self, objective, updates):
+    def get_train_function(self, objective, updates=None):
         return train_gd_momentum(objective, self.params, self.inputs, updates=updates)
 
-    def get_loss_function(self, objective, updates):
+    def get_loss_function(self, objective, updates=None):
         return theano.function(inputs=self.inputs, outputs=[objective], updates=updates, on_unused_input='warn')
 
-    def taylor_expansion(self, x):
-        raise NotImplementedError()
+    def get_output(self, var_name, inputs=None, updates=None):
+        if inputs is None:
+            fn_inputs = self.inputs
+        else:
+            fn_inputs = [self.batch.get_data(input_name) for input_name in inputs]
+        return theano.function(inputs=fn_inputs, outputs=[self.batch.get_data(var_name)], updates=updates, on_unused_input='warn')
 
-    def forward_single(self, input, hidden_state=None):
-        raise NotImplementedError()
+    def get_jac(self, output_name, input_name, inputs=None, updates=None):
+        """ Return derivative of one variable (output_name) w.r.t. another (input_name) """
+        jacobian = theano.gradient.jacobian(self.batch.get_data(output_name)[0], self.batch.get_data(input_name))
+        if inputs is None:
+            jac_inputs = self.inputs
+        else:
+            jac_inputs = [self.batch.get_data(input_name) for input_name in inputs]
+        jac_fn = theano.function(inputs=jac_inputs, outputs=jacobian, on_unused_input='warn')
+        return jac_fn
+
+    def get_recurrent_state(self):
+        state = [None]*len(self.layers)
+        for i in range(len(self.layers)):
+            state[i] = self.layers[i].get_state_value()
+        return state
+
+    def set_recurrent_state(self, state):
+        assert(len(state) == len(self.layers))
+        for i in range(len(self.layers)):
+            self.layers[i].set_state_value(state[i])
 
     def __getstate__(self):  # For pickling
         return (self.layers, self.loss)
@@ -306,6 +357,34 @@ class Network(object):
         LOGGER.debug('Dumping network to: %s', fname)
         with open(fname, 'w') as pklfile:
             cPickle.dump(self, pklfile)
+
+class RecurrentDynamicsNetwork(Network):
+    def __init__(self, layers, loss):
+        super(RecurrentDynamicsNetwork, self).__init__(layers, loss)
+
+    def init_functions(self, output_blob='rnn_out'):
+        self.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
+        obj, updates = self.symbolic_forward()
+        self.train_gd = self.get_train_function(obj, updates)
+        self.total_obj = self.get_loss_function(obj, updates)
+
+        self.rnn_out = self.get_output(output_blob, inputs=['data', 'clip'], updates=updates)
+        jac = self.get_jac(output_blob, 'data', inputs=['data', 'clip'])
+        def taylor_expand(data_pnt):
+            clip = np.ones(1).astype(np.float32)
+            data_pnt_exp = np.expand_dims(data_pnt, axis=0).astype(np.float32)
+            F = jac(data_pnt_exp, clip)[:,0,:]
+            net_fwd = self.rnn_out(data_pnt_exp, clip)[0][0]
+            f = -F.dot(data_pnt) + net_fwd
+            return F, f
+        self.getF = taylor_expand
+
+    def eval_forward(self, xu):
+        clip = np.ones(1).astype(np.float32)
+        data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
+        net_fwd = self.rnn_out(data_pnt_exp, clip)[0][0]
+        return net_fwd
+        
 
 def unpickle_net(fname):
     LOGGER.debug('Loading network from: %s', fname)
@@ -335,24 +414,22 @@ def rnntest():
 
     ip1 = RNNIPLayer('data', 'ip1', 'clip', 10, 10) 
     loss = SquaredLoss('ip1', 'lbl')
-    net = Network([ip1], loss)
+    net = RecurrentDynamicsNetwork([ip1], loss)
+    net.init_functions(output_blob='ip1')
     #net = unpickle_net('test.pkl')
 
-    net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
-    obj, updates, batch = net.symbolic_forward()
-    train_gd = net.get_train_function(obj, updates)
-    total_obj = net.get_loss_function(obj, updates)
+    #net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
+    #obj, updates = net.symbolic_forward()
+    #train_gd = net.get_train_function(obj, updates)
+    #total_obj = net.get_loss_function(obj, updates)
 
-    rnn_out = net.get_loss_function(batch.get_data('ip1'), updates)
-
-
-    lr = 1e-3/bsize
+    lr = 4e-3/bsize
     lr_schedule = {
         400000: 0.2,
         800000: 0.2,
     }
     epochs = 0
-    for i in range(100000):
+    for i in range(20000):
         bstart = i*bsize % N
         bend = (i+1)*bsize % N
         if bend < bstart:
@@ -365,19 +442,27 @@ def rnntest():
         _data = data[bstart:bend]
         _label = label[bstart:bend]
         _clip = clip[bstart:bend]
-        objval = train_gd(_data, _label, _clip, lr, 0.90)
+        objval = net.train_gd(_data, _label, _clip, lr, 0.90)
 
         if i in lr_schedule:
             lr *= lr_schedule[i]
         if i % 500 == 0:
             print 'LR=', lr, ' // Train:',i, objval
-            ip1= rnn_out(_data, _label, _clip)
+            #ip1= rnn_out(_data, _clip)
         if i % 10000 == 0:
             pass
             #if i>0:
             #    net.pickle('test.pkl')
             #total_err = total_obj(data, label, clip)
             #print 'Total train error:', total_err
+
+    test_data = np.zeros((5, 10)).astype(np.float32)
+    test_lbl = np.zeros((5, 10)).astype(np.float32)
+    test_state = np.random.randn(10).astype(np.float32)
+
+    net.layers[0].set_state_value(np.ones(10).astype(np.float32))
+    e1 = net.eval_forward(np.zeros(10))
+    e2 = net.eval_forward(np.zeros(10))
     import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
