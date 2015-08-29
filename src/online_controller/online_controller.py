@@ -26,9 +26,9 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig))))
+        dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
         # Rescale initial covariance
-        self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet)
+        #self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet))
 
         #self.dyn_init_mu.fill(0.0)
         #self.dyn_init_sig.fill(0.0)
@@ -40,6 +40,7 @@ class OnlineController(Policy):
         self.prevU = None
         self.prev_policy = None
         self.noise = None
+        self.adaptive_gamma_logprob = None
         self.offline_K = offline_K
         self.offline_k = offline_k
 
@@ -133,6 +134,7 @@ class OnlineController(Policy):
 
             self.mu = self.dyn_init_mu
             self.sigma = self.dyn_init_sig
+            self.xxt = self.sigma + np.outer(self.mu, self.mu)
             self.prev_policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
             if self.copy_offline_traj:
                 for i in range(t,t+self.prev_policy.T):
@@ -246,6 +248,7 @@ class OnlineController(Policy):
             #self.sigma = np.outer(pt,pt)
             self.mu = self.dyn_init_mu
             self.sigma = self.dyn_init_sig
+            self.xxt = self.sigma + np.outer(self.mu, self.mu)
             return U
 
         # Update mean and covariance.
@@ -288,26 +291,45 @@ class OnlineController(Policy):
         #print 'Controller Act:', elapsed
         return u
 
-    def update_emp_dynamics(self, prevx, prevu, cur_x):
+    def get_logprob(self, prevx, prevu, curx):
         """
-        Update linear dynamics via moving average
+        Compute log-probability under empirical dynamics
         """
         pt = np.r_[prevx,prevu,cur_x]
-        gamma = self.gamma
-
         # Adjust gamma based on log probability under current empsig
         empsig = self.sigma 
         empsig += self.sigreg*np.eye(empsig.shape[0])
         diff = pt-self.mu
         logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
         logprob = -0.5*(diff.T.dot(np.linalg.inv(empsig)).dot(diff))
-        #gamma = 1.5* 1.0/logprob 
+        logprob += -0.5*logdet
         print 'Logprob:', logprob, logdet, logprob+(-0.5*logdet)
-        self.gamma = self.gamma
-        print 'New gamma:', self.gamma
-        self.empsig_N = 1/gamma
-        print 'New empsig N:', self.empsig_N
+        return logprob
 
+
+    def update_emp_dynamics(self, prevx, prevu, cur_x):
+        """
+        Update linear dynamics via moving average
+        """
+        if self.adaptive_gamma:
+            new_logprob = self.get_logprob(prevx, prevu, cur_x)
+            if self.adaptive_gamma_logprob is not None:
+                prev_logprob = self.adaptive_gamma_logprob
+
+                diff = new_logprob - prev_logprob
+
+                # Simple rule
+                if diff > 0:
+                    self.gamma *= 0.5
+                else:
+                    self.gamma *= 2
+                #self.empsig_N = 1/gamma
+                print 'New gamma:', self.gamma
+                print 'New empsig N:', self.empsig_N
+            self.adaptive_gamma_logprob = new_logprob
+
+        pt = np.r_[prevx,prevu,cur_x]
+        gamma = self.gamma
 
         self.mu = self.mu*(1-gamma) + pt*(gamma)
 

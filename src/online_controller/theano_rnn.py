@@ -68,7 +68,7 @@ class RecurrentLayer(BaseLayer):
         hidden_state = theano.shared(init_state_data, name='rnn_state_'+str(self.layer_id))
 
         def scan_fn(input_layer, clip, prev_state):
-            #prev_state = clip*prev_state
+            prev_state = clip*prev_state
             next_layer, next_state = self.forward(input_layer, prev_state)
             return next_layer, next_state
 
@@ -79,7 +79,7 @@ class RecurrentLayer(BaseLayer):
         #theano.printing.debugprint(layer_out)
         input_batch.set_data(self.output_blob, layer_out)
         #input_batch.set_data('dbg_hidden_state', hidden_states)
-        return updates
+        return []
 
 class FeedforwardLayer(BaseLayer):
     def __init__(self, input_blobs, output_blob):
@@ -322,10 +322,10 @@ def rnntest():
     clip = np.ones((N,)).astype(np.float32)
     tmp = None
     for i in range(N):
-        if i%bsize == 0:
-            clip[i] = 0
+        if i%5 == 0:
             tmp = np.random.randn(10)
             data[i] = tmp
+            clip[i] = 0
         label[i] = tmp
     data = data.astype(np.float32)
     label = label.astype(np.float32)

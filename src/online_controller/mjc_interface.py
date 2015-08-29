@@ -37,13 +37,13 @@ def get_controller(controllerfile, maxT=100):
     #Joint state cost
     #wp[0:7] = 1.0
     wp[14:20] = 1.0
-    #cost = CostStateTracking(wp, tgt, maxT = maxT)
+    cost = CostStateTracking(wp, tgt, maxT = maxT)
 
     # End effector cost
     ee_idx = slice(14,20)
     jnt_idx = slice(0,7)
     eetgt = tgt[-1, ee_idx]
-    cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT)
+    #cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT)
 
     # Read in offline dynamics
     dyn_init_mu = mat['dyn_init_mu']
