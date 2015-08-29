@@ -17,20 +17,21 @@ logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
-def get_controller(controllerfile, maxT=100):
+def get_controller(controllerfile, condition=0, maxT=100):
     """
     Load an online controller from controllerfile 
     maxT specifies the 
     """
     with open(controllerfile) as f:
         mat = cPickle.load(f)
+        mat = mat[condition]
 
     dX = mat['Dx']
     dU = mat['Du']
 
     # Read in mu for a CostStateOnline
     tgt = mat['cost_tgt_mu']
-    wp = mat['cost_wp']
+    wp = np.zeros(26)
     wp.fill(0.0)
 
 
@@ -97,15 +98,8 @@ def run_offline(controllerfile, verbose):
         algorithm.iteration([idx[-20:] for idx in idxs])
         print 'Finished itr ', itr
 
-    gmm = algorithm.prev[0].traj_info.dynamics.prior.gmm
     dX = sample_data.dX
     dU = sample_data.dU
-    tgtmu = sample_data.get_samples(idx=[-1])[0].get_X()
-    wp = np.zeros(dX)
-    wp[14:20] = 1.0  #EE Points
-
-    K = algorithm.cur[0].traj_distr.K
-    k = algorithm.cur[0].traj_distr.k
 
     all_X = sample_data.get_X()  # N x T x dX
     all_U = sample_data.get_U()  # N x T x dX
@@ -124,7 +118,6 @@ def run_offline(controllerfile, verbose):
     clip = np.ones(nn_train_data.shape[0])
     for i in range(0,nn_train_data.shape[0], T-1):
         clip[i] = 0
-    import pdb; pdb.set_trace()
 
     dyn_init_mu = np.mean(xux_data, axis=0)
     dyn_init_sig = np.cov(xux_data.T)
@@ -152,18 +145,27 @@ def run_offline(controllerfile, verbose):
 
     scipy.io.savemat('data/dyndata_mjc.mat', {'data': nn_train_data, 'label': nn_train_lbl})
     #scipy.io.savemat('data/dyndata_mjc_test.mat', {'data': nn_test_data, 'label': nn_test_lbl})
-    with open(controllerfile, 'w') as f:
-        mat = cPickle.dump({
+
+    controllers = []
+    for condition in range(conditions):
+        gmm = algorithm.prev[0].traj_info.dynamics.prior.gmm
+        tgtmu = sample_data.get_samples(idx=[-1])[0].get_X()
+        K = algorithm.cur[0].traj_distr.K
+        k = algorithm.cur[0].traj_distr.k
+        controller_dict = {
                 'dyn_init_mu': dyn_init_mu,
                 'dyn_init_sig': dyn_init_sig,
                 'cost_tgt_mu': tgtmu,
-                'cost_wp': wp,
                 'Dx': dX,
                 'Du': dU,
                 'gmm': gmm,
                 'offline_K': K,
                 'offline_k': k
-            }, f)
+                }
+        controllers.append(controller_dict)
+
+    with open(controllerfile, 'w') as f:
+        mat = cPickle.dump(controllers, f)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
@@ -171,6 +173,7 @@ def parse_args():
     parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
     parser.add_argument('-v', '--noverbose', action='store_true', default=False, help='Disable plotting')
     parser.add_argument('-s', '--savedata', action='store_true', default=False, help='Save dynamics data after running')
+    parser.add_argument('--condition', type=int, default=0, help='Condition')
 
     mkdirp(os.path.join(THIS_FILE_DIR, 'controller'))
     default_file =  os.path.join(THIS_FILE_DIR, 'controller', 'mjc_online.pkl')
@@ -178,14 +181,14 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def run_online(T, controllerfile, verbose=True, savedata=False):
+def run_online(T, controllerfile, condition=0, verbose=True, savedata=False):
     """
     Run online controller and save sample data to train dynamics
     """
     sample_data, agent = setup_agent(T=T)
-    controller = get_controller(controllerfile, maxT=T)
+    controller = get_controller(controllerfile, condition=condition, maxT=T)
     #sample = agent.sample(controller, controller.maxT, 0, screenshot_prefix='ss/mjc_relu_noupdate/img')
-    sample = agent.sample(controller, controller.maxT, 0, verbose=verbose)
+    sample = agent.sample(controller, controller.maxT, condition, verbose=verbose)
     #l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
     if not savedata:
         return

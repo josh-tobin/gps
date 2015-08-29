@@ -27,6 +27,7 @@ class OnlineController(Policy):
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
         dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
+
         # Rescale initial covariance
         #self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet))
 
@@ -57,10 +58,10 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.1 # Noise to add
+        self.u_noise = 0.01 # Noise to add
 
         #Dynamics settings
-        self.adaptive_gamma = False
+        self.adaptive_gamma = True
         self.gamma = 0.1  # Moving average parameter
         self.empsig_N = 2 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
@@ -246,8 +247,10 @@ class OnlineController(Policy):
             #pt = np.r_[self.prevX,self.prevU,x]
             #self.mu = pt
             #self.sigma = np.outer(pt,pt)
-            self.mu = self.dyn_init_mu
-            self.sigma = self.dyn_init_sig
+
+            mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, np.r_[x,U,x ].reshape(1, dX+dU+dX))
+            self.mu = mu0#self.dyn_init_mu
+            self.sigma = Phi#self.dyn_init_sig
             self.xxt = self.sigma + np.outer(self.mu, self.mu)
             return U
 
@@ -291,7 +294,7 @@ class OnlineController(Policy):
         #print 'Controller Act:', elapsed
         return u
 
-    def get_logprob(self, prevx, prevu, curx):
+    def get_logprob(self, prevx, prevu, cur_x):
         """
         Compute log-probability under empirical dynamics
         """
@@ -300,10 +303,21 @@ class OnlineController(Policy):
         empsig = self.sigma 
         empsig += self.sigreg*np.eye(empsig.shape[0])
         diff = pt-self.mu
-        logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(empsig)))) #np.log(np.linalg.det(empsig))
-        logprob = -0.5*(diff.T.dot(np.linalg.inv(empsig)).dot(diff))
-        logprob += -0.5*logdet
-        print 'Logprob:', logprob, logdet, logprob+(-0.5*logdet)
+        try:
+            U = sp.linalg.cholesky(empsig)
+        except:
+            import pdb; pdb.set_trace()
+
+        logdet = 2*sum(np.log(np.diag(U))) #np.log(np.linalg.det(empsig))
+        empsig_inv = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, np.eye(empsig.shape[0]), lower=True, check_finite=False), check_finite=False)
+        exp_term = (diff.T.dot(empsig_inv).dot(diff))
+        pi_term = (-empsig.shape[0]/2.0)*np.log(2*np.pi)
+        logprob = pi_term - 0.5*logdet - 0.5*exp_term
+        #Test
+        #from scipy.stats import multivariate_normal
+        #yy = multivariate_normal.pdf(pt, mean=self.mu, cov=empsig);
+        #assert yy == np.exp(logprob)
+        print 'Logprob:', logprob
         return logprob
 
 
@@ -318,12 +332,17 @@ class OnlineController(Policy):
 
                 diff = new_logprob - prev_logprob
 
-                # Simple rule
+                k = 1.05
+                # Simple update rule
                 if diff > 0:
-                    self.gamma *= 0.5
+                    self.gamma *= 0.9
                 else:
-                    self.gamma *= 2
-                #self.empsig_N = 1/gamma
+                    self.gamma *= 1.2
+
+
+                self.gamma = min(0.1, self.gamma)
+                self.gamma = max(0.01, self.gamma)
+                self.empsig_N = (1/self.gamma)/10
                 print 'New gamma:', self.gamma
                 print 'New empsig N:', self.empsig_N
             self.adaptive_gamma_logprob = new_logprob
