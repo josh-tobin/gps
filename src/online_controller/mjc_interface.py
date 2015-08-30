@@ -40,13 +40,14 @@ def get_controller(controllerfile, condition=0, maxT=100):
     #Joint state cost
     #wp[0:7] = 1.0
     wp[14:20] = 1.0
+    #tgt = np.tile(tgt, [maxT, 1])
     #cost = CostStateTracking(wp, tgt, maxT = maxT)
 
     # End effector cost
     ee_idx = slice(14,20)
     jnt_idx = slice(0,7)
     eetgt = tgt[ee_idx] #[-1, ee_idx]
-    cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT, use_jacobian=False)
+    cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT, use_jacobian=True)
 
     # Read in offline dynamics
     dyn_init_mu = mat['dyn_init_mu']
@@ -201,7 +202,9 @@ def run_online(T, controllerfile, condition=0, verbose=True, savedata=False):
     U = sample.get_U()
     xu = np.concatenate([X[:-1,:], U[:-1,:]], axis=1)
     xnext = X[1:,:]
-    import matplotlib.pyplot as plt
+    clip = np.ones((T-1, 1))
+    clip[0] = 0.0
+
     import pdb; pdb.set_trace()
 
     mkdirp(os.path.join(THIS_FILE_DIR, 'data'))
@@ -210,11 +213,12 @@ def run_online(T, controllerfile, condition=0, verbose=True, savedata=False):
         dynmat = scipy.io.loadmat(dynmat_file)
         dynmat['data'] = np.concatenate([dynmat['data'], xu])
         dynmat['label'] = np.concatenate([dynmat['label'], xnext])
+        dynmat['clip'] = np.concatenate([dynmat['clip'], clip])
         print 'New dynamics data size: ', dynmat['data'].shape
-        scipy.io.savemat(dynmat_file, {'data': dynmat['data'], 'label': dynmat['label']})
+        scipy.io.savemat(dynmat_file, {'data': dynmat['data'], 'label': dynmat['label'], 'clip': dynmat['clip']})
     except IOError:
         print 'Creating new dynamics data at:', dynmat_file
-        scipy.io.savemat(dynmat_file, {'data': xu, 'label': xnext})
+        scipy.io.savemat(dynmat_file, {'data': xu, 'label': xnext, 'clip':clip})
 
 def mkdirp(dirname):
     """ mkdir -p """

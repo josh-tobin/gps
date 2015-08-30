@@ -319,6 +319,20 @@ class NNetRecursive(object):
         tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
         return self.train_sgd(x, u, tgt, lr, momentum)[0]
 
+    def loss_single(self, xu, tgt):
+        """Run SGD on a single (vector) data point """
+        xu = np.expand_dims(xu, axis=0).astype(np.float32)
+        x = xu[:,0:self.dX]
+        u = xu[:,self.dX:self.dX+self.dU]
+        tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
+        return self.obj(x, u, tgt)
+
+    def get_recurrent_state(self):
+        return None
+
+    def set_recurrent_state(self, state):
+        pass
+
 def train_gd(obj, params, args):
     obj = obj
     eta = T.scalar('lr')

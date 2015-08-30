@@ -191,12 +191,11 @@ def train_dyn_rec():
         # Least Squares
         #layers = [FFIPLayer(dX+dU,dX)]
 
-        # Net 3
+        # Acceleration Net
         #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
         layers = [norm1, FFIPLayer(dX+dU, 20), SoftPlusLayer, FFIPLayer(20, 13), AccelLayerMJC()] 
 
-
-        # Net 4
+        # Gated net
         #layers = [
         #    GatedLayer([FFIPLayer(dX+dU, 80), ReLULayer, DropoutLayer(80, p=0.6), FFIPLayer(80,80), SigmLayer] ,dX+dU, 80),
         #    FFIPLayer(80, dX)]

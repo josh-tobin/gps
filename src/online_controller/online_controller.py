@@ -4,6 +4,7 @@ import scipy as sp
 import scipy.linalg
 import logging
 import time
+import theano_rnn
 from proto.gps_pb2 import *
 from agent.agent_utils import generate_noise
 
@@ -31,8 +32,8 @@ class OnlineController(Policy):
         # Rescale initial covariance
         #self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet))
 
-        #self.dyn_init_mu.fill(0.0)
-        #self.dyn_init_sig.fill(0.0)
+        self.dyn_init_mu.fill(0.0)
+        self.dyn_init_sig.fill(0.0)
         self.dX = dX
         self.dU = dU
         self.cost = cost
@@ -58,22 +59,22 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.01 # Noise to add
+        self.u_noise = 0.05 # Noise to add
 
         #Dynamics settings
-        self.adaptive_gamma = True
-        self.gamma = 0.1  # Moving average parameter
-        self.empsig_N = 2 # Weight of least squares vs GMM/NN prior
+        self.adaptive_gamma = False
+        self.gamma = 0.05  # Moving average parameter
+        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
-        self.time_varying_dynamics = False
+        self.time_varying_dynamics = True
         self.use_prior_dyn = False
         self.gmm_prior = True
         self.fit_prior_residuals = False
 
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 2  # Number of SGD iterations to take per timestep
-        self.nn_lr = 0.0005  # SGD learning rate
+        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_update_iters = 1  # Number of SGD iterations to take per timestep
+        self.nn_lr = 0.0001  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
         self.inputs = []
@@ -84,8 +85,15 @@ class OnlineController(Policy):
             #netname = 'net/rec_plane_acc_soft.pkl'
             #netname = 'net/rec_armwave_acc.pkl'
             netname = 'net/mjc_accel.pkl'
+            #netname = 'net/mjc_rnn.pkl'
             rec = True
             self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=self.dX, dU=self.dU)
+            """
+            self.dyn_net = theano_rnn.unpickle_net(netname)
+            self.dyn_net.init_functions(output_blob='acc')
+            self.dyn_net.clear_recurrent_state()
+            """
+            self.dyn_net_state = self.dyn_net.get_recurrent_state()
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
             #    self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
 
@@ -255,13 +263,9 @@ class OnlineController(Policy):
             self.xxt = self.sigma + np.outer(self.mu, self.mu)
             return U
 
-        # Update mean and covariance.
-        # Since this works well *without* subtracting mean, could the same trick
-        # work well with mfcgps GMM prior?
+        self.update_emp_dynamics(self.prevX, self.prevU, x)
         if self.nn_dynamics:
             self.update_nn_dynamics(self.prevX, self.prevU, x)
-        else:
-            self.update_emp_dynamics(self.prevX, self.prevU, x)
 
         reg_mu = self.min_mu
         reg_del = self.del0
@@ -281,6 +285,7 @@ class OnlineController(Policy):
         #TODO: Re-enable noise once this works.
         if self.copy_offline_traj:
             u = self.offline_K[t].dot(x)+self.offline_k[t]
+            u += self.u_noise * np.random.randn(7)
         else:
             u = self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]
             u += self.prev_policy.chol_pol_covar[0].dot(self.u_noise*np.random.randn(7))
@@ -291,6 +296,11 @@ class OnlineController(Policy):
 
         self.prevX = x
         self.prevU = u
+
+        if self.nn_dynamics:
+            xu = np.r_[x, u].astype(np.float32)
+            #self.dyn_net.fwd_single(xu) #Evaluate to update RNN state
+            self.dyn_net_state = self.dyn_net.get_recurrent_state()
         #elapsed = time.time()-start
         #print 'Controller Act:', elapsed
         return u
@@ -336,9 +346,9 @@ class OnlineController(Policy):
                 k = 1.05
                 # Simple update rule
                 if diff > 0:
-                    self.gamma *= 1/k
+                    self.gamma *= 0.95
                 else:
-                    self.gamma *= k
+                    self.gamma *= 1.05
 
 
                 self.gamma = min(0.1, self.gamma)
@@ -376,6 +386,7 @@ class OnlineController(Policy):
         """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
+        print 'NN Loss:', self.dyn_net.loss_single(pt, cur_x)
         for i in range(self.nn_update_iters):
             # Lsq use 0.003
             print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=self.nn_lr, momentum=0.95), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
@@ -727,6 +738,9 @@ class OnlineController(Policy):
             if t < H-1:
                 # Estimate new dynamics here based on mu
                 if self.time_varying_dynamics:
+                    if self.nn_dynamics:
+                        pass
+                        #self.dyn_net.fwd_single(xu) #Evaluate to update RNN state
                     F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action);
                 #trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
@@ -770,6 +784,9 @@ class OnlineController(Policy):
 
         K = lgpolicy.K
         k = lgpolicy.k
+
+        if self.nn_dynamics:
+            original_state = self.dyn_net.get_recurrent_state()
         # Perform forward pass.
         for t in range(H):
             PSig = cholPSig[t].T.dot(cholPSig[t])
@@ -792,9 +809,17 @@ class OnlineController(Policy):
             if t < H-1:
                 # Estimate new dynamics here based on mu
                 if self.time_varying_dynamics:
+                    if self.nn_dynamics:
+                        pass
+                        #xu = mu[t].astype(np.float32)
+                        #self.dyn_net.fwd_single(xu) #Evaluate to update RNN state
                     F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
+
+        if self.nn_dynamics:
+            # Reset current state
+            self.dyn_net.set_recurrent_state(self.dyn_net_state)
 
         self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f, 'empsig':(self.sigma - np.outer(self.mu, self.mu))}
 

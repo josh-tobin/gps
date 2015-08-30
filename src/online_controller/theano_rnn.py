@@ -128,6 +128,10 @@ class ActivationLayer(FeedforwardLayer):
     def params(self):
         return []
 
+ACTIVATION_DICT = {
+    'softplus': T.nnet.softplus
+}
+
 class ReLULayer(ActivationLayer):
     def __init__(self, input_blob, output_blob):
         super(ReLULayer, self).__init__(input_blob, output_blob)
@@ -157,9 +161,10 @@ class TanhLayer(ActivationLayer):
         return T.nnet.tanh(prev_layer)
 
 class RNNIPLayer(RecurrentLayer):
-    def __init__(self, input_blob, output_blob, clip_blob, din, dout):
+    def __init__(self, input_blob, output_blob, clip_blob, din, dout, activation=None):
         super(RNNIPLayer, self).__init__(input_blob, output_blob, clip_blob)    
         self.dout = dout
+        self.activation = activation
         self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_ip_wff_'+str(self.layer_id))
         self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_ip_wr_'+str(self.layer_id))
         self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_ip_b_'+str(self.layer_id))
@@ -169,6 +174,8 @@ class RNNIPLayer(RecurrentLayer):
         #output = prev_layer.dot(self.wff) + prev_state.dot(self.wr) + self.b
         #output = prev_layer.dot(self.wff) + 0*prev_state.dot(self.wr) + self.b
         output = self.wff.T.dot(prev_layer) + self.b + self.wr.T.dot(prev_state)
+        if self.activation:
+            output = ACTIVATION_DICT[self.activation](output)
         return output, output
 
     def init_recurrent_state(self):
@@ -343,6 +350,13 @@ class Network(object):
             state[i] = self.layers[i].get_state_value()
         return state
 
+    def clear_recurrent_state(self):
+        state_list = self.get_recurrent_state()
+        for i in range(len(state_list)):
+            if state_list[i] is not None:
+                state_list[i].fill(0.0)
+        self.set_recurrent_state(state_list)
+
     def set_recurrent_state(self, state):
         assert(len(state) == len(self.layers))
         for i in range(len(self.layers)):
@@ -355,9 +369,9 @@ class Network(object):
         self.__init__(state[0], state[1])
 
     def pickle(self, fname):
-        LOGGER.debug('Dumping network to: %s', fname)
         with open(fname, 'w') as pklfile:
             cPickle.dump(self, pklfile)
+        LOGGER.debug('Dumped network to: %s', fname)
 
 class RecurrentDynamicsNetwork(Network):
     def __init__(self, layers, loss):
@@ -371,8 +385,8 @@ class RecurrentDynamicsNetwork(Network):
 
         self.rnn_out = self.get_output(output_blob, inputs=['data', 'clip'], updates=updates)
         jac = self.get_jac(output_blob, 'data', inputs=['data', 'clip'])
-        def taylor_expand(data_pnt):
-            clip = np.ones(1).astype(np.float32)
+        def taylor_expand(data_pnt, clip=1):
+            clip = clip*np.ones(1).astype(np.float32)
             data_pnt_exp = np.expand_dims(data_pnt, axis=0).astype(np.float32)
             F = jac(data_pnt_exp, clip)[:,0,:]
             net_fwd = self.rnn_out(data_pnt_exp, clip)[0][0]
@@ -380,18 +394,28 @@ class RecurrentDynamicsNetwork(Network):
             return F, f
         self.getF = taylor_expand
 
-    def eval_forward(self, xu):
-        clip = np.ones(1).astype(np.float32)
+    def fwd_single(self, xu, clip=1):
+        clip = clip*np.ones(1).astype(np.float32)
         data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
         net_fwd = self.rnn_out(data_pnt_exp, clip)[0][0]
+        return net_fwd
+
+    def loss_single(self, xu, xnext):
+        clip = np.zeros(1).astype(np.float32)
+        data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
+        label_exp = np.expand_dims(xnext, axis=0).astype(np.float32)
+        obj = self.total_obj(data_pnt_exp, label_exp, clip)[0]
+        return obj
+
+    def fwd_batch(self, xu, clip):
+        net_fwd = self.rnn_out(xu, clip)
         return net_fwd
         
 
 def unpickle_net(fname):
-    LOGGER.debug('Loading network from: %s', fname)
     with open(fname, 'r') as pklfile:
         net = cPickle.load(pklfile)
-    LOGGER.debug('Successfully loaded!')
+    LOGGER.debug('Loaded network from: %s', fname)
     return net
 
 def rnntest():
