@@ -47,7 +47,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 15 # Horizon
+        self.H = 25 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -55,11 +55,11 @@ class OnlineController(Policy):
         self.del0 = 2 # LQR regularization
 
         # KL Div constraint
-        self.eta = 0.1 # Initial eta for DGD w/ KL-div constrant
+        self.eta = 0.01 # Initial eta for DGD w/ KL-div constrant
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.05 # Noise to add
+        self.u_noise = 0.01 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = False
@@ -72,8 +72,8 @@ class OnlineController(Policy):
         self.fit_prior_residuals = False
 
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 1  # Number of SGD iterations to take per timestep
+        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0001  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
@@ -84,7 +84,7 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             #netname = 'net/rec_plane_acc_soft.pkl'
             #netname = 'net/rec_armwave_acc.pkl'
-            netname = 'net/mjc_accel.pkl'
+            netname = 'net/mjc_accel5.pkl'
             #netname = 'net/mjc_rnn.pkl'
             rec = True
             self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=self.dX, dU=self.dU)

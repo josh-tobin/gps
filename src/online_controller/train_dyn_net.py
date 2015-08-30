@@ -56,8 +56,8 @@ def load_matfile(matfile, remove_ft=False, remove_prevu=False):
 
     clip = None 
     if 'clip' in data:
-        clip = data['clip'][0]
-        clip = np.expand_dims(clip, axis=-1)
+        clip = data['clip']#[0]
+        #clip = np.expand_dims(clip, axis=-1)
         print 'Existing CLIP:', clip.shape
     else:
         print 'Auto-generating clip with T=100'
@@ -155,7 +155,7 @@ def train_dyn_rec():
     T = 1
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
     #data_in, data_out, test_data, test_lbl = get_data(['dyndata_armwave_all'], ['dyndata_plane_nopu'], remove_ft=True, remove_prevu=True)
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5'])
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
     #test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_plane_expr_nopu2.hdf5')
     #test_X, test_U, test_tgt = NNetRecursive.prepare_data(test_data, test_lbl, test_clip, dX, dU, T)
@@ -165,7 +165,7 @@ def train_dyn_rec():
     train_X = train_X[perm]
     train_U = train_U[perm]
     train_tgt = train_tgt[perm]
-    Ntrain = int(0.8*train_X.shape[0])
+    Ntrain = int(0.9*train_X.shape[0])
     test_X = train_X[Ntrain:]
     test_U = train_U[Ntrain:]
     test_tgt = train_tgt[Ntrain:]
@@ -193,7 +193,7 @@ def train_dyn_rec():
 
         # Acceleration Net
         #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
-        layers = [norm1, FFIPLayer(dX+dU, 20), SoftPlusLayer, FFIPLayer(20, 13), AccelLayerMJC()] 
+        layers = [norm1, FFIPLayer(dX+dU, 200), ReLULayer, FFIPLayer(200,100), ReLULayer, FFIPLayer(100, 13), AccelLayerMJC()] 
 
         # Gated net
         #layers = [
@@ -225,14 +225,15 @@ def train_dyn_rec():
         import pdb; pdb.set_trace()
 
     bsize = 50
-    lr = 1.0e-2/bsize
+    lr = 5.0e-3/bsize
     lr_schedule = {
-            400000: 0.2,
-            800000: 0.2,
+            1000000: 0.2,
+            2000000: 0.2,
+            4000000: 0.2,
             }
 
     epochs = 0
-    for i in range(1200000):
+    for i in range(5200000):
         bstart = i*bsize % N
         bend = (i+1)*bsize % N
         if bend < bstart:
@@ -249,10 +250,10 @@ def train_dyn_rec():
 
         if i in lr_schedule:
             lr *= lr_schedule[i]
-        if i % 1000 == 0:
+        if i % 2000 == 0:
             print 'LR=', lr, ' // Train:',i, objval
             sys.stdout.flush()
-        if i % 10000 == 0:
+        if i % 50000 == 0:
             if i>0:
                 with open(fname, 'w') as pklfile:
                     cPickle.dump(net.layers, pklfile)
