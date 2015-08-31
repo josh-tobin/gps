@@ -47,7 +47,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 25 # Horizon
+        self.H = 20 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take

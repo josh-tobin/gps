@@ -25,13 +25,6 @@ else:
     gpu_host = lambda x: x
 print 'Theano Device:', theano.config.device, gpu_host
 
-def gpu_transfer_fix(shared_variable):
-    if hasgpu():
-        if type(shared_variable) == theano.sandbox.cuda.var.CudaNdarraySharedVariable:
-            return theano.shared(shared_variable.get_value(), name=shared_variable.name)
-    return shared_variable
-
-
 def dump_net(fname, net):
     with open(fname, 'w') as f:
         cPickle.dump(net.serialize(), f)  
@@ -48,7 +41,7 @@ def load_rec_net(fname, dX, dU):
     with open(fname, 'r') as pklfile:
         layers = cPickle.load(pklfile)
     for layer in layers:
-        layer.fix_gpu_vars()
+        layer.reinitialize_vars()
     net = NNetRecursive(dX, dU, 1, layers)
     return net
 
@@ -235,6 +228,8 @@ class NNetRecursive(object):
             self.init_funcs()
 
     def init_funcs(self):
+        self.reinitialize_vars()
+        
         self.params = []
         self.nparams = 0
         for layer in self.layers:
@@ -264,6 +259,10 @@ class NNetRecursive(object):
         u_grad = theano.gradient.jacobian(net_out, U)
         data_grad = T.concatenate([x_grad, u_grad], axis=1)
         self.jac = theano.function(inputs=[X, U], outputs=data_grad)
+
+    def reinitialize_vars(self):
+        for layer in self.layers:
+            layer.reinitialize_vars()
 
     def fwd_symbolic_single(self, x, u, training=True):
         xu = T.concatenate([x, u])
@@ -378,7 +377,7 @@ class Layer(object):
         """ Return a list of trainable parameters """
         return []
 
-    def fix_gpu_vars(self):
+    def reinitialize_vars(self):
         pass
     
     def n_params(self):
@@ -464,9 +463,9 @@ class FFIPLayer(Layer):
         self.w = theano.shared(NN_INIT*np.random.randn(n_in, n_out).astype(np.float32), name="ff_ip_w_"+str(self.layer_id))
         self.b = theano.shared(0*np.random.randn(n_out).astype(np.float32), name="b_ip"+str(self.layer_id))
 
-    def fix_gpu_vars(self):
-        self.w = gpu_transfer_fix(self.w)
-        self.b = gpu_transfer_fix(self.b)
+    def reinitialize_vars(self):
+        self.w = theano.shared(self.w.get_value(), name=self.w.name)
+        self.b = theano.shared(self.b.get_value(), name=self.b.name)
 
     def forward(self, prev_layer, training=True):
         return prev_layer.dot(self.w) + self.b
@@ -523,9 +522,10 @@ class AccelLayer(Layer):
         jnt_mat[7:16, self.idxeevel] = t*np.eye(9)
         self.jnt_mat = theano.shared(jnt_mat.astype(np.float32), name="acc_jnt_mat")
 
+    def reinitialize_vars(self):
+        self.construct_forward_matrices()
+
     def forward(self, prev_layer, training=True):
-        if not hasattr(self, 'forward_mat'): # Support for older versions of AccelLayer
-            self.construct_forward_matrices()
         return self.input_data.dot(self.forward_mat) + prev_layer.dot(self.jnt_mat)
 
     def __str__(self):

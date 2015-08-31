@@ -49,7 +49,7 @@ agent = {
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([-0.5,0.2,0.1]), np.array([0,0.0,-0.2]), np.array([-0.4,0.1,0.1]), np.array([0,0.0,0]), np.array([0.1,-0.2,0]), np.array([-0.1,0.0,0.2]),
-    np.array([-0.3,0.1,0.1]), np.array([-0.2,0.3,0]), np.array([-0.4,0.0,0.2]), np.array([0.2,-0.1,0.1])]
+    np.array([-0.3,0.1,0.1]), np.array([-0.2,0.3,0]), np.array([-0.3,0.8,0.2]), np.array([0.5,0.5,0.1])]
 }
 
 algorithm = {

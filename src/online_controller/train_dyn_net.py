@@ -180,9 +180,7 @@ def train_dyn_rec():
     try:
         with open(fname, 'r') as pklfile:
             layers = cPickle.load(pklfile)
-        for layer in layers:
-            layer.fix_gpu_vars()
-    except:
+    except IOError as e:
         print 'Creating new net!'
         # Input normalization
         norm1 = NormalizeLayer()
