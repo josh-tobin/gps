@@ -185,7 +185,6 @@ def main():
         X = np.array(msg.X)
         t = msg.t
 
-
         obs = None
         noise = None
         dT = msg.dX+msg.dU

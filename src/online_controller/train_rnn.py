@@ -82,7 +82,8 @@ def rnntest():
 
     #data, label, clip = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
-    data, label, clip = get_data_hdf5(['data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5'])
+    #data, label, clip = get_data_hdf5(['data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
 
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
@@ -102,7 +103,7 @@ def rnntest():
     N = data.shape[0]
 
     djnt = 7
-    dee = 9
+    dee = 6
     dx = 2*dee+2*djnt+0
     du = djnt
 
@@ -110,21 +111,21 @@ def rnntest():
         net = unpickle_net(fname)
     except IOError as e:
         print "Making new net!"
-        """
         ip1 = RNNIPLayer('data', 'ip1', 'clip', dx+du, 100, activation='tanh') 
         #act1 = SoftplusLayer('ip1', 'act1')
         ip2 = RNNIPLayer('ip1', 'ip2', 'clip', 100, djnt+dee) 
         acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
         net = RecurrentDynamicsNetwork([ip1, ip2, acc], loss)
-        """
 
+        """
         ip1 = FF_RNNIPLayer('data', 'ip1', dx+du, 17)
         #act1 = SoftplusLayer('ip1', 'act1')
         ip2 = FFIPLayer('ip1', 'ip2', 17, 16)
         acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
         net = RecurrentTestNetwork([ip1, ip2, acc], loss)
+        """
 
         """
         ip1 = FFIPLayer('data', 'ip1', dx+du, 12) 
@@ -146,12 +147,12 @@ def rnntest():
     for idx in [0]:
         #pred_net =  net.fwd_single(data[idx])
         perturbed_input = data[idx] + 0.01*np.random.randn(dx+du).astype(np.float32)
-        F, f = net.getF(perturbed_input, [np.zeros(17).astype(np.float32)])
+        F, f = net.getF(perturbed_input)
         predict_taylor = (F.dot(data[idx])+f)
         target_label = label[idx]
         import pdb; pdb.set_trace()
 
-    lr = 1e-2/bsize
+    lr = 5e-2/bsize
     lr_schedule = {
         5000000: 0.2,
         10000000: 0.2,
@@ -177,9 +178,11 @@ def rnntest():
             print 'LR=', lr, ' // Train:',i, objval
             sys.stdout.flush()
             #import pdb; pdb.set_trace()
-        if i % 10000 == 0:
+        if i % 30000 == 0:
             if i>0:
                 net.pickle(fname)
+                ffnet = net.to_feedforward_test()
+                ffnet.pickle(fname+'.ff')
             total_err = net.total_obj(data, label, clip)
             print 'Total train error:', total_err
             total_err = net.total_obj(test_data, test_label, test_clip)

@@ -42,6 +42,7 @@ class OnlineController(Policy):
         self.prevU = None
         self.prev_policy = None
         self.noise = None
+        self.rnn_hidden_state = None
         self.adaptive_gamma_logprob = None
         self.offline_K = offline_K
         self.offline_k = offline_k
@@ -59,22 +60,24 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.00 # Noise to add
+        self.u_noise = 0.01 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = False
         self.gamma = 0.05  # Moving average parameter
-        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
+        self.empsig_N = 0 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = True
         self.use_prior_dyn = False
         self.gmm_prior = False
         self.fit_prior_residuals = False
 
+        #Neural net options
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 1  # Number of SGD iterations to take per timestep
+        self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0002  # SGD learning rate
+        self.nn_recurrent = True  # Set to true if network is recurrent. Turns on RNN hidden state management
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
         self.inputs = []
@@ -86,16 +89,16 @@ class OnlineController(Policy):
             #netname = 'net/rec_armwave_acc.pkl'
             #netname = 'net/mjc_accel5.pkl'
             #netname = 'net/gear_acc_2.pkl'
-            netname = 'net/car_1.pkl'
+            #netname = 'net/car_1.pkl'
+            netname = 'net/mjc_rnn.pkl.ff'
             #netname = 'net/mjc_rnn.pkl'
-            rec = True
-            self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=self.dX, dU=self.dU)
-            """
-            self.dyn_net = theano_rnn.unpickle_net(netname)
-            self.dyn_net.init_functions(output_blob='acc')
-            self.dyn_net.clear_recurrent_state()
-            """
-            self.dyn_net_state = self.dyn_net.get_recurrent_state()
+
+            if self.nn_recurrent:
+                self.dyn_net = theano_rnn.unpickle_net(netname)
+                self.dyn_net.init_functions(output_blob='acc')
+                self.rnn_hidden_state = self.dyn_net.get_init_hidden_state()
+            else:
+                self.dyn_net = theano_dynamics.get_net(netname, rec=True, dX=self.dX, dU=self.dU)
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
             #    self.dyn_net_ref = theano_dynamics.get_net(netname, rec=rec, dX=32+6, dU=7)
 
@@ -352,7 +355,6 @@ class OnlineController(Policy):
                 else:
                     self.gamma *= 1.05
 
-
                 self.gamma = min(0.1, self.gamma)
                 self.gamma = max(0.01, self.gamma)
                 self.empsig_N = (1/self.gamma)/10
@@ -388,7 +390,13 @@ class OnlineController(Policy):
         """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
-        print 'NN Loss:', self.dyn_net.loss_single(pt, cur_x)
+        self.empsig_N += 0.01
+        if self.nn_recurrent:
+            predicted_x, self.rnn_hidden_state = self.dyn_net.fwd_single(pt, self.rnn_hidden_state)
+            diff = cur_x-predicted_x
+            print 'RNN Loss:', diff.T.dot(diff)
+        else:
+            print 'NN Loss:', self.dyn_net.loss_single(pt, cur_x)
         for i in range(self.nn_update_iters):
             # Lsq use 0.003
             print 'NN Dynamics Loss: %f // Ref:%f' % ( self.dyn_net.train_single(pt, lbl, lr=self.nn_lr, momentum=0.95), 0)#self.dyn_net_ref.obj_vec(pt, lbl))
@@ -684,10 +692,8 @@ class OnlineController(Policy):
         policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
         return policy, eta
 
+    """
     def forward(self, horizon, x0, lgpolicy, cur_timestep, hist_key=''):
-        """
-        Returns cost matrices and dynamics via a forward pass
-        """
         # Cost + dynamics estimation
 
         H = horizon
@@ -749,6 +755,7 @@ class OnlineController(Policy):
 
         self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f}
         return mu, trajsig
+    """
 
     def estimate_cost(self, horizon, x0, lgpolicy, cur_timestep, jacobian=None, hist_key=''):
         """
@@ -787,8 +794,8 @@ class OnlineController(Policy):
         K = lgpolicy.K
         k = lgpolicy.k
 
-        if self.nn_dynamics:
-            original_state = self.dyn_net.get_recurrent_state()
+        if self.nn_recurrent:
+            fwd_rnn_state = self.rnn_hidden_state
         # Perform forward pass.
         for t in range(H):
             PSig = cholPSig[t].T.dot(cholPSig[t])
@@ -803,7 +810,10 @@ class OnlineController(Policy):
             # Reuse old dynamics
             if not self.time_varying_dynamics:
                 if t==0: 
-                    F[0], f[0], dynsig[0] = self.getdynamics(self.prevX, self.prevU, x0, cur_timestep, cur_action=cur_action);
+                    if self.nn_recurrent:
+                        F[0], f[0], dynsig[0], fwd_rnn_state = self.getdynamics(self.prevX, self.prevU, x0, cur_timestep, cur_action=cur_action, rnn_state=fwd_rnn_state);
+                    else:
+                        F[0], f[0], dynsig[0] = self.getdynamics(self.prevX, self.prevU, x0, cur_timestep, cur_action=cur_action);
                 F[t] = F[0]
                 f[t] = f[0]
                 dynsig[t] = dynsig[0]
@@ -811,17 +821,12 @@ class OnlineController(Policy):
             if t < H-1:
                 # Estimate new dynamics here based on mu
                 if self.time_varying_dynamics:
-                    if self.nn_dynamics:
-                        pass
-                        #xu = mu[t].astype(np.float32)
-                        #self.dyn_net.fwd_single(xu) #Evaluate to update RNN state
-                    F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action);
+                    if self.nn_recurrent:
+                        F[t], f[t], dynsig[t], fwd_rnn_state = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action, rnn_state=fwd_rnn_state);
+                    else:
+                        F[t], f[t], dynsig[t] = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action);
                 trajsig[t+1,ix,ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
                 mu[t+1,ix] = F[t].dot(mu[t]) + f[t]
-
-        if self.nn_dynamics:
-            # Reset current state
-            self.dyn_net.set_recurrent_state(self.dyn_net_state)
 
         self.fwd_hist[cur_timestep][hist_key] = {'trajmu': mu, 'F': F, 'f': f, 'empsig':(self.sigma - np.outer(self.mu, self.mu))}
 
@@ -878,7 +883,7 @@ class OnlineController(Policy):
         Cm = np.mean(Cm, axis=0)
         return cv, Cm, F, f, mu, trajsig
 
-    def getdynamics(self, prev_x, prev_u, cur_x, t, cur_action=None):
+    def getdynamics(self, prev_x, prev_u, cur_x, t, cur_action=None, rnn_state=None):
         """
         Returns linear dynamics given state, timestep
         """
@@ -903,14 +908,22 @@ class OnlineController(Policy):
 
         if self.nn_dynamics:
             dynsig = np.zeros((dX,dX))
-            F, f = self.dyn_net.getF(xu)
+            if self.nn_recurrent:
+                F, f, new_rnn_state = self.dyn_net.getF(xu, rnn_state)
+            else:
+                F, f = self.dyn_net.getF(xu)
+            
             nn_Phi, nnf = self.mix_nn_prior(F, f, use_least_squares=False)
             if self.nn_prior:
                 #Mix
                 sigma = (N*empsig + nn_Phi)/(N+1)
                 F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
                 f = mun[ip] - F.dot(mun[it])
-            return F, f, dynsig
+
+            if self.nn_recurrent:
+                return F, f, dynsig, new_rnn_state
+            else:
+                return F, f, dynsig
         else:
             if self.gmm_prior:
                 mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
