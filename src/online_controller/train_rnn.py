@@ -5,6 +5,7 @@ import logging
 import sys
 
 logging.basicConfig(level=logging.DEBUG)
+np.set_printoptions(suppress=True)
 
 def get_data_hdf5(fnames):
     if type(fnames) == str:
@@ -76,18 +77,20 @@ def randomize_dataset(data, label, clip):
 def rnntest():
     np.random.seed(123)
     #fname = 'net/rnn_plane.pkl'
-    fname = 'net/mjc_rnn.pkl'
+    fname = sys.argv[1] #'net/gear_rnn.pkl'
     logging.basicConfig(level=logging.DEBUG)
 
     #data, label, clip = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
-    data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
-    data, label, clip = randomize_dataset(data, label, clip)
-    fill_clip(clip, k=5) 
+    #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
+    data, label, clip = get_data_hdf5(['data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
 
     # Randomly select a test set out of training data
-    Ntrain = int(0.8*data.shape[0])
+    data, label, clip = randomize_dataset(data, label, clip)
+    fill_clip(clip, k=5) 
+    Ntrain = int(0.9*data.shape[0])
     test_data = data[Ntrain:]
     test_label = label[Ntrain:]
     test_clip = clip[Ntrain:]
@@ -99,7 +102,7 @@ def rnntest():
     N = data.shape[0]
 
     djnt = 7
-    dee = 6
+    dee = 9
     dx = 2*dee+2*djnt+0
     du = djnt
 
@@ -107,21 +110,31 @@ def rnntest():
         net = unpickle_net(fname)
     except IOError as e:
         print "Making new net!"
-        ip1 = RNNIPLayer('data', 'ip1', 'clip', dx+du, 100, activation='softplus') 
+        """
+        ip1 = RNNIPLayer('data', 'ip1', 'clip', dx+du, 100, activation='tanh') 
         #act1 = SoftplusLayer('ip1', 'act1')
         ip2 = RNNIPLayer('ip1', 'ip2', 'clip', 100, djnt+dee) 
         acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
         net = RecurrentDynamicsNetwork([ip1, ip2, acc], loss)
+        """
+
+        ip1 = FF_RNNIPLayer('data', 'ip1', dx+du, 17)
+        #act1 = SoftplusLayer('ip1', 'act1')
+        ip2 = FFIPLayer('ip1', 'ip2', 17, 16)
+        acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
+        loss = SquaredLoss('acc', 'lbl')
+        net = RecurrentTestNetwork([ip1, ip2, acc], loss)
 
         """
-        ip1 = FFIPLayer('data', 'ip1', 39, 12) 
+        ip1 = FFIPLayer('data', 'ip1', dx+du, 12) 
         act1 = SoftplusLayer('ip1', 'act1')
-        ip2 = FFIPLayer('act1', 'ip2', 12, 16) 
-        acc = AccelLayer('data', 'ip2', 'acc', 7, 9, 7)
+        ip2 = FFIPLayer('act1', 'ip2', 12, djnt+dee) 
+        acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
         net = RecurrentDynamicsNetwork([ip1, act1, ip2, acc], loss)
         """
+
     net.init_functions(output_blob='acc')
     """
     net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
@@ -133,12 +146,12 @@ def rnntest():
     for idx in [0]:
         #pred_net =  net.fwd_single(data[idx])
         perturbed_input = data[idx] + 0.01*np.random.randn(dx+du).astype(np.float32)
-        F, f = net.getF(perturbed_input)
+        F, f = net.getF(perturbed_input, [np.zeros(17).astype(np.float32)])
         predict_taylor = (F.dot(data[idx])+f)
         target_label = label[idx]
         import pdb; pdb.set_trace()
 
-    lr = 5e-2/bsize
+    lr = 1e-2/bsize
     lr_schedule = {
         5000000: 0.2,
         10000000: 0.2,

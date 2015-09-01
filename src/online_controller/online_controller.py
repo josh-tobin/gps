@@ -27,7 +27,7 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig
-        dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
+        #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
         #self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet))
@@ -47,7 +47,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 20 # Horizon
+        self.H = 17 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -59,7 +59,7 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.01 # Noise to add
+        self.u_noise = 0.00 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = False
@@ -68,13 +68,13 @@ class OnlineController(Policy):
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = True
         self.use_prior_dyn = False
-        self.gmm_prior = True
+        self.gmm_prior = False
         self.fit_prior_residuals = False
 
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
-        self.nn_lr = 0.0001  # SGD learning rate
+        self.nn_update_iters = 1  # Number of SGD iterations to take per timestep
+        self.nn_lr = 0.0002  # SGD learning rate
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
         self.inputs = []
@@ -84,7 +84,9 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             #netname = 'net/rec_plane_acc_soft.pkl'
             #netname = 'net/rec_armwave_acc.pkl'
-            netname = 'net/mjc_accel5.pkl'
+            #netname = 'net/mjc_accel5.pkl'
+            #netname = 'net/gear_acc_2.pkl'
+            netname = 'net/car_1.pkl'
             #netname = 'net/mjc_rnn.pkl'
             rec = True
             self.dyn_net = theano_dynamics.get_net(netname, rec=rec, dX=self.dX, dU=self.dU)

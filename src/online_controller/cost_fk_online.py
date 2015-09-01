@@ -20,8 +20,8 @@ class CostFKOnline(object):
         self.l1 = 0.01
         self.l2 = 1.0
         self.alpha = 1e-5
-        self.wu = 5.0e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
-        self.wu = 1.0e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # MJC CostFK
+        self.wu = 8e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        #self.wu = 1.0e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # MJC CostFK
 
         ramp_len = self.ref_len if maxT is None else maxT
         self.wpm = get_ramp_multiplier(self.ramp_option, ramp_len, wp_final_multiplier=1.0)

@@ -235,8 +235,8 @@ def main():
         print 'Calculation took %f s for T=%d' % (elapsed_time, t)
 
         if t==controller.maxT-1:
-            with open('controller_dump.pkl', 'w') as ctrlfile:
-                cPickle.dump([controller.inputs, controller.fwd_hist], ctrlfile)
+            #with open('controller_dump.pkl', 'w') as ctrlfile:
+            #    cPickle.dump([controller.inputs, controller.fwd_hist], ctrlfile)
             dyn_list = [None]
             dyn_list.extend([(controller.fwd_hist[t]['new']['F'], controller.fwd_hist[t]['new']['f']) for t in range(1,controller.maxT)])
             visualize_dynamics(controller.rviz_traj, dyn_list, visualization_pub, nnet=controller.dyn_net)

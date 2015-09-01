@@ -57,9 +57,9 @@ class BaseLayer(object):
 class RecurrentLayer(BaseLayer):
     def __init__(self, input_blob, output_blob, clip_blob):
         super(RecurrentLayer, self).__init__()
-        self.input_blob = input_blob
-        self.output_blob = output_blob
-        self.clip_blob = clip_blob
+        self.__input_blob = input_blob
+        self.__output_blob = output_blob
+        self.__clip_blob = clip_blob
 
     def forward(self, prev_layer, prev_state):
         raise NotImplementedError()
@@ -77,8 +77,8 @@ class RecurrentLayer(BaseLayer):
         raise NotImplementedError()
 
     def forward_batch(self, input_batch):
-        input_data = input_batch.get_data(self.input_blob)
-        clip_mask = input_batch.get_data(self.clip_blob)
+        input_data = input_batch.get_data(self.__input_blob)
+        clip_mask = input_batch.get_data(self.__clip_blob)
 
         #init_state_data = self.init_recurrent_state().astype(np.float32)
         #hidden_state = theano.shared(init_state_data, name='rnn_state_'+str(self.layer_id))
@@ -94,42 +94,50 @@ class RecurrentLayer(BaseLayer):
                                       sequences=[input_data, clip_mask])
         #theano.printing.debugprint(hidden_states)
         #theano.printing.debugprint(layer_out)
-        input_batch.set_data(self.output_blob, layer_out)
+        input_batch.set_data(self.__output_blob, layer_out)
         #input_batch.set_data('dbg_hidden_state', hidden_states)
         return [(hidden_state,  hidden_states[-1])]
 
 class FeedforwardLayer(BaseLayer):
-    def __init__(self, input_blobs, output_blob):
+    def __init__(self, input_blobs, output_blobs):
         super(FeedforwardLayer, self).__init__()
-        self.input_blobs = input_blobs
-        self.output_blob = output_blob
+        if isinstance(input_blobs, basestring):
+            input_blobs = [input_blobs]
+        self.__input_blobs = input_blobs
+        self.__output_blobs = output_blobs
 
     def forward(self, input_batches):
         raise NotImplementedError()
 
     def forward_batch(self, input_batch):
-        inputs = {blob: input_batch.get_data(blob) for blob in self.input_blobs}
-        output = self.forward(inputs)
-        input_batch.set_data(self.output_blob, output)
+        inputs = {blob: input_batch.get_data(blob) for blob in self.__input_blobs}
+        outputs = self.forward(inputs)
+        if not isinstance(self.__output_blobs, basestring):
+            assert len(outputs) == len(self.__output_blobs)
+            for i in range(len(outputs)):
+                input_batch.set_data(self.__output_blobs[i], outputs[i])
+        else:
+            input_batch.set_data(self.__output_blobs, outputs)
         return []
 
 class ActivationLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob):
         super(ActivationLayer, self).__init__([input_blob], output_blob)
-        self.input_blob = input_blob
+        self.__input_blob = input_blob
 
     def activation(self, prev_layer):
         raise NotImplementedError()
 
     def forward(self, input_data):
-        prev_layer = input_data[self.input_blob]
+        prev_layer = input_data[self.__input_blob]
         return self.activation(prev_layer)
 
     def params(self):
         return []
 
 ACTIVATION_DICT = {
-    'softplus': T.nnet.softplus
+    'softplus': T.nnet.softplus,
+    'tanh': T.tanh
 }
 
 class ReLULayer(ActivationLayer):
@@ -191,12 +199,47 @@ class RNNIPLayer(RecurrentLayer):
         return self.state
 
     def params(self):
-        #return [self.wff, self.wr, self.b]
+        return [self.wff, self.wr, self.b]
+
+    def to_feedforward_version(self):
+        raise NotImplementedError()
+
+class FF_RNNIPLayer(FeedforwardLayer):
+    """ 
+    A feedforward version of RNNIPLayer that accepts a hidden state as an input instead of storing it implicitly.
+    Used for speed reasons, since the scan implementation of recurrent layers is slow.
+    """
+    n_instances = 0
+    def __init__(self, input_blob, output_blob, din, dout, activation=None):
+        FF_RNNIPLayer.n_instances += 1
+        self.ffrnn_layer_id = FF_RNNIPLayer.n_instances
+        self.hidden_state_blob = 'ffrnn_ip_hidden_'+str(self.ffrnn_layer_id)
+        self.output_state_blob = self.hidden_state_blob+'_out'
+        super(FF_RNNIPLayer, self).__init__([input_blob, self.hidden_state_blob], [output_blob, self.output_state_blob])    
+        self.dout = dout
+        self.activation = activation
+        self.input_blob = input_blob
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_ip_wff_'+str(self.layer_id))
+        self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_ip_wr_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='ffrnn_ip_b_'+str(self.layer_id))
+
+    def forward(self, input_data):
+        prev_layer = input_data[self.input_blob]
+        prev_state = input_data[self.hidden_state_blob]
+        output = prev_layer.dot(self.wff) + self.b + prev_state.dot(self.wr)
+        if self.activation:
+            output = ACTIVATION_DICT[self.activation](output)
+        return output, output
+    
+    def hidden_state_io_blobs(self):
+        return self.hidden_state_blob, self.output_state_blob
+
+    def params(self):
         return [self.wff, self.wr, self.b]
 
 class FFIPLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, dout):
-        super(FFIPLayer, self).__init__([input_blob], output_blob)  
+        super(FFIPLayer, self).__init__(input_blob, output_blob)  
         self.input_blob = input_blob
         self.w = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ff_ip_w_'+str(self.layer_id))
         self.b = theano.shared(NN_INIT_WT*np.random.randn(dout).astype(np.float32), name='ff_ip_b_'+str(self.layer_id))
@@ -410,7 +453,64 @@ class RecurrentDynamicsNetwork(Network):
     def fwd_batch(self, xu, clip):
         net_fwd = self.rnn_out(xu, clip)
         return net_fwd
-        
+     
+class RecurrentTestNetwork(Network):
+    """ Hacky way to convert a recurrent net into a feedforward net during online execution"""
+    def __init__(self, layers, loss):
+        super(RecurrentTestNetwork, self).__init__(layers, loss)
+
+    def init_functions(self, output_blob='rnn_out'):
+        hidden_state_blobs = []
+        hidden_state_vars = []
+        hidden_state_outputs = []
+        for layer in self.layers:
+            if hasattr(layer, 'hidden_state_io_blobs'):
+                hidden_in, hidden_out = layer.hidden_state_io_blobs()
+                hidden_state_blobs.append(hidden_in)
+                hidden_state_vars.append(T.vector(hidden_in))
+                hidden_state_outputs.append(hidden_out)
+
+        self.set_net_inputs([T.matrix('data'), T.matrix('lbl')] + hidden_state_vars)
+        obj, updates = self.symbolic_forward()
+        #self.train_gd = self.get_train_function(obj, updates)
+        self.total_obj = self.get_loss_function(obj)
+
+        self.__rnn_out_fn = self.get_output_and_state([output_blob]+hidden_state_outputs, inputs=['data']+hidden_state_blobs, updates=updates)
+        self.__jac = self.get_jac(output_blob, 'data', inputs=['data']+hidden_state_blobs)
+
+    def getF(self, data_pnt, hidden_state):
+        data_pnt_exp = np.expand_dims(data_pnt, axis=0).astype(np.float32)
+        F = self.__jac(*([data_pnt_exp]+hidden_state))[:,0,:]
+        net_outs = self.__rnn_out_fn(*([data_pnt_exp]+hidden_state))
+        net_fwd = net_outs[0][0]
+        f = -F.dot(data_pnt) + net_fwd
+        return F, f
+
+    def get_output_and_state(self, out_vars, inputs=None, updates=None):
+        if inputs is None:
+            fn_inputs = self.inputs
+        else:
+            fn_inputs = [self.batch.get_data(input_name) for input_name in inputs]
+        outputs = []
+        for out_var in out_vars:
+            outputs.append(self.batch.get_data(out_var))
+        return theano.function(inputs=fn_inputs, outputs=outputs, updates=updates, on_unused_input='warn')
+
+    def fwd_single(self, xu, hidden_state):
+        clip = clip*np.ones(1).astype(np.float32)
+        data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
+        net_outs = self.__rnn_out_fn(*([data_pnt_exp]+hidden_state))
+        net_fwd = net_outs[0][0]
+        hidden_state = net_outs[1]
+        return net_fwd, hidden_state
+
+    def loss_single(self, xu, xnext, hidden_state):
+        clip = np.zeros(1).astype(np.float32)
+        data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
+        label_exp = np.expand_dims(xnext, axis=0).astype(np.float32)
+        obj = self.total_obj(*([data_pnt_exp, label_exp]+hidden_state))[0]
+        return obj, hidden_state
+
 
 def unpickle_net(fname):
     with open(fname, 'r') as pklfile:

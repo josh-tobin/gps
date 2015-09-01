@@ -21,9 +21,9 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
-	T = 200
-	dX = mat['Dx']
-	dU = mat['Du']
+	T = 400
+	dX = mat['Dx'][0][0]
+	dU = mat['Du'][0][0]
 
 	# Read in mu for a CostStateOnline
 	tgt = mat['cost_tgt_mu'].T
@@ -33,7 +33,7 @@ def get_controller(matfile):
 	wp[0:7] = 1.0
 	#wp[14:23] = 1.0
 
-	cost = CostStateTracking(wp, tgt, maxT=T)
+	#cost = CostStateTracking(wp, tgt, maxT=T)
 
 	site_jac = True
 	if site_jac:
@@ -45,7 +45,7 @@ def get_controller(matfile):
 	#jnt_wp = np.ones(7)*0.00; jnt_wp[6] = 0.0
 	#jnt_tgt = tgt[-1,0:7]
 	#cost = CostFKOnline(tgt[-1,ee_idx], jnt_tgt=jnt_tgt, jnt_wp=jnt_wp, ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
-	#cost = CostFKOnline(tgt[-1,ee_idx], ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
+	cost = CostFKOnline(tgt[-1,ee_idx], ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)

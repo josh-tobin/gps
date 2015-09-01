@@ -40,8 +40,8 @@ def load_net(fname):
 def load_rec_net(fname, dX, dU):
     with open(fname, 'r') as pklfile:
         layers = cPickle.load(pklfile)
-    for layer in layers:
-        layer.reinitialize_vars()
+    #for layer in layers:
+    #    layer.reinitialize_vars()
     net = NNetRecursive(dX, dU, 1, layers)
     return net
 
@@ -229,7 +229,7 @@ class NNetRecursive(object):
 
     def init_funcs(self):
         self.reinitialize_vars()
-        
+
         self.params = []
         self.nparams = 0
         for layer in self.layers:
