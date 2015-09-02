@@ -48,7 +48,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 17 # Horizon
+        self.H = 20 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -60,7 +60,7 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.01 # Noise to add
+        self.u_noise = 0.03 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = False
