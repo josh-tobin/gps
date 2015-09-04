@@ -40,12 +40,14 @@ def get_controller(matfile):
 		ee_idx = slice(14,23)
 	else:
 		ee_idx = slice(14,20)
+	eetgt = mat['eetgt'][:,0]
+	#eetgt = tgt[-1,ee_idx]
 
 	#Joint hack
 	#jnt_wp = np.ones(7)*0.00; jnt_wp[6] = 0.0
 	#jnt_tgt = tgt[-1,0:7]
 	#cost = CostFKOnline(tgt[-1,ee_idx], jnt_tgt=jnt_tgt, jnt_wp=jnt_wp, ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
-	cost = CostFKOnline(tgt[-1,ee_idx], ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
+	cost = CostFKOnline(eetgt, ee_idx=ee_idx, jnt_idx=slice(0,7), maxT=T)
 
 	# Read in offline dynamics
 	Fm = mat['dyn_fd'].transpose(2,0,1)
@@ -90,11 +92,11 @@ def get_controller(matfile):
 def dyndata_init():
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
-    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_gear.hdf5'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
 
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
-    xux = np.c_[train_dat, train_lbl]
+    xux = np.c_[train_data, train_lbl]
 
     mu = np.mean(xux, axis=0)
     diff = xux-mu

@@ -3,8 +3,11 @@ import theano
 import cPickle
 import logging
 import theano.tensor as T
+from theano.tensor.shared_randomstreams import RandomStreams
 
 NN_INIT_WT = 0.1
+STAGE_TRAIN = 'train'
+STAGE_TEST = 'test'
 
 LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +53,9 @@ class BaseLayer(object):
 
     def get_state_value(self): #Recurrent state
         return None
+
+    def update(self, stage=STAGE_TRAIN):
+        pass
 
     def __str__(self):
         return self.__class__.__name__+str(self.layer_id)
@@ -106,7 +112,7 @@ class FeedforwardLayer(BaseLayer):
         self.__input_blobs = input_blobs
         self.__output_blobs = output_blobs
 
-    def forward(self, input_batches):
+    def forward(self, input_batches, stage=STAGE_TRAIN):
         raise NotImplementedError()
 
     def forward_batch(self, input_batch):
@@ -205,13 +211,28 @@ class RNNIPLayer(RecurrentLayer):
         return [self.wff, self.wr, self.b]
 
     def to_feedforward_test(self):
+        #self.input_blob = self._RecurrentLayer__input_blob
+        #self.output_blob = self._RecurrentLayer__output_blob
+        #self.din = self.wff.get_value().shape[0]
+        #self.dout = self.wff.get_value().shape[1]
         new_layer = FF_RNNIPLayer(self.input_blob, self.output_blob, self.din, self.dout, activation=self.activation)
         new_layer.wff.set_value(self.wff.get_value())
         new_layer.wr.set_value(self.wr.get_value())
         new_layer.b.set_value(self.b.get_value())
         return new_layer
 
-class FF_RNNIPLayer(FeedforwardLayer):
+
+class FF_RNNHackLayer(FeedforwardLayer):
+    def __init__(self, input_blobs, output_blobs):
+        super(FF_RNNHackLayer, self).__init__(input_blobs, output_blobs)
+
+    def hidden_state_io_blobs(self):
+        raise NotImplementedError()
+
+    def init_recurrent_state(self):
+        raise NotImplementedError()
+    
+class FF_RNNIPLayer(FF_RNNHackLayer):
     """ 
     A feedforward version of RNNIPLayer that accepts a hidden state as an input instead of storing it implicitly.
     Used for speed reasons, since the scan implementation of recurrent layers is slow.
@@ -247,6 +268,188 @@ class FF_RNNIPLayer(FeedforwardLayer):
     def params(self):
         return [self.wff, self.wr, self.b]
 
+
+class SimpGateLayer(RecurrentLayer):
+    def __init__(self, input_blob, output_blob, clip_blob, din, dout):
+        super(SimpGateLayer, self).__init__(input_blob, output_blob, clip_blob)    
+        self.input_blob = input_blob
+        self.output_blob = output_blob
+        self.din = din
+        self.dout = dout
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wreset_in = theano.shared(0.1*NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wresetin_'+str(self.layer_id))
+        self.wreset_hidden = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wresethidden_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_b_'+str(self.layer_id))
+        self.state = theano.shared(np.zeros(dout).astype(np.float32), name='rnn_g_state_'+str(self.layer_id))
+
+    def forward(self, prev_layer, prev_state):
+        reset_value = T.nnet.sigmoid(self.wreset_in.T.dot(prev_layer)+self.wreset_hidden.T.dot(prev_state))
+        new_state = T.tanh(self.wff.T.dot(prev_layer) + self.wr.T.dot(reset_value*prev_state))
+        #interp = gate_value*new_state + (1-gate_value)*prev_state  # Linearly interpolate btwn new and old state
+        return new_state, new_state
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def set_state_value(self, state):
+        self.state.set_value(state)
+
+    def get_state_value(self):
+        return self.state.get_value()
+
+    def get_state_var(self):
+        return self.state
+
+    def params(self):
+        return [self.wff, self.wr, self.wreset_in, self.wreset_hidden]
+
+    def to_feedforward_test(self):
+        new_layer = FF_SimpGateLayer(self.input_blob, self.output_blob, self.din, self.dout)
+        new_layer.wff.set_value(self.wff.get_value())
+        new_layer.wr.set_value(self.wr.get_value())
+        new_layer.wreset_in.set_value(self.wreset_in.get_value())
+        new_layer.wreset_hidden.set_value(self.wreset_hidden.get_value())
+
+        new_layer.b.set_value(self.b.get_value())
+        return new_layer
+
+class FF_SimpGateLayer(FF_RNNHackLayer):
+    """ 
+    A feedforward version of RNNIPLayer that accepts a hidden state as an input instead of storing it implicitly.
+    Used for speed reasons, since the scan implementation of recurrent layers is slow.
+    """
+    n_instances = 0
+    def __init__(self, input_blob, output_blob, din, dout):
+        FF_SimpGateLayer.n_instances += 1
+        self.ffrnn_layer_id = FF_SimpGateLayer.n_instances
+        self.hidden_state_blob = 'ffrnn_g_hidden_'+str(self.ffrnn_layer_id)
+        self.output_state_blob = self.hidden_state_blob+'_out'
+        super(FF_SimpGateLayer, self).__init__([input_blob, self.hidden_state_blob], [output_blob, self.output_state_blob])    
+        self.din = din
+        self.dout = dout
+        self.input_blob = input_blob
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_g_wr_'+str(self.layer_id))
+        self.wreset_in = theano.shared(0.1*NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wresetin_'+str(self.layer_id))
+        self.wreset_hidden = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_g_wresethidden_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='ffrnn_g_b_'+str(self.layer_id))
+
+    def forward(self, input_data):
+        prev_layer = input_data[self.input_blob]
+        prev_state = input_data[self.hidden_state_blob]
+
+        reset_value = T.nnet.sigmoid(prev_layer.dot(self.wreset_in)+prev_state.dot(self.wreset_hidden))
+        new_state = T.tanh(prev_layer.dot(self.wff) + (reset_value*prev_state).dot(self.wr) + self.b)
+        #interp = gate_value*new_state + (1-gate_value)*prev_state  # Linearly interpolate btwn new and old state
+        return new_state, new_state
+    
+    def hidden_state_io_blobs(self):
+        return self.hidden_state_blob, self.output_state_blob
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def params(self):
+        return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.b]
+
+class GRULayer(RecurrentLayer):
+    def __init__(self, input_blob, output_blob, clip_blob, din, dout):
+        super(GRULayer, self).__init__(input_blob, output_blob, clip_blob)    
+        self.input_blob = input_blob
+        self.output_blob = output_blob
+        self.din = din
+        self.dout = dout
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wgate_in = theano.shared(0.1*NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wgatein_'+str(self.layer_id))
+        self.wgate_hidden = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wgatehidden_'+str(self.layer_id))
+        self.wreset_in = theano.shared(0.1*NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wresetin_'+str(self.layer_id))
+        self.wreset_hidden = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wresethidden_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_b_'+str(self.layer_id))
+        self.state = theano.shared(np.zeros(dout).astype(np.float32), name='rnn_g_state_'+str(self.layer_id))
+
+    def forward(self, prev_layer, prev_state):
+        gate_value = T.nnet.sigmoid(self.wgate_in.T.dot(prev_layer)+self.wgate_hidden.T.dot(prev_state))
+        reset_value = T.nnet.sigmoid(self.wreset_in.T.dot(prev_layer)+self.wreset_hidden.T.dot(prev_state))
+        new_state = T.tanh(self.wff.T.dot(prev_layer) + self.wr.T.dot(reset_value*prev_state) + self.b)
+        interp = gate_value*new_state + (1-gate_value)*prev_state  # Linearly interpolate btwn new and old state
+        return interp, interp
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def set_state_value(self, state):
+        self.state.set_value(state)
+
+    def get_state_value(self):
+        return self.state.get_value()
+
+    def get_state_var(self):
+        return self.state
+
+    def params(self):
+        return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.wgate_in, self.wgate_hidden, self.b]
+
+    def to_feedforward_test(self):
+        new_layer = FF_GRULayer(self.input_blob, self.output_blob, self.din, self.dout)
+        new_layer.wff.set_value(self.wff.get_value())
+        new_layer.wr.set_value(self.wr.get_value())
+        new_layer.wgate_in.set_value(self.wgate_in.get_value())
+        new_layer.wgate_hidden.set_value(self.wgate_hidden.get_value())
+
+        #AAA
+        new_layer.wreset_in.set_value(self.wreset_in.get_value())
+        new_layer.wreset_hidden.set_value(self.wreset_hidden.get_value())
+
+        new_layer.b.set_value(self.b.get_value())
+        return new_layer
+
+class FF_GRULayer(FF_RNNHackLayer):
+    """ 
+    A feedforward version of RNNIPLayer that accepts a hidden state as an input instead of storing it implicitly.
+    Used for speed reasons, since the scan implementation of recurrent layers is slow.
+    """
+    n_instances = 0
+    def __init__(self, input_blob, output_blob, din, dout):
+        FF_GRULayer.n_instances += 1
+        self.ffrnn_layer_id = FF_GRULayer.n_instances
+        self.hidden_state_blob = 'ffrnn_g_hidden_'+str(self.ffrnn_layer_id)
+        self.output_state_blob = self.hidden_state_blob+'_out'
+        super(FF_GRULayer, self).__init__([input_blob, self.hidden_state_blob], [output_blob, self.output_state_blob])    
+        self.din = din
+        self.dout = dout
+        self.input_blob = input_blob
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_g_wr_'+str(self.layer_id))
+        self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wgatein_'+str(self.layer_id))
+        self.wgate_hidden = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_g_wgatehidden_'+str(self.layer_id))
+        self.wreset_in = theano.shared(0.1*NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wresetin_'+str(self.layer_id))
+        self.wreset_hidden = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_g_wresethidden_'+str(self.layer_id))
+
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='ffrnn_g_b_'+str(self.layer_id))
+
+    def forward(self, input_data):
+        prev_layer = input_data[self.input_blob]
+        prev_state = input_data[self.hidden_state_blob]
+
+        gate_value = T.nnet.sigmoid(prev_layer.dot(self.wgate_in)+prev_state.dot(self.wgate_hidden))
+        reset_value = T.nnet.sigmoid(prev_layer.dot(self.wreset_in)+prev_state.dot(self.wreset_hidden))
+        new_state = T.tanh(prev_layer.dot(self.wff) + (reset_value*prev_state).dot(self.wr) + self.b)
+        interp = gate_value*new_state + (1-gate_value)*prev_state  # Linearly interpolate btwn new and old state
+
+        return interp, interp
+    
+    def hidden_state_io_blobs(self):
+        return self.hidden_state_blob, self.output_state_blob
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def params(self):
+        return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.wgate_in, self.wgate_hidden, self.b]
+
+
 class FFIPLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, dout):
         super(FFIPLayer, self).__init__(input_blob, output_blob)  
@@ -254,12 +457,56 @@ class FFIPLayer(FeedforwardLayer):
         self.w = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ff_ip_w_'+str(self.layer_id))
         self.b = theano.shared(NN_INIT_WT*np.random.randn(dout).astype(np.float32), name='ff_ip_b_'+str(self.layer_id))
 
-    def forward(self, input_data):
+    def forward(self, input_data, stage=STAGE_TRAIN):
         prev_layer = input_data[self.input_blob]
         return prev_layer.dot(self.w)+self.b
 
     def params(self):
         return [self.w, self.b]
+
+class DropoutLayer(FeedforwardLayer):
+    def __init__(self, input_blob, output_blob, din, rngseed=10, p=0.5):
+        super(DropoutLayer, self).__init__(input_blob, output_blob)  
+        self.input_blob = input_blob
+        self.din = din
+        self.p = p
+        self.rand = theano.shared(np.zeros(din).astype(np.float32), name='drop_rand_'+str(self.layer_id))
+    
+    def update(self, stage=STAGE_TRAIN):
+        if stage == STAGE_TRAIN:
+            self.rand.set_value(np.random.binomial(1, self.p, self.din).astype(np.float32))
+        else:
+            p = self.rand.get_value()
+            p.fill(self.p)
+            self.rand.set_value(p)
+
+    def forward(self, input_data, stage=STAGE_TRAIN):
+        prev_layer = input_data[self.input_blob]
+        return prev_layer * self.rand
+
+    def params(self):
+        return []
+
+
+class NormalizeLayer(FeedforwardLayer):
+    def __init__(self, input_blob, output_blob):
+        super(NormalizeLayer, self).__init__(input_blob, output_blob)  
+        self.input_blob = input_blob
+        self.mean = None
+        self.sig = None
+
+    def forward(self, input_data):
+        prev_layer = input_data[self.input_blob]
+        return prev_layer*self.sig + self.mean
+
+    def generate_weights(self, data):
+        self.mean = theano.shared(np.mean(data, axis=0).astype(np.float32), name='normalize_mean_'+str(self.layer_id))
+        data = data-self.mean.get_value()
+        sig = np.std(data, axis=0)
+        self.sig = theano.shared(sig.astype(np.float32), name='normalize_sig_'+str(self.layer_id))
+
+    def params(self):
+        return []
 
 class AccelLayer(FeedforwardLayer):
     """ Mix known dynamics with predicted acceleration based on state """
@@ -327,13 +574,42 @@ class SquaredLoss(object):
         obj = self.loss(lbl, pred)
         return obj
 
+def train_gd_rmsprop(obj, params, args, updates=None, eps=1e-6, weight_decay=0.0):
+    gradients = T.grad(obj, params)
+    eta = T.scalar('lr')
+    rho = T.scalar('rho')
+    momentum = T.scalar('momentum')
+    accs = [theano.shared(np.copy(param.get_value())*0.0) for param in params]
+    momentums = [theano.shared(np.copy(param.get_value())*0.0) for param in params]
+    #if updates is None:
+    #TODO: Incorporate updates. For some reason the state magically updates
+    updates = []
+    for i in range(len(gradients)):
+        acc_new = rho*accs[i] + (1-rho) * gradients[i] ** 2
+        gradient_scale = T.sqrt(acc_new + eps)
+        new_grad = (gradients[i] + weight_decay*params[i])/gradient_scale
+
+        updated_gradient = (new_grad)+momentum*momentums[i]
+
+        updates.append((accs[i], gpu_host(acc_new)))
+        updates.append((params[i], gpu_host(params[i]-(eta)*updated_gradient)))
+        updates.append((momentums[i], gpu_host(updated_gradient)))
+
+    train = theano.function(
+        inputs=args+[eta, rho, momentum],
+        outputs=[obj],
+        updates=updates,
+        on_unused_input='warn'
+    )
+    return train
+
 def train_gd_momentum(obj, params, args, updates=None, scl=1.0, weight_decay=0.0):
     obj = obj
     scl = float(scl)
     gradients = T.grad(obj, params)
     eta = T.scalar('lr')
     momentum = T.scalar('momentum')
-    momentums = [theano.shared(np.copy(param.get_value())) for param in params]
+    momentums = [theano.shared(np.copy(param.get_value())*0.0) for param in params]
     #if updates is None:
     #TODO: Incorporate updates. For some reason the state magically updates
     updates = []
@@ -374,11 +650,20 @@ class Network(object):
     def set_net_inputs(self, inputs):
         self.inputs = inputs
 
-    def get_train_function(self, objective, updates=None):
-        return train_gd_momentum(objective, self.params, self.inputs, updates=updates)
+    def get_train_function(self, objective, updates=None, type='sgd', weight_decay=0):
+        if type=='sgd':
+            return train_gd_momentum(objective, self.params, self.inputs, weight_decay=weight_decay, updates=updates)
+        elif type=='rmsprop':
+            return train_gd_rmsprop(objective, self.params, self.inputs, weight_decay=weight_decay, updates=updates)
+        else:
+            raise NotImplementedError()
 
     def get_loss_function(self, objective, updates=None):
         return theano.function(inputs=self.inputs, outputs=[objective], updates=updates, on_unused_input='warn')
+
+    def update(self, stage=STAGE_TRAIN):
+        for layer in self.layers:
+            layer.update(stage=stage)
 
     def get_output(self, var_name, inputs=None, updates=None):
         if inputs is None:
@@ -430,10 +715,10 @@ class RecurrentDynamicsNetwork(Network):
     def __init__(self, layers, loss):
         super(RecurrentDynamicsNetwork, self).__init__(layers, loss)
 
-    def init_functions(self, output_blob='rnn_out'):
+    def init_functions(self, output_blob='rnn_out', train_algo='rmsprop', weight_decay=1e-5):
         self.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
         obj, updates = self.symbolic_forward()
-        self.train_gd = self.get_train_function(obj, updates)
+        self.train_gd = self.get_train_function(obj, updates, type=train_algo, weight_decay=weight_decay)
         self.total_obj = self.get_loss_function(obj)
 
         self.rnn_out = self.get_output(output_blob, inputs=['data', 'clip'], updates=updates)
@@ -470,9 +755,10 @@ class RecurrentDynamicsNetwork(Network):
         for layer in self.layers:
             if hasattr(layer, 'to_feedforward_test'):
                 new_layer = layer.to_feedforward_test()
+                LOGGER.debug("Transformed layer %s", layer)
             else:
                 new_layer = layer
-            LOGGER.debug("Loaded layer %s", layer)
+                LOGGER.debug("Copied layer %s", layer)
             layers.append(new_layer)
         return RecurrentTestNetwork(layers, self.loss)
      
@@ -480,13 +766,14 @@ class RecurrentTestNetwork(Network):
     """ Hacky way to convert a recurrent net into a feedforward net during online execution"""
     def __init__(self, layers, loss):
         super(RecurrentTestNetwork, self).__init__(layers, loss)
+        self.hidden_state_plot = None
 
     def init_functions(self, output_blob='rnn_out'):
         hidden_state_blobs = []
         hidden_state_vars = []
         hidden_state_outputs = []
         for layer in self.layers:
-            if hasattr(layer, 'hidden_state_io_blobs'):
+            if isinstance(layer, FF_RNNHackLayer):
                 hidden_in, hidden_out = layer.hidden_state_io_blobs()
                 hidden_state_blobs.append(hidden_in)
                 hidden_state_vars.append(T.vector(hidden_in))
@@ -526,7 +813,7 @@ class RecurrentTestNetwork(Network):
     def get_init_hidden_state(self):
         init_state = []
         for layer in self.layers:
-            if hasattr(layer, 'init_recurrent_state'):
+            if isinstance(layer, FF_RNNHackLayer):
                 init_state.append(layer.init_recurrent_state().astype(np.float32))
         return init_state
 

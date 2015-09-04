@@ -4,6 +4,7 @@ import scipy as sp
 import scipy.linalg
 import logging
 import time
+import nnvis
 import theano_rnn
 from proto.gps_pb2 import *
 from agent.agent_utils import generate_noise
@@ -26,14 +27,14 @@ class OnlineController(Policy):
         self.use_ee_sites = use_ee_sites
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
-        self.dyn_init_sig = dyn_init_sig
+        self.dyn_init_sig = dyn_init_sig/100
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
         #self.dyn_init_sig = self.dyn_init_sig / (1.0 * np.exp(dyn_init_logdet))
 
-        self.dyn_init_mu.fill(0.0)
-        self.dyn_init_sig.fill(0.0)
+        #self.dyn_init_mu.fill(0.0)
+        #self.dyn_init_sig.fill(0.0)
         self.dX = dX
         self.dU = dU
         self.cost = cost
@@ -48,7 +49,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 20 # Horizon
+        self.H = 17 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -65,7 +66,7 @@ class OnlineController(Policy):
         #Dynamics settings
         self.adaptive_gamma = False
         self.gamma = 0.05  # Moving average parameter
-        self.empsig_N = 0 # Weight of least squares vs GMM/NN prior
+        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = True
         self.use_prior_dyn = False
@@ -73,11 +74,12 @@ class OnlineController(Policy):
         self.fit_prior_residuals = False
 
         #Neural net options
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
-        self.nn_lr = 0.0002  # SGD learning rate
-        self.nn_recurrent = True  # Set to true if network is recurrent. Turns on RNN hidden state management
+        self.nn_lr = 0.0004  # SGD learning rate
+        self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
+        self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
 
         self.inputs = []
@@ -85,18 +87,22 @@ class OnlineController(Policy):
         self.fwd_hist = [{} for _ in range(self.maxT)]
 
         if self.nn_dynamics:
-            #netname = 'net/rec_plane_acc_soft.pkl'
-            #netname = 'net/rec_armwave_acc.pkl'
-            #netname = 'net/mjc_accel5.pkl'
-            #netname = 'net/gear_acc_2.pkl'
-            #netname = 'net/car_1.pkl'
-            netname = 'net/mjc_rnn.pkl.ff'
-            #netname = 'net/mjc_rnn.pkl'
+            netname = 'net/combined_50.pkl'
+            #netname = 'net/combined_rnn40.pkl.ff'
+
+            #netname = 'net/mjc_rnnip.pkl.ff'
 
             if self.nn_recurrent:
                 self.dyn_net = theano_rnn.unpickle_net(netname)
+                self.dyn_net.update(stage='test')
                 self.dyn_net.init_functions(output_blob='acc')
                 self.rnn_hidden_state = self.dyn_net.get_init_hidden_state()
+
+                if self.nn_recurrent_plot:
+                    gph1 = nnvis.ImagePlot(100, name='hidden1')
+                    gph2 = nnvis.ImagePlot(30, name='hidden1')
+                    #gph3 = nnvis.GraphPlot(13, -10, 10, name='acc')
+                    self.nn_vis = nnvis.NNVis([gph1, gph2], 100)
             else:
                 self.dyn_net = theano_dynamics.get_net(netname, rec=True, dX=self.dX, dU=self.dU)
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
@@ -390,9 +396,12 @@ class OnlineController(Policy):
         """
         pt = np.r_[prevx, prevu]
         lbl = cur_x
-        self.empsig_N += 0.01
+        #self.empsig_N += 0.01
         if self.nn_recurrent:
             predicted_x, self.rnn_hidden_state = self.dyn_net.fwd_single(pt, self.rnn_hidden_state)
+            #print self.rnn_hidden_state
+            if self.nn_recurrent_plot:
+                self.nn_vis.update(self.rnn_hidden_state)
             diff = cur_x-predicted_x
             print 'RNN Loss:', diff.T.dot(diff)
         else:
@@ -917,9 +926,11 @@ class OnlineController(Policy):
             if self.nn_prior:
                 #Mix
                 sigma = (N*empsig + nn_Phi)/(N+1)
-                F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
+                sig_chol = sp.linalg.cholesky(sigma[it,it])
+                sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
+                #F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
+                F = sig_inv.dot(sigma[it, ip]).T
                 f = mun[ip] - F.dot(mun[it])
-
             if self.nn_recurrent:
                 return F, f, dynsig, new_rnn_state
             else:
