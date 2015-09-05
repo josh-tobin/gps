@@ -27,7 +27,7 @@ class OnlineController(Policy):
         self.use_ee_sites = use_ee_sites
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
-        self.dyn_init_sig = dyn_init_sig/100
+        self.dyn_init_sig = dyn_init_sig/100 + 1e-5*np.eye(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
@@ -50,7 +50,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 17 # Horizon
+        self.H = 15 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -62,10 +62,10 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.03 # Noise to add
+        self.u_noise = 0.04 # Noise to add
 
         #Dynamics settings
-        self.adaptive_gamma = False
+        self.adaptive_gamma = True
         self.gamma = 0.05  # Moving average parameter
         self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
@@ -76,13 +76,15 @@ class OnlineController(Policy):
 
         #Neural net options
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = True  # Set to true if network is recurrent. Turns on RNN hidden state management
-        self.nn_recurrent_plot = True  # Turn on plotting for recurrent hidden state
+        self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
+        self.restricted_context = 5  # 0 means off. Otherwise keeps a history of state, action pairs
+
+        #Other
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
-        self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
 
         self.inputs = []
         self.calculated = []
@@ -90,12 +92,12 @@ class OnlineController(Policy):
 
         if self.nn_dynamics:
             self.update_hidden_state = True
-            #netname = 'net/combined_50.pkl'
-            #netname = 'net/combined_rnn40.pkl.ff'
+            #netname = 'net/combined_100.pkl'
+            netname = 'net/rnn/robo_net15_nogear.pkl.ff'
 
             #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
             #netname = 'net/rnn/net7.pkl.ff'   # Works OKAY
-            netname = 'net/rnn/net10.pkl.ff'
+            #netname = 'net/rnn/net10.pkl.ff'
             #netname = 'net/rnn/net9.pkl.ff'
 
             if self.nn_recurrent:
@@ -330,19 +332,19 @@ class OnlineController(Policy):
         #print 'Controller Act:', elapsed
         return u
 
-    def get_logprob(self, prevx, prevu, cur_x):
+    def get_logprob(self, prevx, prevu, cur_x, sigma, mu):
         """
         Compute log-probability under empirical dynamics
         """
         pt = np.r_[prevx,prevu,cur_x]
         # Adjust gamma based on log probability under current empsig
-        empsig = self.sigma 
+        empsig = sigma 
         empsig += self.sigreg*np.eye(empsig.shape[0])
-        diff = pt-self.mu
-        try:
-            U = sp.linalg.cholesky(empsig)
-        except:
-            import pdb; pdb.set_trace()
+        diff = pt-mu
+        #try:
+        U = sp.linalg.cholesky(empsig)
+        #except:
+        #    import pdb; pdb.set_trace()
 
         logdet = 2*sum(np.log(np.diag(U))) #np.log(np.linalg.det(empsig))
         empsig_inv = sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(U.T, np.eye(empsig.shape[0]), lower=True, check_finite=False), check_finite=False)
@@ -362,7 +364,16 @@ class OnlineController(Policy):
         Update linear dynamics via moving average
         """
         if self.adaptive_gamma:
-            new_logprob = self.get_logprob(prevx, prevu, cur_x)
+            try:
+                new_logprob = self.get_logprob(prevx, prevu, cur_x, self.sigma, self.mu)
+                print 'Warning: bad logprob'
+            except:
+                new_logprob = self.adaptive_gamma_logprob
+            #F, f = self.dyn_net.getF(np.r_[prevx, prevu].astype(np.float32))
+            #nn_Phi, nnf = self.mix_nn_prior(F, f, use_least_squares=False)
+            #nn_logprob = self.get_logprob(prevx, prevu, cur_x, nn_Phi, self.mu)
+            #print 'nn_logprob:', nn_logprob
+
             if self.adaptive_gamma_logprob is not None:
                 prev_logprob = self.adaptive_gamma_logprob
 
@@ -377,9 +388,9 @@ class OnlineController(Policy):
 
                 self.gamma = min(0.1, self.gamma)
                 self.gamma = max(0.01, self.gamma)
-                self.empsig_N = (1/self.gamma)/10
+                #self.empsig_N = (1/self.gamma)/10
                 print 'New gamma:', self.gamma
-                print 'New empsig N:', self.empsig_N
+                #print 'New empsig N:', self.empsig_N
             self.adaptive_gamma_logprob = new_logprob
 
         pt = np.r_[prevx,prevu,cur_x]
@@ -996,7 +1007,7 @@ class OnlineController(Policy):
 
         sigXK = sigX.dot(nnF.T)
         nn_Phi = np.r_[np.c_[sigX, sigXK],
-                       np.c_[sigXK.T, np.zeros((dX,dX))]]
+                       np.c_[sigXK.T, nnF.dot(sigX).dot(nnF.T)+np.eye(dX)*strength  ]]
         return nn_Phi, nnf
 
     def get_forward_joint_states(self):

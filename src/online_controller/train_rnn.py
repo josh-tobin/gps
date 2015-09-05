@@ -85,13 +85,15 @@ def rnntest():
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5', 'data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
-    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+
+    #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
 
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
 
     # Randomly select a test set out of training data
-    fill_clip(clip, k=50) 
+    fill_clip(clip, k=25) 
     data, label, clip = randomize_dataset(data, label, clip)
     Ntrain = int(0.9*data.shape[0])
     test_data = data[Ntrain:]
@@ -149,7 +151,7 @@ def rnntest():
                  acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
                  loss = SquaredLoss('acc', 'lbl')
                  net = RecurrentDynamicsNetwork([norm1, ip1,ip2, ip3, acc], loss)
-        if nettype==6:
+        if nettype==6: # Bad on robot!
                  ip1 = GateV6('data_norm', 'ip1', 'clip', dx+du, 80, activation='softplus')
                  ip2 = FFIPLayer('ip1', 'ip2', 80, djnt+dee) 
                  acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
@@ -189,9 +191,27 @@ def rnntest():
             acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
             loss = SquaredLoss('acc', 'lbl')
             net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
-        if nettype==12:
+        if nettype==12: # Works on robot!! --> unstable if I train more
             ip1 = GateV7('data_norm', 'ip1', 'clip', dx+du, 50, activation='softplus')
             ip3 = FFIPLayer('ip1', 'ip3', 50, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1,ip3, acc], loss)
+        if nettype==13:
+            ip1 = GateV7('data_norm', 'ip1', 'clip', dx+du, 100, activation='softplus')
+            ip3 = FFIPLayer('ip1', 'ip3', 100, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1,ip3, acc], loss)
+        if nettype==14:  # unstable
+            ip1 = GateV8('data_norm', 'ip1', 'clip', dx+du, 100, activation='softplus')
+            ip3 = FFIPLayer('ip1', 'ip3', 100, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1,ip3, acc], loss)
+        if nettype==15:  # unstable when overtrained
+            ip1 = GateV9('data_norm', 'ip1', 'clip', dx+du, 100, activation='relu')
+            ip3 = FFIPLayer('ip1', 'ip3', 100, djnt+dee) 
             acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
             loss = SquaredLoss('acc', 'lbl')
             net = RecurrentDynamicsNetwork([norm1, ip1,ip3, acc], loss)
@@ -226,6 +246,7 @@ def rnntest():
         F, f = net.getF(perturbed_input)
         predict_taylor = (F.dot(data[idx])+f)
         target_label = label[idx]
+        import pdb; pdb.set_trace()
 
     lr = 5e-3/bsize
     lr_schedule = {

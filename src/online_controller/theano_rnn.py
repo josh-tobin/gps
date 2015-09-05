@@ -144,7 +144,10 @@ class ActivationLayer(FeedforwardLayer):
 ACTIVATION_DICT = {
     'softplus': T.nnet.softplus,
     'relu': lambda x: x*(x>0),
-    'tanh': T.tanh
+    'resqrt': lambda x: (T.sqrt(x)-1.0)*(x>1.0),
+    'relog': lambda x: (T.log(x))*(x>1.0),
+    'tanh': T.tanh,
+    'none': lambda x: x
 }
 
 class ReLULayer(ActivationLayer):
@@ -755,7 +758,7 @@ class GateV7(RecurrentLayer):
         return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.wgate_in, self.wgate_hidden, self.b, self.b_gate, self.b_reset]
 
     def to_feedforward_test(self):
-        new_layer = FFGateV6(self.input_blob, self.output_blob, self.din, self.dout, activation=self.activation)
+        new_layer = FFGateV7(self.input_blob, self.output_blob, self.din, self.dout, activation=self.activation)
         new_layer.wff.set_value(self.wff.get_value())
         new_layer.wr.set_value(self.wr.get_value())
         new_layer.wreset_in.set_value(self.wreset_in.get_value())
@@ -795,15 +798,15 @@ class FFGateV7(FF_RNNHackLayer):
         self.prev_layer = input_data[self.input_blob]
         self.prev_state = input_data[self.hidden_state_blob]
 
-        gate_value = T.nnet.sigmoid(self.wgate_in.T.dot(prev_layer)+self.wgate_hidden.T.dot(prev_state)+self.b_gate)
-        reset_value = T.nnet.sigmoid(self.wreset_in.T.dot(prev_layer)+self.wreset_hidden.T.dot(prev_state)+self.b_reset)
+        gate_value = T.nnet.sigmoid(self.prev_layer.dot(self.wgate_in)+self.prev_state.dot(self.wgate_hidden)+self.b_gate)
+        reset_value = T.nnet.sigmoid(self.prev_layer.dot(self.wreset_in)+self.prev_state.dot(self.wreset_hidden)+self.b_reset)
         new_state = self.prev_layer.dot(self.wff)+self.b + reset_value*(self.prev_state.dot(self.wr))
         if self.activation:
             output = ACTIVATION_DICT[self.activation](new_state)
         else:
             output = new_state
-        output = gate_value*output
-        return output, new_state
+        output = gate_value*output+(1-gate_value)*self.prev_state
+        return output, output
     
     def hidden_state_io_blobs(self):
         return self.hidden_state_blob, self.output_state_blob
@@ -814,13 +817,212 @@ class FFGateV7(FF_RNNHackLayer):
     def params(self):
         return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.wgate_in, self.wgate_hidden, self.b, self.b_gate, self.b_reset]
 
+
+class GateV8(RecurrentLayer):
+    def __init__(self, input_blob, output_blob, clip_blob, din, dout, activation=None):
+        super(GateV8, self).__init__(input_blob, output_blob, clip_blob)    
+        self.input_blob = input_blob
+        self.output_blob = output_blob
+        self.din = din
+        self.dout = dout
+        self.activation = activation
+
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wgatein_'+str(self.layer_id))
+        self.wgate_hidden = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wgatehidden_'+str(self.layer_id))
+        self.b_gate = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_bgate_'+str(self.layer_id))
+        self.b_reset = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_bres_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_b_'+str(self.layer_id))
+        self.state = theano.shared(np.zeros(dout).astype(np.float32), name='rnn_g_state_'+str(self.layer_id))
+
+    def forward(self, prev_layer, prev_state):
+        gate_value = T.nnet.sigmoid(self.wgate_in.T.dot(prev_layer)+self.wgate_hidden.T.dot(prev_state)+self.b_gate)
+        #reset_value = T.nnet.sigmoid(self.wreset_in.T.dot(prev_layer)+self.wreset_hidden.T.dot(prev_state)+self.b_reset)
+        new_state = self.wff.T.dot(prev_layer)+self.b+(self.wr.T.dot(prev_state))
+        if self.activation:
+            output = ACTIVATION_DICT[self.activation](new_state)
+        else:
+            output = new_state
+        output = gate_value*output+(1-gate_value)*prev_state
+        return output, output
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def set_state_value(self, state):
+        self.state.set_value(state)
+
+    def get_state_value(self):
+        return self.state.get_value()
+
+    def get_state_var(self):
+        return self.state
+
+    def params(self):
+        return [self.wff, self.wr, self.wgate_in, self.wgate_hidden, self.b, self.b_gate]
+
+    def to_feedforward_test(self):
+        new_layer = FFGateV8(self.input_blob, self.output_blob, self.din, self.dout, activation=self.activation)
+        new_layer.wff.set_value(self.wff.get_value())
+        new_layer.wr.set_value(self.wr.get_value())
+        new_layer.wgate_in.set_value(self.wgate_in.get_value())
+        new_layer.wgate_hidden.set_value(self.wgate_hidden.get_value())
+        new_layer.b_gate.set_value(self.b_gate.get_value())
+        new_layer.b.set_value(self.b.get_value())
+        return new_layer
+
+class FFGateV8(FF_RNNHackLayer):
+    """ 
+    A feedforward version of RNNIPLayer that accepts a hidden state as an input instead of storing it implicitly.
+    Used for speed reasons, since the scan implementation of recurrent layers is slow.
+    """
+    def __init__(self, input_blob, output_blob, din, dout, activation=None):
+        self.hidden_state_blob = 'ffrnn_g_hidden_'+str(np.random.randint(0,1000))
+        self.output_state_blob = self.hidden_state_blob+'_out'
+        super(FFGateV8, self).__init__([input_blob, self.hidden_state_blob], [output_blob, self.output_state_blob])    
+        self.din = din
+        self.dout = dout
+        self.input_blob = input_blob
+        self.activation = activation
+
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wgatein_'+str(self.layer_id))
+        self.wgate_hidden = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wgatehidden_'+str(self.layer_id))
+        self.b_gate = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_bgate_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_b_'+str(self.layer_id))
+
+    def forward(self, input_data):
+        self.prev_layer = input_data[self.input_blob]
+        self.prev_state = input_data[self.hidden_state_blob]
+
+        gate_value = T.nnet.sigmoid(self.prev_layer.dot(self.wgate_in)+self.prev_state.dot(self.wgate_hidden)+self.b_gate)
+        new_state = self.prev_layer.dot(self.wff)+self.b + (self.prev_state.dot(self.wr))
+        if self.activation:
+            output = ACTIVATION_DICT[self.activation](new_state)
+        else:
+            output = new_state
+        output = gate_value*output+(1-gate_value)*self.prev_state
+        return output, output
+    
+    def hidden_state_io_blobs(self):
+        return self.hidden_state_blob, self.output_state_blob
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def params(self):
+        return [self.wff, self.wr, self.wgate_in, self.wgate_hidden, self.b, self.b_gate]
+
+class GateV9(RecurrentLayer):
+    def __init__(self, input_blob, output_blob, clip_blob, din, dout, activation=None):
+        super(GateV9, self).__init__(input_blob, output_blob, clip_blob)    
+        self.input_blob = input_blob
+        self.output_blob = output_blob
+        self.din = din
+        self.dout = dout
+        self.activation = activation
+
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
+        #self.wr = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wr = theano.shared(np.eye(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wgatein_'+str(self.layer_id))
+        self.wgate_hidden = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wgatehidden_'+str(self.layer_id))
+        self.b_gate = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_bgate_'+str(self.layer_id))
+        self.b_reset = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_bres_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_b_'+str(self.layer_id))
+        self.state = theano.shared(np.zeros(dout).astype(np.float32), name='rnn_g_state_'+str(self.layer_id))
+
+    def forward(self, prev_layer, prev_state):
+        gate_value = T.nnet.sigmoid(self.wgate_in.T.dot(prev_layer)+self.wgate_hidden.T.dot(prev_state)+self.b_gate)
+        new_state = self.wff.T.dot(prev_layer)+(self.wr.T.dot(prev_state))+self.b
+        if self.activation:
+            output = ACTIVATION_DICT[self.activation](new_state)
+        else:
+            output = new_state
+        output = gate_value*output
+        return output, output
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def set_state_value(self, state):
+        self.state.set_value(state)
+
+    def get_state_value(self):
+        return self.state.get_value()
+
+    def get_state_var(self):
+        return self.state
+
+    def params(self):
+        return [self.wff, self.wr, self.wgate_in, self.wgate_hidden, self.b, self.b_gate]
+
+    def to_feedforward_test(self):
+        new_layer = FFGateV9(self.input_blob, self.output_blob, self.din, self.dout, activation=self.activation)
+        new_layer.wff.set_value(self.wff.get_value())
+        new_layer.wr.set_value(self.wr.get_value())
+        new_layer.wgate_in.set_value(self.wgate_in.get_value())
+        new_layer.wgate_hidden.set_value(self.wgate_hidden.get_value())
+        new_layer.b_gate.set_value(self.b_gate.get_value())
+        new_layer.b.set_value(self.b.get_value())
+        return new_layer
+
+class FFGateV9(FF_RNNHackLayer):
+    """ 
+    A feedforward version of RNNIPLayer that accepts a hidden state as an input instead of storing it implicitly.
+    Used for speed reasons, since the scan implementation of recurrent layers is slow.
+    """
+    def __init__(self, input_blob, output_blob, din, dout, activation=None):
+        self.hidden_state_blob = 'ffrnn_g_hidden_'+str(np.random.randint(0,1000))
+        self.output_state_blob = self.hidden_state_blob+'_out'
+        super(FFGateV9, self).__init__([input_blob, self.hidden_state_blob], [output_blob, self.output_state_blob])    
+        self.din = din
+        self.dout = dout
+        self.input_blob = input_blob
+        self.activation = activation
+
+        self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
+        self.wr = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
+        self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wgatein_'+str(self.layer_id))
+        self.wgate_hidden = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wgatehidden_'+str(self.layer_id))
+        self.b_gate = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_bgate_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='rnn_g_b_'+str(self.layer_id))
+
+    def forward(self, input_data):
+        self.prev_layer = input_data[self.input_blob]
+        self.prev_state = input_data[self.hidden_state_blob]
+
+        gate_value = T.nnet.sigmoid(self.prev_layer.dot(self.wgate_in)+self.prev_state.dot(self.wgate_hidden)+self.b_gate)
+        new_state = self.prev_layer.dot(self.wff)+self.b + (self.prev_state.dot(self.wr))
+        if self.activation:
+            output = ACTIVATION_DICT[self.activation](new_state)
+        else:
+            output = new_state
+        output = gate_value*output#+(1-gate_value)*self.prev_state
+        return output, output
+    
+    def hidden_state_io_blobs(self):
+        return self.hidden_state_blob, self.output_state_blob
+
+    def init_recurrent_state(self):
+        return np.zeros(self.dout)
+
+    def params(self):
+        return [self.wff, self.wr, self.wgate_in, self.wgate_hidden, self.b, self.b_gate]
+
 class GRULayer(RecurrentLayer):
-    def __init__(self, input_blob, output_blob, clip_blob, din, dout):
+    def __init__(self, input_blob, output_blob, clip_blob, din, dout, activation=None):
         super(GRULayer, self).__init__(input_blob, output_blob, clip_blob)    
         self.input_blob = input_blob
         self.output_blob = output_blob
         self.din = din
         self.dout = dout
+        if activation is None:
+            self.activation='tanh'
+        else:
+            self.activation=activation
         self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wff_'+str(self.layer_id))
         self.wr = theano.shared(NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='rnn_g_wr_'+str(self.layer_id))
         self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='rnn_g_wgatein_'+str(self.layer_id))
@@ -833,7 +1035,7 @@ class GRULayer(RecurrentLayer):
     def forward(self, prev_layer, prev_state):
         gate_value = T.nnet.sigmoid(self.wgate_in.T.dot(prev_layer)+self.wgate_hidden.T.dot(prev_state))
         reset_value = T.nnet.sigmoid(self.wreset_in.T.dot(prev_layer)+self.wreset_hidden.T.dot(prev_state))
-        new_state = T.tanh(self.wff.T.dot(prev_layer) + self.wr.T.dot(reset_value*prev_state) + self.b)
+        new_state = ACTIVATION_DICT[self.activation](self.wff.T.dot(prev_layer) + self.wr.T.dot(reset_value*prev_state) + self.b)
         interp = gate_value*new_state + (1-gate_value)*prev_state  # Linearly interpolate btwn new and old state
         return interp, interp
 
@@ -853,7 +1055,7 @@ class GRULayer(RecurrentLayer):
         return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.wgate_in, self.wgate_hidden, self.b]
 
     def to_feedforward_test(self):
-        new_layer = FF_GRULayer(self.input_blob, self.output_blob, self.din, self.dout)
+        new_layer = FF_GRULayer(self.input_blob, self.output_blob, self.din, self.dout, activation=None)
         new_layer.wff.set_value(self.wff.get_value())
         new_layer.wr.set_value(self.wr.get_value())
         new_layer.wgate_in.set_value(self.wgate_in.get_value())

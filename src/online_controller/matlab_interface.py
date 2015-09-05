@@ -87,7 +87,7 @@ def get_controller(matfile):
 	assert approx_equal(mu0, test_mu)
 	assert approx_equal(phi, test_phi)
 
-	with open('gear_gmm20.pkl') as f:
+	with open('nogear_gmm20.pkl') as f:
 		gmm = cPickle.load(f)
 
 	oc = OnlineController(dX, dU, dynprior, cost, maxT=T, ee_idx=ee_idx, ee_sites=eesites, use_ee_sites=site_jac,
@@ -99,7 +99,8 @@ def get_controller(matfile):
 def dyndata_init():
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
 
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
@@ -122,13 +123,14 @@ def newgmm():
     logging.basicConfig(level=logging.DEBUG)
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'], remove_ft=True)
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
-    train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_gear.hdf5'])
+    #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_gear.hdf5'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
 
-    xux = np.c_[train_dat, train_lbl]
+    xux = np.c_[train_data, train_lbl]
     print xux.shape
     gmm = GMM()
-    gmm.update(xux, 20)
-    with open('gear_gmm20.pkl', 'w') as f:
+    gmm.update(xux, 20, max_iterations=5)
+    with open('nogear_gmm20.pkl', 'w') as f:
     	cPickle.dump(gmm, f)
 
 

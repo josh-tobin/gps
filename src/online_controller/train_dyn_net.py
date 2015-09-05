@@ -157,7 +157,8 @@ def train_dyn_rec():
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
     #data_in, data_out, test_data, test_lbl = get_data(['dyndata_armwave_all'], ['dyndata_plane_nopu'], remove_ft=True, remove_prevu=True)
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5'])
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_car.hdf5', 'data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5'])
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
     #test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_plane_expr_nopu2.hdf5')
@@ -195,7 +196,8 @@ def train_dyn_rec():
         # Acceleration Net
         #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
         #layers = [norm1, FFIPLayer(dX+dU, 200), DropoutLayer(200, p=0.5), ReLULayer, FFIPLayer(200,100), DropoutLayer(100, p=0.5), ReLULayer, FFIPLayer(100, 16), AccelLayer()] 
-        layers = [norm1, FFIPLayer(dX+dU, 50), SoftPlusLayer, FFIPLayer(50, 16), AccelLayer()] 
+        #layers = [norm1, FFIPLayer(dX+dU, 50), SoftPlusLayer, FFIPLayer(50, 16), AccelLayer()] 
+        layers = [norm1, FFIPLayer(dX+dU, 100), SoftPlusLayer, FFIPLayer(100, 50), SoftPlusLayer, FFIPLayer(50, 16) , AccelLayer()] 
 
         # Gated net
         #layers = [
@@ -227,7 +229,7 @@ def train_dyn_rec():
         import pdb; pdb.set_trace()
 
     bsize = 50
-    lr = 5e-2/bsize
+    lr = 8e-2/bsize
     lr_schedule = {
             1000000: 0.2,
             2000000: 0.2,
