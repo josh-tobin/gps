@@ -83,15 +83,15 @@ def rnntest():
 
     #data, label, clip = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
-    data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5', 'data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5'])
+    #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5', 'data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
-    #data, label, clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
 
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
 
     # Randomly select a test set out of training data
-    fill_clip(clip, k=10) 
+    fill_clip(clip, k=50) 
     data, label, clip = randomize_dataset(data, label, clip)
     Ntrain = int(0.9*data.shape[0])
     test_data = data[Ntrain:]
@@ -105,7 +105,7 @@ def rnntest():
     N = data.shape[0]
 
     djnt = 7
-    dee = 6
+    dee = 9
     dx = 2*dee+2*djnt+0
     du = djnt
 
@@ -119,38 +119,82 @@ def rnntest():
         norm1.generate_weights(data)
 
         #"""
+        """
         if nettype==1:
-            #ip1 = RNNIPLayer('data', 'ip1', 'clip', dx+du, 100, activation='tanh') 
-            ip1 = GRULayer('data_norm', 'ip1', 'clip', dx+du, 100)
-            drop1 = DropoutLayer('ip1', 'drop1', 100)
-            ip2 = GRULayer('drop1', 'ip2', 'clip', 100, 50)
-            ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee) 
-            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
-            loss = SquaredLoss('acc', 'lbl')
-            net = RecurrentDynamicsNetwork([norm1, ip1, drop1, ip2, ip3, acc], loss)
-            #"""
-        if nettype==2:
-            ip1 = SimpGateLayer('data_norm', 'ip1', 'clip', dx+du, 50)
-            ip2 = SimpGateLayer('ip1', 'ip2', 'clip', 50, 30)
-            ip3 = FFIPLayer('ip2', 'ip3', 30, djnt+dee) 
-            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
-            loss = SquaredLoss('acc', 'lbl')
-            net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
-        if nettype==3:
             ip1 = GRULayer('data_norm', 'ip1', 'clip', dx+du, 80)
-            ip2 = GRULayer('drop1', 'ip2', 'clip', 80, 30)
-            ip3 = FFIPLayer('ip2', 'ip3', 30, djnt+dee) 
+            ip2 = GRULayer('ip1', 'ip2', 'clip', 80, 40)
+            ip3 = FFIPLayer('ip2', 'ip3', 40, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1, ip2, ip3, acc], loss)
+        """
+        if nettype==2:  # Try on robot
+            ip1 = GateV2('data_norm', 'ip1', 'clip', dx+du, 100, activation='relu')
+            ip2 = GateV2('ip1', 'ip2', 'clip', 100, 50, activation='relu')
+            ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee) 
             acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
             loss = SquaredLoss('acc', 'lbl')
             net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
         if nettype==4:
-            ip1 = RNNIPLayer('data_norm', 'ip1', 'clip', dx+du, 100, activation='tanh')
-            ip2 = RNNIPLayer('ip1', 'ip2', 'clip', 100, 30, activation='tanh')
-            ip3 = FFIPLayer('ip2', 'ip3', 30, djnt+dee) 
+            ip1 = GateV6('data_norm', 'ip1', 'clip', dx+du, 100, activation='relu')
+            ip2 = GateV6('ip1', 'ip2', 'clip', 100, 50, activation='relu')
+            ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee) 
             acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
             loss = SquaredLoss('acc', 'lbl')
             net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
-
+        if nettype==5:  # DOesn't work
+                 ip1 = GateV6('data_norm', 'ip1', 'clip', dx+du, 50, activation='relu')
+                 ip2 = GateV6('ip1', 'ip2', 'clip', 50, 50, activation='relu')
+                 ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee) 
+                 acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+                 loss = SquaredLoss('acc', 'lbl')
+                 net = RecurrentDynamicsNetwork([norm1, ip1,ip2, ip3, acc], loss)
+        if nettype==6:
+                 ip1 = GateV6('data_norm', 'ip1', 'clip', dx+du, 80, activation='softplus')
+                 ip2 = FFIPLayer('ip1', 'ip2', 80, djnt+dee) 
+                 acc = AccelLayer('data', 'ip2', 'acc', djnt, dee, du)
+                 loss = SquaredLoss('acc', 'lbl')
+                 net = RecurrentDynamicsNetwork([norm1, ip1,ip2, acc], loss)
+        if nettype==7:
+                 ip1 = GateV5('data_norm', 'ip1', 'clip', dx+du, 100, activation='softplus')
+                 ip2 = GateV5('ip1', 'ip2', 'clip', 100, 50, activation='softplus')
+                 ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee)
+                 acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+                 loss = SquaredLoss('acc', 'lbl')
+                 net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
+        if nettype==8:
+                 ip1 = GateV5('data_norm', 'ip1', 'clip', dx+du, 50, activation='softplus')
+                 ip2 = GateV5('ip1', 'ip2', 'clip', 50, 50, activation='softplus')
+                 ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee)
+                 acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+                 loss = SquaredLoss('acc', 'lbl')
+                 net = RecurrentDynamicsNetwork([norm1, ip1,ip2, ip3,acc], loss)
+        if nettype==9:
+                 ip1 = GateV5('data_norm', 'ip1', 'clip', dx+du, 50, activation='softplus')
+                 ip2 = GateV5('ip1', 'ip3', 'clip', 50, djnt+dee, activation=None)
+                 acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+                 loss = SquaredLoss('acc', 'lbl')
+                 net = RecurrentDynamicsNetwork([norm1, ip1,ip2, acc], loss)
+        if nettype==10: # Doesn't work
+            ip1 = GateV7('data_norm', 'ip1', 'clip', dx+du, 80, activation='softplus')
+            ip2 = GateV7('ip1', 'ip2', 'clip', 80, 50, activation='softplus')
+            ip3 = FFIPLayer('ip2', 'ip3', 50, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
+        if nettype==11:# Doesn't work
+            ip1 = GateV7('data_norm', 'ip1', 'clip', dx+du, 50, activation='softplus')
+            ip2 = GateV7('ip1', 'ip2', 'clip', 50, 40, activation='softplus')
+            ip3 = FFIPLayer('ip2', 'ip3', 40, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1,ip2,ip3, acc], loss)
+        if nettype==12:
+            ip1 = GateV7('data_norm', 'ip1', 'clip', dx+du, 50, activation='softplus')
+            ip3 = FFIPLayer('ip1', 'ip3', 50, djnt+dee) 
+            acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+            loss = SquaredLoss('acc', 'lbl')
+            net = RecurrentDynamicsNetwork([norm1, ip1,ip3, acc], loss)
         """
         ip1 = RNNIPLayer('data_norm', 'ip1', 'clip', dx+du, 40, activation='tanh')
         ip2 = FFIPLayer('ip1', 'ip2', 40, djnt+dee)
@@ -182,15 +226,13 @@ def rnntest():
         F, f = net.getF(perturbed_input)
         predict_taylor = (F.dot(data[idx])+f)
         target_label = label[idx]
-        #import pdb; pdb.set_trace()
 
-    lr = 5e-2/bsize
+    lr = 5e-3/bsize
     lr_schedule = {
-        1000000: 0.2,
-        2000000: 0.2,
+        500000: 0.2,
     }
     epochs = 0
-    for i in range(3*1000*1000):
+    for i in range(1000*1000):
         bstart = i*bsize % N
         bend = (i+1)*bsize % N
         if bend < bstart:
@@ -210,7 +252,7 @@ def rnntest():
             print 'LR=', lr, ' // Train:',i, objval
             sys.stdout.flush()
             #import pdb; pdb.set_trace()
-        if i % 30000 == 0:
+        if i % 10000 == 0:
             if i>0:
                 net.pickle(fname)
                 ffnet = net.to_feedforward_test()

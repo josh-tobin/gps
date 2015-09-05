@@ -206,7 +206,7 @@ def run_online(T, controllerfile, condition=0, verbose=True, savedata=False):
     clip[0] = 0.0
 
     mkdirp(os.path.join(THIS_FILE_DIR, 'data'))
-    dynmat_file = os.path.join(THIS_FILE_DIR, 'data', 'dyndata_mjc_expr2.mat')
+    dynmat_file = os.path.join(THIS_FILE_DIR, 'data', 'dyndata_mjc_expr3.mat')
     try:
         dynmat = scipy.io.loadmat(dynmat_file)
         dynmat['data'] = np.concatenate([dynmat['data'], xu])

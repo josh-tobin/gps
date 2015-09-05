@@ -45,6 +45,7 @@ class OnlineController(Policy):
         self.noise = None
         self.rnn_hidden_state = None
         self.adaptive_gamma_logprob = None
+        self.restricted_context_list = []
         self.offline_K = offline_K
         self.offline_k = offline_k
 
@@ -74,23 +75,28 @@ class OnlineController(Policy):
         self.fit_prior_residuals = False
 
         #Neural net options
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
-        self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
-        self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
+        self.nn_recurrent = True  # Set to true if network is recurrent. Turns on RNN hidden state management
+        self.nn_recurrent_plot = True  # Turn on plotting for recurrent hidden state
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
+        self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
 
         self.inputs = []
         self.calculated = []
         self.fwd_hist = [{} for _ in range(self.maxT)]
 
         if self.nn_dynamics:
-            netname = 'net/combined_50.pkl'
+            self.update_hidden_state = True
+            #netname = 'net/combined_50.pkl'
             #netname = 'net/combined_rnn40.pkl.ff'
 
-            #netname = 'net/mjc_rnnip.pkl.ff'
+            #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
+            #netname = 'net/rnn/net7.pkl.ff'   # Works OKAY
+            netname = 'net/rnn/net10.pkl.ff'
+            #netname = 'net/rnn/net9.pkl.ff'
 
             if self.nn_recurrent:
                 self.dyn_net = theano_rnn.unpickle_net(netname)
@@ -99,10 +105,12 @@ class OnlineController(Policy):
                 self.rnn_hidden_state = self.dyn_net.get_init_hidden_state()
 
                 if self.nn_recurrent_plot:
-                    gph1 = nnvis.ImagePlot(100, name='hidden1')
-                    gph2 = nnvis.ImagePlot(30, name='hidden1')
-                    #gph3 = nnvis.GraphPlot(13, -10, 10, name='acc')
-                    self.nn_vis = nnvis.NNVis([gph1, gph2], 100)
+                    #gph1 = nnvis.ImagePlot(80, name='hidden1')
+                    #gph2 = nnvis.ImagePlot(40, name='hidden1')
+                    gphs = []
+                    for state in self.rnn_hidden_state:
+                        gphs.append(nnvis.GraphPlot(state.shape[0], -5, 20, name='hidden2'))
+                    self.nn_vis = nnvis.NNVis(gphs, 100)
             else:
                 self.dyn_net = theano_dynamics.get_net(netname, rec=True, dX=self.dX, dU=self.dU)
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
@@ -129,6 +137,8 @@ class OnlineController(Policy):
 
         dX = self.dX 
         dU = self.dU
+        if self.restricted_context>0:
+            self.restricted_context_list.append(np.r_[prevx, prevu].astype(np.float32))
         #gamma = self.gamma
         self.prevX = prevx
         self.prevU = prevu
@@ -261,6 +271,8 @@ class OnlineController(Policy):
 
             self.prevU = U;
             self.prevX = x;
+            if self.restricted_context:
+                self.restricted_context_list.append(np.r_[x, U].astype(np.float32))
 
             self.prev_policy = LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig, cache_kldiv_info=True)
 
@@ -307,6 +319,8 @@ class OnlineController(Policy):
 
         self.prevX = x
         self.prevU = u
+        if self.restricted_context > 0:
+            self.restricted_context_list.append(np.r_[x, u].astype(np.float32))
 
         if self.nn_dynamics:
             xu = np.r_[x, u].astype(np.float32)
@@ -398,10 +412,19 @@ class OnlineController(Policy):
         lbl = cur_x
         #self.empsig_N += 0.01
         if self.nn_recurrent:
-            predicted_x, self.rnn_hidden_state = self.dyn_net.fwd_single(pt, self.rnn_hidden_state)
+            if self.restricted_context > 0:
+                self.restricted_context_list = self.restricted_context_list[-self.restricted_context:]
+                hidden = self.dyn_net.get_init_hidden_state()
+                for context in self.restricted_context_list:
+                    predicted_x, hidden = self.dyn_net.fwd_single(context,hidden)
+                pass
+            else:
+                predicted_x, hidden = self.dyn_net.fwd_single(pt, self.rnn_hidden_state)
             #print self.rnn_hidden_state
+            if self.update_hidden_state:
+                self.rnn_hidden_state = hidden
             if self.nn_recurrent_plot:
-                self.nn_vis.update(self.rnn_hidden_state)
+                self.nn_vis.update(hidden)
             diff = cur_x-predicted_x
             print 'RNN Loss:', diff.T.dot(diff)
         else:

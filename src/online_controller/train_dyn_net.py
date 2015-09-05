@@ -255,7 +255,7 @@ def train_dyn_rec():
         if i % 2000 == 0:
             print 'LR=', lr, ' // Train:',i, objval
             sys.stdout.flush()
-        if i % 50000 == 0:
+        if i % 20000 == 0:
             if i>0:
                 with open(fname, 'w') as pklfile:
                     cPickle.dump(net.layers, pklfile)
