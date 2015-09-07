@@ -1055,7 +1055,7 @@ class GRULayer(RecurrentLayer):
         return [self.wff, self.wr, self.wreset_in, self.wreset_hidden, self.wgate_in, self.wgate_hidden, self.b]
 
     def to_feedforward_test(self):
-        new_layer = FF_GRULayer(self.input_blob, self.output_blob, self.din, self.dout, activation=None)
+        new_layer = FF_GRULayer(self.input_blob, self.output_blob, self.din, self.dout, activation=self.activation)
         new_layer.wff.set_value(self.wff.get_value())
         new_layer.wr.set_value(self.wr.get_value())
         new_layer.wgate_in.set_value(self.wgate_in.get_value())
@@ -1074,7 +1074,7 @@ class FF_GRULayer(FF_RNNHackLayer):
     Used for speed reasons, since the scan implementation of recurrent layers is slow.
     """
     n_instances = 0
-    def __init__(self, input_blob, output_blob, din, dout):
+    def __init__(self, input_blob, output_blob, din, dout, activation=None):
         FF_GRULayer.n_instances += 1
         self.ffrnn_layer_id = FF_GRULayer.n_instances
         self.hidden_state_blob = 'ffrnn_g_hidden_'+str(self.ffrnn_layer_id)
@@ -1083,6 +1083,7 @@ class FF_GRULayer(FF_RNNHackLayer):
         self.din = din
         self.dout = dout
         self.input_blob = input_blob
+        self.activation = activation
         self.wff = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wff_'+str(self.layer_id))
         self.wr = theano.shared(0.1*NN_INIT_WT*np.random.randn(dout, dout).astype(np.float32), name='ffrnn_g_wr_'+str(self.layer_id))
         self.wgate_in = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ffrnn_g_wgatein_'+str(self.layer_id))
@@ -1098,7 +1099,7 @@ class FF_GRULayer(FF_RNNHackLayer):
 
         gate_value = T.nnet.sigmoid(prev_layer.dot(self.wgate_in)+prev_state.dot(self.wgate_hidden))
         reset_value = T.nnet.sigmoid(prev_layer.dot(self.wreset_in)+prev_state.dot(self.wreset_hidden))
-        new_state = T.tanh(prev_layer.dot(self.wff) + (reset_value*prev_state).dot(self.wr) + self.b)
+        new_state = ACTIVATION_DICT[self.activation](prev_layer.dot(self.wff) + (reset_value*prev_state).dot(self.wr) + self.b)
         interp = gate_value*new_state + (1-gate_value)*prev_state  # Linearly interpolate btwn new and old state
 
         return interp, interp
@@ -1217,7 +1218,14 @@ class AccelLayer(FeedforwardLayer):
     def params(self):
         return []
 
-class SquaredLoss(object):
+class Loss(object):
+    def __init__(self):
+        pass
+    def forward_batch(self, batch):
+        raise NotImplementedError()
+
+
+class SquaredLoss(Loss):
     def __init__(self, predict_blob, lbl_blob, wt=None):
         super(SquaredLoss, self).__init__()
         self.wt = wt
@@ -1235,9 +1243,51 @@ class SquaredLoss(object):
         lbl = batch.get_data(self.lbl_blob)
         pred = batch.get_data(self.predict_blob)
         obj = self.loss(lbl, pred)
-        return obj
+        return obj, []
 
-def train_gd_rmsprop(obj, params, args, updates=None, eps=1e-6, weight_decay=0.0):
+class JacobianRegularization(Loss):
+    def __init__(self, pred_blob, data_blob, wt=1.0, batch_size=50):
+        super(JacobianRegularization, self).__init__()
+        self.wt = wt
+        self.pred_blob = pred_blob
+        self.data_blob = data_blob
+        self.batch_size = batch_size
+
+    def loss(self, labels, data):
+
+        """
+        loss_val = theano.shared(0, name='loss_val')
+
+        def jac_scanfn(single_label, prev_result):
+            jacobian = theano.gradient.jacobian(single_label, data)
+            frob_norm = T.sum(jacobian*jacobian)
+            return prev_result+frob_norm
+
+        import pdb; pdb.set_trace()
+        # Symbolic description of the result
+        result, updates = theano.scan(fn=jac_scanfn,
+                                      outputs_info=loss_val,
+                                      sequences=[labels],
+                                      n_steps=labels.shape[0])
+        loss = result[-1]
+        return self.wt*loss, updates
+        """
+        total_loss = 0
+        for i in range(self.batch_size):
+            jacobian = theano.gradient.jacobian(labels[i], data)
+            frob_norm = T.sum(jacobian*jacobian)
+            total_loss = frob_norm+total_loss
+        return total_loss, []
+
+    def forward_batch(self, batch):
+        pred = batch.get_data(self.pred_blob)
+        data = batch.get_data(self.data_blob)
+        obj, updates = self.loss(pred, data)
+        return obj, updates
+
+def train_gd_rmsprop(obj, params, args, extra_outputs=None, updates=None, eps=1e-6, weight_decay=0.0):
+    if extra_outputs is None:
+        extra_outputs=[]
     gradients = T.grad(obj, params)
     eta = T.scalar('lr')
     rho = T.scalar('rho')
@@ -1258,9 +1308,10 @@ def train_gd_rmsprop(obj, params, args, updates=None, eps=1e-6, weight_decay=0.0
         updates.append((params[i], gpu_host(params[i]-(eta)*updated_gradient)))
         updates.append((momentums[i], gpu_host(updated_gradient)))
 
+
     train = theano.function(
         inputs=args+[eta, rho, momentum],
-        outputs=[obj],
+        outputs=[obj]+extra_outputs,
         updates=updates,
         on_unused_input='warn'
     )
@@ -1307,8 +1358,21 @@ class Network(object):
         updates = []
         for layer in self.layers:
             updates.extend(list(layer.forward_batch(batch)))
-        obj = self.loss.forward_batch(batch)
+
+        if isinstance(self.loss, Loss):
+            obj, new_updates = self.loss.forward_batch(batch)
+            updates.extend(new_updates)
+        else: #Assume list
+            obj, new_updates = self.loss[0].forward_batch(batch)
+            updates.extend(new_updates)
+            for i in range(1,len(self.loss)):
+                tmp_obj, new_updates = self.loss[i].forward_batch(batch)
+                updates.extend(new_updates)
+                obj += tmp_obj
         return obj, updates
+
+    def varname_to_symbolic(self, varname):
+        return [self.batch.get_data(var) for var in varname]
 
     def set_net_inputs(self, inputs):
         self.inputs = inputs
@@ -1431,10 +1495,11 @@ class RecurrentTestNetwork(Network):
         super(RecurrentTestNetwork, self).__init__(layers, loss)
         self.hidden_state_plot = None
 
-    def init_functions(self, output_blob='rnn_out'):
+    def init_functions(self, output_blob='rnn_out', weight_decay=0.0):
         hidden_state_blobs = []
         hidden_state_vars = []
         hidden_state_outputs = []
+        hidden_state_output_vars = []
         for layer in self.layers:
             if isinstance(layer, FF_RNNHackLayer):
                 hidden_in, hidden_out = layer.hidden_state_io_blobs()
@@ -1446,9 +1511,22 @@ class RecurrentTestNetwork(Network):
         obj, updates = self.symbolic_forward()
         #self.train_gd = self.get_train_function(obj, updates)
         self.total_obj = self.get_loss_function(obj)
+        grad_inputs = self.varname_to_symbolic(['data', 'lbl'])+hidden_state_vars
+        self.train_gd = train_gd_rmsprop(obj, self.params, grad_inputs, extra_outputs=self.varname_to_symbolic([output_blob]+hidden_state_outputs) ,weight_decay=weight_decay, updates=updates)
 
         self.__rnn_out_fn = self.get_output_and_state([output_blob]+hidden_state_outputs, inputs=['data']+hidden_state_blobs, updates=updates)
         self.__jac = self.get_jac(output_blob, 'data', inputs=['data']+hidden_state_blobs)
+
+    def train_gd_step(self, data, lbl, hidden_state, lr=1e-4, momentum=0.9, rho=0.9):
+        data_pnt_exp = np.expand_dims(data, axis=0).astype(np.float32)
+        label_exp = np.expand_dims(lbl, axis=0).astype(np.float32)
+        net_outs = self.train_gd(*([data_pnt_exp, label_exp]+hidden_state+[lr, rho, momentum]))
+        objective_val = net_outs[0]
+        new_state = net_outs[1][0]
+        new_hidden = net_outs[2:]
+        for i in range(len(hidden_state)):
+            new_hidden[i] = new_hidden[i][0]
+        return objective_val, new_state, new_hidden
 
     def getF(self, data_pnt, hidden_state=None):
         if hidden_state is None:

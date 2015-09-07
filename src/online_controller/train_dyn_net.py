@@ -145,7 +145,7 @@ def merge_datasets():
     pass
 
 def train_dyn_rec():
-    np.random.seed(123)
+    #np.random.seed(123)
     fname = os.path.join(NET_DIR, '%s.pkl' % sys.argv[1])
     #np.random.seed(10)
     np.set_printoptions(suppress=True)
@@ -158,7 +158,9 @@ def train_dyn_rec():
     #data_in, data_out, test_data, test_lbl = get_data(['dyndata_armwave_all'], ['dyndata_plane_nopu'], remove_ft=True, remove_prevu=True)
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5'])
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_block.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_car.hdf5', 'data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5'])
     train_X, train_U, train_tgt = NNetRecursive.prepare_data(train_data, train_lbl, train_clip, dX, dU, T)
     #test_data, test_lbl, test_clip = get_data_hdf5('data/dyndata_plane_expr_nopu2.hdf5')
@@ -197,7 +199,9 @@ def train_dyn_rec():
         #layers = [norm1, FFIPLayer(dX+dU, 80), SoftPlusLayer, DropoutLayer(80, p=0.75), FFIPLayer(80,80), SoftPlusLayer, DropoutLayer(80, p=0.5), FFIPLayer(80, 16), AccelLayer()] 
         #layers = [norm1, FFIPLayer(dX+dU, 200), DropoutLayer(200, p=0.5), ReLULayer, FFIPLayer(200,100), DropoutLayer(100, p=0.5), ReLULayer, FFIPLayer(100, 16), AccelLayer()] 
         #layers = [norm1, FFIPLayer(dX+dU, 50), SoftPlusLayer, FFIPLayer(50, 16), AccelLayer()] 
-        layers = [norm1, FFIPLayer(dX+dU, 100), SoftPlusLayer, FFIPLayer(100, 50), SoftPlusLayer, FFIPLayer(50, 16) , AccelLayer()] 
+        #layers = [norm1, FFIPLayer(dX+dU, 100), SoftPlusLayer, FFIPLayer(100, 50), SoftPlusLayer, FFIPLayer(50, 16) , AccelLayer()] 
+        #layers = [norm1, FFIPLayer(dX+dU, 50), SoftPlusLayer, FFIPLayer(50, 30), SoftPlusLayer, FFIPLayer(30, 16) , AccelLayer()] 
+        layers = [norm1, FFIPLayer(dX+dU, 100), ReLULayer, FFIPLayer(100, 16) , AccelLayer()] 
 
         # Gated net
         #layers = [
@@ -217,7 +221,7 @@ def train_dyn_rec():
     #layers[0].b.set_value(fv)
     """
 
-    net = NNetRecursive(dX, dU, T, layers, weight_decay=1e-5)
+    net = NNetRecursive(dX, dU, T, layers, weight_decay=1e-4)
 
     for i in [25]:
         x = train_X[i]
@@ -231,9 +235,9 @@ def train_dyn_rec():
     bsize = 50
     lr = 8e-2/bsize
     lr_schedule = {
-            1000000: 0.2,
-            2000000: 0.2,
-            4000000: 0.2,
+            100000: 0.2,
+            200000: 0.2,
+            400000: 0.2,
             }
 
     epochs = 0
@@ -259,6 +263,7 @@ def train_dyn_rec():
             sys.stdout.flush()
         if i % 20000 == 0:
             if i>0:
+                #net.make_sigma_x(train_X, train_U, train_tgt)
                 with open(fname, 'w') as pklfile:
                     cPickle.dump(net.layers, pklfile)
             total_err = net.obj(train_X, train_U, train_tgt)

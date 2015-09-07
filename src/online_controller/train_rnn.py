@@ -73,27 +73,20 @@ def randomize_dataset(data, label, clip):
             cur_clip = clip[idx]
     return output_data, output_label, output_clip
 
-
-def rnntest():
-    np.random.seed(123)
-    #fname = 'net/rnn_plane.pkl'
-    fname = sys.argv[1] #'net/gear_rnn.pkl'
-    nettype = int(sys.argv[2]) #'net/gear_rnn.pkl'
-    logging.basicConfig(level=logging.DEBUG)
-
+def prep_data():
     #data, label, clip = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5','data/dyndata_armwave_lqrtask.hdf5','data/dyndata_armwave_all.hdf5.test'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
-    #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5', 'data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
+    data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5', 'data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
 
     #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
 
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
 
     # Randomly select a test set out of training data
-    fill_clip(clip, k=25) 
+    #fill_clip(clip, k=25) 
     data, label, clip = randomize_dataset(data, label, clip)
     Ntrain = int(0.9*data.shape[0])
     test_data = data[Ntrain:]
@@ -102,12 +95,115 @@ def rnntest():
     data = data[:Ntrain]
     label = label[:Ntrain]
     clip = clip[:Ntrain]
+    return data, label, clip, test_data, test_label, test_clip
 
+def train_rnn_step():
+    np.random.seed(123)
+    #fname = 'net/rnn_plane.pkl'
+    fname = sys.argv[1] #'net/gear_rnn.pkl'
+    logging.basicConfig(level=logging.DEBUG)
+
+    data, label, clip, test_data, test_label, test_clip = prep_data()
+    fill_clip(clip, k=3)
     bsize = 50
     N = data.shape[0]
 
     djnt = 7
-    dee = 9
+    dee = 6
+    dx = 2*dee+2*djnt+0
+    du = djnt
+
+    try:
+        net = unpickle_net(fname)
+        #ffnet = net.to_feedforward_test()
+        #ffnet.pickle(fname+'.ff')
+    except IOError as e:
+        print "Making new net!"
+        norm1 = NormalizeLayer('data', 'data_norm')
+        norm1.generate_weights(data)
+
+        ip1 = GateV9('data_norm', 'ip1', 'clip', dx+du, 100, activation='relu')
+        ip3 = FFIPLayer('ip1', 'ip3', 100, djnt+dee) 
+        acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+        loss = SquaredLoss('acc', 'lbl')
+        rnet = RecurrentDynamicsNetwork([norm1, ip1,ip3, acc], loss)
+        net = rnet.to_feedforward_test()
+
+    net.init_functions(output_blob='acc', weight_decay=1e-5)
+    """
+    net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
+    obj, updates = net.symbolic_forward()
+    train_gd = net.get_train_function(obj, updates)
+    total_obj = net.get_loss_function(obj, updates)
+    rnn_out = net.get_loss_function(batch.get_data('acc'), updates)
+    """
+    for idx in [0]:
+        #pred_net =  net.fwd_single(data[idx])
+        perturbed_input = data[idx] + 0.01*np.random.randn(dx+du).astype(np.float32)
+        F, f, state= net.getF(perturbed_input)
+        predict_taylor = (F.dot(data[idx])+f)
+        target_label = label[idx]
+        import pdb; pdb.set_trace()
+
+    lr = 1e-3/bsize
+    lr_schedule = {
+        500000: 0.2,
+    }
+    epochs = 0
+
+    hidden = net.get_init_hidden_state()
+    for i in range(1000*1000):
+        bstart = i*bsize % N
+        bend = (i+1)*bsize % N
+        if bend < bstart:
+            epochs += 1
+            data, label, clip = randomize_dataset(data, label, clip)
+            continue
+        _data = data[bstart:bend]
+        _label = label[bstart:bend]
+        _clip = clip[bstart:bend]
+        net.update(stage=STAGE_TRAIN)
+
+        total_obj = 0
+        for j in range(bsize):
+            if _clip[j] == 0:
+                hidden = net.get_init_hidden_state()
+                next_state_action = _data[j]
+            objval, next_state, hidden = net.train_gd_step(next_state_action, _label[j], hidden, lr=lr, rho=0.9, momentum=0.99)
+            next_state_action = np.r_[next_state, _data[j,dx:dx+du]]
+            total_obj += objval
+
+        if i in lr_schedule:
+            lr *= lr_schedule[i]
+        if i % 200 == 0:
+            print 'LR=', lr, ' // Train:',i, total_obj/bsize
+            sys.stdout.flush()
+            #import pdb; pdb.set_trace()
+        if i % 5000 == 0:
+            if i>0:
+                net.pickle(fname)
+                #ffnet = net.to_feedforward_test()
+                #ffnet.pickle(fname+'.ff')
+            #total_err = net.total_obj(data, label, clip)
+            #print 'Total train error:', total_err
+            #total_err = net.total_obj(test_data, test_label, test_clip)
+            #print 'Total test error:', total_err
+
+def rnntest():
+    np.random.seed(123)
+    #fname = 'net/rnn_plane.pkl'
+    fname = sys.argv[1] #'net/gear_rnn.pkl'
+    nettype = int(sys.argv[2]) #'net/gear_rnn.pkl'
+    logging.basicConfig(level=logging.DEBUG)
+
+    data, label, clip, test_data, test_label, test_clip = prep_data()
+    fill_clip(clip, k=5)
+    fill_clip(test_clip, k=5)
+    bsize = 50
+    N = data.shape[0]
+
+    djnt = 7
+    dee = 6
     dx = 2*dee+2*djnt+0
     du = djnt
 
@@ -232,7 +328,7 @@ def rnntest():
         net = RecurrentDynamicsNetwork([ip1, act1, ip2, acc], loss)
         """
 
-    net.init_functions(output_blob='acc', weight_decay=1e-5, train_algo='rmsprop')
+    net.init_functions(output_blob='acc', weight_decay=5e-4, train_algo='rmsprop')
     """
     net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
     obj, updates = net.symbolic_forward()
@@ -246,11 +342,10 @@ def rnntest():
         F, f = net.getF(perturbed_input)
         predict_taylor = (F.dot(data[idx])+f)
         target_label = label[idx]
-        import pdb; pdb.set_trace()
 
-    lr = 5e-3/bsize
+    lr = 1e-3/bsize
     lr_schedule = {
-        500000: 0.2,
+        200000: 0.2,
     }
     epochs = 0
     for i in range(1000*1000):
@@ -265,7 +360,7 @@ def rnntest():
         _label = label[bstart:bend]
         _clip = clip[bstart:bend]
         net.update(stage=STAGE_TRAIN)
-        objval = net.train_gd(_data, _label, _clip, lr, 0.9, 0.9)
+        objval = net.train_gd(_data, _label, _clip, lr, 0.9, 0.0)
 
         if i in lr_schedule:
             lr *= lr_schedule[i]
@@ -285,3 +380,4 @@ def rnntest():
 
 if __name__ == "__main__":
     rnntest()
+    #train_rnn_step()

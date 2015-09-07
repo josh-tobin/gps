@@ -27,7 +27,7 @@ class OnlineController(Policy):
         self.use_ee_sites = use_ee_sites
         self.jac_service = jac_service
         self.dyn_init_mu = dyn_init_mu
-        self.dyn_init_sig = dyn_init_sig/100 + 1e-5*np.eye(dX+dU+dX)
+        self.dyn_init_sig = dyn_init_sig/500 + 1e-5*np.eye(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
@@ -50,7 +50,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 15 # Horizon
+        self.H = 17 # Horizon
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -62,12 +62,12 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.04 # Noise to add
+        self.u_noise = 0.02 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
-        self.gamma = 0.05  # Moving average parameter
-        self.empsig_N = 1 # Weight of least squares vs GMM/NN prior
+        self.gamma = 0.00  # Moving average parameter
+        self.empsig_N = 0.001 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = True
         self.use_prior_dyn = False
@@ -76,12 +76,13 @@ class OnlineController(Policy):
 
         #Neural net options
         self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_prior_strength = 100.0
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
-        self.nn_recurrent = True  # Set to true if network is recurrent. Turns on RNN hidden state management
+        self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
         self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
-        self.restricted_context = 5  # 0 means off. Otherwise keeps a history of state, action pairs
+        self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
 
         #Other
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
@@ -93,12 +94,15 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             self.update_hidden_state = True
             #netname = 'net/combined_100.pkl'
-            netname = 'net/rnn/robo_net15_nogear.pkl.ff'
+            #netname = 'net/combined_50_30_nowkbench.pkl'
+            #netname = 'net/combined_50_30_halfworkbench.pkl'
+            netname = 'net/combined_100_nowkbench.pkl'
+            #netname = 'net/rnn/robo_net15_nogear.pkl.ff'
 
             #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
             #netname = 'net/rnn/net7.pkl.ff'   # Works OKAY
             #netname = 'net/rnn/net10.pkl.ff'
-            #netname = 'net/rnn/net9.pkl.ff'
+            #netname = 'net/rnn/net15.pkl.ff'
 
             if self.nn_recurrent:
                 self.dyn_net = theano_rnn.unpickle_net(netname)
@@ -214,6 +218,7 @@ class OnlineController(Policy):
                 newk[i-t] = self.offline_k[i]
 
             u = self.offline_K[t].dot(x)+self.offline_k[t]  
+            print 'CopyTrajU:', u
             self.rviz_traj[t] = np.r_[x, u]
             return LinearGaussianPolicy(newK, newk, None, None, None)
 
@@ -363,15 +368,17 @@ class OnlineController(Policy):
         """
         Update linear dynamics via moving average
         """
+
+        xu = np.r_[prevx, prevu].astype(np.float32)
         if self.adaptive_gamma:
             try:
                 new_logprob = self.get_logprob(prevx, prevu, cur_x, self.sigma, self.mu)
-                print 'Warning: bad logprob'
-            except:
+            except Exception as e:
+                print 'Warning: bad logprob: ', e
                 new_logprob = self.adaptive_gamma_logprob
-            #F, f = self.dyn_net.getF(np.r_[prevx, prevu].astype(np.float32))
-            #nn_Phi, nnf = self.mix_nn_prior(F, f, use_least_squares=False)
-            #nn_logprob = self.get_logprob(prevx, prevu, cur_x, nn_Phi, self.mu)
+            #F, f = self.dyn_net.getF(xu)
+            #nn_Phi, nn_mu = self.mix_nn_prior(F, f, xu, sigma_x=self.dyn_net.get_sigma_x(), strength=self.nn_prior_strength, use_least_squares=False)
+            #nn_logprob = self.get_logprob(prevx, prevu, cur_x, nn_Phi, nn_mu)
             #print 'nn_logprob:', nn_logprob
 
             if self.adaptive_gamma_logprob is not None:
@@ -379,18 +386,18 @@ class OnlineController(Policy):
 
                 diff = new_logprob - prev_logprob
 
-                k = 1.05
+                k = 1.02
                 # Simple update rule
                 if diff > 0:
-                    self.gamma *= 0.95
+                    self.gamma *= 1/k
                 else:
-                    self.gamma *= 1.05
+                    self.gamma *= k
 
                 self.gamma = min(0.1, self.gamma)
                 self.gamma = max(0.01, self.gamma)
-                #self.empsig_N = (1/self.gamma)/10
+                self.empsig_N = (1/self.gamma)/100
                 print 'New gamma:', self.gamma
-                #print 'New empsig N:', self.empsig_N
+                print 'New empsig N:', self.empsig_N
             self.adaptive_gamma_logprob = new_logprob
 
         pt = np.r_[prevx,prevu,cur_x]
@@ -956,7 +963,7 @@ class OnlineController(Policy):
             else:
                 F, f = self.dyn_net.getF(xu)
             
-            nn_Phi, nnf = self.mix_nn_prior(F, f, use_least_squares=False)
+            nn_Phi, nnf = self.mix_nn_prior(F, f, xu, strength=self.nn_prior_strength, use_least_squares=False)
             if self.nn_prior:
                 #Mix
                 sigma = (N*empsig + nn_Phi)/(N+1)
@@ -988,7 +995,7 @@ class OnlineController(Policy):
 
             return Fm, fv, dyn_covar
 
-    def mix_nn_prior(self, nnF, nnf, strength=1.0, use_least_squares=False):
+    def mix_nn_prior(self, nnF, nnf, xu, sigma_x=None, strength=1.0, use_least_squares=False, full_calculation=False):
         """
         Provide a covariance/bias term for mixing NN with least squares model.
         """
@@ -1006,9 +1013,16 @@ class OnlineController(Policy):
             sigX = np.eye(dX+dU)*strength
 
         sigXK = sigX.dot(nnF.T)
-        nn_Phi = np.r_[np.c_[sigX, sigXK],
-                       np.c_[sigXK.T, nnF.dot(sigX).dot(nnF.T)+np.eye(dX)*strength  ]]
-        return nn_Phi, nnf
+        if full_calculation:
+            nn_Phi = np.r_[np.c_[sigX, sigXK],
+                           np.c_[sigXK.T, nnF.dot(sigX).dot(nnF.T)+sigma_x  ]]
+            nn_mu = np.r_[xu, nnF.dot(xu)+nnf]
+        else:
+            nn_Phi = np.r_[np.c_[sigX, sigXK],
+                           np.c_[sigXK.T, np.zeros((dX, dX))  ]]  # Lower right square is unused
+            nn_mu = nnf  # Unused
+
+        return nn_Phi, nn_mu
 
     def get_forward_joint_states(self):
         """ Joint states for visualizing forward pass in RVIZ

@@ -246,6 +246,7 @@ class NNetRecursive(object):
         self.train_sgd = train_gd_momentum(obj, self.params, [X, U, Xtgt], scl=1.0, weight_decay=self.weight_decay)
         #obj = self.obj_rec_symbolic(X, U, Xtgt, training=False) # Test objective
         self.obj = theano.function(inputs=[X, U, Xtgt], outputs=obj, on_unused_input='warn')
+        self.fwd_batch = theano.function(inputs=[X, U], outputs=self.fwd_symbolic(X, U, training=True), on_unused_input='warn')
 
         # Set up vector functions
         X = T.vector('vX')
@@ -325,6 +326,14 @@ class NNetRecursive(object):
         u = xu[:,self.dX:self.dX+self.dU]
         tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
         return self.obj(x, u, tgt)
+
+    def make_sigma_x(self, X, U, tgt):
+        outputs = self.fwd_batch(X, U)
+        diff = outputs-tgt
+        self.sigmax = np.cov(diff.T)
+
+    def get_sigma_x(self):
+        return self.sigmax
 
     def get_recurrent_state(self):
         return None
