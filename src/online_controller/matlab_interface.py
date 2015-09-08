@@ -43,8 +43,9 @@ def get_controller(matfile):
 	eetgt = mat['eetgt'][:,0]
 
 	tgt_noise_dir = np.random.uniform(0,1,size=(3,))
+	tgt_noise_dir[2] = 0.0
 	tgt_noise_dir = tgt_noise_dir/np.linalg.norm(tgt_noise_dir)
-	tgt_noise_scaled = 0.0*tgt_noise_dir  # Scale is in meters. 0.01=1cm
+	tgt_noise_scaled = 0.015*tgt_noise_dir  # Scale is in meters. 0.01=1cm
 	eetgt[0:3] += tgt_noise_scaled
 	eetgt[3:6] += tgt_noise_scaled
 	eetgt[6:9] += tgt_noise_scaled
@@ -90,7 +91,9 @@ def get_controller(matfile):
 	with open('nogear_gmm20.pkl') as f:
 		gmm = cPickle.load(f)
 
-	oc = OnlineController(dX, dU, dynprior, cost, maxT=T, ee_idx=ee_idx, ee_sites=eesites, use_ee_sites=site_jac,
+	gp = GaussianProcess('/home/justin/data/gp_pr2_2000.mat')
+
+	oc = OnlineController(dX, dU, dynprior, cost, gp=gp, maxT=T, ee_idx=ee_idx, ee_sites=eesites, use_ee_sites=site_jac,
 			dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
 	#for t in range(100):
 	#	print oc.act(tgt[t,:dX], None, t, None)

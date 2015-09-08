@@ -17,7 +17,7 @@ import train_dyn_net as theano_dynamics
 LOGGER = logging.getLogger(__name__)
 
 class OnlineController(Policy):
-    def __init__(self, dX, dU, dynprior, cost, maxT = 100, use_ee_sites=True, ee_idx=None, ee_sites=None, jac_service=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
+    def __init__(self, dX, dU, dynprior, cost, gp=None, maxT = 100, use_ee_sites=True, ee_idx=None, ee_sites=None, jac_service=None, dyn_init_mu=None, dyn_init_sig=None, offline_K=None, offline_k=None, offline_fd=None, offline_fc=None, offline_dynsig=None):
         self.dynprior = dynprior
         self.offline_fd = offline_fd
         self.offline_fc = offline_fc
@@ -26,6 +26,7 @@ class OnlineController(Policy):
         self.ee_idx = ee_idx
         self.use_ee_sites = use_ee_sites
         self.jac_service = jac_service
+        self.gp = gp
         self.dyn_init_mu = dyn_init_mu
         self.dyn_init_sig = dyn_init_sig/500 + 1e-5*np.eye(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
@@ -62,22 +63,23 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.02 # Noise to add
+        self.u_noise = 0.03 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
-        self.gamma = 0.00  # Moving average parameter
-        self.empsig_N = 0.001 # Weight of least squares vs GMM/NN prior
+        self.gamma = 0.05  # Moving average parameter
+        self.empsig_N = 1.0 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
-        self.time_varying_dynamics = True
+        self.time_varying_dynamics = False
         self.use_prior_dyn = False
         self.gmm_prior = False
-        self.fit_prior_residuals = False
+        self.lsq_prior = False
+        self.gp_prior = False
+        self.mix_prior_strength = 100.0
 
         #Neural net options
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
-        self.nn_prior_strength = 100.0
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
@@ -980,6 +982,13 @@ class OnlineController(Policy):
             if self.gmm_prior:
                 mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
                 sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+            elif self.lsq_prior:
+                mu0,Phi = (dyn_init_mu, dyn_init_sig)
+                sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+            elif self.gp_prior:
+                F, f = gp.linearize(xu)
+                Phi, mu0 = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
+                sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
             else:
                 sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)

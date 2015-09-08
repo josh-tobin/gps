@@ -3,6 +3,7 @@ import theano.tensor as T
 import h5py
 import logging
 import sys
+import scipy.io
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
@@ -96,6 +97,13 @@ def prep_data():
     label = label[:Ntrain]
     clip = clip[:Ntrain]
     return data, label, clip, test_data, test_label, test_clip
+
+def data_to_mat():
+    data, label, clip,_,_,_ = prep_data()
+    fill_clip(clip, k=1)
+    data, label, clip = randomize_dataset(data, label, clip)
+
+    scipy.io.savemat('/home/justin/data/dyndata_2000.mat', {'data':data, 'label':label})
 
 def train_rnn_step():
     np.random.seed(123)
@@ -379,5 +387,6 @@ def rnntest():
             print 'Total test error:', total_err
 
 if __name__ == "__main__":
-    rnntest()
+    #rnntest()
     #train_rnn_step()
+    data_to_mat()
