@@ -46,7 +46,7 @@ def get_controller(matfile):
 	tgt_noise_dir = np.random.uniform(0,1,size=(3,))
 	tgt_noise_dir[2] = 0.0
 	tgt_noise_dir = tgt_noise_dir/np.linalg.norm(tgt_noise_dir)
-	tgt_noise_scaled = 0.00*tgt_noise_dir  # Scale is in meters. 0.01=1cm
+	tgt_noise_scaled = 0.02*tgt_noise_dir  # Scale is in meters. 0.01=1cm
 	eetgt[0:3] += tgt_noise_scaled
 	eetgt[3:6] += tgt_noise_scaled
 	eetgt[6:9] += tgt_noise_scaled
@@ -103,9 +103,9 @@ def get_controller(matfile):
 def dyndata_init():
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_plane_nopu.hdf5','data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_armwave_all.hdf5.test'])
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
-    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_gp_airtest_mini.hdf5'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_gp_airtest_mini.hdf5'])
 
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)

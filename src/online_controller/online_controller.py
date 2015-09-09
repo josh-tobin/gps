@@ -28,7 +28,7 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.gp = gp
         self.dyn_init_mu = dyn_init_mu
-        self.dyn_init_sig = dyn_init_sig/100 + 1e-5*np.eye(dX+dU+dX)
+        self.dyn_init_sig = dyn_init_sig/500 + 1e-5*np.eye(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
@@ -51,7 +51,8 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 17 # Horizon
+        self.H = 15 # Horizon
+        self.max_time_varying_horizon = self.H
 
         # LQR
         self.LQR_iter = 1  # Number of LQR iterations to take
@@ -63,28 +64,31 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.03 # Noise to add
+        self.u_noise = 0.02 # Noise to add
 
         #Dynamics settings
-        self.adaptive_gamma = False
-        self.gamma = 0.05  # Moving average parameter
-        self.empsig_N = 3.0 # Weight of least squares vs GMM/NN prior
+        self.adaptive_gamma = True
+        self.init_gamma = 0.2  # Moving average parameter
+        self.gamma_ratio = 8
+        self.empsig_N = (1/self.init_gamma)/self.gamma_ratio # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
         self.use_prior_dyn = False
         self.gmm_prior = False
-        self.lsq_prior = True
+        self.lsq_prior = False
         self.gp_prior = False
         self.mix_prior_strength = 1.0
 
         #Neural net options
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
         self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
         self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
+        if self.nn_dynamics:
+            self.time_varying_dynamics = True  # Force flip
 
         #Other
         self.copy_offline_traj = False  # If TRUE, overrides calculated controller with offline controller. Useful for debugging
@@ -167,6 +171,7 @@ class OnlineController(Policy):
             k = np.zeros((H, dU))
 
             init_noise = 1
+            self.gamma = self.init_gamma
             cholPSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H, 1, 1])
             PSig = np.tile(init_noise*np.eye(dU), [H, 1, 1])
             invPSig = np.tile(1/init_noise*np.eye(dU), [H, 1, 1])
@@ -395,9 +400,9 @@ class OnlineController(Policy):
                 else:
                     self.gamma *= k
 
-                self.gamma = min(0.1, self.gamma)
+                self.gamma = min(self.init_gamma, self.gamma)
                 self.gamma = max(0.01, self.gamma)
-                self.empsig_N = (1/self.gamma)/100
+                self.empsig_N = (1/self.gamma)/self.gamma_ratio
                 print 'New gamma:', self.gamma
                 print 'New empsig N:', self.empsig_N
             self.adaptive_gamma_logprob = new_logprob
@@ -872,7 +877,7 @@ class OnlineController(Policy):
 
             if t < H-1:
                 # Estimate new dynamics here based on mu
-                if self.time_varying_dynamics:
+                if self.time_varying_dynamics and t<self.max_time_varying_horizon:
                     if self.nn_recurrent:
                         F[t], f[t], dynsig[t], fwd_rnn_state = self.getdynamics(mu[t-1,ix], mu[t-1,iu], mu[t, ix], cur_timestep+t, cur_action=cur_action, rnn_state=fwd_rnn_state);
                     else:
