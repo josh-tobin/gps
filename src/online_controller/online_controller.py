@@ -28,7 +28,7 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.gp = gp
         self.dyn_init_mu = dyn_init_mu
-        self.dyn_init_sig = dyn_init_sig/500 + 1e-5*np.eye(dX+dU+dX)
+        self.dyn_init_sig = dyn_init_sig/100 + 1e-5*np.eye(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
@@ -66,16 +66,16 @@ class OnlineController(Policy):
         self.u_noise = 0.03 # Noise to add
 
         #Dynamics settings
-        self.adaptive_gamma = True
+        self.adaptive_gamma = False
         self.gamma = 0.05  # Moving average parameter
-        self.empsig_N = 1.0 # Weight of least squares vs GMM/NN prior
+        self.empsig_N = 3.0 # Weight of least squares vs GMM/NN prior
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
         self.use_prior_dyn = False
         self.gmm_prior = False
-        self.lsq_prior = False
+        self.lsq_prior = True
         self.gp_prior = False
-        self.mix_prior_strength = 100.0
+        self.mix_prior_strength = 1.0
 
         #Neural net options
         self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
@@ -965,7 +965,7 @@ class OnlineController(Policy):
             else:
                 F, f = self.dyn_net.getF(xu)
             
-            nn_Phi, nnf = self.mix_nn_prior(F, f, xu, strength=self.nn_prior_strength, use_least_squares=False)
+            nn_Phi, nnf = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
             if self.nn_prior:
                 #Mix
                 sigma = (N*empsig + nn_Phi)/(N+1)
@@ -983,12 +983,14 @@ class OnlineController(Policy):
                 mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
                 sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
             elif self.lsq_prior:
-                mu0,Phi = (dyn_init_mu, dyn_init_sig)
+                mu0,Phi = (self.dyn_init_mu, self.dyn_init_sig)
+                f = self.dyn_init_mu[dX+dU:dX+dU+dX]
                 sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
             elif self.gp_prior:
-                F, f = gp.linearize(xu)
+                F, f = self.gp.linearize(xu)
                 Phi, mu0 = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
                 sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+                print 'GP k:', self.gp.kerneval(xu)
             else:
                 sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)
@@ -996,6 +998,8 @@ class OnlineController(Policy):
             #(np.linalg.pinv(empsig[it, it]).dot(empsig[it, ip])).T
             Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
             fv = mun[ip] - Fm.dot(mun[it]);
+
+            #import pdb; pdb.set_trace()
 
             #Fms = (np.linalg.pinv(self.sigma[it, it]).dot(self.sigma[it, ip])).T
 
