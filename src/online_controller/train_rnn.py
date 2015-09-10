@@ -81,7 +81,9 @@ def prep_data():
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
 
     #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    data, label, clip = get_data_hdf5(['data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    #data, label, clip = get_data_hdf5(['data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
 
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_plane_expr_nopu2.hdf5'])
     #test_data, test_label, test_clip = get_data_hdf5(['data/dyndata_mjc.hdf5'])
@@ -97,6 +99,23 @@ def prep_data():
     label = label[:Ntrain]
     clip = clip[:Ntrain]
     return data, label, clip, test_data, test_label, test_clip
+
+def prep_data_prevsa():
+    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    N = data.shape[0]
+    prevsa = np.zeros_like(data)
+    for n in range(N):
+        if clip[n] == 0:
+            prevsa[n,:] = data[n,:]
+            continue
+        prevsa[n,:] = data[n-1,:]
+    perm = np.random.permutation(N)
+    data = data[perm]
+    label = label[perm]
+    prevsa = prevsa[perm]
+    return data, label, prevsa
+
+
 
 def data_to_mat():
     data, label, clip,_,_,_ = prep_data()
@@ -386,7 +405,114 @@ def rnntest():
             total_err = net.total_obj(test_data, test_label, test_clip)
             print 'Total test error:', total_err
 
+
+def pxutest():
+    np.random.seed(123)
+    #fname = 'net/rnn_plane.pkl'
+    fname = sys.argv[1] #'net/gear_rnn.pkl'
+    logging.basicConfig(level=logging.DEBUG)
+
+    data, label, prevsa = prep_data_prevsa()
+    bsize = 50
+    N = data.shape[0]
+
+    djnt = 7
+    dee = 9
+    dx = 2*dee+2*djnt+0
+    du = djnt
+
+    try:
+        net = unpickle_net(fname)
+    except IOError as e:
+        print "Making new net!"
+        norm1 = NormalizeLayer('data', 'data_norm')
+        norm1.generate_weights(data)
+
+        #"""
+        ip1 = PrevSALayer('data_norm', 'prevxu', 'ip1', dx+du, 100)
+        act1 = ReLULayer('ip1', 'act1')
+        ip2 = FFIPLayer('act1', 'ip2', 100, 50) 
+        act2 = ReLULayer('ip2', 'act2')
+        ip3 = FFIPLayer('act2', 'ip3', 50, djnt+dee) 
+        acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+        losswt = np.ones(dx)
+        losswt[7:14] = 5.0
+        loss = SquaredLoss('acc', 'lbl', wt=losswt)
+        net = PrevSADynamicsNetwork([norm1, ip1,act1,ip2, act2, ip3, acc], loss)
+        #"""
+
+        """
+        ip1 = PrevSALayer('data_norm', 'prevxu', 'ip1', dx+du, 100)
+        act1 = ReLULayer('ip1', 'act1')
+        ip3 = FFIPLayer('act1', 'ip3', 100, djnt+dee) 
+        acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+        losswt = np.ones(dx)
+        losswt[7:14] = 5.0
+        loss = SquaredLoss('acc', 'lbl', wt=losswt)
+        net = PrevSADynamicsNetwork([norm1, ip1, act1, ip3, acc], loss)
+        """
+
+    losswt = np.ones(dx)
+    losswt[7:14] = 1.0
+    net.loss.wt = losswt
+
+    net.init_functions(output_blob='acc', weight_decay=5e-4, train_algo='rmsprop')
+    """
+    net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
+    obj, updates = net.symbolic_forward()
+    train_gd = net.get_train_function(obj, updates)
+    total_obj = net.get_loss_function(obj, updates)
+    rnn_out = net.get_loss_function(batch.get_data('acc'), updates)
+    """
+    for idx in [5]:
+        #pred_net =  net.fwd_single(data[idx])
+        perturbed_input = data[idx] 
+        #+ 0.01*np.random.randn(dx+du).astype(np.float32)
+        F, f = net.getF(perturbed_input, prevsa[idx])
+        predict_taylor = (F.dot(data[idx])+f)
+        target_label = label[idx]
+        import pdb; pdb.set_trace()
+
+    lr = 1e-3/bsize
+    lr_schedule = {
+        #80000: 0.2,
+        #200000: 0.2,
+        500000: 0.2,
+    }
+    epochs = 0
+    for i in range(1000*1000):
+        bstart = i*bsize % N
+        bend = (i+1)*bsize % N
+        if bend < bstart:
+            epochs += 1
+            perm = np.random.permutation(N)
+            data = data[perm]
+            label = label[perm]
+            prevsa = prevsa[perm]
+            #data, label, clip = randomize_dataset(data, label, clip)
+            continue
+        net.clear_recurrent_state()
+        _data = data[bstart:bend]
+        _label = label[bstart:bend]
+        _prevxu = prevsa[bstart:bend]
+        net.update(stage=STAGE_TRAIN)
+        objval = net.train_gd(_data,_prevxu, _label, lr, 0.9, 0.5)
+
+        if i in lr_schedule:
+            lr *= lr_schedule[i]
+        if i % 2000 == 0:
+            print 'LR=', lr, ' // Train:',i, objval
+            sys.stdout.flush()
+            #import pdb; pdb.set_trace()
+        if i % 10000 == 0:
+            if i>0:
+                net.pickle(fname)
+            total_err = net.total_obj(data, prevsa, label)
+            print 'Total train error:', total_err
+            #total_err = net.total_obj(test_data, test_label, test_clip)
+            #print 'Total test error:', total_err
+
 if __name__ == "__main__":
     #rnntest()
     #train_rnn_step()
-    data_to_mat()
+    pxutest()

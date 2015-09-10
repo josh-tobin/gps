@@ -46,7 +46,7 @@ def get_controller(matfile):
 	tgt_noise_dir = np.random.uniform(0,1,size=(3,))
 	tgt_noise_dir[2] = 0.0
 	tgt_noise_dir = tgt_noise_dir/np.linalg.norm(tgt_noise_dir)
-	tgt_noise_scaled = 0.02*tgt_noise_dir  # Scale is in meters. 0.01=1cm
+	tgt_noise_scaled = 0.00*tgt_noise_dir  # Scale is in meters. 0.01=1cm
 	eetgt[0:3] += tgt_noise_scaled
 	eetgt[3:6] += tgt_noise_scaled
 	eetgt[6:9] += tgt_noise_scaled

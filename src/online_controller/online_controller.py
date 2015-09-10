@@ -51,7 +51,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 15 # Horizon
+        self.H = 12 # Horizon
         self.max_time_varying_horizon = self.H
 
         # LQR
@@ -64,7 +64,7 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.02 # Noise to add
+        self.u_noise = 0.03 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
@@ -85,6 +85,7 @@ class OnlineController(Policy):
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
+        self.nn_pxu = True
         self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
         self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
         if self.nn_dynamics:
@@ -98,11 +99,12 @@ class OnlineController(Policy):
         self.fwd_hist = [{} for _ in range(self.maxT)]
 
         if self.nn_dynamics:
-            self.update_hidden_state = True
+            self.update_hidden_state = False
             #netname = 'net/combined_100.pkl'
-            #netname = 'net/combined_50_30_nowkbench.pkl'
+            netname = 'net/combined_100_pxu2.pkl'
             #netname = 'net/combined_50_30_halfworkbench.pkl'
-            netname = 'net/combined_100_nowkbench.pkl'
+            #netname = 'net/combined_100_nowkbench.pkl'
+            #netname = 'net/combined_100_wkbench_finetune.pkl'
             #netname = 'net/rnn/robo_net15_nogear.pkl.ff'
 
             #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
@@ -123,6 +125,10 @@ class OnlineController(Policy):
                     for state in self.rnn_hidden_state:
                         gphs.append(nnvis.GraphPlot(state.shape[0], -5, 20, name='hidden2'))
                     self.nn_vis = nnvis.NNVis(gphs, 100)
+            elif self.nn_pxu:
+                self.dyn_net = theano_rnn.unpickle_net(netname)
+                self.dyn_net.update(stage='test')
+                self.dyn_net.init_functions(output_blob='acc')
             else:
                 self.dyn_net = theano_dynamics.get_net(netname, rec=True, dX=self.dX, dU=self.dU)
             #if self.nn_update_iters>0:  # Keep a reference for overfitting
@@ -186,7 +192,6 @@ class OnlineController(Policy):
                     self.prev_policy.k[i-t] = self.offline_k[i]
             self.rviz_traj[t] == [x, self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]]
             return self.prev_policy
-
 
         self.update_emp_dynamics(prevx, prevu, x) # Always update movinv average
         if self.nn_dynamics:
@@ -452,6 +457,8 @@ class OnlineController(Policy):
                 self.nn_vis.update(hidden)
             diff = cur_x-predicted_x
             print 'RNN Loss:', diff.T.dot(diff)
+        elif self.nn_pxu:
+            print 'PXU loss not implemented'
         else:
             print 'NN Loss:', self.dyn_net.loss_single(pt, cur_x)
         for i in range(self.nn_update_iters):
@@ -853,6 +860,10 @@ class OnlineController(Policy):
 
         if self.nn_recurrent:
             fwd_rnn_state = self.rnn_hidden_state
+
+        #HACK
+        mu[-1,ix] = self.prevX
+        mu[-1,iu] = self.prevU
         # Perform forward pass.
         for t in range(H):
             PSig = cholPSig[t].T.dot(cholPSig[t])
@@ -961,12 +972,15 @@ class OnlineController(Policy):
         N = self.empsig_N
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
+        pxu = np.r_[prev_x, prev_u]
         xux = np.r_[prev_x, prev_u, cur_x]
 
         if self.nn_dynamics:
             dynsig = np.zeros((dX,dX))
             if self.nn_recurrent:
                 F, f, new_rnn_state = self.dyn_net.getF(xu, rnn_state)
+            elif self.nn_pxu:
+                F, f = self.dyn_net.getF(xu, pxu)
             else:
                 F, f = self.dyn_net.getF(xu)
             

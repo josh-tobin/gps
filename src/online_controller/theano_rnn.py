@@ -5,7 +5,7 @@ import logging
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 
-NN_INIT_WT = 0.01
+NN_INIT_WT = 0.08
 STAGE_TRAIN = 'train'
 STAGE_TEST = 'test'
 
@@ -1128,6 +1128,23 @@ class FFIPLayer(FeedforwardLayer):
     def params(self):
         return [self.w, self.b]
 
+class PrevSALayer(FeedforwardLayer):
+    def __init__(self, input_blob, prev_sa_blob, output_blob, din, dout):
+        super(PrevSALayer, self).__init__([input_blob, prev_sa_blob], output_blob)  
+        self.input_blob = input_blob
+        self.prev_sa_blob = prev_sa_blob
+        self.w = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='psa_ip_w_'+str(self.layer_id))
+        self.wsa = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='psa_ip_wsa_'+str(self.layer_id))
+        self.b = theano.shared(NN_INIT_WT*np.random.randn(dout).astype(np.float32), name='psa_ip_b_'+str(self.layer_id))
+
+    def forward(self, input_data, stage=STAGE_TRAIN):
+        prev_layer = input_data[self.input_blob]
+        prev_state_action = input_data[self.prev_sa_blob]
+        return prev_layer.dot(self.w)+prev_state_action.dot(self.wsa)+self.b
+
+    def params(self):
+        return [self.w, self.wsa, self.b]
+
 class DropoutLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, rngseed=10, p=0.5):
         super(DropoutLayer, self).__init__(input_blob, output_blob)  
@@ -1437,6 +1454,45 @@ class Network(object):
         with open(fname, 'w') as pklfile:
             cPickle.dump(self, pklfile)
         LOGGER.debug('Dumped network to: %s', fname)
+
+class PrevSADynamicsNetwork(Network):
+    def __init__(self, layers, loss):
+        super(PrevSADynamicsNetwork, self).__init__(layers, loss)
+
+    def init_functions(self, output_blob='rnn_out', train_algo='rmsprop', weight_decay=1e-5):
+        self.set_net_inputs([T.matrix('data'), T.matrix('prevxu'), T.matrix('lbl')])
+        obj, updates = self.symbolic_forward()
+        self.train_gd = self.get_train_function(obj, updates, type=train_algo, weight_decay=weight_decay)
+        self.total_obj = self.get_loss_function(obj)
+
+        self.ff_out = self.get_output(output_blob, inputs=['data', 'prevxu'], updates=updates)
+        jac = self.get_jac(output_blob, 'data', inputs=['data', 'prevxu'])
+        def taylor_expand(data_pnt, prevxu):
+            pxu_exp = np.expand_dims(prevxu, axis=0).astype(np.float32)
+            data_pnt_exp = np.expand_dims(data_pnt, axis=0).astype(np.float32)    
+            F = jac(data_pnt_exp, pxu_exp)[:,0,:]
+            net_fwd = self.ff_out(data_pnt_exp, pxu_exp)[0][0]
+            f = -F.dot(data_pnt) + net_fwd
+            return F, f
+        self.getF = taylor_expand
+
+    def fwd_single(self, xu, prevxu):
+        pxu_exp = np.expand_dims(prevxu, axis=0).astype(np.float32)
+        data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
+        net_fwd = self.ff_out(data_pnt_exp, pxu_exp)[0]
+        return net_fwd
+
+    def loss_single(self, xu, prevxu, tgt):
+        """Run SGD on a single (vector) data point """
+        pxu_exp = np.expand_dims(prevxu, axis=0).astype(np.float32)
+        data_pnt_exp = np.expand_dims(xu, axis=0).astype(np.float32)
+        tgt = np.expand_dims(tgt, axis=0).astype(np.float32)
+        return self.total_obj(xu, prevxu, tgt)
+
+    def fwd_batch(self, xu, pxu):
+        net_fwd = self.ff_out(xu, pxu)
+        return net_fwd
+
 
 class RecurrentDynamicsNetwork(Network):
     def __init__(self, layers, loss):
