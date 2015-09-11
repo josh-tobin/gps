@@ -53,7 +53,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 12 # Horizon
+        self.H = 15 # Horizon
         self.max_time_varying_horizon = self.H
 
         # LQR
@@ -66,12 +66,12 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.05 #0.04 # Noise to add
+        self.u_noise = 0.04 #0.04 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
         self.init_gamma = 0.05  # Moving average parameter
-        self.gamma_ratio = 20 #8
+        self.gamma_ratio = 30 #8
         if self.init_gamma > 0:
             self.empsig_N = (1/self.init_gamma)/self.gamma_ratio # Weight of least squares vs GMM/NN prior
         else:
@@ -85,8 +85,8 @@ class OnlineController(Policy):
         self.mix_prior_strength = 1.0
 
         #Neural net options
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
-        self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
@@ -1035,22 +1035,22 @@ class OnlineController(Policy):
             nn_Phi, nnf = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
             if self.nn_prior:
                 #Mix
-                #"""
+                """
                 sigma = (N*empsig + nn_Phi)/(N+1)
                 sig_chol = sp.linalg.cholesky(sigma[it,it])
                 sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
                 mun = (N*mun + np.r_[xu, F.dot(xu)+f])/(N+1)
                 F = sig_inv.dot(sigma[it, ip]).T
                 f = mun[ip] - F.dot(mun[it])
-                #"""
-
                 """
+
+                #"""
                 sig_chol = sp.linalg.cholesky(empsig[it,it])
                 sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
                 F_emp = sig_inv.dot(empsig[it, ip]).T
                 F = (N*F_emp + F)/(N+1)
                 f = (N*(mun[ip] - F_emp.dot(mun[it])) + f)/(N+1)
-                """
+                #"""
             if self.nn_recurrent:
                 return F, f, dynsig, new_rnn_state
             else:
