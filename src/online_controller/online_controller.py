@@ -28,7 +28,9 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.gp = gp
         self.dyn_init_mu = dyn_init_mu
-        self.dyn_init_sig = dyn_init_sig/500 + 1e-5*np.eye(dX+dU+dX)
+        sigma_scale = 100
+        self.dyn_init_sig = dyn_init_sig/sigma_scale + 1e-5*np.eye(dX+dU+dX)
+        #self.dyn_init_sig = 1.0*np.eye(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
@@ -64,28 +66,31 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.03 # Noise to add
+        self.u_noise = 0.05 #0.04 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
-        self.init_gamma = 0.2  # Moving average parameter
-        self.gamma_ratio = 8
-        self.empsig_N = (1/self.init_gamma)/self.gamma_ratio # Weight of least squares vs GMM/NN prior
+        self.init_gamma = 0.05  # Moving average parameter
+        self.gamma_ratio = 20 #8
+        if self.init_gamma > 0:
+            self.empsig_N = (1/self.init_gamma)/self.gamma_ratio # Weight of least squares vs GMM/NN prior
+        else:
+            self.empsig_N = 0
         self.sigreg = 1e-5 # Regularization on dynamics covariance
         self.time_varying_dynamics = False
         self.use_prior_dyn = False
         self.gmm_prior = False
-        self.lsq_prior = False
+        self.lsq_prior = True
         self.gp_prior = False
         self.mix_prior_strength = 1.0
 
         #Neural net options
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = False # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
-        self.nn_pxu = True
+        self.nn_pxu = False
         self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
         self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
         if self.nn_dynamics:
@@ -100,14 +105,16 @@ class OnlineController(Policy):
 
         if self.nn_dynamics:
             self.update_hidden_state = False
-            #netname = 'net/combined_100.pkl'
-            netname = 'net/combined_100_pxu2.pkl'
+            netname = 'net/combined_100.pkl'
+            #netname = 'net/combined_100_pxu.pkl'
+            #netname = 'net/combined_lsq_pxu.pkl'
             #netname = 'net/combined_50_30_halfworkbench.pkl'
             #netname = 'net/combined_100_nowkbench.pkl'
             #netname = 'net/combined_100_wkbench_finetune.pkl'
             #netname = 'net/rnn/robo_net15_nogear.pkl.ff'
 
             #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
+            #netname = 'net/mjc_100_50_pxu.pkl'
             #netname = 'net/rnn/net7.pkl.ff'   # Works OKAY
             #netname = 'net/rnn/net10.pkl.ff'
             #netname = 'net/rnn/net15.pkl.ff'
@@ -158,8 +165,6 @@ class OnlineController(Policy):
         if self.restricted_context>0:
             self.restricted_context_list.append(np.r_[prevx, prevu].astype(np.float32))
         #gamma = self.gamma
-        self.prevX = prevx
-        self.prevU = prevu
         self.inputs.append({'x':x, 'empmu':empmu, 'empsig':empsig, 'prevx':prevx, 'prevu':prevu, 'eejac':eejac, 't':t})
         horizon = min(self.H, self.maxT-t);
 
@@ -192,8 +197,18 @@ class OnlineController(Policy):
                     self.prev_policy.k[i-t] = self.offline_k[i]
             self.rviz_traj[t] == [x, self.prev_policy.K[0].dot(x)+self.prev_policy.k[0]]
             return self.prev_policy
+        if t==1:
+            self.prevprevU = prevu
+            self.prevprevX = prevx
+            self.prevX = prevx
+            self.prevU = prevu
+        else:
+            self.prevprevU = self.prevU
+            self.prevprevX = self.prevX
+            self.prevX = prevx
+            self.prevU = prevu
 
-        self.update_emp_dynamics(prevx, prevu, x) # Always update movinv average
+        self.update_emp_dynamics(prevx, prevu, x, ppu=self.prevprevU, ppx=self.prevprevX) # Always update movinv average
         if self.nn_dynamics:
             self.update_nn_dynamics(prevx, prevu, x)
 
@@ -265,7 +280,6 @@ class OnlineController(Policy):
         #start = time.time()
         dX = self.dX
         dU = self.dU
-        gamma = self.gamma #* (0.99 ** t)
         horizon = min(self.H, self.maxT-t);
         jacobian = sample.get(END_EFFECTOR_JACOBIANS, t=t)
 
@@ -290,6 +304,9 @@ class OnlineController(Policy):
 
             self.prevU = U;
             self.prevX = x;
+            self.prevprevU = U;
+            self.prevprevX = x;
+            self.gamma = self.init_gamma
             if self.restricted_context:
                 self.restricted_context_list.append(np.r_[x, U].astype(np.float32))
 
@@ -305,7 +322,7 @@ class OnlineController(Policy):
             self.xxt = self.sigma + np.outer(self.mu, self.mu)
             return U
 
-        self.update_emp_dynamics(self.prevX, self.prevU, x)
+        self.update_emp_dynamics(self.prevX, self.prevU, x, ppu=self.prevprevU, ppx=self.prevprevX)
         if self.nn_dynamics:
             self.update_nn_dynamics(self.prevX, self.prevU, x)
 
@@ -336,6 +353,8 @@ class OnlineController(Policy):
         # Store state and action.
         np.clip(u, -10,10)
 
+        self.prevprevU = self.prevU
+        self.prevprevX = self.prevX
         self.prevX = x
         self.prevU = u
         if self.restricted_context > 0:
@@ -376,22 +395,48 @@ class OnlineController(Policy):
         return logprob
 
 
-    def update_emp_dynamics(self, prevx, prevu, cur_x):
+    def update_emp_dynamics(self, prevx, prevu, cur_x, ppu=None, ppx=None):
         """
         Update linear dynamics via moving average
         """
+        dX = self.dX
+        dU = self.dU
+        ix = slice(dX)
+        iu = slice(dX, dX+dU)
+        it = slice(dX+dU)
+        ip = slice(dX+dU, dX+dU+dX)
 
         xu = np.r_[prevx, prevu].astype(np.float32)
+        if ppu is not None:
+            #pxu = np.r_[ppu, ppx].astype(np.float32)
+            pxu = np.r_[ppx].astype(np.float32)
         if self.adaptive_gamma:
             try:
-                new_logprob = self.get_logprob(prevx, prevu, cur_x, self.sigma, self.mu)
+                #new_logprob = self.get_logprob(prevx, prevu, cur_x, self.sigma, self.mu)
+                sig_chol = sp.linalg.cholesky(self.sigma[it,it])
+                sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
+                #F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
+                F = sig_inv.dot(self.sigma[it, ip]).T
+                f = self.mu[ip] - F.dot(self.mu[it])
+
+                new_logprob = -np.linalg.norm(F.dot(xu)+f - cur_x)
+                print 'LSQ error:', new_logprob
             except Exception as e:
                 print 'Warning: bad logprob: ', e
                 new_logprob = self.adaptive_gamma_logprob
-            #F, f = self.dyn_net.getF(xu)
-            #nn_Phi, nn_mu = self.mix_nn_prior(F, f, xu, sigma_x=self.dyn_net.get_sigma_x(), strength=self.nn_prior_strength, use_least_squares=False)
-            #nn_logprob = self.get_logprob(prevx, prevu, cur_x, nn_Phi, nn_mu)
-            #print 'nn_logprob:', nn_logprob
+
+            if self.nn_dynamics:
+                if self.nn_pxu:
+                    #print 'xu:', xu
+                    #print 'pxu:', pxu
+                    F, f = self.dyn_net.getF(xu, pxu)
+                else:
+                    F, f = self.dyn_net.getF(xu)
+                #nn_Phi, nn_mu = self.mix_nn_prior(F, f, xu, sigma_x=self.dyn_net.sigmax, strength=self.mix_prior_strength, use_least_squares=False, full_calculation=True)
+                #nn_logprob = self.get_logprob(prevx, prevu, cur_x, nn_Phi, nn_mu)
+                nn_logprob = -np.linalg.norm(F.dot(xu)+f - cur_x)
+                self.adaptive_gamma_logprob = nn_logprob
+                print 'NN error:', nn_logprob
 
             if self.adaptive_gamma_logprob is not None:
                 prev_logprob = self.adaptive_gamma_logprob
@@ -410,7 +455,7 @@ class OnlineController(Policy):
                 self.empsig_N = (1/self.gamma)/self.gamma_ratio
                 print 'New gamma:', self.gamma
                 print 'New empsig N:', self.empsig_N
-            self.adaptive_gamma_logprob = new_logprob
+            #self.adaptive_gamma_logprob = new_logprob
 
         pt = np.r_[prevx,prevu,cur_x]
         gamma = self.gamma
@@ -973,6 +1018,9 @@ class OnlineController(Policy):
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
         pxu = np.r_[prev_x, prev_u]
+        #print 'Actual_pxu:', actual_pxu
+        pxu = prev_x
+        #print 'Sub pxu:', pxu
         xux = np.r_[prev_x, prev_u, cur_x]
 
         if self.nn_dynamics:
@@ -987,12 +1035,22 @@ class OnlineController(Policy):
             nn_Phi, nnf = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
             if self.nn_prior:
                 #Mix
+                #"""
                 sigma = (N*empsig + nn_Phi)/(N+1)
                 sig_chol = sp.linalg.cholesky(sigma[it,it])
                 sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
-                #F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
+                mun = (N*mun + np.r_[xu, F.dot(xu)+f])/(N+1)
                 F = sig_inv.dot(sigma[it, ip]).T
                 f = mun[ip] - F.dot(mun[it])
+                #"""
+
+                """
+                sig_chol = sp.linalg.cholesky(empsig[it,it])
+                sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
+                F_emp = sig_inv.dot(empsig[it, ip]).T
+                F = (N*F_emp + F)/(N+1)
+                f = (N*(mun[ip] - F_emp.dot(mun[it])) + f)/(N+1)
+                """
             if self.nn_recurrent:
                 return F, f, dynsig, new_rnn_state
             else:
@@ -1001,6 +1059,7 @@ class OnlineController(Policy):
             if self.gmm_prior:
                 mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
                 sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+                fv = (N*mun[ip]+mu0*m)/(N+m) # Use bias
             elif self.lsq_prior:
                 mu0,Phi = (self.dyn_init_mu, self.dyn_init_sig)
                 f = self.dyn_init_mu[dX+dU:dX+dU+dX]
@@ -1017,6 +1076,7 @@ class OnlineController(Policy):
             #(np.linalg.pinv(empsig[it, it]).dot(empsig[it, ip])).T
             Fm = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
             fv = mun[ip] - Fm.dot(mun[it]);
+
 
             #import pdb; pdb.set_trace()
 
@@ -1052,7 +1112,7 @@ class OnlineController(Policy):
         else:
             nn_Phi = np.r_[np.c_[sigX, sigXK],
                            np.c_[sigXK.T, np.zeros((dX, dX))  ]]  # Lower right square is unused
-            nn_mu = nnf  # Unused
+            nn_mu = None  # Unused
 
         return nn_Phi, nn_mu
 

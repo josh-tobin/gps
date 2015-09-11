@@ -1118,8 +1118,9 @@ class FFIPLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, dout):
         super(FFIPLayer, self).__init__(input_blob, output_blob)  
         self.input_blob = input_blob
-        self.w = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='ff_ip_w_'+str(self.layer_id))
-        self.b = theano.shared(NN_INIT_WT*np.random.randn(dout).astype(np.float32), name='ff_ip_b_'+str(self.layer_id))
+        w_init = np.sqrt(2.0/din)*np.random.randn(din, dout).astype(np.float32)
+        self.w = theano.shared(w_init, name='ff_ip_w_'+str(self.layer_id))
+        self.b = theano.shared(0*np.random.randn(dout).astype(np.float32), name='ff_ip_b_'+str(self.layer_id))
 
     def forward(self, input_data, stage=STAGE_TRAIN):
         prev_layer = input_data[self.input_blob]
@@ -1129,13 +1130,15 @@ class FFIPLayer(FeedforwardLayer):
         return [self.w, self.b]
 
 class PrevSALayer(FeedforwardLayer):
-    def __init__(self, input_blob, prev_sa_blob, output_blob, din, dout):
+    def __init__(self, input_blob, prev_sa_blob, output_blob, din, dout, du):
         super(PrevSALayer, self).__init__([input_blob, prev_sa_blob], output_blob)  
         self.input_blob = input_blob
         self.prev_sa_blob = prev_sa_blob
-        self.w = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='psa_ip_w_'+str(self.layer_id))
-        self.wsa = theano.shared(NN_INIT_WT*np.random.randn(din, dout).astype(np.float32), name='psa_ip_wsa_'+str(self.layer_id))
-        self.b = theano.shared(NN_INIT_WT*np.random.randn(dout).astype(np.float32), name='psa_ip_b_'+str(self.layer_id))
+        w_init = np.sqrt(2.0/din)*np.random.randn(din, dout).astype(np.float32)
+        self.w = theano.shared(w_init, name='psa_ip_w_'+str(self.layer_id))
+        w_init = np.sqrt(2.0/(din-du))*np.random.randn(din-du, dout).astype(np.float32)
+        self.wsa = theano.shared(w_init, name='psa_ip_wsa_'+str(self.layer_id))
+        self.b = theano.shared(0*np.ones(dout).astype(np.float32), name='psa_ip_b_'+str(self.layer_id))
 
     def forward(self, input_data, stage=STAGE_TRAIN):
         prev_layer = input_data[self.input_blob]
@@ -1144,6 +1147,23 @@ class PrevSALayer(FeedforwardLayer):
 
     def params(self):
         return [self.w, self.wsa, self.b]
+
+class SubtractAction(FeedforwardLayer):
+    def __init__(self, input_blob, prev_sa_blob, output_blob):
+        super(SubtractAction, self).__init__([input_blob, prev_sa_blob], output_blob)  
+        self.input_blob = input_blob
+        self.prev_sa_blob = prev_sa_blob
+
+    def forward(self, input_data, stage=STAGE_TRAIN):
+        prev_layer = input_data[self.input_blob]
+        prev_state_action = input_data[self.prev_sa_blob]
+
+        new_sa = prev_layer[:,-7:] - prev_state_action[:,-7:]
+        new_sa = T.concatenate((prev_layer[:,:-7], new_sa), axis=1)
+        return new_sa
+
+    def params(self):
+        return []
 
 class DropoutLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, rngseed=10, p=0.5):
@@ -1456,8 +1476,9 @@ class Network(object):
         LOGGER.debug('Dumped network to: %s', fname)
 
 class PrevSADynamicsNetwork(Network):
-    def __init__(self, layers, loss):
+    def __init__(self, layers, loss, sigmax=None):
         super(PrevSADynamicsNetwork, self).__init__(layers, loss)
+        self.sigmax = sigmax
 
     def init_functions(self, output_blob='rnn_out', train_algo='rmsprop', weight_decay=1e-5):
         self.set_net_inputs([T.matrix('data'), T.matrix('prevxu'), T.matrix('lbl')])
@@ -1468,6 +1489,7 @@ class PrevSADynamicsNetwork(Network):
         self.ff_out = self.get_output(output_blob, inputs=['data', 'prevxu'], updates=updates)
         jac = self.get_jac(output_blob, 'data', inputs=['data', 'prevxu'])
         def taylor_expand(data_pnt, prevxu):
+            data_pnt[-7:] -= prevxu[-7:]
             pxu_exp = np.expand_dims(prevxu, axis=0).astype(np.float32)
             data_pnt_exp = np.expand_dims(data_pnt, axis=0).astype(np.float32)    
             F = jac(data_pnt_exp, pxu_exp)[:,0,:]
@@ -1492,6 +1514,19 @@ class PrevSADynamicsNetwork(Network):
     def fwd_batch(self, xu, pxu):
         net_fwd = self.ff_out(xu, pxu)
         return net_fwd
+
+    def calculate_sigmax(self, xu, prevxu, tgt):
+        predictions = self.ff_out(xu, prevxu)[0]
+        diff = predictions-tgt
+        self.sigmax = np.cov(diff.T)
+        #self.sigmax = predictions.T.dot(predictions) - tgt.T.dot(tgt)
+
+    def __getstate__(self):  # For pickling
+        return (self.layers, self.loss, self.sigmax)
+
+    def __setstate__(self, state):  # For pickling
+        self.__init__(state[0], state[1], sigmax=state[2])
+
 
 
 class RecurrentDynamicsNetwork(Network):
