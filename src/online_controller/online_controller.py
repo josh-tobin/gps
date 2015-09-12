@@ -71,16 +71,16 @@ class OnlineController(Policy):
         #Dynamics settings
         self.adaptive_gamma = True
         self.init_gamma = 0.05  # Moving average parameter
-        self.gamma_ratio = 30 #8
+        self.gamma_ratio = 20 #8
         if self.init_gamma > 0:
             self.empsig_N = (1/self.init_gamma)/self.gamma_ratio # Weight of least squares vs GMM/NN prior
         else:
             self.empsig_N = 0
         self.sigreg = 1e-5 # Regularization on dynamics covariance
-        self.time_varying_dynamics = False
+        self.time_varying_dynamics = True
         self.use_prior_dyn = False
         self.gmm_prior = False
-        self.lsq_prior = True
+        self.lsq_prior = False
         self.gp_prior = False
         self.mix_prior_strength = 1.0
 
@@ -106,6 +106,7 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             self.update_hidden_state = False
             netname = 'net/combined_100.pkl'
+            #netname = 'net/pxu_100_lim1.pkl'
             #netname = 'net/combined_100_pxu.pkl'
             #netname = 'net/combined_lsq_pxu.pkl'
             #netname = 'net/combined_50_30_halfworkbench.pkl'
@@ -1055,20 +1056,29 @@ class OnlineController(Policy):
                 return F, f, dynsig, new_rnn_state
             else:
                 return F, f, dynsig
+        elif self.gp_prior:
+            F, f = self.gp.linearize(xu)
+            #Phi, mu0 = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
+            #sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+
+            sig_chol = sp.linalg.cholesky(empsig[it,it])
+            sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
+            F_emp = sig_inv.dot(empsig[it, ip]).T
+            Fm = F#(N*F_emp + F)/(N+1)
+            fv = f#(N*(mun[ip] - F_emp.dot(mun[it])) + f)/(N+1)
+            dyn_covar = np.zeros((dX, dX))
+            print 'GP k:', self.gp.kerneval(xu)
+            return Fm, fv, dyn_covar
         else:
             if self.gmm_prior:
                 mu0,Phi,m,n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX+dU+dX))
+                m = m[0][0]
+                mun = (N*mun+mu0*m)/(N+m) # Use bias
                 sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-                fv = (N*mun[ip]+mu0*m)/(N+m) # Use bias
             elif self.lsq_prior:
                 mu0,Phi = (self.dyn_init_mu, self.dyn_init_sig)
                 f = self.dyn_init_mu[dX+dU:dX+dU+dX]
                 sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-            elif self.gp_prior:
-                F, f = self.gp.linearize(xu)
-                Phi, mu0 = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
-                sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
-                print 'GP k:', self.gp.kerneval(xu)
             else:
                 sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)

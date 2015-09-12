@@ -21,7 +21,7 @@ class CostFKOnline(object):
         self.l2 = 1.0
         self.alpha = 1e-5
         #self.wu = 6e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
-        self.wu = 6e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        self.wu = 9e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
         #self.wu = 1.2e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # MJC CostFK
 
         ramp_len = self.ref_len if maxT is None else maxT

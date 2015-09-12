@@ -1130,13 +1130,13 @@ class FFIPLayer(FeedforwardLayer):
         return [self.w, self.b]
 
 class PrevSALayer(FeedforwardLayer):
-    def __init__(self, input_blob, prev_sa_blob, output_blob, din, dout, du):
+    def __init__(self, input_blob, prev_sa_blob, output_blob, din, dout, dpxu):
         super(PrevSALayer, self).__init__([input_blob, prev_sa_blob], output_blob)  
         self.input_blob = input_blob
         self.prev_sa_blob = prev_sa_blob
         w_init = np.sqrt(2.0/din)*np.random.randn(din, dout).astype(np.float32)
         self.w = theano.shared(w_init, name='psa_ip_w_'+str(self.layer_id))
-        w_init = np.sqrt(2.0/(din-du))*np.random.randn(din-du, dout).astype(np.float32)
+        w_init = np.sqrt(2.0/(dpxu))*np.random.randn(dpxu, dout).astype(np.float32)
         self.wsa = theano.shared(w_init, name='psa_ip_wsa_'+str(self.layer_id))
         self.b = theano.shared(0*np.ones(dout).astype(np.float32), name='psa_ip_b_'+str(self.layer_id))
 

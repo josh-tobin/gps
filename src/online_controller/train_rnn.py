@@ -101,8 +101,8 @@ def prep_data():
     return data, label, clip, test_data, test_label, test_clip
 
 def prep_data_prevsa():
-    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    #data, label, clip = get_data_hdf5(['data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
     #data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
     N = data.shape[0]
     prevsa = np.zeros_like(label)
@@ -436,14 +436,19 @@ def pxutest():
         norm2 = NormalizeLayer('prevxu', 'prevxu_norm')
         norm2.generate_weights(prevsa)
 
-        ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 100, du)
+        pxu1 = FFIPLayer('prevxu_norm', 'pxu1', dx, 20)
+        pxu2 = ReLULayer('pxu1', 'pxu2')
+        pxu3 = FFIPLayer('pxu2', 'pxu_shrink', 20, 3)
+
+
+        ip1 = PrevSALayer('data_norm', 'pxu_shrink', 'ip1', dx+du, 100, 3)
         act1 = ReLULayer('ip1', 'act1')
-        ip2 = FFIPLayer('act1', 'ip2', 100, 50) 
-        act2 = ReLULayer('ip2', 'act2')
-        ip3 = FFIPLayer('act2', 'ip3', 50, djnt+dee) 
+        #ip2 = FFIPLayer('act1', 'ip2', 100, 50) 
+        #act2 = ReLULayer('ip2', 'act2')
+        ip3 = FFIPLayer('act1', 'ip3', 100, djnt+dee) 
         acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
-        net = PrevSADynamicsNetwork([norm1, norm2, ip1,act1,ip2, act2, ip3, acc], loss)
+        net = PrevSADynamicsNetwork([norm1, norm2, pxu1, pxu2, pxu3, ip1, act1, ip3, acc], loss)
 
         """
         ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 100, du)
@@ -476,7 +481,7 @@ def pxutest():
         target_label = label[idx]
         import pdb; pdb.set_trace()
 
-    lr = 1e-3/bsize
+    lr = 5e-3/bsize
     lr_schedule = {
         #80000: 0.2,
         #200000: 0.2,
