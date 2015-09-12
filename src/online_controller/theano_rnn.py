@@ -176,7 +176,7 @@ class TanhLayer(ActivationLayer):
         super(TanhLayer, self).__init__(input_blob, output_blob)
 
     def activation(self, prev_layer):
-        return T.nnet.tanh(prev_layer)
+        return T.tanh(prev_layer)
 
 class RNNIPLayer(RecurrentLayer):
     def __init__(self, input_blob, output_blob, clip_blob, din, dout, activation=None):
@@ -1148,6 +1148,28 @@ class PrevSALayer(FeedforwardLayer):
     def params(self):
         return [self.w, self.wsa, self.b]
 
+class PrevSALayer2(FeedforwardLayer):
+    def __init__(self, input_blob, prev_sa_blob, output_blob, dx, du, dout):
+        super(PrevSALayer2, self).__init__([input_blob, prev_sa_blob], output_blob)  
+        self.input_blob = input_blob
+        self.prev_sa_blob = prev_sa_blob
+        self.dx = dx
+        w_init = np.sqrt(2.0/du)*np.random.randn(du, dout).astype(np.float32)
+        self.wact = theano.shared(w_init, name='psa_ip_wact_'+str(self.layer_id))
+        w_init = np.sqrt(2.0/(dx))*np.random.randn(dx, dout).astype(np.float32)
+        self.wdiff = theano.shared(w_init, name='psa_ip_wdiff_'+str(self.layer_id))
+        self.b = theano.shared(0*np.ones(dout).astype(np.float32), name='psa_ip_b_'+str(self.layer_id))
+
+    def forward(self, input_data, stage=STAGE_TRAIN):
+        prev_layer = input_data[self.input_blob]
+        prev_state_action = input_data[self.prev_sa_blob]
+        diff = prev_layer[:,:self.dx] - prev_state_action
+        action = prev_layer[:,self.dx:]
+        return action.dot(self.wact)+diff.dot(self.wdiff)+self.b
+
+    def params(self):
+        return [self.wdiff, self.wact, self.b]
+
 class SubtractAction(FeedforwardLayer):
     def __init__(self, input_blob, prev_sa_blob, output_blob):
         super(SubtractAction, self).__init__([input_blob, prev_sa_blob], output_blob)  
@@ -1489,7 +1511,6 @@ class PrevSADynamicsNetwork(Network):
         self.ff_out = self.get_output(output_blob, inputs=['data', 'prevxu'], updates=updates)
         jac = self.get_jac(output_blob, 'data', inputs=['data', 'prevxu'])
         def taylor_expand(data_pnt, prevxu):
-            data_pnt[-7:] -= prevxu[-7:]
             pxu_exp = np.expand_dims(prevxu, axis=0).astype(np.float32)
             data_pnt_exp = np.expand_dims(data_pnt, axis=0).astype(np.float32)    
             F = jac(data_pnt_exp, pxu_exp)[:,0,:]

@@ -102,21 +102,30 @@ def prep_data():
 
 def prep_data_prevsa():
     #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    #data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
+    """
+    data, label, clip = get_data_hdf5([
+        'data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5',
+        'data/dyndata_workbench_expr.hdf5', 
+        'data/dyndata_workbench.hdf5',
+        'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 
+        'data/dyndata_gear.hdf5', 
+        'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 
+        'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'
+        ])
+    """
+    data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
     N = data.shape[0]
-    prevsa = np.zeros_like(label)
+    prevsa = np.zeros_like(data)
     for n in range(N):
         if clip[n] == 0:
-            prevsa[n,:] = data[n,:-7]
+            prevsa[n,:] = data[n]
             continue
-        prevsa[n,:] = data[n-1,:-7]  #data[n-1,:]
+        prevsa[n,:] = data[n-1]  #data[n-1,:]
     perm = np.random.permutation(N)
     data = data[perm]
     label = label[perm]
     prevsa = prevsa[perm]
     return data, label, prevsa
-
 
 def data_to_mat():
     data, label, clip,_,_,_ = prep_data()
@@ -419,7 +428,7 @@ def pxutest():
     N = data.shape[0]
 
     djnt = 7
-    dee = 9
+    dee = 6
     dx = 2*dee+2*djnt+0
     du = djnt
 
@@ -436,19 +445,19 @@ def pxutest():
         norm2 = NormalizeLayer('prevxu', 'prevxu_norm')
         norm2.generate_weights(prevsa)
 
-        pxu1 = FFIPLayer('prevxu_norm', 'pxu1', dx, 20)
-        pxu2 = ReLULayer('pxu1', 'pxu2')
-        pxu3 = FFIPLayer('pxu2', 'pxu_shrink', 20, 3)
+        #pxu1 = FFIPLayer('prevxu_norm', 'pxu1', dx, 20)
+        #pxu2 = ReLULayer('pxu1', 'pxu2')
+        #pxu3 = FFIPLayer('pxu2', 'pxu_shrink', 20, 3)
 
-
-        ip1 = PrevSALayer('data_norm', 'pxu_shrink', 'ip1', dx+du, 100, 3)
+        ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 60, dx+du)
+        #ip1 = PrevSALayer2('data', 'prevxu', 'ip1', dx, du, 80)
         act1 = ReLULayer('ip1', 'act1')
-        #ip2 = FFIPLayer('act1', 'ip2', 100, 50) 
-        #act2 = ReLULayer('ip2', 'act2')
-        ip3 = FFIPLayer('act1', 'ip3', 100, djnt+dee) 
+        ip2 = FFIPLayer('act1', 'ip2', 60, 40) 
+        act2 = ReLULayer('ip2', 'act2')
+        ip3 = FFIPLayer('act2', 'ip3', 40, djnt+dee) 
         acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
-        net = PrevSADynamicsNetwork([norm1, norm2, pxu1, pxu2, pxu3, ip1, act1, ip3, acc], loss)
+        net = PrevSADynamicsNetwork([norm1, norm2, ip1, act1, ip2, act2, ip3, acc], loss)
 
         """
         ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 100, du)
@@ -464,7 +473,7 @@ def pxutest():
     losswt[7:14] = 1.0
     net.loss.wt = losswt
 
-    net.init_functions(output_blob='acc', weight_decay=1e-5, train_algo='rmsprop')
+    net.init_functions(output_blob='acc', weight_decay=1e-4, train_algo='rmsprop')
     """
     net.set_net_inputs([T.matrix('data'), T.matrix('lbl'), T.vector('clip')])
     obj, updates = net.symbolic_forward()

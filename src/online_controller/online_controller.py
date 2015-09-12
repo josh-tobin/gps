@@ -28,9 +28,10 @@ class OnlineController(Policy):
         self.jac_service = jac_service
         self.gp = gp
         self.dyn_init_mu = dyn_init_mu
-        sigma_scale = 100
+        sigma_scale = 1.0
         self.dyn_init_sig = dyn_init_sig/sigma_scale + 1e-5*np.eye(dX+dU+dX)
         #self.dyn_init_sig = 1.0*np.eye(dX+dU+dX)
+        #self.dyn_init_mu = np.zeros(dX+dU+dX)
         #dyn_init_logdet = 2*sum(np.log(np.diag(sp.linalg.cholesky(self.dyn_init_sig+ 1e-6*np.eye(self.dyn_init_sig.shape[0])))))
 
         # Rescale initial covariance
@@ -53,7 +54,7 @@ class OnlineController(Policy):
         self.offline_k = offline_k
 
         # Algorithm Settings
-        self.H = 15 # Horizon
+        self.H = 12 # Horizon
         self.max_time_varying_horizon = self.H
 
         # LQR
@@ -66,7 +67,7 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.04 #0.04 # Noise to add
+        self.u_noise = 0.02#0.042 #0.04 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
@@ -77,10 +78,10 @@ class OnlineController(Policy):
         else:
             self.empsig_N = 0
         self.sigreg = 1e-5 # Regularization on dynamics covariance
-        self.time_varying_dynamics = True
+        self.time_varying_dynamics = False
         self.use_prior_dyn = False
         self.gmm_prior = False
-        self.lsq_prior = False
+        self.lsq_prior = True
         self.gp_prior = False
         self.mix_prior_strength = 1.0
 
@@ -90,7 +91,7 @@ class OnlineController(Policy):
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
         self.nn_recurrent = False  # Set to true if network is recurrent. Turns on RNN hidden state management
-        self.nn_pxu = False
+        self.nn_pxu = True
         self.nn_recurrent_plot = False  # Turn on plotting for recurrent hidden state
         self.restricted_context = 0  # 0 means off. Otherwise keeps a history of state, action pairs
         if self.nn_dynamics:
@@ -105,15 +106,18 @@ class OnlineController(Policy):
 
         if self.nn_dynamics:
             self.update_hidden_state = False
-            netname = 'net/combined_100.pkl'
-            #netname = 'net/pxu_100_lim1.pkl'
-            #netname = 'net/combined_100_pxu.pkl'
+            #netname = 'net/combined_100.pkl'
+            #netname = 'net/pxu_100_50.pkl'
+            #netname = 'net/pxu_100_lim2.pkl'
             #netname = 'net/combined_lsq_pxu.pkl'
             #netname = 'net/combined_50_30_halfworkbench.pkl'
             #netname = 'net/combined_100_nowkbench.pkl'
             #netname = 'net/combined_100_wkbench_finetune.pkl'
             #netname = 'net/rnn/robo_net15_nogear.pkl.ff'
 
+
+            netname = 'net/mjc_pxu_70_40.pkl'
+            #netname = 'net/mjc_accel5.pkl'
             #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
             #netname = 'net/mjc_100_50_pxu.pkl'
             #netname = 'net/rnn/net7.pkl.ff'   # Works OKAY
@@ -352,7 +356,7 @@ class OnlineController(Policy):
 
         LOGGER.debug('Action commanded: %s',u)
         # Store state and action.
-        np.clip(u, -10,10)
+        np.clip(u, -5,5)
 
         self.prevprevU = self.prevU
         self.prevprevX = self.prevX
@@ -410,7 +414,7 @@ class OnlineController(Policy):
         xu = np.r_[prevx, prevu].astype(np.float32)
         if ppu is not None:
             #pxu = np.r_[ppu, ppx].astype(np.float32)
-            pxu = np.r_[ppx].astype(np.float32)
+            pxu = np.r_[ppx, ppu].astype(np.float32)
         if self.adaptive_gamma:
             try:
                 #new_logprob = self.get_logprob(prevx, prevu, cur_x, self.sigma, self.mu)
@@ -438,22 +442,38 @@ class OnlineController(Policy):
                 nn_logprob = -np.linalg.norm(F.dot(xu)+f - cur_x)
                 self.adaptive_gamma_logprob = nn_logprob
                 print 'NN error:', nn_logprob
+            elif self.lsq_prior:
+                sig_chol = sp.linalg.cholesky(self.dyn_init_sig[it,it])
+                sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
+                #F = (np.linalg.pinv(sigma[it, it]).dot(sigma[it, ip])).T
+                F = sig_inv.dot(self.dyn_init_sig[it, ip]).T
+                f = self.dyn_init_mu[ip] - F.dot(self.dyn_init_mu[it])
+                self.adaptive_gamma_logprob = -np.linalg.norm(F.dot(xu)+f - cur_x)
+                print 'LSQ Prior error:', self.adaptive_gamma_logprob
+
 
             if self.adaptive_gamma_logprob is not None:
                 prev_logprob = self.adaptive_gamma_logprob
 
+                """
                 diff = new_logprob - prev_logprob
-
                 k = 1.02
                 # Simple update rule
                 if diff > 0:
                     self.gamma *= 1/k
                 else:
                     self.gamma *= k
+                """
+                ratio = new_logprob/prev_logprob
+                self.empsig_N = 1/ratio
+                self.empsig_N = min(8, self.empsig_N)
+                self.empsig_N = max(0.1, self.empsig_N)
+
+                self.gamma = 1.0/(self.empsig_N * self.gamma_ratio)
 
                 self.gamma = min(self.init_gamma, self.gamma)
                 self.gamma = max(0.01, self.gamma)
-                self.empsig_N = (1/self.gamma)/self.gamma_ratio
+                #self.empsig_N = (1/self.gamma)/self.gamma_ratio
                 print 'New gamma:', self.gamma
                 print 'New empsig N:', self.empsig_N
             #self.adaptive_gamma_logprob = new_logprob
@@ -1020,7 +1040,7 @@ class OnlineController(Policy):
         xu = np.r_[cur_x, cur_action].astype(np.float32)
         pxu = np.r_[prev_x, prev_u]
         #print 'Actual_pxu:', actual_pxu
-        pxu = prev_x
+        #pxu = prev_x
         #print 'Sub pxu:', pxu
         xux = np.r_[prev_x, prev_u, cur_x]
 
