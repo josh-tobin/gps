@@ -63,8 +63,7 @@ class OnlineController(Policy):
         self.del0 = 2 # LQR regularization
         self.lqr_discount = 0.9
 
-        #self.wu = 6e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
-        self.cost.wu = 5e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        self.cost.wu = 6e-3/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
         #self.wu = 1e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # MJC CostFK
 
         # KL Div constraint
@@ -72,7 +71,7 @@ class OnlineController(Policy):
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.03#0.042 #0.04 # Noise to add
+        self.u_noise = 0.04#0.042 #0.04 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
@@ -88,10 +87,10 @@ class OnlineController(Policy):
         self.gmm_prior = False
         self.lsq_prior = True
         self.gp_prior = False
-        self.mix_prior_strength = 4.0
+        self.mix_prior_strength = 2.0 #4.0
 
         #Neural net options
-        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
@@ -112,8 +111,8 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             self.update_hidden_state = False
             #netname = 'net/combined_100.pkl'
+            #netname = 'net/pxu_60_40_vel.pkl'
             netname = 'net/pxu_60_40_vel.pkl'
-            #netname = 'net/pxu_100_lim2.pkl'
             #netname = 'net/combined_lsq_pxu.pkl'
             #netname = 'net/combined_50_30_halfworkbench.pkl'
             #netname = 'net/combined_100_nowkbench.pkl'
