@@ -61,13 +61,18 @@ class OnlineController(Policy):
         self.LQR_iter = 1  # Number of LQR iterations to take
         self.min_mu = 1e-6 # LQR regularization
         self.del0 = 2 # LQR regularization
+        self.lqr_discount = 0.9
+
+        #self.wu = 6e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        self.cost.wu = 5e-3/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # Brett CostFK Big least squares
+        #self.wu = 1e-2/np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])  # MJC CostFK
 
         # KL Div constraint
         self.eta = 0.01 # Initial eta for DGD w/ KL-div constrant
         self.use_kl_constraint = False
 
         # Noise scaling
-        self.u_noise = 0.02#0.042 #0.04 # Noise to add
+        self.u_noise = 0.03#0.042 #0.04 # Noise to add
 
         #Dynamics settings
         self.adaptive_gamma = True
@@ -83,10 +88,10 @@ class OnlineController(Policy):
         self.gmm_prior = False
         self.lsq_prior = True
         self.gp_prior = False
-        self.mix_prior_strength = 1.0
+        self.mix_prior_strength = 4.0
 
         #Neural net options
-        self.nn_dynamics = True  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
+        self.nn_dynamics = False  # If TRUE, uses neural network for dynamics. Else, uses moving average least squares
         self.nn_prior = True # If TRUE and nn_dynamics is on, mixes moving average least squares with neural network as a prior
         self.nn_update_iters = 0  # Number of SGD iterations to take per timestep
         self.nn_lr = 0.0004  # SGD learning rate
@@ -107,7 +112,7 @@ class OnlineController(Policy):
         if self.nn_dynamics:
             self.update_hidden_state = False
             #netname = 'net/combined_100.pkl'
-            #netname = 'net/pxu_100_50.pkl'
+            netname = 'net/pxu_60_40_vel.pkl'
             #netname = 'net/pxu_100_lim2.pkl'
             #netname = 'net/combined_lsq_pxu.pkl'
             #netname = 'net/combined_50_30_halfworkbench.pkl'
@@ -116,7 +121,7 @@ class OnlineController(Policy):
             #netname = 'net/rnn/robo_net15_nogear.pkl.ff'
 
 
-            netname = 'net/mjc_pxu_70_40.pkl'
+            #netname = 'net/mjc_pxu_80_40_vel.pkl'
             #netname = 'net/mjc_accel5.pkl'
             #netname = 'net/mjc_simplegate.pkl.ff'  # Works well on pos 9
             #netname = 'net/mjc_100_50_pxu.pkl'
@@ -554,6 +559,7 @@ class OnlineController(Policy):
         K = np.zeros((horizon,dU, dX))
         cholPSig = np.zeros((horizon, dU, dU))
         k = np.zeros((horizon, dU))
+        discount = self.lqr_discount
         while fail:
             Vxx = np.zeros((dX, dX))
             Vx = np.zeros(dX)
@@ -585,8 +591,8 @@ class OnlineController(Policy):
                 cholPSig[t] = sp.linalg.cholesky(pol_covar, check_finite=False)
 
                 # Compute value function.
-                Vxx = Qtt[ix, ix] + Qtt[ix, iu].dot(K[t])
-                Vx = Qt[ix] + Qtt[ix, iu].dot(k[t])
+                Vxx = discount * (Qtt[ix, ix] + Qtt[ix, iu].dot(K[t]))
+                Vx = discount * (Qt[ix] + Qtt[ix, iu].dot(k[t]))
                 Vxx = 0.5 * (Vxx + Vxx.T)
 
             #Tassa regularization scheme
@@ -1039,6 +1045,7 @@ class OnlineController(Policy):
 
         xu = np.r_[cur_x, cur_action].astype(np.float32)
         pxu = np.r_[prev_x, prev_u]
+        #pxu = xu
         #print 'Actual_pxu:', actual_pxu
         #pxu = prev_x
         #print 'Sub pxu:', pxu
@@ -1056,22 +1063,22 @@ class OnlineController(Policy):
             nn_Phi, nnf = self.mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
             if self.nn_prior:
                 #Mix
-                """
+                #"""
                 sigma = (N*empsig + nn_Phi)/(N+1)
                 sig_chol = sp.linalg.cholesky(sigma[it,it])
                 sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
                 mun = (N*mun + np.r_[xu, F.dot(xu)+f])/(N+1)
                 F = sig_inv.dot(sigma[it, ip]).T
                 f = mun[ip] - F.dot(mun[it])
-                """
-
                 #"""
+
+                """
                 sig_chol = sp.linalg.cholesky(empsig[it,it])
                 sig_inv = sp.linalg.solve_triangular(sig_chol, sp.linalg.solve_triangular(sig_chol.T, np.eye(dX+dU), lower=True, check_finite=False), check_finite=False)
                 F_emp = sig_inv.dot(empsig[it, ip]).T
                 F = (N*F_emp + F)/(N+1)
                 f = (N*(mun[ip] - F_emp.dot(mun[it])) + f)/(N+1)
-                #"""
+                """
             if self.nn_recurrent:
                 return F, f, dynsig, new_rnn_state
             else:
@@ -1097,8 +1104,9 @@ class OnlineController(Policy):
                 sigma = (N*empsig + Phi + ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
             elif self.lsq_prior:
                 mu0,Phi = (self.dyn_init_mu, self.dyn_init_sig)
-                f = self.dyn_init_mu[dX+dU:dX+dU+dX]
-                sigma = (N*empsig + Phi)/(N+1) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
+                mun = (N*mun + mu0*self.mix_prior_strength) / (N+self.mix_prior_strength)
+                #f = self.dyn_init_mu[dX+dU:dX+dU+dX]
+                sigma = (N*empsig + self.mix_prior_strength*Phi)/(N+self.mix_prior_strength) #+ ((N*m)/(N+m))*np.outer(mun-mu0,mun-mu0))/(N+n0)
             else:
                 sigma = empsig;  # Moving average only
             sigma[it, it] = sigma[it, it] + self.sigreg*np.eye(dX+dU)

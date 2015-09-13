@@ -102,7 +102,7 @@ def prep_data():
 
 def prep_data_prevsa():
     #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    """
+    #"""
     data, label, clip = get_data_hdf5([
         'data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5',
         'data/dyndata_workbench_expr.hdf5', 
@@ -112,8 +112,8 @@ def prep_data_prevsa():
         'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 
         'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'
         ])
-    """
-    data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
+    #"""
+    #data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
     N = data.shape[0]
     prevsa = np.zeros_like(data)
     for n in range(N):
@@ -428,7 +428,7 @@ def pxutest():
     N = data.shape[0]
 
     djnt = 7
-    dee = 6
+    dee = 9
     dx = 2*dee+2*djnt+0
     du = djnt
 
@@ -449,12 +449,12 @@ def pxutest():
         #pxu2 = ReLULayer('pxu1', 'pxu2')
         #pxu3 = FFIPLayer('pxu2', 'pxu_shrink', 20, 3)
 
-        ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 60, dx+du)
+        ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 100, dx+du)
         #ip1 = PrevSALayer2('data', 'prevxu', 'ip1', dx, du, 80)
         act1 = ReLULayer('ip1', 'act1')
-        ip2 = FFIPLayer('act1', 'ip2', 60, 40) 
+        ip2 = FFIPLayer('act1', 'ip2', 100, 30) 
         act2 = ReLULayer('ip2', 'act2')
-        ip3 = FFIPLayer('act2', 'ip3', 40, djnt+dee) 
+        ip3 = FFIPLayer('act2', 'ip3', 30, djnt+dee) 
         acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
         net = PrevSADynamicsNetwork([norm1, norm2, ip1, act1, ip2, act2, ip3, acc], loss)
@@ -470,7 +470,7 @@ def pxutest():
         """
 
     losswt = np.ones(dx)
-    losswt[7:14] = 1.0
+    losswt[0:7] = 1.0
     net.loss.wt = losswt
 
     net.init_functions(output_blob='acc', weight_decay=1e-4, train_algo='rmsprop')
@@ -494,10 +494,11 @@ def pxutest():
     lr_schedule = {
         #80000: 0.2,
         #200000: 0.2,
-        500000: 0.2,
+        1000000: 0.2,
+        2000000: 0.2,
     }
     epochs = 0
-    for i in range(1000*1000):
+    for i in range(3*1000*1000):
         bstart = i*bsize % N
         bend = (i+1)*bsize % N
         if bend < bstart:
@@ -513,7 +514,7 @@ def pxutest():
         _label = label[bstart:bend]
         _prevxu = prevsa[bstart:bend]
         net.update(stage=STAGE_TRAIN)
-        objval = net.train_gd(_data,_prevxu, _label, lr, 0.9, 0.0)
+        objval = net.train_gd(_data,_prevxu, _label, lr, 0.9, 0)
 
         if i in lr_schedule:
             lr *= lr_schedule[i]
@@ -523,7 +524,7 @@ def pxutest():
             #import pdb; pdb.set_trace()
         if i % 10000 == 0:
             if i>0:
-                net.calculate_sigmax(data, prevsa, label)
+                #net.calculate_sigmax(data, prevsa, label)
                 net.pickle(fname)
             total_err = net.total_obj(data, prevsa, label)
             print 'Total train error:', total_err

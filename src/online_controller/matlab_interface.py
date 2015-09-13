@@ -22,7 +22,7 @@ def get_controller(matfile):
     # Need to read out a controller from matlab
 	mat = scipy.io.loadmat(matfile)
 
-	T = 450
+	T = 700
 	dX = mat['Dx'][0][0]
 	dU = mat['Du'][0][0]
 
