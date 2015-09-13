@@ -83,6 +83,8 @@ class GaussianProcess(object):
 		# Taylor expansion
 		F = dAdx
 		f = -dAdx.dot(pt) + result
+		assert f.shape[0] == 1
+		f = f[0]
 		return F, f
 
 def finite_differences(gp, pt, eps=1e-5):

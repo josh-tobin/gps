@@ -92,7 +92,7 @@ def get_controller(matfile):
 	with open('nogear_gmm20.pkl') as f:
 		gmm = cPickle.load(f)
 
-	gp = GaussianProcess('/home/justin/data/gp_pr2_10000_4k.mat')
+	gp = GaussianProcess('/home/justin/data/gp_pr2_4000.mat')
 
 	oc = OnlineController(dX, dU, dynprior, cost, gp=gp, maxT=T, ee_idx=ee_idx, ee_sites=eesites, use_ee_sites=site_jac,
 			dyn_init_mu=dyn_init_mu, dyn_init_sig=dyn_init_sig, offline_K=K, offline_k=k, offline_fd = Fm, offline_fc = fv, offline_dynsig=dynsig)
@@ -105,8 +105,8 @@ def dyndata_init():
     #train_dat, train_lbl, _ = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
     #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
 
-    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train'])
-    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5'])
+    train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_gear.hdf5', 'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
+    #train_data, train_lbl, train_clip = get_data_hdf5(['data/dyndata_armwave_all.hdf5.train'])
 
     #train_dat, train_lbl, _, _ = get_data(['dyndata_powerplug'],['dyndata_powerplug'])
     #train_dat, train_lbl, _, _ = get_data(['dyndata_trap', 'dyndata_trap2'],['dyndata_trap'], remove_ft=False, ee_tgt_adjust=None)
