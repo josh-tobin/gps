@@ -68,9 +68,9 @@ protected:
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
-    boost::scoped_ptr<KDL::ChainFkSolverPos> passive_arm_fk_solver_, active_arm_fk_solver_;
+    boost::shared_ptr<KDL::ChainFkSolverPos> passive_arm_fk_solver_, active_arm_fk_solver_;
     // KDL solvers for end-effector Jacobians.
-    boost::scoped_ptr<KDL::ChainJntToJacSolver> passive_arm_jac_solver_, active_arm_jac_solver_;
+    boost::shared_ptr<KDL::ChainJntToJacSolver> passive_arm_jac_solver_, active_arm_jac_solver_;
     // Subscribers.
     // Subscriber for position control commands.
     ros::Subscriber position_subscriber_;
@@ -126,7 +126,7 @@ public:
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const = 0;
     // Get forward kinematics solver.
-    virtual void get_fk_solver(boost::scoped_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::scoped_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
+    virtual void get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
 };
 
 }

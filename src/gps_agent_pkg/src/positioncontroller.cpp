@@ -6,32 +6,49 @@ using namespace gps_control;
 // Constructor.
 
 // Constructor.
-PositionController::PositionController(ros::NodeHandle& n, ArmType arm)
-    : Controller(n, arm)
+PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size)
+    : Controller(n, arm, size)
 {
     // Initialize PD gains.
+    pd_gains_p_.resize(size);
+    pd_gains_d_.resize(size);
+    pd_gains_i_.resize(size);
     
-
     // Initialize velocity bounds.
-
+    max_velocities_.resize(size);
 
     // Initialize integral terms to zero.
-    
+    pd_integral_.resize(size);
 
     // Initialize current angle and position.
-    
+    current_angles_.resize(size);
+    current_angle_velocities_.resize(size);
+    current_pose_.resize(size);
 
     // Initialize target angle and position.
-    
+    target_angles_.resize(size);
+    target_pose_.resize(size);
 
     // Initialize joints temporary storage.
-    
+    temp_angles_.resize(size);
+
+    // Initialize torques. TODO: DO WE NEED THIS?
+    // torques_.resize(size);
 
     // Initialize Jacobian temporary storage.
-    temp_jacobian_.resize(6,current_angles_.rows());
+    temp_jacobian_.resize(6,size);
+    ROS_INFO_STREAM("jacobian size: " + std::to_string(temp_jacobian_.size()));
 
+    for (int i = 0; i < size; i++)
+    {
+        pd_gains_p_[i] = 1.0;
+        pd_gains_d_[i] = 0.3;
+        pd_gains_i_[i] = 0.02;
+        max_velocities_[i] = 3.0;
+        target_angles_[i] = 0.5;
+    }
     // Set initial mode.
-    mode_ = NoControl;
+    mode_ = JointSpaceControl;
 
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
@@ -52,7 +69,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     plugin->get_joint_encoder_readings(temp_angles_,arm_);
 
     // Check dimensionality.
-    assert(temp_angles_.rows() == torques_.rows());
+    assert(temp_angles_.rows() == torques.rows());
     assert(temp_angles_.rows() == current_angles_.rows());
 
     // Estimate joint angle velocities.

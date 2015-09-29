@@ -134,8 +134,8 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     }
 
     // Allocate torques array.
-    active_arm_torques_.resize(active_arm_fk_chain_.getNrOfJoints(),0.0);
-    passive_arm_torques_.resize(passive_arm_fk_chain_.getNrOfJoints(),0.0);
+    active_arm_torques_.resize(active_arm_fk_chain_.getNrOfJoints());
+    passive_arm_torques_.resize(passive_arm_fk_chain_.getNrOfJoints());
 
     // Initialize ROS subscribers/publishers, sensors, and position controllers.
     // Note that this must be done after the FK solvers are created, because the sensors
@@ -156,16 +156,17 @@ void PR2Plugin::starting()
     // Reset all the sensors. This is important for sensors that try to keep
     // track of the previous state somehow.
     //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
-    //{
-        //sensors_[sensor].reset(this,last_update_time_);
-    //}
+    for (int sensor = 0; sensor < 1; sensor++)
+    {
+        sensors_[sensor]->reset(this,last_update_time_);
+    }
 
     // Reset position controllers.
-    //passive_arm_controller_->reset(last_update_time_);
-    //active_arm_controller_->reset(last_update_time_);
+    passive_arm_controller_->reset(last_update_time_);
+    active_arm_controller_->reset(last_update_time_);
 
     // Reset trial controller, if any.
-    //if (trial_controller_ != NULL) trial_controller_->reset(last_update_time_);
+    if (trial_controller_ != NULL) trial_controller_->reset(last_update_time_);
 }
 
 // This is called by the controller manager before stopping the controller.
@@ -186,21 +187,21 @@ void PR2Plugin::update()
     bool is_controller_step = (controller_counter_ == 0);
 
     // Update the sensors and fill in the current step sample.
-    //update_sensors(last_update_time_,is_controller_step);
+    update_sensors(last_update_time_,is_controller_step);
 
     // TODO: zero out torques /
 
     // Update the controllers.
-    //update_controllers(last_update_time_,is_controller_step);
+    update_controllers(last_update_time_,is_controller_step);
 
     // Store the torques.
     for (unsigned i = 0; i < active_arm_joint_state_.size(); i++)
-        active_arm_joint_state_[i]->commanded_effort_ = 0.5;
-        //active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
+        //active_arm_joint_state_[i]->commanded_effort_ = 0.5;
+        active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
     passive_arm_joint_state_[0]->commanded_effort_ = 0.5;
     for (unsigned i = 1; i < passive_arm_joint_state_.size(); i++)
-        passive_arm_joint_state_[i]->commanded_effort_ = -0.5;
-        //passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
+        //passive_arm_joint_state_[i]->commanded_effort_ = -0.5;
+        passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
 }
 
 // Get current time.

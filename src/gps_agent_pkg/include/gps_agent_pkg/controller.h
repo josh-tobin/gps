@@ -27,7 +27,7 @@ private:
 
 public:
     // Constructor.
-    Controller(ros::NodeHandle& n, ArmType arm);
+    Controller(ros::NodeHandle& n, ArmType arm, int size);
     Controller();
     // Destructor.
     virtual ~Controller();

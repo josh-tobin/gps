@@ -49,7 +49,7 @@ private:
     // Latest pose.
     Eigen::VectorXd current_pose_;
 
-    Eigen::VectorXd torques_;
+    //Eigen::VectorXd torques_;
 
     // Current mode.
     PositionControlMode mode_;
@@ -61,7 +61,7 @@ private:
     ros::Time last_update_time_;
 public:
     // Constructor.
-    PositionController(ros::NodeHandle& n, ArmType arm);
+    PositionController(ros::NodeHandle& n, ArmType arm, int size);
     // Destructor.
     virtual ~PositionController();
     // Update the controller (take an action).

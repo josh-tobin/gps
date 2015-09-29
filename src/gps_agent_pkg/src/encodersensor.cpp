@@ -9,13 +9,14 @@ using namespace gps_control;
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
 {
     // Get current joint angles.
+    ROS_INFO_STREAM("beginning constructor");
     plugin->get_joint_encoder_readings(previous_angles_, TrialArm);
 
     // Initialize velocities.
-    previous_velocities_.resize(previous_angles_.size(),0.0);
+    previous_velocities_.resize(previous_angles_.size());
 
     // Initialize temporary angles.
-    temp_joint_angles_.resize(previous_angles_.size(),0.0);
+    temp_joint_angles_.resize(previous_angles_.size());
 
     // Resize KDL joint array.
     temp_joint_array_.resize(previous_angles_.size());
@@ -31,6 +32,7 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
+    ROS_INFO_STREAM("ending constructor");
 }
 
 // Destructor.
@@ -50,9 +52,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // TODO: use Kalman filter...
         
         // Get FK solvers from plugin.
-        boost::scoped_ptr<KDL::ChainFkSolverPos> fk_solver;
-        boost::scoped_ptr<KDL::ChainJntToJacSolver> jac_solver;
-        plugin->get_fk_solver(fk_solver,jac_solver,TrialArm);
+        plugin->get_fk_solver(fk_solver_,jac_solver_,TrialArm);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.
@@ -75,13 +75,14 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // effector itself. In the old code, this correction was done in Matlab, but since the simulator will produce Jacobians of end
         // effector points directly, it would make sense to also do this transformation on the robot, and send back N Jacobians, one for
         // each feature point.
-        ROS_ERROR("FIX THIS!!");
+        // TODO: fix this
+        //ROS_ERROR("FIX THIS!!");
 
         // Compute current end effector points and store in temporary storage.
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        /* TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes... */
+        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes... 
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
@@ -128,7 +129,7 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
 }
 
 // Set data format and meta data on the provided sample.
-void EncoderSensor::set_sample_data_format(Sample* sample) const
+void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample) const
 {
     // Set joint angles size and format.
     OptionsMap joints_metadata;
@@ -160,7 +161,7 @@ void EncoderSensor::set_sample_data_format(Sample* sample) const
 }
 
 // Set data on the provided sample.
-void EncoderSensor::set_sample_data(Sample* sample) const
+void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample) const
 {
     // Set joint angles.
     sample->set_data(0,gps::SampleType::JOINT_ANGLES,&previous_angles_[0],previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
