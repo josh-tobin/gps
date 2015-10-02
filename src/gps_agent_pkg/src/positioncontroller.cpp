@@ -13,7 +13,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
     pd_gains_p_.resize(size);
     pd_gains_d_.resize(size);
     pd_gains_i_.resize(size);
-    
+
     // Initialize velocity bounds.
     max_velocities_.resize(size);
 
@@ -65,6 +65,7 @@ PositionController::~PositionController()
 // Update the controller (take an action).
 void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
+    //ROS_INFO_STREAM(">beginning position update");
     // Get current joint angles.
     plugin->get_joint_encoder_readings(temp_angles_,arm_);
 
@@ -129,9 +130,11 @@ void PositionController::configure_controller(OptionsMap &options)
     // TODO: implement!
     // This sets the target position.
     // This sets the mode
+    ROS_INFO_STREAM("Received controller configuration");
     mode_ = (PositionControlMode) boost::get<int>(options["mode"]);
     Eigen::VectorXd data = boost::get<Eigen::VectorXd>(options["data"]);
     if(mode_ == JointSpaceControl){
+        ROS_INFO_STREAM("Set joint data");
         target_angles_ = data;
     }else{
         ROS_ERROR("Unimplemented position control mode!");

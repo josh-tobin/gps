@@ -26,7 +26,7 @@ void Sample::get_data(int t, gps::SampleType type, void *data, int data_size, Sa
     return;
 }
 
-    
+
 void Sample::set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_)
 {
     return;
@@ -39,11 +39,13 @@ void Sample::get_meta_data(gps::SampleType type, int &data_size, SampleDataForma
 
 void Sample::get_state(int t, Eigen::VectorXd &x) const
 {
+	x.fill(0.0);
     return;
 }
 
 void Sample::get_obs(int t, Eigen::VectorXd &obs) const
 {
+	obs.fill(0.0);
     return;
 }
 

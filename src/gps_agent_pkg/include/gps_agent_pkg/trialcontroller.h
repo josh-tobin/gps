@@ -26,6 +26,8 @@ private:
     ros::Time last_update_time_;
     // Counter for time step increment.
     int step_counter_;
+    // Holds the last step of a trial
+    int trial_end_step_;
     // Current time step.
     boost::scoped_ptr<Sample> current_step_;
     // Trajectory sample.

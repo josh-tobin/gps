@@ -16,12 +16,18 @@ LinearGaussianController::~LinearGaussianController()
 
 
 void LinearGaussianController::get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U){
+    ROS_INFO_STREAM(">>beginning LG update");
     U = K_[t]*X+k_[t];
 }
 
 // Configure the controller.
 void LinearGaussianController::configure_controller(OptionsMap &options)
 {
+    ROS_INFO_STREAM("Received LG parameters");
+
+    //Call superclass
+    TrialController::configure_controller(options);
+
     // TODO: Update K_
     int T = boost::get<int>(options["T"]);
 

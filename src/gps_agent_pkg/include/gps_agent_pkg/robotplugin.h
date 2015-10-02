@@ -76,6 +76,7 @@ protected:
     ros::Subscriber position_subscriber_;
     // Subscriber trial commands.
     ros::Subscriber trial_subscriber_;
+    ros::Subscriber test_sub_;
     // Subscriber for relax commands.
     ros::Subscriber relax_subscriber_;
     // Subscriber for current state report request.
@@ -96,7 +97,7 @@ public:
     virtual void initialize_position_controllers(ros::NodeHandle& n);
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
-    // TODO: Comment    
+    // TODO: Comment
     virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
     // Publish the specified sample in a report.
     //virtual void publish_report(boost::scoped_ptr<Sample>& sample);
@@ -109,6 +110,7 @@ public:
     virtual void position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg);
     // Trial command callback.
     virtual void trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg);
+    virtual void test_callback(const std_msgs::Empty::ConstPtr& msg);
     // Relax command callback.
     //virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
     // Report request callback.

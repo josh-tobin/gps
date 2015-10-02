@@ -10,6 +10,7 @@ TrialController::TrialController()
 {
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
+    step_counter_ = 0;
 }
 
 // Destructor.
@@ -20,8 +21,11 @@ TrialController::~TrialController()
 // Update the controller (take an action).
 void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
+    ROS_INFO_STREAM(">beginning trial controller update");
     Eigen::VectorXd X, obs;
     //TODO: Fill in X and obs from sample
+    sample->get_state(step_counter_, X);
+    sample->get_obs(step_counter_, obs);
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
@@ -33,7 +37,14 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
 
 void TrialController::configure_controller(OptionsMap &options)
 {
+    if(!is_finished()){
+        ROS_ERROR("Cannot configure trial controller while a trial is in progress");
+    }
     std::vector<int> datatypes;
+
+    int T = boost::get<int>(options["T"]);
+    step_counter_ = 0;
+    trial_end_step_ = T;
 
     datatypes = boost::get<std::vector<int>>(options["state_datatypes"]);
     state_datatypes_.resize(datatypes.size());
@@ -54,7 +65,7 @@ bool TrialController::is_finished() const
 {
     // Check whether we are close enough to the current target.
     // TODO: implement.
-    return true;
+    return step_counter_ >= trial_end_step_;
 }
 
 // Ask the controller to return the sample collected from its latest execution.

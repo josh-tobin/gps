@@ -25,6 +25,7 @@ RobotPlugin::~RobotPlugin()
 // Initialize everything.
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
+    ROS_INFO_STREAM("Initializing RobotPlugin");
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
 
@@ -44,9 +45,11 @@ void RobotPlugin::initialize(ros::NodeHandle& n)
 // Initialize ROS communication infrastructure.
 void RobotPlugin::initialize_ros(ros::NodeHandle& n)
 {
+    ROS_INFO_STREAM("Initializing ROS subs/pubs");
     // Create subscribers.
     position_subscriber_ = n.subscribe("/gps_controller_position_command", 1, &RobotPlugin::position_subscriber_callback, this);
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
+    test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
     //relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
     //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
@@ -63,7 +66,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     // Create all sensors.
     for (int i = 0; i < 1; i++)
     // TODO: readd this when more sensors work
-    //for (int i = 0; i < SensorType::TotalSensorTypes; i++) 
+    //for (int i = 0; i < SensorType::TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + std::to_string(i));
         boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this));
@@ -115,11 +118,11 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     if(!is_controller_step){
         return;
     }
+    //ROS_INFO_STREAM("beginning controller update");
     // If we have a trial controller, update that, otherwise update position controller.
-    //if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
-    //else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
-    ROS_INFO_STREAM("beginning controller update");
-    active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
     // Update passive arm controller.
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
@@ -146,6 +149,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 
 void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
 
+    ROS_INFO_STREAM("Position sub callback!");
     OptionsMap params;
     uint8_t arm = msg->arm;
     params["mode"] = msg->mode;
@@ -155,11 +159,10 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
         data[i] = msg->data[i];
     }
     params["data"] = data;
-
     if(arm == TrialArm){
-        //active_arm_controller_->configure_controller(params);
+        active_arm_controller_->configure_controller(params);
     }else if (arm == AuxiliaryArm){
-        //passive_arm_controller_->configure_controller(params);
+        passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
     }
@@ -167,6 +170,7 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
 
 void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg){
 
+    ROS_INFO_STREAM("Trial sub callback!");
     OptionsMap controller_params;
 
     //Read out trial information
@@ -215,6 +219,10 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }else{
         ROS_ERROR("Unknown trial controller arm type");
     }
+}
+
+void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
+    ROS_INFO_STREAM("Received test message");
 }
 
 // Get sensor.
