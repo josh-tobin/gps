@@ -1,7 +1,5 @@
 # This message is published to the C++ controller to start
 # a trial
-Header header
-
 ControllerParams controller
 
 # Trial information

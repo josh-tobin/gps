@@ -11,6 +11,7 @@ TrialController::TrialController()
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
     step_counter_ = 0;
+    trial_end_step_ = 1;
 }
 
 // Destructor.
@@ -22,6 +23,9 @@ TrialController::~TrialController()
 void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
     ROS_INFO_STREAM(">beginning trial controller update");
+    if (is_finished()){
+        ROS_ERROR("Updating when controller is finished. May seg fault.");
+    }
     Eigen::VectorXd X, obs;
     //TODO: Fill in X and obs from sample
     sample->get_state(step_counter_, X);
@@ -29,16 +33,22 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
+    ROS_INFO_STREAM("Torques commanded:");
+    for(int i=0; i<7; i++){
+        ROS_INFO("%f", torques[i]);
+    }
 
     // Update last update time.
     last_update_time_ = current_time;
     step_counter_ ++;
+    ROS_INFO("Step counter:", step_counter_);
 }
 
 void TrialController::configure_controller(OptionsMap &options)
 {
+    ROS_INFO_STREAM(">TrialController::configure_controller");
     if(!is_finished()){
-        ROS_ERROR("Cannot configure trial controller while a trial is in progress");
+        ROS_ERROR("Cannot configure controller while a trial is in progress");
     }
     std::vector<int> datatypes;
 
@@ -81,5 +91,6 @@ void TrialController::reset(ros::Time time)
 {
     last_update_time_ = time;
     step_counter_ = 0;
+    trial_end_step_ = 1;
 }
 

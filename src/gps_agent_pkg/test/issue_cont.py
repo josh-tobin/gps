@@ -8,6 +8,7 @@ from std_msgs.msg import Empty
 import numpy as np
 from algorithm.policy.lin_gauss_init import init_pd
 from agent.ros.ros_utils import policy_to_msg
+from proto.gps_pb2 import *
 
 POS_COM_TOPIC = '/gps_controller_position_command'
 TRIAL_COM_TOPIC = '/gps_controller_trial_command'
@@ -33,10 +34,11 @@ def main():
     #sub = rospy.Subscriber('/joint_states', JointState, listen)
 
     tc = TrialCommand()
-    tc.controller = get_lin_gauss_test()
-    tc.T = 50
-    tc.frequency = 20
-    tc.state_datatypes = [JOINT_STATES, JOINT_VELOCITIES]
+    T = 50
+    tc.controller = get_lin_gauss_test(T=T)
+    tc.T = T
+    tc.frequency = 20.0
+    tc.state_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
     tc.obs_datatypes = tc.state_datatypes
 
     r = rospy.Rate(1)
@@ -50,4 +52,4 @@ def main():
 
 print "Testing"
 if __name__ == "__main__":
-    get_lin_gauss_test()
+    main()

@@ -128,13 +128,13 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
-    //if (trial_controller_->is_finished())
-    {
-        // Clear the trial controller.
-        //trial_controller_->reset(current_time);
+    if (trial_controller_ != NULL && trial_controller_->is_finished()) {
+        //Clear the trial controller.
+        trial_controller_->reset(current_time);
+        trial_controller_.reset(NULL);
 
-        // Reset the active arm controller.
-        //active_arm_controller_->reset(current_time);
+        //Reset the active arm controller.
+        active_arm_controller_->reset(current_time);
 
         // Switch the sensors to run at full frequency.
         for (int sensor = 0; sensor < SensorType::TotalSensorTypes; sensor++)
@@ -191,7 +191,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     if(msg->controller.controller_to_execute == gps_agent_pkg::ControllerParams::LIN_GAUSS_CONTROLLER){
         //
         gps_agent_pkg::LinGaussParams lingauss = msg->controller.lingauss;
-        //trial_controller_.reset(new LinearGaussianController());
+        trial_controller_.reset(new LinearGaussianController());
         int dX = (int) lingauss.dX;
         int dU = (int) lingauss.dU;
         //Prepare options map
@@ -214,8 +214,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             controller_params["K_"+std::to_string(t)] = K; //TODO: Does this copy or will all values be the same?
             controller_params["k_"+std::to_string(t)] = k;
         }
-        //trial_controller_->configure_controller(controller_params);
-
+        trial_controller_->configure_controller(controller_params);
     }else{
         ROS_ERROR("Unknown trial controller arm type");
     }

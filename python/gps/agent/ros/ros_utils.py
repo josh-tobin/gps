@@ -19,10 +19,13 @@ def policy_to_msg(policy):
     if isinstance(policy, LinearGaussianPolicy):
         msg.controller_to_execute = ControllerParams.LIN_GAUSS_CONTROLLER
         msg.lingauss = LinGaussParams()
-        msg.lingauss.K_t = policy.K
+        msg.lingauss.T = policy.T
+        msg.lingauss.dX = policy.dX
+        msg.lingauss.dU = policy.dU
+        msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
          #TODO: Initialize noise somewhere else
         noise = generate_noise(policy.T, policy.dU)
-        msg.lingauss.k_t = policy.fold_k(noise)
+        msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
     else:
         raise NotImplementedError("Unknown policy object: %s" % policy)
     return msg
