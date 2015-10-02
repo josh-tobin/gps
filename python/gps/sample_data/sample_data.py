@@ -2,7 +2,7 @@ import cPickle
 import os
 import numpy as np
 
-from gps_sample_types import *
+from proto.gps_pb2 import ACTION
 from sample import Sample
 
 
@@ -22,18 +22,26 @@ class SampleData(object):
             self.sample_writer = sample_writer
 
         self.T = self._hyperparams['T']
-        self.dX = self._hyperparams['dX']
-        self.dU = self._hyperparams['dU']
-        self.dO = self._hyperparams['dO']
+        self.dU = self._hyperparams['sensor_dims'][ACTION]
 
         self.x_data_types = self._hyperparams['state_include']
         self.obs_data_types = self._hyperparams['obs_include']
-        #TODO: not sure how we were planning on determining correct indices for x and obs
-        #      leaving it as a hyperparameter for now, just for testing purposes
-        # List of indices for each data type in state X. Indices must be contiguous
-        self._x_data_idx = {d: i for d, i in zip(self.x_data_types,  self._hyperparams['state_idx'])}
-        # List of indices for each data type in observation. Indices must be contiguous
-        self._obs_data_idx = {d: i for d, i in zip(self.obs_data_types,  self._hyperparams['obs_idx'])}
+        # list of indices for each data type in state X
+        self._state_idx, i = [], 0
+        for sensor in self.x_data_types:
+            dim = self._hyperparams['sensor_dims'][sensor]
+            self._state_idx.append(list(range(i, i+dim)))
+            i += dim
+        self.dX = i
+        # list of indices for each data type in observation
+        self._obs_idx, i = [], 0
+        for sensor in self.obs_data_types:
+            dim = self._hyperparams['sensor_dims'][sensor]
+            self._obs_idx.append(list(range(i, i+dim)))
+            i += dim
+        self.dO = i
+        self._x_data_idx = {d: i for d, i in zip(self.x_data_types, self._state_idx)}
+        self._obs_data_idx = {d: i for d, i in zip(self.obs_data_types, self._obs_idx)}
 
         # List of trajectory samples (roll-outs)
         self._samples = []
@@ -117,6 +125,7 @@ class SampleData(object):
         existing_mat[index] = data_to_insert
 
     def pack_data_x(self, existing_mat, data_to_insert, data_types=None, axes=None):
+        #TODO: update 'Example Usage' below, now that dX, etc. aren't passed in
         """
         Inserts data into existing_mat into the indices specified by data_types and axes.
         Can insert 1 data type per axis.

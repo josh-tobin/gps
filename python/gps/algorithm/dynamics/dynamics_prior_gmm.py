@@ -66,7 +66,7 @@ class DynamicsPriorGMM(object):
 		LOGGER.debug('Generating %d clusters for dynamics GMM.', K)
 
 		# Update GMM.
-		self.gmm.update(xux.T,K)
+		self.gmm.update(xux,K)
 
 	def eval(self, Dx, Du, pts):
 		"""
@@ -81,7 +81,7 @@ class DynamicsPriorGMM(object):
 		assert pts.shape[1] == Dx+Du+Dx
 
 		# Perform query and fix mean.
-		mu0,Phi,m,n0 = self.gmm.inference(pts.T)
+		mu0,Phi,m,n0 = self.gmm.inference(pts)
 
 		# Factor in multiplier.
 		n0 = n0*self.strength

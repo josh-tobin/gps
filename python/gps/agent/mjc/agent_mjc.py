@@ -1,11 +1,11 @@
 import mjcpy
 import numpy as np
 
-from copy import deepcopy 
+from copy import deepcopy
 from agent.agent import Agent
 from agent.agent_utils import generate_noise
 from agent.config import agent_mujoco
-from sample_data.gps_sample_types import *
+from proto.gps_pb2 import *
 from scipy.ndimage.filters import gaussian_filter
 
 
@@ -119,7 +119,7 @@ class AgentMuJoCo(Agent):
                 #TODO: some hidden state stuff will go here
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
-        new_sample.set(Action, U)
+        new_sample.set(ACTION, U)
         return new_sample
 
     def _init_sample(self, condition):
@@ -127,32 +127,32 @@ class AgentMuJoCo(Agent):
         Construct a new sample and fill in the first time step.
         """
         sample = self.sample_data.create_new()
-        sample.set(JointAngles, self._hyperparams['init_pose'][condition][self._joint_idx], t=0)
-        sample.set(JointVelocities, self._hyperparams['init_pose'][condition][self._vel_idx], t=0)
+        sample.set(JOINT_ANGLES, self._hyperparams['init_pose'][condition][self._joint_idx], t=0)
+        sample.set(JOINT_VELOCITIES, self._hyperparams['init_pose'][condition][self._vel_idx], t=0)
         self._data = self._world.get_data()
         eepts = self._data['site_xpos'].flatten()
-        sample.set(EndEffectorPoints, eepts, t=0)
-        sample.set(EndEffectorPointVelocities, np.zeros_like(eepts), t=0)
+        sample.set(END_EFFECTOR_POINTS, eepts, t=0)
+        sample.set(END_EFFECTOR_POINT_VELOCITIES, np.zeros_like(eepts), t=0)
         jac = np.zeros([eepts.shape[0], self.x0[condition].shape[0]])
         for site in range(eepts.shape[0] // 3):
             idx = site * 3
             jac[idx:(idx+3), range(self._model[condition]['nq'])] = self._world.get_jac_site(site)
-        sample.set(EndEffectorJacobians, jac, t=0)
+        sample.set(END_EFFECTOR_JACOBIANS, jac, t=0)
         return sample
 
     def _set_sample(self, sample, mj_X, t, condition):
-        sample.set(JointAngles, np.array(mj_X[self._joint_idx]), t=t+1)
-        sample.set(JointVelocities, np.array(mj_X[self._vel_idx]), t=t+1)
+        sample.set(JOINT_ANGLES, np.array(mj_X[self._joint_idx]), t=t+1)
+        sample.set(JOINT_VELOCITIES, np.array(mj_X[self._vel_idx]), t=t+1)
         curr_eepts = self._data['site_xpos'].flatten()
-        sample.set(EndEffectorPoints, curr_eepts, t=t+1)
-        prev_eepts = sample.get(EndEffectorPoints, t=t)
+        sample.set(END_EFFECTOR_POINTS, curr_eepts, t=t+1)
+        prev_eepts = sample.get(END_EFFECTOR_POINTS, t=t)
         eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
-        sample.set(EndEffectorPointVelocities, eept_vels, t=t+1)
+        sample.set(END_EFFECTOR_POINT_VELOCITIES, eept_vels, t=t+1)
         jac = np.zeros([curr_eepts.shape[0], self.x0[condition].shape[0]])
         for site in range(curr_eepts.shape[0] // 3):
             idx = site * 3
             jac[idx:(idx+3), range(self._model[condition]['nq'])] = self._world.get_jac_site(site)
-        sample.set(EndEffectorJacobians, jac, t=t+1)
+        sample.set(END_EFFECTOR_JACOBIANS, jac, t=t+1)
 
     def reset(self, condition):
         pass
