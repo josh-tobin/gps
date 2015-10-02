@@ -13,18 +13,12 @@ class CaffePolicy(Policy):
     Where noise ~ N(0, diag(var))
 
     Args:
-        model_proto (string): Filename of model .prototxt file
-        caffemodel (string): Filename of .caffemodel file
+        test_net (caffe.Net): initialized caffe network that can run forward
         var (float vector): Du-dimensional noise variance vector.
-        cpu_mode (bool, optional): If true, use the CPU, else use GPU. Default False.
     """
-    def __init__(self, model_proto, caffemodel, var, cpu_mode=False):
+    def __init__(self, test_net, var):
         Policy.__init__(self)
-        if cpu_mode:
-            caffe.set_mode_cpu()
-        else:
-            caffe.set_mode_gpu()
-        self.net = caffe.Net(model_proto, caffemodel, caffe.TEST)
+        self.net = test_net
         self.chol_pol_covar = np.diag(np.sqrt(var))
 
     def act(self, x, obs, t, noise):
@@ -33,11 +27,11 @@ class CaffePolicy(Policy):
 
         Args:
             x: State vector
-            obs: Observation vector
+            obs: Observation vectors
             t: timestep
             noise: Action noise vector. This will be scaled by the variance.
         """
-        self.net.blobs['data'] = obs
+        self.net.blobs['data'] = obs # TODO - how do we know that the data processing/dimensions are correct?
         action_mean = self.net.forward()
         u = action_mean + self.chol_pol_covar.T.dot(noise)
         return u
