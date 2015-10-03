@@ -80,9 +80,9 @@ public:
     // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample) const;
+    virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.
-    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample) const;
+    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample);
 };
 
 }

@@ -27,8 +27,14 @@ enum SampleDataFormat
     SampleDataFormatBool,
     SampleDataFormatUInt8,
     SampleDataFormatInt,
-    SampleDataFormatDouble
+    SampleDataFormatDouble,
+    SampleDataFormatEigenMatrix,
+    SampleDataFormatEigenVector
 };
+
+typedef boost::variant<bool,uint8_t,std::vector<int>,int,double,Eigen::MatrixXd,Eigen::VectorXd> SampleVariant;
+typedef std::vector<SampleVariant> SampleList;
+typedef std::map<gps::SampleType, SampleList> SampleMap;
 
 class Sample
 {
@@ -37,7 +43,7 @@ private:
     int T_;
     // sensor data for all time steps.
     // IMPORTANT: data management on the internal data is done manually, be sure to allocate and free as necessary.
-    std::vector<void*> internal_data_;
+    SampleMap internal_data_;
     // sensor metadata: size of each field (in number of entries, not bytes).
     std::vector<int> internal_data_size_;
     // sensor metadata: format of each field.
@@ -59,7 +65,7 @@ public:
     // Get pointer to internal data for given time step.
     virtual void *get_data_pointer(int t, gps::SampleType type);
     // Add sensor data for given timestep.
-    virtual void set_data(int t, gps::SampleType type, const void *data, int data_size, SampleDataFormat data_format);
+    virtual void set_data(int t, gps::SampleType type, SampleVariant data, int data_size, SampleDataFormat data_format);
     // Get sensor data for given timestep.
     virtual void get_data(int t, gps::SampleType type, void *data, int data_size, SampleDataFormat data_format) const;
     // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
@@ -70,6 +76,8 @@ public:
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.
     virtual void get_obs(int t, Eigen::VectorXd &obs) const;
+    // Fill data arbitrary sensor information
+    virtual void get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes);
     // Get the action.
     virtual void get_action(int, Eigen::VectorXd &u) const;
 };

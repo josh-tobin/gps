@@ -103,6 +103,9 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
+    if(!is_controller_step){
+        return;
+    }
     // Update all of the sensors and fill in the sample.
     //for (int sensor = 0; sensor < SensorType::TotalSensorTypes; sensor++)
     for (int sensor = 0; sensor < 1; sensor++)
@@ -211,6 +214,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             for(int u=0; u<dU; u++){
                 k(u) = lingauss.k_t[u+t*dU];
             }
+            //TODO Don't do this hacky string indexing
             controller_params["K_"+std::to_string(t)] = K; //TODO: Does this copy or will all values be the same?
             controller_params["k_"+std::to_string(t)] = k;
         }

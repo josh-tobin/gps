@@ -44,13 +44,14 @@ EncoderSensor::~EncoderSensor()
 // Update the sensor (called every tick).
 void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
 {
+    //ROS_INFO_STREAM("EncoderSensor::update");
     if (is_controller_step)
     {
         // Get new vector of joint angles from plugin.
         plugin->get_joint_encoder_readings(temp_joint_angles_, TrialArm);
 
         // TODO: use Kalman filter...
-        
+
         // Get FK solvers from plugin.
         plugin->get_fk_solver(fk_solver_,jac_solver_,TrialArm);
 
@@ -82,11 +83,13 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes... 
+        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes...
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
         // If they are roughly from one step ago, assume the step is correct, otherwise use actual time.
+
+        //TODO: For some reason none of this code gets executed
         double update_time = current_time.toSec() - previous_angles_time_.toSec();
         if (!previous_angles_time_.isZero())
         { // Only compute velocities if we have a previous sample.
@@ -94,15 +97,23 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
                 fabs(update_time)/sensor_step_length_ <= 2.0)
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/sensor_step_length_;
-                for (unsigned i = 0; i < previous_velocities_.size(); i++)
+                for (unsigned i = 0; i < previous_velocities_.size(); i++){
                     previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
+                    ROS_INFO("Vel[%d]=%f",i,previous_velocities_[i]);
+                }
             }
             else
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/update_time;
-                for (unsigned i = 0; i < previous_velocities_.size(); i++)
+                for (unsigned i = 0; i < previous_velocities_.size(); i++){
                     previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
+                    ROS_INFO("Vel[%d]=%f",i,previous_velocities_[i]);
+                }
             }
+        }
+        //TODO: Temprary hack to set velocities
+        for (unsigned i = 0; i < previous_velocities_.size(); i++){
+            previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/0.05; //HACK: 20Hz
         }
 
         // Move temporaries into the previous joint angles.
@@ -129,15 +140,15 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
 }
 
 // Set data format and meta data on the provided sample.
-void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample) const
+void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 {
     // Set joint angles size and format.
     OptionsMap joints_metadata;
-    sample->set_meta_data(gps::SampleType::JOINT_ANGLES,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble,joints_metadata);
+    sample->set_meta_data(gps::SampleType::JOINT_ANGLES,previous_angles_.size(),SampleDataFormat::SampleDataFormatEigenVector,joints_metadata);
 
     // Set joint velocities size and format.
     OptionsMap velocities_metadata;
-    sample->set_meta_data(gps::SampleType::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble,joints_metadata);
+    sample->set_meta_data(gps::SampleType::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormat::SampleDataFormatEigenVector,joints_metadata);
 
     // Set end effector point size and format.
     OptionsMap eep_metadata;
@@ -161,13 +172,13 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample) co
 }
 
 // Set data on the provided sample.
-void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample) const
+void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample)
 {
     // Set joint angles.
-    sample->set_data(0,gps::SampleType::JOINT_ANGLES,&previous_angles_[0],previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(0,gps::SampleType::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
 
     // Set joint velocities.
-    sample->set_data(0,gps::SampleType::JOINT_VELOCITIES,&previous_velocities_[0],previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(0,gps::SampleType::JOINT_VELOCITIES,previous_velocities_,previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble);
 
     // Set end effector point.
     sample->set_data(0,gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.data(),previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble);

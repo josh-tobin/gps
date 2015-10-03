@@ -19,7 +19,9 @@ def listen(msg):
 
 def get_lin_gauss_test(T=50):
     dX = 14
-    lgpol = init_pd({}, np.zeros(dX), 7, 7, dX, T)
+    x0 = np.zeros(dX)
+    x0[0] = 1.0
+    lgpol = init_pd({}, x0, 7, 7, dX, T)
     print 'T:', lgpol.T
     print 'dX:', lgpol.dX
     #Conver lgpol to message
@@ -34,10 +36,11 @@ def main():
     #sub = rospy.Subscriber('/joint_states', JointState, listen)
 
     tc = TrialCommand()
-    T = 50
+    T = 100
     tc.controller = get_lin_gauss_test(T=T)
     tc.T = T
     tc.frequency = 20.0
+    # NOTE: ordering of datatypes in state is determined by the order here
     tc.state_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
     tc.obs_datatypes = tc.state_datatypes
 

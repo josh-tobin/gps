@@ -28,8 +28,13 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     }
     Eigen::VectorXd X, obs;
     //TODO: Fill in X and obs from sample
-    sample->get_state(step_counter_, X);
-    sample->get_obs(step_counter_, obs);
+    //sample->get_state(step_counter_, X);
+    sample->get_data(step_counter_, X, state_datatypes_);
+    ROS_INFO("Printing X:");
+    for(int i=0; i<X.size(); i++){
+        ROS_INFO("X[%d]=%f", i, X[i]);
+    }
+    //sample->get_obs(step_counter_, obs);
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
@@ -41,7 +46,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     // Update last update time.
     last_update_time_ = current_time;
     step_counter_ ++;
-    ROS_INFO("Step counter:", step_counter_);
+    ROS_INFO("Step counter: %d", step_counter_);
 }
 
 void TrialController::configure_controller(OptionsMap &options)

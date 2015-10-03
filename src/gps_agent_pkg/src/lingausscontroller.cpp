@@ -16,11 +16,7 @@ LinearGaussianController::~LinearGaussianController()
 
 
 void LinearGaussianController::get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U){
-    ROS_INFO_STREAM(">>beginning LG update");
-    U = k_[t];
-    ROS_INFO_STREAM(">>added bias");
-    //U += K_[t]*X; //TODO: This crashes
-    ROS_INFO_STREAM(">>end LG update");
+    U = K_t[t]*X+k_[t];
 }
 
 // Configure the controller.
@@ -34,6 +30,7 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
     // TODO: Update K_
     int T = boost::get<int>(options["T"]);
 
+    //TODO Don't do this hacky string indexing
     K_.resize(T);
     for(int i=0; i<T; i++){
         K_[i] = boost::get<Eigen::MatrixXd>(options["K_"+std::to_string(i)]);
@@ -43,6 +40,4 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
     for(int i=0; i<T; i++){
         k_[i] = boost::get<Eigen::VectorXd>(options["k_"+std::to_string(i)]);
     }
-
-    ROS_INFO_STREAM("Finished setting LG parameters");
 }
