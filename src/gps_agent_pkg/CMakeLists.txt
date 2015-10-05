@@ -30,8 +30,16 @@ rosbuild_genmsg()
 #Include protobuf
 include_directories($ENV{GPS_ROOT_DIR}/build/gps)
 
+#Include boost
+rosbuild_add_boost_directories()
+#find_package(Boost 1.46.0 COMPONENTS)
+#if(Boost_FOUND)
+    #include_directories(${Boost_INCLUDE_DIRS})
+#endif()
+
 #Use C++0x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 set(DDP_FILES src/robotplugin.cpp
 			  src/pr2plugin.cpp
@@ -82,10 +90,6 @@ rosbuild_add_library(gps_agent_lib ${DDP_FILES})
 
 #rosbuild_add_executable(pointcloud_solver src/pointcloud_solver.cpp
 #                                          src/keypoint_detector.cpp)
-#find_package(Boost 1.46.1 COMPONENTS thread smart_ptr)
-#if(Boost_FOUND)
-#include_directories(${Boost_INCLUDE_DIRS}) 
-#endif()
 
 #rosbuild_add_executable(point_head src/point_head.cpp)
 #rosbuild_add_executable(torso src/torso.cpp)
@@ -95,5 +99,4 @@ if (USE_CAFFE)
     target_link_libraries(gps_agent_lib caffe protobuf)
 endif (USE_CAFFE)
 
-rosbuild_add_boost_directories()
-rosbuild_link_boost(gps_agent_lib thread)
+rosbuild_link_boost(gps_agent_lib thread)# smart_ptr)

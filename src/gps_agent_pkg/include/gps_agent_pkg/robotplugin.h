@@ -64,7 +64,7 @@ protected:
     // Sensor data for the current time step.
     boost::scoped_ptr<Sample> current_time_step_sample_;
     // Sensors.
-    std::vector<boost::shared_ptr<Sensor>> sensors_;
+    std::vector<boost::shared_ptr<Sensor> > sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
@@ -96,7 +96,7 @@ public:
     virtual void initialize_position_controllers(ros::NodeHandle& n);
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
-    // TODO: Comment    
+    // TODO: Comment
     virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
     // Publish the specified sample in a report.
     //virtual void publish_report(boost::scoped_ptr<Sample>& sample);

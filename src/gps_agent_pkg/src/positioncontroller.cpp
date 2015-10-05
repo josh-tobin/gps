@@ -1,5 +1,6 @@
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps_agent_pkg/robotplugin.h"
+#include "gps_agent_pkg/utils.h"
 
 using namespace gps_control;
 
@@ -13,7 +14,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
     pd_gains_p_.resize(size);
     pd_gains_d_.resize(size);
     pd_gains_i_.resize(size);
-    
+
     // Initialize velocity bounds.
     max_velocities_.resize(size);
 
@@ -37,7 +38,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
 
     // Initialize Jacobian temporary storage.
     temp_jacobian_.resize(6,size);
-    ROS_INFO_STREAM("jacobian size: " + std::to_string(temp_jacobian_.size()));
+    ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
 
     for (int i = 0; i < size; i++)
     {

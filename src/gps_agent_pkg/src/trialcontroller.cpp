@@ -35,13 +35,13 @@ void TrialController::configure_controller(OptionsMap &options)
 {
     std::vector<int> datatypes;
 
-    datatypes = boost::get<std::vector<int>>(options["state_datatypes"]);
+    datatypes = boost::get<std::vector<int> >(options["state_datatypes"]);
     state_datatypes_.resize(datatypes.size());
     for(int i=0; i<datatypes.size(); i++){
         state_datatypes_[i] = (gps::SampleType) datatypes[i];
     }
 
-    datatypes = boost::get<std::vector<int>>(options["obs_datatypes"]);
+    datatypes = boost::get<std::vector<int> >(options["obs_datatypes"]);
     obs_datatypes_.resize(datatypes.size());
     for(int i=0; i<datatypes.size(); i++){
         obs_datatypes_[i] = (gps::SampleType) datatypes[i];

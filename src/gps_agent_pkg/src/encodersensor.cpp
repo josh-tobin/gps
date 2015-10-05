@@ -50,7 +50,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         plugin->get_joint_encoder_readings(temp_joint_angles_, TrialArm);
 
         // TODO: use Kalman filter...
-        
+
         // Get FK solvers from plugin.
         plugin->get_fk_solver(fk_solver_,jac_solver_,TrialArm);
 
@@ -82,7 +82,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes... 
+        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes...
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
@@ -131,6 +131,7 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
 // Set data format and meta data on the provided sample.
 void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample) const
 {
+    /*
     // Set joint angles size and format.
     OptionsMap joints_metadata;
     sample->set_meta_data(gps::SampleType::JOINT_ANGLES,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble,joints_metadata);
@@ -158,11 +159,13 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample) co
     // Set jacobian size and format.
     OptionsMap eejac_metadata;
     sample->set_meta_data(gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble,eejac_metadata);
+    */
 }
 
 // Set data on the provided sample.
 void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample) const
 {
+    /*
     // Set joint angles.
     sample->set_data(0,gps::SampleType::JOINT_ANGLES,&previous_angles_[0],previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
 
@@ -183,4 +186,5 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample) const
 
     // Set end effector jacobian.
     sample->set_data(0,gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.data(),previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    */
 }
