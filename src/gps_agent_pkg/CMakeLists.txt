@@ -24,8 +24,6 @@ rosbuild_genmsg()
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
@@ -84,6 +82,10 @@ rosbuild_add_library(gps_agent_lib ${DDP_FILES})
 
 #rosbuild_add_executable(pointcloud_solver src/pointcloud_solver.cpp
 #                                          src/keypoint_detector.cpp)
+#find_package(Boost 1.46.1 COMPONENTS thread smart_ptr)
+#if(Boost_FOUND)
+#include_directories(${Boost_INCLUDE_DIRS}) 
+#endif()
 
 #rosbuild_add_executable(point_head src/point_head.cpp)
 #rosbuild_add_executable(torso src/torso.cpp)
@@ -93,3 +95,5 @@ if (USE_CAFFE)
     target_link_libraries(gps_agent_lib caffe protobuf)
 endif (USE_CAFFE)
 
+rosbuild_add_boost_directories()
+rosbuild_link_boost(gps_agent_lib thread)

@@ -47,7 +47,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     // Create subscribers.
     position_subscriber_ = n.subscribe("/gps_controller_position_command", 1, &RobotPlugin::position_subscriber_callback, this);
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
-    //relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
+    relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
     //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
     // Create publishers.
@@ -118,7 +118,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     // If we have a trial controller, update that, otherwise update position controller.
     //if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     //else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
-    ROS_INFO_STREAM("beginning controller update");
+    //ROS_INFO_STREAM("beginning controller update");
     active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
     // Update passive arm controller.
@@ -156,10 +156,17 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     }
     params["data"] = data;
 
+    Eigen::MatrixXd pd_gains;
+    pd_gains.resize(msg->pd_gains.size(), 3);
+    for(int i=0; i<pd_gains.size(); i++){
+        pd_gains(i, 0) = msg->pd_gains[i];
+    }
+    params["pd_gains"] = pd_gains;
+
     if(arm == TrialArm){
-        //active_arm_controller_->configure_controller(params);
+        active_arm_controller_->configure_controller(params);
     }else if (arm == AuxiliaryArm){
-        //passive_arm_controller_->configure_controller(params);
+        passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
     }
@@ -214,6 +221,21 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
     }else{
         ROS_ERROR("Unknown trial controller arm type");
+    }
+}
+
+void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg){
+
+    OptionsMap params;
+    int8_t arm = msg->arm;
+    params["mode"] = NoControl;
+
+    if(arm == TrialArm){
+        active_arm_controller_->configure_controller(params);
+    }else if (arm == AuxiliaryArm){
+        passive_arm_controller_->configure_controller(params);
+    }else{
+        ROS_ERROR("Unknown position controller arm type");
     }
 }
 

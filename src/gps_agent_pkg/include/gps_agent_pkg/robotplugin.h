@@ -110,7 +110,7 @@ public:
     // Trial command callback.
     virtual void trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg);
     // Relax command callback.
-    //virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
+    virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
     // Report request callback.
     //virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Update functions.

@@ -198,7 +198,6 @@ void PR2Plugin::update()
     for (unsigned i = 0; i < active_arm_joint_state_.size(); i++)
         //active_arm_joint_state_[i]->commanded_effort_ = 0.5;
         active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
-    passive_arm_joint_state_[0]->commanded_effort_ = 0.5;
     for (unsigned i = 1; i < passive_arm_joint_state_.size(); i++)
         //passive_arm_joint_state_[i]->commanded_effort_ = -0.5;
         passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
