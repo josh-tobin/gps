@@ -1,0 +1,5 @@
+<launch>
+
+	<include file="$(find gps_agent_pkg)/launch/pr2_only_controller.launch" />
+
+</launch>
