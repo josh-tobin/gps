@@ -7,9 +7,8 @@ class PolicyOpt(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         self._hyperparams = hyperparams
-        self.sample_data = sample_data
 
     @abc.abstractmethod
     def update(self):

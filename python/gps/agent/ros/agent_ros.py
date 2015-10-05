@@ -4,8 +4,7 @@ import rospy
 from agent.agent import Agent
 from agent.config import agent_ros
 from ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
-from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, \
-    DataRequest
+from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, DataRequest
 from std_msgs.msg import Empty
 
 ARM_LEFT = RelaxCommand.LEFT_ARM
@@ -16,10 +15,10 @@ class AgentROS(Agent):
     """
     All communication between the algorithms and ROS is done through this class.
     """
-    def __init__(self, hyperparams, sample_data, state_assembler):
+    def __init__(self, hyperparams):
         config = deepcopy(agent_ros)
         config.update(hyperparams)
-        Agent.__init__(self, config, sample_data, state_assembler)
+        Agent.__init__(self, config)
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands
 
@@ -122,4 +121,4 @@ class AgentROS(Agent):
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
         sample = construct_sample_from_ros_msg(sample_msg)
-        return sample
+        self._samples.append(sample)

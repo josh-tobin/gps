@@ -7,8 +7,8 @@ class DynamicsLR(Dynamics):
     """Dynamics with linear regression, with constant prior.
 
     """
-    def __init__(self,hyperparams, sample_data):
-        Dynamics.__init__(self, hyperparams, sample_data)
+    def __init__(self,hyperparams):
+        Dynamics.__init__(self, hyperparams)
         self.Fm = None
         self.fv = None
         self.dyn_covar = None
@@ -21,10 +21,10 @@ class DynamicsLR(Dynamics):
     def get_prior(self):
         return None
 
-    def fit(self, sample_idx):
+    def fit(self, sample_data):
         """ Fit dynamics. """
-        X = self._sample_data.get_X(idx=sample_idx)  # Use all samples to fit dynamics.
-        U = self._sample_data.get_U(idx=sample_idx)
+        X = sample_data.get_X()  # Use all samples to fit dynamics.
+        U = sample_data.get_U()
         N, T, dX = X.shape
         dU = U.shape[2]
 

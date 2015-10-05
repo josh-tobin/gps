@@ -34,14 +34,6 @@ common = {
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
-sample_data = {
-    'filename': 'sample_data.pkl',
-    'T': 100,
-    'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
-    'obs_include': [],
-}
-
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
@@ -53,6 +45,11 @@ agent = {
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
         np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
+
+    'T': 100,
+    'sensor_dims': SENSOR_DIMS,
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'obs_include': [],
 }
 
 algorithm = {
@@ -71,6 +68,7 @@ algorithm['init_traj_distr'] = {
             'init_stiffness_vel': 0.5,
         },
         'dt': agent['dt'],
+        'T': agent['T'],
     }
 }
 
@@ -116,7 +114,6 @@ algorithm['policy_opt'] = {}
 defaults = {
     'iterations': 20,
     'common': common,
-    'sample_data': sample_data,
     'agent': agent,
     'algorithm': algorithm,
 }

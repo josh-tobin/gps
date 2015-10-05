@@ -5,7 +5,7 @@ class CostSum(Cost):
     """
     A wrapper cost function that adds other cost functions
     """
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
 
         assert len(hyperparams['costs']) == len(hyperparams['weights'])
 
@@ -13,20 +13,19 @@ class CostSum(Cost):
         self._weights = hyperparams['weights']
 
         for cost in hyperparams['costs']:
-            self._costs.append(cost['type'](cost, sample_data))
+            self._costs.append(cost['type'](cost))
 
-
-    def eval(self, sample_idx):
+    def eval(self, sample):
         """
         Evaluate cost function and derivatives
 
         Args:
-            sample_idx:  A single index into sample_data
+            sample:  A single sample
         Return:
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        l, lx, lu, lxx, luu, lux = self._costs[0].eval(sample_idx)
+        l, lx, lu, lxx, luu, lux = self._costs[0].eval(sample)
 
         # Compute weighted sum of each evaluated cost value and derivative
         weight = self._weights[0]
@@ -37,7 +36,7 @@ class CostSum(Cost):
         luu = luu * weight
         lux = lux * weight
         for i in range(1, len(self._costs)):
-            pl, plx, plu, plxx, pluu, plux = self._costs[i].eval(sample_idx)
+            pl, plx, plu, plxx, pluu, plux = self._costs[i].eval(sample)
             weight = self._weights[i]
             l = l + pl * weight
             lx = lx + plx * weight

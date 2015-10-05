@@ -13,12 +13,12 @@ class CostFK(Cost):
     end effector position.
     """
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         config = deepcopy(cost_fk)
         config.update(hyperparams)
-        Cost.__init__(self, config, sample_data)
+        Cost.__init__(self, config)
 
-    def eval(self, sample_idx):
+    def eval(self, sample):
         """
         Evaluate forward kinematics (end-effector penalties) cost.
 
@@ -26,16 +26,15 @@ class CostFK(Cost):
             with the velocity/velocity diff/etc. penalties remove (use CostState instead)
 
         Args:
-            sample_idx: A single index into sample_data
+            sample: A single sample
 
         Return:
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        T = self.sample_data.T
-        dX = self.sample_data.dX
-        dU = self.sample_data.dU
-        sample = self.sample_data.get_samples(idx=[sample_idx])[0]
+        T = sample.T
+        dX = sample.dX
+        dU = sample.dU
 
         wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
                                   wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
