@@ -14,6 +14,7 @@ class CostState(Cost):
     def __init__(self, hyperparams):
         config = deepcopy(cost_state)
         config.update(hyperparams)
+        Cost.__init__(self, config)
 
     # TODO - Pass in indices to sample_data rather than sample?
     def eval(self, sample):
@@ -62,7 +63,6 @@ class CostState(Cost):
 
             final_l += l
 
-            #TODO: this piece will be slightly nontrivial to refactor
-            self.sample_data.pack_data_x(final_lx, ls, data_types=[data_type_name])
-            self.sample_data.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
+            sample.agent.pack_data_x(final_lx, ls, data_types=[data_type_name])
+            sample.agent.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
         return final_l, final_lx, final_lu, final_lxx, final_luu, final_lux
