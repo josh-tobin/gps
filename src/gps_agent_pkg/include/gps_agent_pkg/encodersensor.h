@@ -82,7 +82,7 @@ public:
     // Set data format and meta data on the provided sample.
     virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.
-    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample);
+    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample, int t);
 };
 
 }

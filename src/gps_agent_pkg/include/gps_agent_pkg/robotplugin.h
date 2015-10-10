@@ -105,6 +105,9 @@ public:
     //virtual void run_trial(/* TODO: receive all of the trial parameters here */);
     // Move the arm.
     //virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
+    // Report publishers
+    // Publish a whole sample
+    virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample);
     // Subscriber callbacks.
     // Position command callback.
     virtual void position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg);

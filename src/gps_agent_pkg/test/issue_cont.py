@@ -2,7 +2,7 @@ import rospy
 import roslib
 roslib.load_manifest('gps_agent_pkg')
 import gps_agent_pkg
-from gps_agent_pkg.msg import PositionCommand, TrialCommand, ControllerParams, LinGaussParams
+from gps_agent_pkg.msg import PositionCommand, TrialCommand, ControllerParams, LinGaussParams, SampleResult
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Empty
 import numpy as np
@@ -13,9 +13,15 @@ from proto.gps_pb2 import *
 POS_COM_TOPIC = '/gps_controller_position_command'
 TRIAL_COM_TOPIC = '/gps_controller_trial_command'
 TEST_TOPIC = '/test_sub'
+RESULT_TOPIC = '/gps_controller_report'
 
 def listen(msg):
     print msg.__class__
+
+def listen_report(msg):
+    print msg.__class__
+    import pdb; pdb.set_trace();
+    
 
 def get_lin_gauss_test(T=50):
     dX = 14
@@ -33,10 +39,11 @@ def main():
     pub = rospy.Publisher(TRIAL_COM_TOPIC, TrialCommand, queue_size=10)
     test_pub = rospy.Publisher(TEST_TOPIC, Empty, queue_size=10)
     sub = rospy.Subscriber(POS_COM_TOPIC, TrialCommand, listen)
+    sub2 = rospy.Subscriber(RESULT_TOPIC, SampleResult, listen_report)
     #sub = rospy.Subscriber('/joint_states', JointState, listen)
 
     tc = TrialCommand()
-    T = 100
+    T = 10
     tc.controller = get_lin_gauss_test(T=T)
     tc.T = T
     tc.frequency = 20.0

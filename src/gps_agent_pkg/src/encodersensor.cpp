@@ -152,46 +152,46 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 
     // Set end effector point size and format.
     OptionsMap eep_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble,eep_metadata);
+    //sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble,eep_metadata);
 
     // Set end effector point velocities size and format.
     OptionsMap eepv_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormat::SampleDataFormatDouble,eepv_metadata);
+    //sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormat::SampleDataFormatDouble,eepv_metadata);
 
     // Set end effector position size and format.
     OptionsMap eepos_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_POSITIONS,3,SampleDataFormat::SampleDataFormatDouble,eepos_metadata);
+    //sample->set_meta_data(gps::SampleType::END_EFFECTOR_POSITIONS,3,SampleDataFormat::SampleDataFormatDouble,eepos_metadata);
 
     // Set end effector rotation size and format.
     OptionsMap eerot_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_ROTATIONS,9,SampleDataFormat::SampleDataFormatDouble,eerot_metadata);
+    //sample->set_meta_data(gps::SampleType::END_EFFECTOR_ROTATIONS,9,SampleDataFormat::SampleDataFormatDouble,eerot_metadata);
 
     // Set jacobian size and format.
     OptionsMap eejac_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble,eejac_metadata);
+    //sample->set_meta_data(gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble,eejac_metadata);
 }
 
 // Set data on the provided sample.
-void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample)
+void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 {
     // Set joint angles.
-    sample->set_data(0,gps::SampleType::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::SampleType::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
 
     // Set joint velocities.
-    sample->set_data(0,gps::SampleType::JOINT_VELOCITIES,previous_velocities_,previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::SampleType::JOINT_VELOCITIES,previous_velocities_,previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble);
 
     // Set end effector point.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.data(),previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    //sample->set_data(t,gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.data(),previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble);
 
     // Set end effector point velocities.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.data(),previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    //sample->set_data(t,gps::SampleType::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.data(),previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormat::SampleDataFormatDouble);
 
     // Set end effector position.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_POSITIONS,previous_position_.data(),3,SampleDataFormat::SampleDataFormatDouble);
+    //sample->set_data(t,gps::SampleType::END_EFFECTOR_POSITIONS,previous_position_.data(),3,SampleDataFormat::SampleDataFormatDouble);
 
     // Set end effector rotation.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_ROTATIONS,previous_rotation_.data(),9,SampleDataFormat::SampleDataFormatDouble);
+    //sample->set_data(t,gps::SampleType::END_EFFECTOR_ROTATIONS,previous_rotation_.data(),9,SampleDataFormat::SampleDataFormatDouble);
 
     // Set end effector jacobian.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.data(),previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    //sample->set_data(t,gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.data(),previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble);
 }

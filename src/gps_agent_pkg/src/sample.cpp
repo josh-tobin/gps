@@ -6,6 +6,8 @@ using namespace gps_control;
 
 Sample::Sample(int T)
 {
+	ROS_INFO("Initializing Sample with T=%d", T);
+	T_ = T;
 	internal_data_size_.resize((int)gps::SampleType::TOTAL_DATA_TYPES);
 	internal_data_format_.resize((int)gps::SampleType::TOTAL_DATA_TYPES);
 	//Fill in all possible sample types
@@ -13,6 +15,7 @@ Sample::Sample(int T)
 		SampleList samples_list;
 		samples_list.resize(T);
 		internal_data_[(gps::SampleType)i] = samples_list;
+		internal_data_size_[i] = -1; //initialize to -1
 	}
 }
 
@@ -27,8 +30,9 @@ void* Sample::get_data_pointer(int t, gps::SampleType type)
 
 void Sample::set_data(int t, gps::SampleType type, SampleVariant data, int data_size, SampleDataFormat data_format)
 {
+	if(t >= T_) ROS_ERROR("Out of bounds t: %d/%d", t, T_);
     SampleList samples_list = internal_data_[type];
-    samples_list[0] = data; //TODO: HACK: Always set t=0
+    samples_list[t] = data;
     internal_data_[type] = samples_list; //TODO: This is probably inefficient. Try to pass pointers
     return;
 }
@@ -45,6 +49,14 @@ void Sample::set_meta_data(gps::SampleType type, int data_size, SampleDataFormat
     internal_data_size_[type_key] = data_size;
     internal_data_format_[type_key] = data_format;
     return;
+}
+
+void Sample::get_available_dtypes(std::vector<gps::SampleType> &types){
+	for(int i=0; i<gps::SampleType::TOTAL_DATA_TYPES; i++){
+		if(internal_data_size_[i] != -1){
+			types.push_back((gps::SampleType)i);
+		}
+	}
 }
 
 void Sample::get_meta_data(gps::SampleType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const
@@ -64,8 +76,27 @@ void Sample::get_obs(int t, Eigen::VectorXd &obs) const
     return;
 }
 
+void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype){
+	ROS_INFO("get_data_all_timesteps for dtype=%d", (int)datatype);
+	int size = internal_data_size_[(int)datatype];
+	data.resize(size*T_);
+	std::vector<gps::SampleType> dtype_vector;
+	dtype_vector.push_back(datatype);
+
+	Eigen::VectorXd tmp_data;
+	for(int t=0; t<T_; t++){
+		ROS_INFO("filling data for t=%d", t);
+		get_data(t, tmp_data, dtype_vector);
+		//Fill in original data
+		for(int i=0; i<size; i++){
+			data[t*size+i] = tmp_data[i];
+		}
+	}
+}
+
 void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes)
 {
+	if(t >= T_) ROS_ERROR("Out of bounds t: %d/%d", t, T_);
 	//ROS_INFO("Getting data");
     //Calculate size
     int total_size = 0;
@@ -92,7 +123,7 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 		}
 		int size = internal_data_size_[dtype];
 		SampleList sample_list = internal_data_[datatypes[i]];
-		SampleVariant sample_variant = sample_list[0];//TODO: HACK: Always get from t=0
+		SampleVariant sample_variant = sample_list[t];
 		//TODO: Hardcoded Eigen::VectorXd
 		Eigen::VectorXd sensor_data = boost::get<Eigen::VectorXd>(sample_variant);
 		data.segment(current_idx, size) = sensor_data;

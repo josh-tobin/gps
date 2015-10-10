@@ -16,7 +16,7 @@ LinearGaussianController::~LinearGaussianController()
 
 
 void LinearGaussianController::get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U){
-    U = K_t[t]*X+k_[t];
+    U = K_[t]*X+k_[t];
 }
 
 // Configure the controller.

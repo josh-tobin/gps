@@ -111,7 +111,10 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
     for (int sensor = 0; sensor < 1; sensor++)
     {
         sensors_[sensor]->update(this, last_update_time_, is_controller_step);
-        sensors_[sensor]->set_sample_data(current_time_step_sample_);
+        if (trial_controller_ != NULL){
+            sensors_[sensor]->set_sample_data(current_time_step_sample_,
+                trial_controller_->get_step_counter());
+        }
     }
 }
 
@@ -132,6 +135,9 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 
     // Check if the trial controller finished and delete it.
     if (trial_controller_ != NULL && trial_controller_->is_finished()) {
+
+        // Publish sample after trial completion
+        publish_sample_report(current_time_step_sample_);
         //Clear the trial controller.
         trial_controller_->reset(current_time);
         trial_controller_.reset(NULL);
@@ -148,6 +154,26 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 
     /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
     /* publish message when finished */
+}
+
+void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
+    ROS_INFO("Publishing sample report!");
+    while(!report_publisher_->trylock());
+    std::vector<gps::SampleType> dtypes;
+    sample->get_available_dtypes(dtypes);
+
+    report_publisher_->msg_.sensor_data.resize(dtypes.size()); //TODO: Only doing pos/vel right now
+    for(int d=0; d<dtypes.size(); d++){
+        report_publisher_->msg_.sensor_data[d].data_type = dtypes[d];
+        Eigen::VectorXd tmp_data;
+        sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
+        report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
+        for(int i=0; i<tmp_data.size(); i++){
+            report_publisher_->msg_.sensor_data[d].data[i] = tmp_data[i];
+        }
+    }
+    report_publisher_->unlockAndPublish();
+    ROS_INFO("Published report");
 }
 
 void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
@@ -178,6 +204,10 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
+    current_time_step_sample_.reset(new Sample(T)); //make a new Sample object
+    initialize_sample(current_time_step_sample_);
+
+
     float frequency = msg->frequency;  // Controller frequency
     std::vector<int> state_datatypes, obs_datatypes;
     state_datatypes.resize(msg->state_datatypes.size());

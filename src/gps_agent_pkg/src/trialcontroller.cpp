@@ -91,6 +91,10 @@ boost::scoped_ptr<Sample>* TrialController::get_sample() const
     return NULL;
 }
 
+int TrialController::get_step_counter(){
+    return step_counter_;
+}
+
 // Reset the controller -- this is typically called when the controller is turned on.
 void TrialController::reset(ros::Time time)
 {
