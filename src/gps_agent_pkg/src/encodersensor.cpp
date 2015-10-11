@@ -142,6 +142,7 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
 // Set data format and meta data on the provided sample.
 void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 {
+    /*
     // Set joint angles size and format.
     OptionsMap joints_metadata;
     sample->set_meta_data(gps::SampleType::JOINT_ANGLES,previous_angles_.size(),SampleDataFormat::SampleDataFormatEigenVector,joints_metadata);
@@ -169,11 +170,14 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
     // Set jacobian size and format.
     OptionsMap eejac_metadata;
     //sample->set_meta_data(gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble,eejac_metadata);
+    sample->set_meta_data(gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble,eejac_metadata);
+    */
 }
 
 // Set data on the provided sample.
 void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 {
+    /*
     // Set joint angles.
     sample->set_data(t,gps::SampleType::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
 
@@ -194,4 +198,5 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 
     // Set end effector jacobian.
     //sample->set_data(t,gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.data(),previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    */
 }

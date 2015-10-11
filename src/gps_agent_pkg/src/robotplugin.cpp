@@ -6,6 +6,7 @@
 #include "gps_agent_pkg/trialcontroller.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
+#include "gps_agent_pkg/utils.h"
 #include <vector>
 
 using namespace gps_control;
@@ -50,7 +51,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     position_subscriber_ = n.subscribe("/gps_controller_position_command", 1, &RobotPlugin::position_subscriber_callback, this);
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
     test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
-    //relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
+    relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
     //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
     // Create publishers.
@@ -66,9 +67,9 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     // Create all sensors.
     for (int i = 0; i < 1; i++)
     // TODO: readd this when more sensors work
-    //for (int i = 0; i < SensorType::TotalSensorTypes; i++)
+    //for (int i = 0; i < TotalSensorTypes; i++)
     {
-        ROS_INFO_STREAM("creating sensor: " + std::to_string(i));
+        ROS_INFO_STREAM("creating sensor: " + to_string(i));
         boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this));
         sensors_.push_back(sensor);
     }
@@ -93,7 +94,7 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 {
     // Go through all of the sensors and initialize metadata.
-    //for (int i = 0; i < SensorType::TotalSensorTypes; i++)
+    //for (int i = 0; i < TotalSensorTypes; i++)
     for (int i = 0; i < 1; i++)
     {
         sensors_[i]->set_sample_data_format(sample);
@@ -107,7 +108,7 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
         return;
     }
     // Update all of the sensors and fill in the sample.
-    //for (int sensor = 0; sensor < SensorType::TotalSensorTypes; sensor++)
+    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
     for (int sensor = 0; sensor < 1; sensor++)
     {
         sensors_[sensor]->update(this, last_update_time_, is_controller_step);
@@ -146,7 +147,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
         active_arm_controller_->reset(current_time);
 
         // Switch the sensors to run at full frequency.
-        for (int sensor = 0; sensor < SensorType::TotalSensorTypes; sensor++)
+        for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
         {
             //sensors_[sensor]->set_update(active_arm_controller_->get_update_delay());
         }
@@ -188,6 +189,14 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
         data[i] = msg->data[i];
     }
     params["data"] = data;
+
+    Eigen::MatrixXd pd_gains;
+    pd_gains.resize(msg->pd_gains.size(), 3);
+    for(int i=0; i<pd_gains.size(); i++){
+        pd_gains(i, 0) = msg->pd_gains[i];
+    }
+    params["pd_gains"] = pd_gains;
+
     if(arm == TrialArm){
         active_arm_controller_->configure_controller(params);
     }else if (arm == AuxiliaryArm){
@@ -244,9 +253,8 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             for(int u=0; u<dU; u++){
                 k(u) = lingauss.k_t[u+t*dU];
             }
-            //TODO Don't do this hacky string indexing
-            controller_params["K_"+std::to_string(t)] = K; //TODO: Does this copy or will all values be the same?
-            controller_params["k_"+std::to_string(t)] = k;
+            controller_params["K_"+to_string(t)] = K; //TODO: Does this copy or will all values be the same?
+            controller_params["k_"+to_string(t)] = k;
         }
         trial_controller_->configure_controller(controller_params);
     }else{
@@ -258,10 +266,25 @@ void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
     ROS_INFO_STREAM("Received test message");
 }
 
+void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg){
+
+    OptionsMap params;
+    int8_t arm = msg->arm;
+    params["mode"] = NoControl;
+
+    if(arm == TrialArm){
+        active_arm_controller_->configure_controller(params);
+    }else if (arm == AuxiliaryArm){
+        passive_arm_controller_->configure_controller(params);
+    }else{
+        ROS_ERROR("Unknown position controller arm type");
+    }
+}
+
 // Get sensor.
 Sensor *RobotPlugin::get_sensor(SensorType sensor)
 {
-    assert(sensor < SensorType::TotalSensorTypes);
+    assert(sensor < TotalSensorTypes);
     // TODO: does this need to be a raw pointer?
     return sensors_[sensor].get();
 }

@@ -64,7 +64,7 @@ protected:
     // Sensor data for the current time step.
     boost::scoped_ptr<Sample> current_time_step_sample_;
     // Sensors.
-    std::vector<boost::shared_ptr<Sensor>> sensors_;
+    std::vector<boost::shared_ptr<Sensor> > sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
@@ -115,7 +115,7 @@ public:
     virtual void trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg);
     virtual void test_callback(const std_msgs::Empty::ConstPtr& msg);
     // Relax command callback.
-    //virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
+    virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
     // Report request callback.
     //virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
     // Update functions.

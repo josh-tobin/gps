@@ -24,16 +24,22 @@ rosbuild_genmsg()
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
 #Include protobuf
 include_directories($ENV{GPS_ROOT_DIR}/build/gps)
 
+#Include boost
+rosbuild_add_boost_directories()
+#find_package(Boost 1.46.0 COMPONENTS)
+#if(Boost_FOUND)
+    #include_directories(${Boost_INCLUDE_DIRS})
+#endif()
+
 #Use C++0x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 set(DDP_FILES src/robotplugin.cpp
 			  src/pr2plugin.cpp
@@ -93,3 +99,4 @@ if (USE_CAFFE)
     target_link_libraries(gps_agent_lib caffe protobuf)
 endif (USE_CAFFE)
 
+rosbuild_link_boost(gps_agent_lib thread)# smart_ptr)

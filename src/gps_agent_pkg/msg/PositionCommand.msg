@@ -12,3 +12,4 @@ Header header
 int8 mode  # Denotes whether data stores joint angles, end-effector positions, etc.
 int8 arm # Which arm to execute on
 float64[] data
+float64[] pd_gains

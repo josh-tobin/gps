@@ -2,6 +2,7 @@
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
 #include "gps_agent_pkg/encodersensor.h"
+#include "gps_agent_pkg/utils.h"
 
 namespace gps_control {
 
@@ -80,7 +81,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this active joint exists.
         std::string joint_name;
-        std::string param_name = std::string("/active_arm_joint_name_" + std::to_string(joint_index));
+        std::string param_name = std::string("/active_arm_joint_name_" + to_string(joint_index));
         if(!n.getParam(param_name.c_str(), joint_name))
             break;
 
@@ -98,8 +99,8 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Validate that the number of joints in the chain equals the length of the active arm joint state.
     if (active_arm_fk_chain_.getNrOfJoints() != active_arm_joint_state_.size())
     {
-        ROS_INFO_STREAM("num_fk_chain: " + std::to_string(active_arm_fk_chain_.getNrOfJoints()));
-        ROS_INFO_STREAM("num_joint_state: " + std::to_string(active_arm_joint_state_.size()));
+        ROS_INFO_STREAM("num_fk_chain: " + to_string(active_arm_fk_chain_.getNrOfJoints()));
+        ROS_INFO_STREAM("num_joint_state: " + to_string(active_arm_joint_state_.size()));
         ROS_ERROR("Number of joints in the active arm FK chain does not match the number of joints in the active arm joint state!");
         return false;
     }
@@ -110,7 +111,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this passive joint exists.
         std::string joint_name;
-        std::string param_name = std::string("/passive_arm_joint_name_" + std::to_string(joint_index));
+        std::string param_name = std::string("/passive_arm_joint_name_" + to_string(joint_index));
         if(!n.getParam(param_name, joint_name))
             break;
 
@@ -127,8 +128,8 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Validate that the number of joints in the chain equals the length of the active arm joint state.
     if (passive_arm_fk_chain_.getNrOfJoints() != passive_arm_joint_state_.size())
     {
-        ROS_INFO_STREAM("num_fk_chain: " + std::to_string(passive_arm_fk_chain_.getNrOfJoints()));
-        ROS_INFO_STREAM("num_joint_state: " + std::to_string(passive_arm_joint_state_.size()));
+        ROS_INFO_STREAM("num_fk_chain: " + to_string(passive_arm_fk_chain_.getNrOfJoints()));
+        ROS_INFO_STREAM("num_joint_state: " + to_string(passive_arm_joint_state_.size()));
         ROS_ERROR("Number of joints in the passive arm FK chain does not match the number of joints in the passive arm joint state!");
         return false;
     }
@@ -198,7 +199,7 @@ void PR2Plugin::update()
     for (unsigned i = 0; i < active_arm_joint_state_.size(); i++)
         //active_arm_joint_state_[i]->commanded_effort_ = 0.5;
         active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
-    //passive_arm_joint_state_[0]->commanded_effort_ = 0.5;
+
     for (unsigned i = 1; i < passive_arm_joint_state_.size(); i++)
         //passive_arm_joint_state_[i]->commanded_effort_ = -0.5;
         passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
