@@ -39,10 +39,7 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
 
     k_.resize(T);
     for(int i=0; i<T; i++){
-<<<<<<< HEAD
-        k_[i] = boost::get<Eigen::VectorXd>(options["k_"+std::to_string(i)]);
-=======
-        k_[i] = boost::get<Eigen::MatrixXd>(options["k_"+to_string(i)]);
->>>>>>> d4cd787ba9d38ed414893fcedccaf21a76fd7531
+        k_[i] = boost::get<Eigen::VectorXd>(options["k_"+to_string(i)]);
     }
+    ROS_INFO_STREAM("Set LG parameters");
 }

@@ -3,7 +3,7 @@ import rospy
 
 from agent.agent import Agent
 from agent.config import agent_ros
-from ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
+from ros_utils import ServiceEmulator, msg_to_sample, policy_to_msg
 from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, \
     DataRequest
 from std_msgs.msg import Empty
@@ -16,22 +16,25 @@ class AgentROS(Agent):
     """
     All communication between the algorithms and ROS is done through this class.
     """
-    def __init__(self, hyperparams, sample_data, state_assembler):
+    def __init__(self, hyperparams, sample_data):
         config = deepcopy(agent_ros)
         config.update(hyperparams)
-        Agent.__init__(self, config, sample_data, state_assembler)
+        Agent.__init__(self, config, sample_data)
+        self.sample_data = sample_data
+
+        rospy.init_node('gps_agent_ros_node')
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands
 
     def _init_pubs_and_subs(self):
-        self._trial_service = ServiceEmulator(self._hyperparams('trial_command_topic'), TrialCommand,
-                                              self._hyperparams('sample_result_topic'), SampleResult)
-        self._reset_service = ServiceEmulator(self._hyperparams('reset_command_topic'), PositionCommand,
-                                              self._hyperparams('sample_result_topic'), SampleResult)
-        self._relax_service = ServiceEmulator(self._hyperparams('relax_command_topic'), RelaxCommand,
-                                              self._hyperparams('sample_result_topic'), SampleResult)
-        self._data_service = ServiceEmulator(self._hyperparams('data_command_topic'), RelaxCommand,
-                                             self._hyperparams('sample_result_topic'), SampleResult)
+        self._trial_service = ServiceEmulator(self._hyperparams['trial_command_topic'], TrialCommand,
+                                              self._hyperparams['sample_result_topic'], SampleResult)
+        self._reset_service = ServiceEmulator(self._hyperparams['reset_command_topic'], PositionCommand,
+                                              self._hyperparams['sample_result_topic'], SampleResult)
+        self._relax_service = ServiceEmulator(self._hyperparams['relax_command_topic'], RelaxCommand,
+                                              self._hyperparams['sample_result_topic'], SampleResult)
+        self._data_service = ServiceEmulator(self._hyperparams['data_command_topic'], RelaxCommand,
+                                             self._hyperparams['sample_result_topic'], SampleResult)
 
     def _get_next_seq_id(self):
         self._seq_id = (self._seq_id + 1) % (2**32)  # Max uint32
@@ -79,8 +82,6 @@ class AgentROS(Agent):
         reset_command.mode = mode
         reset_data = data
         reset_command.data = reset_data
-        reset_command.header.seq = self._get_next_seq_id()
-        reset_command.header.stamp = rospy.get_rostime()
         reset_command.arm = self._hyperparams[arm]
         reset_sample = self._reset_service.publish_and_wait(reset_command)
         # TODO: Maybe verify that you reset to the correct position.
@@ -101,7 +102,7 @@ class AgentROS(Agent):
                        condition_data['auxiliary_arm']['mode'],
                        condition_data['auxiliary_arm']['data'])
 
-    def sample(self, policy, T):
+    def sample(self, policy, T, condition):
         """
         Execute a policy and collect a sample
 
@@ -112,14 +113,19 @@ class AgentROS(Agent):
         Returns:
             A Sample object
         """
+
         # Execute Trial
         trial_command = TrialCommand()
-        trial_command.policy = policy_object_to_ros_msg(policy)
-        trial_command.header.seq = self._get_next_seq_id()
-        trial_command.header.stamp = rospy.get_rostime()
+        trial_command.controller = policy_to_msg(policy)
         trial_command.T = T
         trial_command.frequency = self._hyperparams['frequency']
+        #TODO: Read this from hyperparams['state_include']
+        print 'TODO: Using JOINT_ANGLES, JOINT_VELOCITIES as state (see agent_ros.py)'
+
+        from proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES
+        trial_command.state_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
+        trial_command.obs_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
-        sample = construct_sample_from_ros_msg(sample_msg)
+        sample = msg_to_sample(sample_msg, self.sample_data)
         return sample

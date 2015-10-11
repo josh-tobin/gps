@@ -142,15 +142,15 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
 // Set data format and meta data on the provided sample.
 void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 {
-    /*
     // Set joint angles size and format.
     OptionsMap joints_metadata;
-    sample->set_meta_data(gps::SampleType::JOINT_ANGLES,previous_angles_.size(),SampleDataFormat::SampleDataFormatEigenVector,joints_metadata);
+    sample->set_meta_data(gps::JOINT_ANGLES,previous_angles_.size(),SampleDataFormatEigenVector,joints_metadata);
 
     // Set joint velocities size and format.
     OptionsMap velocities_metadata;
-    sample->set_meta_data(gps::SampleType::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormat::SampleDataFormatEigenVector,joints_metadata);
+    sample->set_meta_data(gps::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormatEigenVector,joints_metadata);
 
+    /*
     // Set end effector point size and format.
     OptionsMap eep_metadata;
     //sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble,eep_metadata);
@@ -177,13 +177,13 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 // Set data on the provided sample.
 void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 {
-    /*
     // Set joint angles.
-    sample->set_data(t,gps::SampleType::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormatDouble);
 
     // Set joint velocities.
-    sample->set_data(t,gps::SampleType::JOINT_VELOCITIES,previous_velocities_,previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::JOINT_VELOCITIES,previous_velocities_,previous_velocities_.size(),SampleDataFormatDouble);
 
+    /*
     // Set end effector point.
     //sample->set_data(t,gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.data(),previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble);
 

@@ -1,14 +1,23 @@
 import rospy
+import numpy as np
+
 from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
 from agent.agent_utils import generate_noise
+from sample_data.sample import Sample
 
 
-def construct_sample_from_msg(ros_msg):
+def msg_to_sample(ros_msg, sample_data):
     """
     Convert a SampleResult ROS message into a Sample python object
     """
-    raise NotImplementedError()
+    sample = Sample(sample_data)
+    for sensor in ros_msg.sensor_data:
+        sensor_id = sensor.data_type
+        shape = np.array(sensor.shape)
+        data = np.array(sensor.data).reshape(shape)
+        sample.set(sensor_id, data)
+    return sample
 
 
 def policy_to_msg(policy):
@@ -23,7 +32,7 @@ def policy_to_msg(policy):
         msg.lingauss.dX = policy.dX
         msg.lingauss.dU = policy.dU
         msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
-         #TODO: Initialize noise somewhere else
+        #TODO: Initialize noise somewhere else
         noise = generate_noise(policy.T, policy.dU)
         msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
     else:
@@ -52,16 +61,12 @@ class ServiceEmulator(object):
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
 
         self._waiting = False
-        self._header_seq = -1
         self._subscriber_msg = None
 
     def _callback(self, message):
         if self._waiting:
-            if message.header.seq != self._header_seq:
-                return
             self._subscriber_msg = message
             self._waiting = False
-            self._header_seq = -1
 
     def publish(self, pub_msg):
         """ Publish a message without waiting for response """
@@ -78,7 +83,6 @@ class ServiceEmulator(object):
             sub_msg (sub_type): Subscriber message
         """
         self._waiting = True
-        self._header_seq = pub_msg.header.seq
         self.publish(pub_msg)
 
         time_waited = 0

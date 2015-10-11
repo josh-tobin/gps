@@ -29,6 +29,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     Eigen::VectorXd X, obs;
     //TODO: Fill in X and obs from sample
     //sample->get_state(step_counter_, X);
+    ROS_INFO_STREAM("Getting state");
     sample->get_data(step_counter_, X, state_datatypes_);
     ROS_INFO("Printing X:");
     for(int i=0; i<X.size(); i++){
@@ -42,6 +43,12 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     for(int i=0; i<7; i++){
         ROS_INFO("%f", torques[i]);
     }
+
+    // Set the torques for the sample
+    // TODO: This should be done by a "TorqueSensor"
+    OptionsMap sample_metadata;
+    sample->set_meta_data(gps::ACTION,torques.size(),SampleDataFormatEigenVector,sample_metadata);
+    sample->set_data(step_counter_,gps::ACTION,torques,torques.size(),SampleDataFormatDouble);
 
     // Update last update time.
     last_update_time_ = current_time;

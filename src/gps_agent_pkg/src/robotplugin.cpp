@@ -169,6 +169,10 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
         Eigen::VectorXd tmp_data;
         sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
         report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
+
+        report_publisher_->msg_.sensor_data[d].shape.resize(2); //Tx? Matrix
+        report_publisher_->msg_.sensor_data[d].shape[0] = sample->get_T();
+        report_publisher_->msg_.sensor_data[d].shape[1] = tmp_data.size()/sample->get_T();
         for(int i=0; i<tmp_data.size(); i++){
             report_publisher_->msg_.sensor_data[d].data[i] = tmp_data[i];
         }

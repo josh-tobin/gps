@@ -84,6 +84,8 @@ public:
     virtual void get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype);
     // Get the action.
     virtual void get_action(int, Eigen::VectorXd &u) const;
+    // Get T
+    virtual int get_T();
 };
 
 }

@@ -7,8 +7,9 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Empty
 import numpy as np
 from algorithm.policy.lin_gauss_init import init_pd
-from agent.ros.ros_utils import policy_to_msg
+from agent.ros.ros_utils import policy_to_msg, msg_to_sample
 from proto.gps_pb2 import *
+from sample_data.sample_data import SampleData
 
 POS_COM_TOPIC = '/gps_controller_position_command'
 TRIAL_COM_TOPIC = '/gps_controller_trial_command'
@@ -20,8 +21,10 @@ def listen(msg):
 
 def listen_report(msg):
     print msg.__class__
+    sample_data = SampleData({'T':10, 'obs_include':[], 'state_include':[JOINT_ANGLES, JOINT_VELOCITIES],
+        'sensor_dims':{ACTION:7, JOINT_ANGLES:7, JOINT_VELOCITIES:7}}, {}, 0)
+    sample = msg_to_sample(msg, sample_data)
     import pdb; pdb.set_trace();
-    
 
 def get_lin_gauss_test(T=50):
     dX = 14
@@ -59,6 +62,7 @@ def main():
     r.sleep()
     test_pub.publish(Empty())
     pub.publish(tc)
+    rospy.spin()
 
 print "Testing"
 if __name__ == "__main__":

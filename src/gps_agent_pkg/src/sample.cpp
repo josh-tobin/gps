@@ -8,10 +8,10 @@ Sample::Sample(int T)
 {
 	ROS_INFO("Initializing Sample with T=%d", T);
 	T_ = T;
-	internal_data_size_.resize((int)gps::SampleType::TOTAL_DATA_TYPES);
-	internal_data_format_.resize((int)gps::SampleType::TOTAL_DATA_TYPES);
+	internal_data_size_.resize((int)gps::TOTAL_DATA_TYPES);
+	internal_data_format_.resize((int)gps::TOTAL_DATA_TYPES);
 	//Fill in all possible sample types
-	for(int i=0; i<gps::SampleType::TOTAL_DATA_TYPES; i++){
+	for(int i=0; i<gps::TOTAL_DATA_TYPES; i++){
 		SampleList samples_list;
 		samples_list.resize(T);
 		internal_data_[(gps::SampleType)i] = samples_list;
@@ -52,7 +52,7 @@ void Sample::set_meta_data(gps::SampleType type, int data_size, SampleDataFormat
 }
 
 void Sample::get_available_dtypes(std::vector<gps::SampleType> &types){
-	for(int i=0; i<gps::SampleType::TOTAL_DATA_TYPES; i++){
+	for(int i=0; i<gps::TOTAL_DATA_TYPES; i++){
 		if(internal_data_size_[i] != -1){
 			types.push_back((gps::SampleType)i);
 		}
@@ -108,7 +108,7 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 		}
 		total_size += internal_data_size_[dtype];
 	}
-	//ROS_INFO("Total get_data() size:%d", total_size);
+	ROS_INFO("Total get_data() size:%d", total_size);
 
 	data.resize(total_size);
 	data.fill(0.0);
@@ -132,6 +132,11 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 
 	return;
 }
+
+int Sample::get_T(){
+	return T_;
+}
+
 
 void Sample::get_action(int, Eigen::VectorXd &u) const
 {
