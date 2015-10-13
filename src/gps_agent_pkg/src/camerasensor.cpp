@@ -12,9 +12,9 @@ CameraSensor::CameraSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, p
         depth_topic_name_ = "/camera/depth_registered/image_raw";
 
     if (!rgb_topic_name_.empty())
-	      rgb_subscriber_ = n.subscribe(rgb_topic_name_, 1, &CameraSensor::update_rgb_image, this);
-	  if (!depth_topic_name_.empty())
-		    depth_subscriber_ = n.subscribe(depth_topic_name_, 1, &CameraSensor::update_depth_image, this);
+      rgb_subscriber_ = n.subscribe(rgb_topic_name_, 1, &CameraSensor::update_rgb_image, this);
+    if (!depth_topic_name_.empty())
+      depth_subscriber_ = n.subscribe(depth_topic_name_, 1, &CameraSensor::update_depth_image, this);
 
     // Initialize image config specs - image_width_init_, image_width_, etc.
     /* TODO */
