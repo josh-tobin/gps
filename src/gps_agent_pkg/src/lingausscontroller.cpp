@@ -26,8 +26,6 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
     //Call superclass
     TrialController::configure_controller(options);
 
-    ROS_INFO_STREAM("Received LG parameters");
-
     // TODO: Update K_
     int T = boost::get<int>(options["T"]);
 

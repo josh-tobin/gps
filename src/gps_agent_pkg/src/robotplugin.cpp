@@ -158,7 +158,6 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 }
 
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
-    ROS_INFO("Publishing sample report!");
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
     sample->get_available_dtypes(dtypes);
@@ -178,12 +177,10 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
         }
     }
     report_publisher_->unlockAndPublish();
-    ROS_INFO("Published report");
 }
 
 void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
 
-    ROS_INFO_STREAM("Position sub callback!");
     OptionsMap params;
     uint8_t arm = msg->arm;
     params["mode"] = msg->mode;
@@ -212,7 +209,6 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
 
 void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg){
 
-    ROS_INFO_STREAM("Trial sub callback!");
     OptionsMap controller_params;
 
     //Read out trial information

@@ -99,15 +99,11 @@ public:
     virtual void initialize_sensors(ros::NodeHandle& n);
     // TODO: Comment
     virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
-    // Publish the specified sample in a report.
-    //virtual void publish_report(boost::scoped_ptr<Sample>& sample);
-    // Run a trial.
-    //virtual void run_trial(/* TODO: receive all of the trial parameters here */);
-    // Move the arm.
-    //virtual void move_arm(/* TODO: receive all of the parameters here, including which arm to move */);
+
     // Report publishers
-    // Publish a whole sample
+    // Publish a whole sample (data from all timesteps)
     virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample);
+
     // Subscriber callbacks.
     // Position command callback.
     virtual void position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg);
@@ -118,6 +114,7 @@ public:
     virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
     // Report request callback.
     //virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+
     // Update functions.
     // Update the sensors at each time step.
     virtual void update_sensors(ros::Time current_time, bool is_controller_step);
