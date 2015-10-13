@@ -102,13 +102,14 @@ class AgentROS(Agent):
                        condition_data['auxiliary_arm']['mode'],
                        condition_data['auxiliary_arm']['data'])
 
-    def sample(self, policy, T, condition):
+    def sample(self, policy, T, condition=0):
         """
         Execute a policy and collect a sample
 
         Args:
             policy: A Policy object (ex. LinGauss, or CaffeNetwork)
             T: Trajectory length
+            condition (int): Which condition setup to run.
 
         Returns:
             A Sample object
