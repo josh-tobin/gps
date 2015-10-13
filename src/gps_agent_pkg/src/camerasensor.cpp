@@ -17,7 +17,15 @@ CameraSensor::CameraSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, p
       depth_subscriber_ = n.subscribe(depth_topic_name_, 1, &CameraSensor::update_depth_image, this);
 
     // Initialize image config specs - image_width_init_, image_width_, etc.
-    /* TODO */
+    // TODO - Better way to get default values and specified values?
+    if (!n.getParam("image_width",image_width_))
+      image_width_ = IMAGE_WIDTH;
+    if (!n.getParam("image_height",image_height_))
+      image_height_ = IMAGE_HEIGHT;
+    if (!n.getParam("image_width_init",image_width_init_))
+      image_width_init_ = IMAGE_WIDTH_INIT;
+    if (!n.getParam("image_height_init",image_height_init_))
+      image_height_init_ = IMAGE_HEIGHT_INIT;
     image_size_ = image_width_*image_height_;
 
     // Initialize rgb image.
