@@ -1,5 +1,4 @@
 #include "gps_agent_pkg/camerasensor.h"
-#include "gps_agent_pkg/robotplugin.h"
 
 using namespace gps_control;
 
@@ -122,19 +121,19 @@ void CameraSensor::set_sample_data_format(boost::scoped_ptr<Sample> sample) cons
 {
     // Set image size and format.
     OptionsMap rgb_metadata;
-    // sample->set_meta_data(gps::SampleType::RGB_IMAGE,image_size_*3,SampleDataFormat::SampleDataFormatUint8,image_metadata);
+    sample->set_meta_data(gps::RGB_IMAGE,image_size_*3,SampleDataFormatUInt8,rgb_metadata);
 
     // Set joint velocities size and format.
     OptionsMap depth_metadata;
-    // sample->set_meta_data(gps::SampleType::DEPTH_IMAGE,image_size_*2,SampleDataFormat::SampleDataFormatUInt16,depth_metadata);
+    sample->set_meta_data(gps::DEPTH_IMAGE,image_size_*2,SampleDataFormatUInt16,depth_metadata);
 }
 
 // Set data on the provided sample.
 void CameraSensor::set_sample_data(boost::scoped_ptr<Sample> sample) const
 {
     // Set rgb image.
-    // sample->set_data(0,gps::SampleType::RGB_IMAGE,&latest_rgb_image_[0],latest_rgb_image_.size(),SampleDataFormat::SampleDataFormatUInt8);
+    sample->set_data(0,gps::RGB_IMAGE,&latest_rgb_image_[0],latest_rgb_image_.size(),SampleDataFormatUInt8);
 
     // Set depth image.
-    // sample->set_data(0,gps::SampleType::DEPTH_IMAGE,&latest_depth_image_[0],latest_depth_image_.size(),SampleDataFormat::SampleDataFormatUInt16);
+    sample->set_data(0,gps::DEPTH_IMAGE,&latest_depth_image_[0],latest_depth_image_.size(),SampleDataFormatUInt16);
 }
