@@ -26,6 +26,7 @@ enum SampleDataFormat
 {
     SampleDataFormatBool,
     SampleDataFormatUInt8,
+    SampleDataFormatUInt16,
     SampleDataFormatInt,
     SampleDataFormatDouble,
     SampleDataFormatEigenMatrix,
