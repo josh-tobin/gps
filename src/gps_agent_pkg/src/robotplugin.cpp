@@ -26,6 +26,7 @@ RobotPlugin::~RobotPlugin()
 // Initialize everything.
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
+    ROS_INFO_STREAM("Initializing RobotPlugin");
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
 
@@ -45,9 +46,11 @@ void RobotPlugin::initialize(ros::NodeHandle& n)
 // Initialize ROS communication infrastructure.
 void RobotPlugin::initialize_ros(ros::NodeHandle& n)
 {
+    ROS_INFO_STREAM("Initializing ROS subs/pubs");
     // Create subscribers.
     position_subscriber_ = n.subscribe("/gps_controller_position_command", 1, &RobotPlugin::position_subscriber_callback, this);
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
+    test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
     relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
     //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
 
@@ -101,12 +104,18 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
+    if(!is_controller_step){
+        return;
+    }
     // Update all of the sensors and fill in the sample.
     //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
     for (int sensor = 0; sensor < 1; sensor++)
     {
         sensors_[sensor]->update(this, last_update_time_, is_controller_step);
-        sensors_[sensor]->set_sample_data(current_time_step_sample_);
+        if (trial_controller_ != NULL){
+            sensors_[sensor]->set_sample_data(current_time_step_sample_,
+                trial_controller_->get_step_counter());
+        }
     }
 }
 
@@ -116,23 +125,26 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     if(!is_controller_step){
         return;
     }
-    // If we have a trial controller, update that, otherwise update position controller.
-    //if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
-    //else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     //ROS_INFO_STREAM("beginning controller update");
-    active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    // If we have a trial controller, update that, otherwise update position controller.
+    if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
     // Update passive arm controller.
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
-    //if (trial_controller_->is_finished())
-    {
-        // Clear the trial controller.
-        //trial_controller_->reset(current_time);
+    if (trial_controller_ != NULL && trial_controller_->is_finished()) {
 
-        // Reset the active arm controller.
-        //active_arm_controller_->reset(current_time);
+        // Publish sample after trial completion
+        publish_sample_report(current_time_step_sample_);
+        //Clear the trial controller.
+        trial_controller_->reset(current_time);
+        trial_controller_.reset(NULL);
+
+        //Reset the active arm controller.
+        active_arm_controller_->reset(current_time);
 
         // Switch the sensors to run at full frequency.
         for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
@@ -143,6 +155,28 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 
     /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
     /* publish message when finished */
+}
+
+void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
+    while(!report_publisher_->trylock());
+    std::vector<gps::SampleType> dtypes;
+    sample->get_available_dtypes(dtypes);
+
+    report_publisher_->msg_.sensor_data.resize(dtypes.size()); //TODO: Only doing pos/vel right now
+    for(int d=0; d<dtypes.size(); d++){
+        report_publisher_->msg_.sensor_data[d].data_type = dtypes[d];
+        Eigen::VectorXd tmp_data;
+        sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
+        report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
+
+        report_publisher_->msg_.sensor_data[d].shape.resize(2); //Tx? Matrix
+        report_publisher_->msg_.sensor_data[d].shape[0] = sample->get_T();
+        report_publisher_->msg_.sensor_data[d].shape[1] = tmp_data.size()/sample->get_T();
+        for(int i=0; i<tmp_data.size(); i++){
+            report_publisher_->msg_.sensor_data[d].data[i] = tmp_data[i];
+        }
+    }
+    report_publisher_->unlockAndPublish();
 }
 
 void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
@@ -179,6 +213,10 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
+    current_time_step_sample_.reset(new Sample(T)); //make a new Sample object
+    initialize_sample(current_time_step_sample_);
+
+
     float frequency = msg->frequency;  // Controller frequency
     std::vector<int> state_datatypes, obs_datatypes;
     state_datatypes.resize(msg->state_datatypes.size());
@@ -195,7 +233,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     if(msg->controller.controller_to_execute == gps_agent_pkg::ControllerParams::LIN_GAUSS_CONTROLLER){
         //
         gps_agent_pkg::LinGaussParams lingauss = msg->controller.lingauss;
-        //trial_controller_.reset(new LinearGaussianController());
+        trial_controller_.reset(new LinearGaussianController());
         int dX = (int) lingauss.dX;
         int dU = (int) lingauss.dU;
         //Prepare options map
@@ -218,11 +256,14 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             controller_params["K_"+to_string(t)] = K; //TODO: Does this copy or will all values be the same?
             controller_params["k_"+to_string(t)] = k;
         }
-        //trial_controller_->configure_controller(controller_params);
-
+        trial_controller_->configure_controller(controller_params);
     }else{
         ROS_ERROR("Unknown trial controller arm type");
     }
+}
+
+void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
+    ROS_INFO_STREAM("Received test message");
 }
 
 void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg){

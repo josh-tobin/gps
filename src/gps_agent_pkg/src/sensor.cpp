@@ -61,7 +61,7 @@ void Sensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 
 }
 
-void Sensor::set_sample_data(boost::scoped_ptr<Sample>& sample)
+void Sensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 {
 
 }

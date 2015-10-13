@@ -1,4 +1,4 @@
-# Contains everything needed to reconstruct a Sample object
-Header header  # header.seq must match that of the request
+int32 id
 
+# Contains everything needed to reconstruct a Sample object
 DataType[] sensor_data

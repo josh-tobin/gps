@@ -12,7 +12,7 @@ class Agent(object):
         self.sample_data = sample_data
 
     @abc.abstractmethod
-    def sample(self, policy, T):
+    def sample(self, policy, T, condition=0):
         raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod

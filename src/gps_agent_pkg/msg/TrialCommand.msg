@@ -1,7 +1,6 @@
 # This message is published to the C++ controller to start
 # a trial
-Header header
-
+int32 id  # ID must be echoed back in SampleResult
 ControllerParams controller
 
 # Trial information

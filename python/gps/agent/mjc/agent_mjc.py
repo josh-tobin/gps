@@ -80,15 +80,16 @@ class AgentMuJoCo(Agent):
         for x0 in self._hyperparams['init_pose']:
             self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
-    def sample(self, policy, T, condition, verbose=True):
+    def sample(self, policy, T, condition=0, verbose=True):
         """
         Runs a trial and constructs and returns a new sample containing information
         about the trial.
 
         Args:
             policy: policy to to used in the trial
-            T: number of time steps for the trial
-            verbose: whether or not to plot the trial
+            T (int): number of time steps for the trial
+            condition (int): Which condition setup to run.
+            verbose (boolean): whether or not to plot the trial
         """
         new_sample = self._init_sample(condition)  # create new sample, populate first time step
         mj_X = self._hyperparams['init_pose'][condition]
