@@ -6,7 +6,8 @@ Camera sensor: records latest images from camera.
 #include <sensor_msgs/Image.h>
 
 // Superclass.
-#include "agent/controller/sensor.h"
+#include "gps_agent_pkg/sensor.h"
+#include "gps_agent_pkg/sample.h"
 
 // This sensor writes to the following data types:
 // RGBImage
@@ -23,7 +24,7 @@ private:
     std::vector<uint16_t> latest_depth_image_;
 
     // Time at which the image was first published.
-    double latest_rgb_time_, latest_depth_time_;
+    ros::Time latest_rgb_time_, latest_depth_time_;
 
     // Image subscribers
     ros::Subscriber depth_subscriber_, rgb_subscriber_;
@@ -39,14 +40,16 @@ public:
     // Destructor.
     virtual ~CameraSensor();
     // Update the sensor (called every tick).
-    virtual void update(RobotPlugin *plugin, double sec_elapsed, bool is_controller_step);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
+    void update_rgb_image(const sensor_msgs::Image::ConstPtr& msg);
+    void update_depth_image(const sensor_msgs::Image::ConstPtr& msg);
     // Configure the sensor (for sensor-specific trial settings).
     // This function is used to set resolution, cropping, topic to listen to...
     virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual boost::scoped_ptr<Sample> set_sample_data_format(boost::scoped_ptr<Sample> sample) const;
+    virtual void set_sample_data_format(boost::scoped_ptr<Sample> sample) const;
     // Set data on the provided sample.
-    virtual boost::scoped_ptr<Sample> set_sample_data(boost::scoped_ptr<Sample> sample) const;
+    virtual void set_sample_data(boost::scoped_ptr<Sample> sample) const;
 };
 
 }
