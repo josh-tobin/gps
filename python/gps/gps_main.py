@@ -33,10 +33,10 @@ class GPSMain():
         """
         for itr in range(self._iterations):
             for m in range(self._conditions):
-                for i in range(1):
+                for i in range(5):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            self.algorithm.iteration([self.agent.get_samples(-15) for _ in range(self._conditions)])
+            self.algorithm.iteration([self.agent.get_samples(-5) for _ in range(self._conditions)])
 
     def resume(self, itr):
         """

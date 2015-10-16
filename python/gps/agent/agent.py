@@ -12,6 +12,8 @@ class Agent(object):
 
     def __init__(self, hyperparams):
         self._hyperparams = hyperparams
+
+        # Store samples, along with size and index information for samples
         self._samples = []
         self.T = self._hyperparams['T']
         self.dU = self._hyperparams['sensor_dims'][ACTION]
@@ -179,4 +181,3 @@ class Agent(object):
         for i in range(num_sensor):
             index[axes[i]] = slice(self._x_data_idx[data_types[i]][0], self._x_data_idx[data_types[i]][-1]+1)
         return existing_mat[index]
-

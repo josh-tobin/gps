@@ -21,7 +21,7 @@ class DummyAgent(Agent):
         sample._X = self.filler(T, sample.dX)
         sample._U = self.filler(T, sample.dU)
         sample._obs = self.filler(T, sample.dObs)
-        self._samples.append(Sample)
+        self._samples.append(sample)
 
     def reset(self, condition):
         pass
