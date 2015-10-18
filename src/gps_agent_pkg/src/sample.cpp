@@ -77,7 +77,6 @@ void Sample::get_obs(int t, Eigen::VectorXd &obs) const
 }
 
 void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype){
-	ROS_INFO("get_data_all_timesteps for dtype=%d", (int)datatype);
 	int size = internal_data_size_[(int)datatype];
 	data.resize(size*T_);
 	std::vector<gps::SampleType> dtype_vector;
@@ -85,7 +84,6 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 
 	Eigen::VectorXd tmp_data;
 	for(int t=0; t<T_; t++){
-		ROS_INFO("filling data for t=%d", t);
 		get_data(t, tmp_data, dtype_vector);
 		//Fill in original data
 		for(int i=0; i<size; i++){
@@ -122,9 +120,14 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 				internal_data_.size());
 		}
 		int size = internal_data_size_[dtype];
+		//Check that format is a vector
+		if(internal_data_format_[dtype] != SampleDataFormatEigenVector){
+			ROS_ERROR("Datatypes currently must be in Eigen::Vector format. Offender: dtype=%d", dtype);
+		}
+
 		SampleList sample_list = internal_data_[datatypes[i]];
 		SampleVariant sample_variant = sample_list[t];
-		//TODO: Hardcoded Eigen::VectorXd
+		//Hardcoded Eigen::VectorXd. TODO: Add support for other types?
 		Eigen::VectorXd sensor_data = boost::get<Eigen::VectorXd>(sample_variant);
 		data.segment(current_idx, size) = sensor_data;
 		current_idx += size;

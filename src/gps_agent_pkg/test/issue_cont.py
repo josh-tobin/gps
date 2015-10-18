@@ -30,7 +30,7 @@ def get_lin_gauss_test(T=50):
     dX = 14
     x0 = np.zeros(dX)
     x0[0] = 1.0
-    lgpol = init_pd({}, x0, 7, 7, dX, T)
+    lgpol = init_pd({'init_var': 0.01}, x0, 7, 7, dX, T)
     print 'T:', lgpol.T
     print 'dX:', lgpol.dX
     #Conver lgpol to message
@@ -46,7 +46,7 @@ def main():
     #sub = rospy.Subscriber('/joint_states', JointState, listen)
 
     tc = TrialCommand()
-    T = 10
+    T = 20
     tc.controller = get_lin_gauss_test(T=T)
     tc.T = T
     tc.frequency = 20.0

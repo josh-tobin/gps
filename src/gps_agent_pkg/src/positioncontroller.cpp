@@ -117,16 +117,16 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         torques = -((pd_gains_p_.array() * temp_angles_.array()) +
                     (pd_gains_d_.array() * current_angle_velocities_.array()) +
                     (pd_gains_i_.array() * pd_integral_.array())).matrix();
-        ROS_INFO_STREAM("joint outputs mode:");
-        ROS_INFO_STREAM(mode_);
-        ROS_INFO_STREAM(torques);
+        //ROS_INFO_STREAM("joint outputs mode:");
+        //ROS_INFO_STREAM(mode_);
+        //ROS_INFO_STREAM(torques);
     }
     else
     {
         torques = Eigen::VectorXd::Zero(torques.rows());
-        ROS_INFO_STREAM("joint outputs mode:");
-        ROS_INFO_STREAM(mode_);
-        ROS_INFO_STREAM(torques);
+        //ROS_INFO_STREAM("joint outputs mode:");
+        //ROS_INFO_STREAM(mode_);
+        //ROS_INFO_STREAM(torques);
     }
 
     // TODO: shall we update the stored sample somewhere?
