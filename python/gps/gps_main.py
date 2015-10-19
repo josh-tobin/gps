@@ -1,7 +1,6 @@
 import logging
 
 from hyperparam_defaults import defaults
-from sample_data.sample_data import SampleData
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -31,12 +30,13 @@ class GPSMain():
         """
         Run training by iteratively sampling and taking an iteration step.
         """
+        n = self._hyperparams['num_samples']
         for itr in range(self._iterations):
             for m in range(self._conditions):
-                for i in range(5):
+                for i in range(n):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            self.algorithm.iteration([self.agent.get_samples(-5) for _ in range(self._conditions)])
+            self.algorithm.iteration([self.agent.get_samples(-n) for _ in range(self._conditions)])
 
     def resume(self, itr):
         """

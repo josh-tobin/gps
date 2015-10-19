@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 
-class SampleData(object):
+class SampleList(object):
     """Class that handles writes and reads to sample data.
 
     """

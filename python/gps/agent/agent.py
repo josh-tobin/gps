@@ -1,5 +1,5 @@
 import abc
-from sample_data.sample_data import SampleData
+from sample_data.sample_list import SampleList
 
 from proto.gps_pb2 import ACTION
 
@@ -59,8 +59,8 @@ class Agent(object):
             start (int): Starting index of samples to return.
             end (int): End index of samples to return.
         """
-        return SampleData(self._samples[start:]) if end == None \
-                else SampleData(self._samples[start:end])
+        return SampleList(self._samples[start:]) if end == None \
+                else SampleList(self._samples[start:end])
 
     def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None):
         num_sensor = len(data_types)

@@ -113,6 +113,7 @@ algorithm['policy_opt'] = {}
 
 defaults = {
     'iterations': 20,
+    'num_samples': 5,
     'common': common,
     'agent': agent,
     'algorithm': algorithm,
