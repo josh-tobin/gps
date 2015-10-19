@@ -8,8 +8,8 @@ class DynamicsLRPrior(Dynamics):
     """Dynamics with linear regression, with arbitrary prior.
 
     """
-    def __init__(self,hyperparams, sample_data):
-        Dynamics.__init__(self, hyperparams, sample_data)
+    def __init__(self,hyperparams):
+        Dynamics.__init__(self, hyperparams)
         self.Fm = None
         self.fv = None
         self.dyn_covar = None
@@ -17,20 +17,20 @@ class DynamicsLRPrior(Dynamics):
         #TODO: Use hyperparams
         self.prior = DynamicsPriorGMM()
 
-    def update_prior(self, sample_idx):
+    def update_prior(self, sample):
         """ Update dynamics prior. """
-        X = self._sample_data.get_X(idx=sample_idx)
-        U = self._sample_data.get_U(idx=sample_idx)
+        X = sample.get_X()
+        U = sample.get_U()
         self.prior.update(X, U)
 
     def get_prior(self):
         return self.prior
 
     #TODO: Merge this with DynamicsLR.fit - lots of duplicated code
-    def fit(self, sample_idx):
+    def fit(self, sample_data):
         """ Fit dynamics. """
-        X = self._sample_data.get_X(idx=sample_idx)  # Use all samples to fit dynamics.
-        U = self._sample_data.get_U(idx=sample_idx)
+        X = sample_data.get_X()  # Use all samples to fit dynamics.
+        U = sample_data.get_U()
         N, T, dX = X.shape
         dU = U.shape[2]
 
@@ -65,4 +65,3 @@ class DynamicsLRPrior(Dynamics):
 
             dyn_covar = sigma[ip,ip] - Fm.dot(sigma[it,it]).dot(Fm.T)
             self.dyn_covar[t, :, :] = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
-

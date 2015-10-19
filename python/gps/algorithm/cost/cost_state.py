@@ -11,26 +11,25 @@ class CostState(Cost):
     Computes l1/l2 distance to a fixed target state
     """
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         config = deepcopy(cost_state)
         config.update(hyperparams)
-        Cost.__init__(self, config, sample_data)
+        Cost.__init__(self, config)
 
     # TODO - Pass in indices to sample_data rather than sample?
-    def eval(self, sample_idx):
+    def eval(self, sample):
         """
         Evaluate cost function and derivatives on a sample
 
         Args:
-            sample_idx:  A single index into sample_data
+            sample:  A single sample
         Return:
             l, lx, lu, lxx, luu, lux:
                 Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
-        T = self.sample_data.T
-        Du = self.sample_data.dU
-        Dx = self.sample_data.dX
-        sample = self.sample_data.get_samples(idx=[sample_idx])[0]
+        T = sample.T
+        Du = sample.dU
+        Dx = sample.dX
 
         final_l = np.zeros(T)
         final_lu = np.zeros((T, Du))
@@ -63,6 +62,7 @@ class CostState(Cost):
                 self._hyperparams['alpha'])
 
             final_l += l
-            self.sample_data.pack_data_x(final_lx, ls, data_types=[data_type_name])
-            self.sample_data.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
+
+            sample.agent.pack_data_x(final_lx, ls, data_types=[data_type_name])
+            sample.agent.pack_data_x(final_lxx, lss, data_types=[data_type_name, data_type_name])
         return final_l, final_lx, final_lu, final_lxx, final_luu, final_lux

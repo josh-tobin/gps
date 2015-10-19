@@ -7,17 +7,16 @@ class Cost(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         self._hyperparams = hyperparams
-        self.sample_data = sample_data
 
     @abc.abstractmethod
-    def eval(self, sample_idx):
+    def eval(self, sample):
         """
         Evaluate cost function and derivatives
 
         Args:
-            sample_idx:  A single index into sample_data
+            sample:  A single sample
 
         Return:
             l, lx, lu, lxx, luu, lux:
