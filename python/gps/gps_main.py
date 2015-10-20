@@ -1,5 +1,6 @@
 import logging
 
+from gps.gui import GUI
 from gps.hyperparam_defaults import defaults as config
 
 
@@ -19,6 +20,8 @@ class GPSMain():
         self._conditions = config['common']['conditions']
 
         self.agent = config['agent']['type'](config['agent'])
+        self.gui = GUI(self.agent, defaults['gui'])
+
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
         config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]

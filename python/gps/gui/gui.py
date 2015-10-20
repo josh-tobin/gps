@@ -21,33 +21,55 @@ import copy
 
 class GUI:
 	def __init__(self, agent, hyperparams):
+		# General
+		self._agent = agent
 		config = copy.deepcopy(target_setup)
 		config.update(hyperparams)
 		self._hyperparams = config
+
+		
+
+		# GUI components
+		self.fig, self.axarr = plt.subplots(num_functions)
+		
+		
+
+class TargetSetup:
+	def __init__(self, agent, hyperparams):
 		self._agent = agent
+		config = copy.deepcopy(target_setup)
+		config.update(hyperparams)
+		self._hyperparams = config
+
+		# Target Setup
+		self.arm = 'right_arm'
+		self.target_number = 1
+
+		# GUI figure
+		self.num_functions = 8		# this number is hardcoded
+		self.fig, self.axarr = plt.subplots(num_functions)
+		self.buttons = [None for i in range(num_functions)]
+
+		self.b1 = Button(axarr[0], 'Set Target Number')
+		self.b1.on_clicked(set_target_number)
+		self.c1 = CheckButtons([i for i in range(1, 14)])
+
+		rax = plt.axes([0.05, 0.4, 0.1, 0.15])
+		check = CheckButtons(rax, ('2 Hz', '4 Hz', '6 Hz'), (False, True, True))
+
+		def func(label):
+		    if label == '2 Hz': l0.set_visible(not l0.get_visible())
+		    elif label == '4 Hz': l1.set_visible(not l1.get_visible())
+		    elif label == '6 Hz': l2.set_visible(not l2.get_visible())
+		    plt.draw()
+		check.on_clicked(func)
+
+		plt.show()
 
 
 
-
-	# Chelsea TO-DO
-	def relax_arm(arm):
-		pass
-
-	# ARM is either 'left_arm' or 'right_arm'
-	# xf is a 14-dimensional vector (7 joint positions, 7 joint velocities)
-	def move_arm(arm, xf):
-		pass
-
-	# ARM is either 'left_arm' or 'right_arm'
-	# return x, a 14-dimensional vector of the current joint positions and velocities
-	def get_arm_state(arm):
-		return x
 
 # TARGET SETUP FUNCTIONS
-
-	self.arm = 'right_arm'
-	self.target_number = 1
-
 	def set_target_number(self, event):
 		pass
 
@@ -92,26 +114,3 @@ class GUI:
 			x0 = f['x0']
 		move_arm(self.arm, x0)
 
-# Create and display gui window.
-ts = TargetSetup()
-functions = inspect.getmembers(ts, predicate=inspect.ismethod)
-num_functions = len(functions)
-
-fig, axarr = plt.subplots(num_functions)
-buttons = [None for i in range(num_functions)]
-for i in range(num_functions):
-	name, function = functions[i]
-	buttons[i] = Button(axarr[i], name)
-	buttons[i].on_clicked(function)
-
-rax = plt.axes([0.05, 0.4, 0.1, 0.15])
-check = CheckButtons(rax, ('2 Hz', '4 Hz', '6 Hz'), (False, True, True))
-
-def func(label):
-    if label == '2 Hz': l0.set_visible(not l0.get_visible())
-    elif label == '4 Hz': l1.set_visible(not l1.get_visible())
-    elif label == '6 Hz': l2.set_visible(not l2.get_visible())
-    plt.draw()
-check.on_clicked(func)
-
-plt.show()
