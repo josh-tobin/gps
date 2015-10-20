@@ -13,6 +13,6 @@ class Algorithm(object):
         self.cost = [hyperparams['cost']['type'](hyperparams['cost'])]*hyperparams['conditions']
 
     @abc.abstractmethod
-    def iteration(self, sample_data):
+    def iteration(self, sample_list):
         """ Run iteration of the algorithm. """
         raise NotImplementedError("Must be implemented in subclass")

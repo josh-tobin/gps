@@ -1,8 +1,8 @@
 from copy import deepcopy
 import numpy as np
 
-from config import cost_torque
-from cost import Cost
+from gps.algorithm.cost.config import cost_torque
+from gps.algorithm.cost.cost import Cost
 
 
 class CostTorque(Cost):

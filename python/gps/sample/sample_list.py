@@ -1,6 +1,6 @@
 import cPickle
-import os
 import numpy as np
+import os
 
 
 class SampleList(object):

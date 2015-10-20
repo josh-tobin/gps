@@ -1,11 +1,11 @@
 from copy import deepcopy
 import rospy
-
-from agent.agent import Agent
-from agent.config import agent_ros
-from ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
-from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, DataRequest
 from std_msgs.msg import Empty
+
+from gps.agent.agent import Agent
+from gps.agent.config import agent_ros
+from gps.agent.ros.ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
+from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, DataRequest
 
 ARM_LEFT = RelaxCommand.LEFT_ARM
 ARM_RIGHT = RelaxCommand.RIGHT_ARM

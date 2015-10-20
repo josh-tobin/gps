@@ -1,7 +1,7 @@
 import numpy as np
 
-from agent import Agent
-from sample_data.sample import Sample
+from gps.agent.agent import Agent
+from gps.sample.sample import Sample
 
 
 class DummyAgent(Agent):

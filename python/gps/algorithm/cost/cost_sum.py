@@ -1,4 +1,4 @@
-from cost import Cost
+from gps.algorithm.cost.cost import Cost
 
 
 class CostSum(Cost):

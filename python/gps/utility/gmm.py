@@ -1,6 +1,6 @@
+import logging
 import numpy as np
 import scipy.linalg
-import logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ class GMM(object):
         self.sigma = None
 
     def inference(self, pts):
-        """ 
-        Evaluate dynamics prior 
+        """
+        Evaluate dynamics prior
         Args:
             pts: A NxD array of points
         """
@@ -75,7 +75,7 @@ class GMM(object):
         return logobs
 
     def moments(self, logwts):
-        """ 
+        """
         Compute the moments of the cluster mixture with specified weights.
         Args:
             logwts: A Kx1 array of log cluster probabilities

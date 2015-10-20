@@ -1,5 +1,5 @@
 import numpy as np
-from proto.gps_pb2 import ACTION
+from gps.proto.gps_pb2 import ACTION
 
 
 class Sample(object):

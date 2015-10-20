@@ -1,13 +1,13 @@
+from copy import deepcopy
 import mjcpy
 import numpy as np
-
-from copy import deepcopy
-from agent.agent import Agent
-from agent.agent_utils import generate_noise
-from agent.config import agent_mujoco
-from proto.gps_pb2 import *
-from sample_data.sample import Sample
 from scipy.ndimage.filters import gaussian_filter
+
+from gps.agent.agent import Agent
+from gps.agent.agent_utils import generate_noise
+from gps.agent.config import agent_mujoco
+from gps.proto.gps_pb2 import *
+from gps.sample.sample import Sample
 
 
 class AgentMuJoCo(Agent):

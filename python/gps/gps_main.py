@@ -1,6 +1,6 @@
 import logging
 
-from hyperparam_defaults import defaults
+from gps.hyperparam_defaults import defaults as config
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -14,17 +14,17 @@ class GPSMain():
         of hyperparameter
     """
     def __init__(self):
-        self._hyperparams = defaults
-        self._iterations = defaults['iterations']
-        self._conditions = defaults['common']['conditions']
+        self._hyperparams = config
+        self._iterations = config['iterations']
+        self._conditions = config['common']['conditions']
 
-        self.agent = defaults['agent']['type'](defaults['agent'])
+        self.agent = config['agent']['type'](config['agent'])
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
-        defaults['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
-        defaults['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
-        defaults['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
-        self.algorithm = defaults['algorithm']['type'](defaults['algorithm'])
+        config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
+        config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
+        config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
+        self.algorithm = config['algorithm']['type'](config['algorithm'])
 
     def run(self):
         """
