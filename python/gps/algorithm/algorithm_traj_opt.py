@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 from gps.algorithm.config import alg_traj_opt
-from gps.algorithm import Algorithm
+from gps.algorithm.algorithm import Algorithm
 from gps.utility.general_utils import bundletype
 
 
