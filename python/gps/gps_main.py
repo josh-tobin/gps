@@ -2,7 +2,7 @@ import logging
 
 #from gps.hyperparam_defaults import defaults as config
 from gps.hyperparam_pr2 import defaults as config
-from gps.gui import GUI
+from gps.gui.gui import GUI
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)

@@ -51,6 +51,9 @@ agent = {
     'obs_include': [],
 }
 
+gui = {
+}
+
 algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
@@ -76,6 +79,7 @@ torque_cost = {
     'type': CostTorque,
     'wu': 5e-5/PR2_GAINS,
 }
+
 state_cost = {
     'type': CostState,
     'data_types' : {
