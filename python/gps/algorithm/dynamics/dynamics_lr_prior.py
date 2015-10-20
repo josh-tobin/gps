@@ -1,7 +1,7 @@
 import numpy as np
 
-from dynamics import Dynamics
-from dynamics_prior_gmm import DynamicsPriorGMM
+from gps.algorithm.dynamics.dynamics import Dynamics
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 
 
 class DynamicsLRPrior(Dynamics):
@@ -27,14 +27,14 @@ class DynamicsLRPrior(Dynamics):
         return self.prior
 
     #TODO: Merge this with DynamicsLR.fit - lots of duplicated code
-    def fit(self, sample_data):
+    def fit(self, sample_list):
         """ Fit dynamics. """
-        X = sample_data.get_X()  # Use all samples to fit dynamics.
-        U = sample_data.get_U()
+        X = sample_list.get_X()  # Use all samples to fit dynamics.
+        U = sample_list.get_U()
         N, T, dX = X.shape
         dU = U.shape[2]
 
-        if N==1: 
+        if N==1:
             raise ValueError("Cannot fit dynamics on 1 sample")
 
         self.Fm = np.zeros([T, dX, dX+dU])

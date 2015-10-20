@@ -1,5 +1,6 @@
 import rospy
-from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
+
+from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
 
 

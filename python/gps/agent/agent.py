@@ -1,7 +1,7 @@
 import abc
-from sample_data.sample_list import SampleList
+from gps.sample.sample_list import SampleList
 
-from proto.gps_pb2 import ACTION
+from gps.proto.gps_pb2 import ACTION
 
 
 class Agent(object):
@@ -25,15 +25,15 @@ class Agent(object):
         for sensor in self.x_data_types:
             dim = self._hyperparams['sensor_dims'][sensor]
             self._state_idx.append(list(range(i, i+dim)))
-            i += dim 
-        self.dX = i 
+            i += dim
+        self.dX = i
         # list of indices for each data type in observation
         self._obs_idx, i = [], 0
         for sensor in self.obs_data_types:
             dim = self._hyperparams['sensor_dims'][sensor]
             self._obs_idx.append(list(range(i, i+dim)))
-            i += dim 
-        self.dO = i 
+            i += dim
+        self.dO = i
         self._x_data_idx = {d: i for d, i in zip(self.x_data_types, self._state_idx)}
         self._obs_data_idx = {d: i for d, i in zip(self.obs_data_types, self._obs_idx)}
 
@@ -101,6 +101,7 @@ class Agent(object):
             axis (list, int): (Optional) Which axis you wish to insert data into.
                 Defaults to last axes : -1, -2, ... -len(data_types).
 
+        TODO: Update/remove the following example.
         Example Usage:
         >>> dX = 3; T=2
         >>> sample_data = SampleData({'T':T, 'dX': dX, 'dU': 0, 'dO': dX}, None, SysOutWriter())

@@ -3,18 +3,17 @@ from __future__ import division
 from datetime import datetime
 import numpy as np
 
-from agent.mjc.agent_mjc import AgentMuJoCo
-from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
-from algorithm.cost.cost_fk import CostFK
-from algorithm.cost.cost_state import CostState
-from algorithm.cost.cost_torque import CostTorque
-from algorithm.cost.cost_sum import CostSum
-
-from algorithm.dynamics.dynamics_lr import DynamicsLR
-from algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
-from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from algorithm.policy.lin_gauss_init import init_lqr, init_pd
-from proto.gps_pb2 import *
+from gps.agent.mjc.agent_mjc import AgentMuJoCo
+from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from gps.algorithm.cost.cost_fk import CostFK
+from gps.algorithm.cost.cost_state import CostState
+from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_sum import CostSum
+from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
+from gps.proto.gps_pb2 import *
 
 
 SENSOR_DIMS = {

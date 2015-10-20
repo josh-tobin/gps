@@ -1,16 +1,16 @@
+import copy
 import numpy as np
 import logging
-import copy
 
-from algorithm import Algorithm
-from config import alg_traj_opt
-from general_utils import bundletype
+from gps.algorithm.config import alg_traj_opt
+from gps.algorithm import Algorithm
+from gps.utility.general_utils import bundletype
 
 
 LOGGER = logging.getLogger(__name__)
 
 # Set up an object to bundle variables
-ITERATION_VARS = ['sample_data', 'traj_info', 'traj_distr', 'cs',
+ITERATION_VARS = ['sample_list', 'traj_info', 'traj_distr', 'cs',
                   'step_change', 'mispred_std', 'polkl', 'step_mult']
 IterationData = bundletype('ItrData', ITERATION_VARS)
 
@@ -53,14 +53,14 @@ class AlgorithmTrajOpt(Algorithm):
         self.eta = [1.0]*self.M
 
 
-    def iteration(self, sample_data):
+    def iteration(self, sample_lists):
         """
         Run iteration of LQR.
         Args:
-            sample_data: List of sample_data objects for each condition.
+            sample_lists: List of sample_list objects for each condition.
         """
         for m in range(self.M):
-            self.cur[m].sample_data = sample_data[m]
+            self.cur[m].sample_list = sample_lists[m]
 
         # Update dynamics model using all sample.
         self.update_dynamics()
@@ -79,7 +79,7 @@ class AlgorithmTrajOpt(Algorithm):
         """
         for m in range(self.M):
             self.cur[m].traj_info.dynamics = self.dynamics[m]
-            cur_data = self.cur[m].sample_data
+            cur_data = self.cur[m].sample_list
             self.cur[m].traj_info.dynamics.update_prior(cur_data)
 
             self.cur[m].traj_info.dynamics.fit(cur_data)
@@ -103,7 +103,7 @@ class AlgorithmTrajOpt(Algorithm):
             self.eval_cost(m)
 
         for m in range(self.M):  # m = condition
-            if self.iteration_count >= 1 and self.prev[m].sample_data:
+            if self.iteration_count >= 1 and self.prev[m].sample_list:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self.stepadjust(m)
 
@@ -193,12 +193,11 @@ class AlgorithmTrajOpt(Algorithm):
         Args:
             m: Condition
         """
-        sample_data = self.cur[m].sample_data
         # Constants.
         T = self.T
         dX = self.dX
         dU = self.dU
-        N = len(sample_data)
+        N = len(self.cur[m].sample_list)
 
         # Compute cost.
         cs = np.zeros((N, T))
@@ -206,7 +205,7 @@ class AlgorithmTrajOpt(Algorithm):
         cv = np.zeros((N, T, dX + dU))
         Cm = np.zeros((N, T, dX + dU, dX + dU))
         for n in range(N):
-            sample = sample_data[n]
+            sample = self.cur[m].sample_list[n]
             # Get costs.
             l, lx, lu, lxx, luu, lux = self.cost[m].eval(sample)
             cc[n, :] = l

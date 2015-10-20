@@ -1,9 +1,10 @@
 """Default configuration and hyperparameter values for cost objects
 
 """
-from cost_utils import RAMP_CONSTANT, evallogl2term
-
 import numpy as np
+
+from gps.algorithm.cost.cost_utils import RAMP_CONSTANT, evallogl2term
+
 
 """ CostFK """
 cost_fk = {

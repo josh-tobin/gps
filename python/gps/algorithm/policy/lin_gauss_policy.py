@@ -1,6 +1,6 @@
 import numpy as np
 
-from policy import Policy
+from gps.algorithm.policy.policy import Policy
 
 
 class LinearGaussianPolicy(Policy):

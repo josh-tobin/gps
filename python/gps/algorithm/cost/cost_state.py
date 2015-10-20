@@ -1,9 +1,9 @@
 from copy import deepcopy
 import numpy as np
 
-from config import cost_state
-from cost import Cost
-from cost_utils import evall1l2term, get_ramp_multiplier
+from gps.algorithm.cost.config import cost_state
+from gps.algorithm.cost.cost import Cost
+from gps.algorithm.cost.cost_utils import evall1l2term, get_ramp_multiplier
 
 
 class CostState(Cost):
@@ -16,7 +16,6 @@ class CostState(Cost):
         config.update(hyperparams)
         Cost.__init__(self, config)
 
-    # TODO - Pass in indices to sample_data rather than sample?
     def eval(self, sample):
         """
         Evaluate cost function and derivatives on a sample

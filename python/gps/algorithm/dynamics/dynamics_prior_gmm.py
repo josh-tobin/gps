@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 
-from utility.gmm import GMM
+from gps.utility.gmm import GMM
 
 LOGGER = logging.getLogger(__name__)
 

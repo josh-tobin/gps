@@ -1,10 +1,10 @@
 from copy import deepcopy
 import numpy as np
 
-from config import cost_fk
-from cost import Cost
-from cost_utils import get_ramp_multiplier
-from proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_JACOBIANS
+from gps.algorithm.cost.config import cost_fk
+from gps.algorithm.cost.cost import Cost
+from gps.algorithm.cost.cost_utils import get_ramp_multiplier
+from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_JACOBIANS
 
 
 class CostFK(Cost):
