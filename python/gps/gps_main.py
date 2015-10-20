@@ -1,6 +1,6 @@
 import logging
 
-from gps.gui import GUI
+from gps.gui.gui import GUI
 from gps.hyperparam_defaults import defaults as config
 
 
