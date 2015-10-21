@@ -13,7 +13,7 @@ class DummyAgent(Agent):
         Agent.__init__(self, hyperparams)
         self.filler = np.random.randn
 
-    def sample(self, policy):
+    def sample(self, policy, condition):
         """
         Generates a random sample.
         """
@@ -21,7 +21,7 @@ class DummyAgent(Agent):
         sample._X = self.filler(T, sample.dX)
         sample._U = self.filler(T, sample.dU)
         sample._obs = self.filler(T, sample.dObs)
-        self._samples.append(sample)
+        self._samples[condition].append(sample)
 
     def reset(self, condition):
         pass

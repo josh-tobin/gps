@@ -36,7 +36,7 @@ class GPSMain():
                 for i in range(n):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            self.algorithm.iteration([self.agent.get_samples(-n) for _ in range(self._conditions)])
+            self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
 
     def resume(self, itr):
         """
@@ -45,5 +45,8 @@ class GPSMain():
         raise NotImplementedError("TODO")
 
 if __name__ == "__main__":
+    import random; random.seed(0)
+    import numpy as np; np.random.seed(0)
+
     g = GPSMain()
     g.run()

@@ -14,7 +14,7 @@ class Agent(object):
         self._hyperparams = hyperparams
 
         # Store samples, along with size and index information for samples
-        self._samples = []
+        self._samples = [[] for _ in range(self._hyperparams['conditions'])]
         self.T = self._hyperparams['T']
         self.dU = self._hyperparams['sensor_dims'][ACTION]
 
@@ -38,7 +38,7 @@ class Agent(object):
         self._obs_data_idx = {d: i for d, i in zip(self.obs_data_types, self._obs_idx)}
 
     @abc.abstractmethod
-    def sample(self, policy):
+    def sample(self, policy, condition):
         raise NotImplementedError("Must be implemented in subclass")
 
     @abc.abstractmethod
@@ -51,7 +51,7 @@ class Agent(object):
         """
         raise NotImplementedError("Must be implemented in subclass")
 
-    def get_samples(self, start=0, end=None):
+    def get_samples(self, condition, start=0, end=None):
         """
         Return the requested samples based on the start and end indices.
 
@@ -59,8 +59,8 @@ class Agent(object):
             start (int): Starting index of samples to return.
             end (int): End index of samples to return.
         """
-        return SampleList(self._samples[start:]) if end == None \
-                else SampleList(self._samples[start:end])
+        return SampleList(self._samples[condition][start:]) if end == None \
+                else SampleList(self._samples[condition][start:end])
 
     def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None):
         num_sensor = len(data_types)

@@ -119,7 +119,7 @@ class AgentMuJoCo(Agent):
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
         new_sample.set(ACTION, U)
-        self._samples.append(new_sample)
+        self._samples[condition].append(new_sample)
 
     def _init_sample(self, condition):
         """

@@ -68,7 +68,8 @@ class AlgorithmTrajOpt(Algorithm):
         self.update_step_size()  # KL Divergence step size
 
         # Run inner loop to compute new policies under new dynamics and step size
-        self.update_trajectories()
+        for inner_itr in range(self._hyperparams['inner_iterations']):
+            self.update_trajectories()
 
         self.advance_iteration_variables()
 
@@ -78,6 +79,8 @@ class AlgorithmTrajOpt(Algorithm):
         Fit dynamics to current samples
         """
         for m in range(self.M):
+            if self.iteration_count >= 1:
+                self.prev[m].traj_info.dynamics = self.dynamics[m].copy()
             self.cur[m].traj_info.dynamics = self.dynamics[m]
             cur_data = self.cur[m].sample_list
             self.cur[m].traj_info.dynamics.update_prior(cur_data)
@@ -111,12 +114,12 @@ class AlgorithmTrajOpt(Algorithm):
         """
         Compute new linear gaussian controllers.
         """
-        self.new_traj_distr = [None]*self.M
-        for inner_itr in range(self._hyperparams['inner_iterations']):
-            for m in range(self.M):
-                self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
-                        self.T, self.cur[m].step_mult, self.eta[m],
-                        self.cur[m].traj_info, self.cur[m].traj_distr)
+        if not hasattr(self, 'new_traj_distr'):
+            self.new_traj_distr = [self.cur[m].traj_distr for m in range(self.M)]
+        for m in range(self.M):
+            self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
+                    self.T, self.cur[m].step_mult, self.eta[m],
+                    self.cur[m].traj_info, self.new_traj_distr[m])
 
     def stepadjust(self, m):
         """
@@ -241,4 +244,4 @@ class AlgorithmTrajOpt(Algorithm):
             self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].step_mult = self.prev[m].step_mult
             self.cur[m].traj_distr = self.new_traj_distr[m]
-
+        delattr(self, 'new_traj_distr')
