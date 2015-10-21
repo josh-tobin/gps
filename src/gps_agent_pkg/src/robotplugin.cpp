@@ -94,6 +94,7 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 {
     // Go through all of the sensors and initialize metadata.
+    // TODO ZDM :uncomment the following to account for more than joint sensors
     //for (int i = 0; i < TotalSensorTypes; i++)
     for (int i = 0; i < 1; i++)
     {
@@ -108,6 +109,7 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
         return;
     }
     // Update all of the sensors and fill in the sample.
+    // TODO ZDM :uncomment the following to account for more than joint sensors
     //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
     for (int sensor = 0; sensor < 1; sensor++)
     {
@@ -115,6 +117,9 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
         if (trial_controller_ != NULL){
             sensors_[sensor]->set_sample_data(current_time_step_sample_,
                 trial_controller_->get_step_counter());
+        }
+        else if (active_arm_controller_->report_waiting){
+            sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
     }
 }
@@ -152,6 +157,22 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
             //sensors_[sensor]->set_update(active_arm_controller_->get_update_delay());
         }
     }
+    if (active_arm_controller_->report_waiting){
+        ROS_INFO("cp1report1");
+        if (active_arm_controller_->is_finished()){
+            ROS_INFO("cp2report1");
+            publish_sample_report(current_time_step_sample_);
+            active_arm_controller_->report_waiting = false;
+        }
+    }
+    if (passive_arm_controller_->report_waiting){
+        ROS_INFO("cp1report2");
+        if (passive_arm_controller_->is_finished()){
+            ROS_INFO("cp2report2");
+            publish_sample_report(current_time_step_sample_);
+            passive_arm_controller_->report_waiting = false;
+        }
+    }
 
     /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
     /* publish message when finished */
@@ -160,7 +181,12 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
-    sample->get_available_dtypes(dtypes);
+    // TODO ZDM: make end effector samples work so that this doesn't crash
+    //sample->get_available_dtypes(dtypes);
+    // currently hardcoded to actions, joint angles, and joint velocities
+    dtypes.push_back((gps::SampleType)0);
+    dtypes.push_back((gps::SampleType)1);
+    dtypes.push_back((gps::SampleType)2);
 
     report_publisher_->msg_.sensor_data.resize(dtypes.size()); //TODO: Only doing pos/vel right now
     for(int d=0; d<dtypes.size(); d++){

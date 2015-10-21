@@ -56,6 +56,9 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
 
     // Set arm.
     arm_ = arm;
+
+    //
+    report_waiting = false;
 }
 
 // Destructor.
@@ -117,16 +120,16 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         torques = -((pd_gains_p_.array() * temp_angles_.array()) +
                     (pd_gains_d_.array() * current_angle_velocities_.array()) +
                     (pd_gains_i_.array() * pd_integral_.array())).matrix();
-        ROS_INFO_STREAM("joint outputs mode:");
-        ROS_INFO_STREAM(mode_);
-        ROS_INFO_STREAM(torques);
+        //ROS_INFO_STREAM("joint outputs mode:");
+        //ROS_INFO_STREAM(mode_);
+        //ROS_INFO_STREAM(torques);
     }
     else
     {
         torques = Eigen::VectorXd::Zero(torques.rows());
-        ROS_INFO_STREAM("joint outputs mode:");
-        ROS_INFO_STREAM(mode_);
-        ROS_INFO_STREAM(torques);
+        //ROS_INFO_STREAM("joint outputs mode:");
+        //ROS_INFO_STREAM(mode_);
+        //ROS_INFO_STREAM(torques);
     }
 
     // TODO: shall we update the stored sample somewhere?
@@ -142,6 +145,8 @@ void PositionController::configure_controller(OptionsMap &options)
     // This sets the target position.
     // This sets the mode
     ROS_INFO_STREAM("Received controller configuration");
+    // needs to report when finished
+    report_waiting = true;
     mode_ = (PositionControlMode) boost::get<int>(options["mode"]);
     if (mode_ != NoControl){
         Eigen::VectorXd data = boost::get<Eigen::VectorXd>(options["data"]);
@@ -159,7 +164,15 @@ bool PositionController::is_finished() const
 {
     // Check whether we are close enough to the current target.
     // TODO: implement.
-    return true;
+    if (mode_ == JointSpaceControl){
+        double eps = 0.185;
+        double error = (current_angles_ - target_angles_).norm();
+        ROS_INFO("error: %f", error);
+        return (error < eps);
+    }
+    else if (mode_ == NoControl){
+        return true;
+    }
 }
 /*
 

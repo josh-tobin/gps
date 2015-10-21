@@ -74,6 +74,8 @@ public:
     virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Reset the controller -- this is typically called when the controller is turned on.
     virtual void reset(ros::Time update_time);
+    // Should this report when position achieved?
+    bool report_waiting;
 };
 
 }
