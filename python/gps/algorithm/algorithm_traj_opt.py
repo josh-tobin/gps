@@ -78,6 +78,8 @@ class AlgorithmTrajOpt(Algorithm):
         Fit dynamics to current samples
         """
         for m in range(self.M):
+            if self.iteration_count >= 1:
+                self.prev[m].traj_info.dynamics = self.dynamics[m].copy()
             self.cur[m].traj_info.dynamics = self.dynamics[m]
             cur_data = self.cur[m].sample_list
             self.cur[m].traj_info.dynamics.update_prior(cur_data)
@@ -112,6 +114,7 @@ class AlgorithmTrajOpt(Algorithm):
         Compute new linear gaussian controllers.
         """
         self.new_traj_distr = [None]*self.M
+        #TODO: is this wrong...?
         for inner_itr in range(self._hyperparams['inner_iterations']):
             for m in range(self.M):
                 self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(

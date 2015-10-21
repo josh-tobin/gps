@@ -32,3 +32,10 @@ class Dynamics(object):
     def fit(self, sample):
         """ Fit dynamics. """
         raise NotImplementedError("Must be implemented in subclass")
+
+    def copy(self):
+        dyn = type(self)({})
+        dyn.Fm = np.copy(self.Fm)
+        dyn.fv = np.copy(self.fv)
+        dyn.dyn_covar = np.copy(self.dyn_covar)
+        return dyn
