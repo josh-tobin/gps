@@ -100,7 +100,7 @@ class AgentROS(Agent):
                        condition_data['auxiliary_arm']['mode'],
                        condition_data['auxiliary_arm']['data'])
 
-    def sample(self, policy, T):
+    def sample(self, policy, condition, T):
         """
         Execute a policy and collect a sample
 
@@ -121,4 +121,4 @@ class AgentROS(Agent):
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
         sample = construct_sample_from_ros_msg(sample_msg)
-        self._samples.append(sample)
+        self._samples[condition].append(sample)
