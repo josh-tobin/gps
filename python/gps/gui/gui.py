@@ -8,10 +8,11 @@ from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 
 # GUI includes:
 # Target setup (responsive to keyboard, gui, and PS3 controller)
-#   - set sample number, set arm
-#   - set initial position, set target position
-#   - set target end effector points, set target feature points
-#   - relax controller, move to initial position, move to target position
+#   - set target number, set sensor type
+#	- relax controller, mannequin mode
+#   - set initial position (joint angles), move to initial position
+#	- set target position (joint angles), move to target position
+#	- set target end effector points, set target feature points
 # Training controller
 #   - stop, stop and reset, reset, reset and go, go
 # Image visualizer: real-time image and overlay of feature points, visualize hidden states?
@@ -29,80 +30,95 @@ class GUI:
 
 		# Target setup
 		self.target_number = 1
-		self.sensor = 'right_arm'
+		self.sensor_type = 'right_arm'
 
 		# GUI components
 		r, c = 5, 5
 		self.fig = plt.figure(figsize=(8, 8))
-		self.gs  = gridspec.GridSpec(2, 1)
-		self.gs0 = gridspec.GridSpecFromSubplotSpec(r, c, subplot_spec=self.gs[0])
-		self.gs1 = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self.gs[1])
-
-		self.functions = [('set_target_number', self.set_target_number),
-						  ('set_arm', self.set_arm)]
-		num_functions = len(self.functions)
-		self.axarr = [plt.subplot(self.gs0[i]) for i in range(num_functions)]
-		self.buttons = [Button(self.axarr[i], self.functions[i][0]) for i in range(num_functions)]
-		[self.buttons[i].on_clicked(self.functions[i][1]) for i in range(num_functions)]
+		self.gs  = gridspec.GridSpec(1, 2)
 		
-		axcolor = 'lightgoldenrodyellow'
-		rax = plt.axes([0.05, 0.7, 0.15, 0.15], axisbg=axcolor)
-		radio = RadioButtons(rax, ('1', '2', '3'))
-		def hzfunc(label):
-		    tgtdict = {'1':1, '2':2, '3':3}
-		    self.target_number = tgtdict['label']
-		    self.set_output("target number: " + str(self.target_number))
-		radio.on_clicked(hzfunc)
+		self.gs_left   = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs[0])
+		self.gs_button = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_left[0])
+		self.gs_setup  = gridspec.GridSpecFromSubplotSpec(5, 2, subplot_spec=self.gs_button[0])
 
+		self.gs_right  = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=self.gs[1])
+		self.gs_run    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_right[0])
+		self.gs_vis    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_right[1])
 
-		self.gs10 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs1[0])
-		self.gs11 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs1[1])
-
-		self.output_ax = plt.subplot(self.gs11[0])
-		self.output_ax.set_axis_off()
-		self.set_output("please set target number")
+		# ~~~BUTTON~~~
+		# SETUP
+		self.actions = [('set_target_number', self.set_target_number),
+						('set_sensor_type', self.set_sensor_type),
+						('relax_controller', self.relax_controller),
+						('mannequin_mode', self.mannequin_mode),
+						('set_initial_position', self.set_initial_position),
+						('move_to_initial', self.move_to_initial),
+						('set_target_position', self.set_target_position),
+						('move_to_target', self.move_to_target),
+						('set_ee_target', self.set_ee_target),
+						('set_ft_target', self.set_ft_target)]
+		num_actions = len(self.actions)
+		self.axarr = [plt.subplot(self.gs_setup[i]) for i in range(num_actions)]
+		self.buttons = [Button(self.axarr[i], self.actions[i][0]) for i in range(num_actions)]
+		[self.buttons[i].on_clicked(self.actions[i][1]) for i in range(num_actions)]
 		
+		# rax = plt.axes([0.05, 0.7, 0.15, 0.15], axisbg='white')
+		# radio = RadioButtons(rax, ('1', '2', '3'))
+		# def hzfunc(label):
+		#     tgtdict = {'1':1, '2':2, '3':3}
+		#     self.target_number = tgtdict['label']
+		#     self.set_output("target number: " + str(self.target_number))
+		# radio.on_clicked(hzfunc)
 
-#     self.c1 = CheckButtons([i for i in range(1, 14)])
+		# ~~~ RUN ~~~
+		self.run_ax = plt.subplot(self.gs_run[0])
+		
+		self.set_run_output("please set target number")
 
-#     rax = plt.axes([0.05, 0.4, 0.1, 0.15])
-#     check = CheckButtons(rax, ('2 Hz', '4 Hz', '6 Hz'), (False, True, True))
-
-#     def func(label):
-#       if label == '2 Hz': l0.set_visible(not l0.get_visible())
-#       elif label == '4 Hz': l1.set_visible(not l1.get_visible())
-#       elif label == '6 Hz': l2.set_visible(not l2.get_visible())
-#       plt.draw()
-#     check.on_clicked(func)
-
-#     plt.show()
+		# ~~~ VIS ~~~
+		pass
 	
-	def set_output(self, text):
-		self.output_ax.text(0.95, 0.01, text,
+	def set_run_output(self, text):
+		self.run_ax.clear()
+		self.run_ax.set_axis_off()
+		self.run_ax.text(0.95, 0.01, text,
 			verticalalignment='bottom', horizontalalignment='right',
-			transform=self.output_ax.transAxes, color='green', fontsize=15)
+			transform=self.run_ax.transAxes, color='green', fontsize=15)
 
-
-
-	# TARGET SETUP FUNCTIONS
+	# SETUP FUNCTIONS
 	def set_target_number(self, event):
+		self.set_run_output("target number: " + str(self.target_number))
+
+	def set_sensor_type(self, event):
 		pass
 
-	def set_arm(self, event):
+	def relax_controller(self, event):
 		pass
 
-	def relax_arm(self, event):
-		relax(self.arm)
+	def mannequin_mode(self, event):
+		pass
 
 	def set_initial_position(self, event):
 		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
 		x0 = get_arm_state(self.arm)	# currently not implemented
 		scipy.io.savemat(filename, {'x0': x0})
 
+	def move_to_initial(self, event):
+		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
+		with scipy.io.loadmat(filename) as f:
+			x0 = f['x0']
+		move_arm(self.arm, x0)
+
 	def set_target_position(self, event):
 		filename = 'matfiles/' + self.arm + '_target_' + self.target_number + '.mat'
 		xf = get_arm_state(self.arm)	# currently not implemented
 		scipy.io.savemat(filename, {'xf': xf})
+
+	def move_to_target(self, event):
+		filename = 'matfiles/' + self.arm + '_target_' + self.target_number + '.mat'
+		with scipy.io.loadmat(filename) as f:
+			x0 = f['x0']
+		move_arm(self.arm, x0)
 
 	def set_ee_target(self, event):
 		pass
@@ -116,18 +132,6 @@ class GUI:
 		print(samples)
 		# save files
 		pass
-
-	def move_to_initial(self, event):
-		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
-		with scipy.io.loadmat(filename) as f:
-			x0 = f['x0']
-		move_arm(self.arm, x0)
-
-	def move_to_target(self, event):
-		filename = 'matfiles/' + self.arm + '_target_' + self.target_number + '.mat'
-		with scipy.io.loadmat(filename) as f:
-			x0 = f['x0']
-		move_arm(self.arm, x0)
 
 if __name__ == "__main__":
 	g = GUI(None, None)
