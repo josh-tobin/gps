@@ -1,5 +1,5 @@
 # from gps.gui.config import target_setup
-import copy 
+# import copy 
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,41 +22,47 @@ from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 class GUI:
 	def __init__(self, agent, hyperparams):
 		# General
-		self._agent = agent
-		config = copy.deepcopy(target_setup)
-		config.update(hyperparams)
-		self._hyperparams = config
+		# self._agent = agent
+		# config = copy.deepcopy(target_setup)
+		# config.update(hyperparams)
+		# self._hyperparams = config
+
+		# Target setup
+		self.target_number = 1
+		self.sensor = 'right_arm'
 
 		# GUI components
+		r, c = 5, 5
 		self.fig = plt.figure(figsize=(8, 8))
-		self.gs = gridspec.GridSpec(2, 1, height_ratios=[1, 3])
-		num_functions = 10
-		self.gs0 = gridspec.GridSpecFromSubsplotSpec(1, num_functions, subplot_spec=gs[0])
-		self.axarr = [fig.subplot(gs[0, i]) for i in range(num_functions))]
+		self.gs  = gridspec.GridSpec(2, 1)
+		self.gs0 = gridspec.GridSpecFromSubplotSpec(r, c, subplot_spec=self.gs[0])
+		self.gs1 = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self.gs[1])
 
-		self.b1 = Button(self.ax1, "set_target_number")
-		self.b2 = Button(self.ax1, "set_arm")
+		self.functions = [('set_target_number', self.set_target_number),
+						  ('set_arm', self.set_arm)]
+		num_functions = len(self.functions)
+		self.axarr = [plt.subplot(self.gs0[i]) for i in range(num_functions)]
+		self.buttons = [Button(self.axarr[i], self.functions[i][0]) for i in range(num_functions)]
+		[self.buttons[i].on_clicked(self.functions[i][1]) for i in range(num_functions)]
+		
+		axcolor = 'lightgoldenrodyellow'
+		rax = plt.axes([0.05, 0.7, 0.15, 0.15], axisbg=axcolor)
+		radio = RadioButtons(rax, ('1', '2', '3'))
+		def hzfunc(label):
+		    tgtdict = {'1':1, '2':2, '3':3}
+		    self.target_number = tgtdict['label']
+		    self.set_output("target number: " + str(self.target_number))
+		radio.on_clicked(hzfunc)
 
-		self.gs1 = gridspec.GridSpecFromSubsplotSpec(1, 2, subplot_spec=gs[0], width_ratios=[3, 1])
 
-# class TargetSetup:
-# 	def __init__(self, agent, hyperparams):
-# 		self._agent = agent
-# 		config = copy.deepcopy(target_setup)
-# 		config.update(hyperparams)
-# 		self._hyperparams = config
+		self.gs10 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs1[0])
+		self.gs11 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs1[1])
 
-# 		# Target Setup
-# 		self.arm = 'right_arm'
-# 		self.target_number = 1
+		self.output_ax = plt.subplot(self.gs11[0])
+		self.output_ax.set_axis_off()
+		self.set_output("please set target number")
+		
 
-#     # GUI figure
-#     self.num_functions = 8		# this number is hardcoded
-#     self.fig, self.axarr = plt.subplots(num_functions)
-#     self.buttons = [None for i in range(num_functions)]
-
-#     self.b1 = Button(axarr[0], 'Set Target Number')
-#     self.b1.on_clicked(set_target_number)
 #     self.c1 = CheckButtons([i for i in range(1, 14)])
 
 #     rax = plt.axes([0.05, 0.4, 0.1, 0.15])
@@ -70,7 +76,11 @@ class GUI:
 #     check.on_clicked(func)
 
 #     plt.show()
-
+	
+	def set_output(self, text):
+		self.output_ax.text(0.95, 0.01, text,
+			verticalalignment='bottom', horizontalalignment='right',
+			transform=self.output_ax.transAxes, color='green', fontsize=15)
 
 
 
@@ -121,4 +131,4 @@ class GUI:
 
 if __name__ == "__main__":
 	g = GUI(None, None)
-	plot.show()
+	plt.show()
