@@ -29,6 +29,7 @@ class GUI:
     self._agent = agent
     self._hyperparams = copy.deepcopy(target_setup)
     self._hyperparams.update(hyperparams)
+    self._filedir = self._hyperparams['file_dir']
 
 		# Target setup
 		self.target_number = 1
@@ -101,23 +102,23 @@ class GUI:
 		pass
 
 	def set_initial_position(self, event):
-		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
+		filename = self._filedir + self.arm + '_initial_' + self.target_number + '.mat'
 		x0 = self._agent.get_data(self.arm, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
 		scipy.io.savemat(filename, {'x0': x0})
 
 	def move_to_initial(self, event):
-		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
+		filename = self._filedir + self.arm + '_initial_' + self.target_number + '.mat'
 		with scipy.io.loadmat(filename) as f:
 			x0 = f['x0']
 		self._agent.reset_arm(self.arm, 0, x0)
 
 	def set_target_position(self, event):
-		filename = 'matfiles/' + self.arm + '_target_' + self.target_number + '.mat'
+		filename = self._filedir + self.arm + '_target_' + self.target_number + '.mat'
 		xf = self._agent.get_data(self.arm, END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
 		scipy.io.savemat(filename, {'xf': xf})
 
 	def move_to_target(self, event):
-		filename = 'matfiles/' + self.arm + '_target_' + self.target_number + '.mat'
+		filename = self._filedir + self.arm + '_target_' + self.target_number + '.mat'
 		with scipy.io.loadmat(filename) as f:
 			x0 = f['x0']
 		move_arm(self.arm, x0)
