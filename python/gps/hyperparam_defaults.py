@@ -52,6 +52,7 @@ agent = {
 }
 
 gui = {
+  'file_dir' = common['experiment_dir'] + 'target_files/'
 }
 
 algorithm = {
