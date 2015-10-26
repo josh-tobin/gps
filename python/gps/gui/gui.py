@@ -9,27 +9,40 @@ from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
 from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
 from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
 from gps_agent_pkg.msg import PositionCommand
-# GUI includes:
+
+# ~~~ GUI Specifications ~~~
 # Target setup (responsive to keyboard, gui, and PS3 controller)
 #   - set target number, set sensor type
 #	- relax controller, mannequin mode
 #   - set initial position (joint angles), move to initial position
 #	- set target position (joint angles), move to target position
 #	- set target end effector points, set target feature points
-# Training controller
+#
+# Robot training
 #   - stop, stop and reset, reset, reset and go, go
-# Image visualizer: real-time image and overlay of feature points, visualize hidden states?
-# Data plotter: plots losses of feature points / end effector points, joint states, feature point states, etc.
-#   - plots are updated by regularly reading from a topic
-# Recorder: save out plotted data
+#
+# Data visualizer
+#	- algorithm training visualizations
+# 	- real-time image and feature points visualization
+#	- overlay of initial and target feature points
+#	- visualize hidden states?
+#
+# Data plotter
+#	- algorithm training costs
+#	- losses of feature points / end effector points
+#	- joint states, feature point states, etc.
+#
+# Data recorder
+#	- save tracked data to file
+#	- create movie from image visualizations
 
 class GUI:
-  def __init__(self, agent, hyperparams)
-    # General
-    self._agent = agent
-    self._hyperparams = copy.deepcopy(target_setup)
-    self._hyperparams.update(hyperparams)
-    self._filedir = self._hyperparams['file_dir']
+  def __init__(self, agent, hyperparams):
+	    # General
+	    self._agent = agent
+	    self._hyperparams = copy.deepcopy(target_setup)
+	    self._hyperparams.update(hyperparams)
+	    self._filedir = self._hyperparams['file_dir']
 
 		# Target setup
 		self.target_number = 1
