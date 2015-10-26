@@ -4,11 +4,11 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 
-from gps.gui.config import target_setup
-from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
-from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
-from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
-from gps_agent_pkg.msg import PositionCommand
+# from gps.gui.config import target_setup
+# from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
+# from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
+# from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
+# from gps_agent_pkg.msg import PositionCommand
 
 # ~~~ GUI Specifications ~~~
 # Target setup (responsive to keyboard, gui, and PS3 controller)
@@ -39,9 +39,9 @@ from gps_agent_pkg.msg import PositionCommand
 class GUI:
   def __init__(self, agent, hyperparams):
 	    # General
-	    self._agent = agent
-	    self._hyperparams = copy.deepcopy(target_setup)
-	    self._hyperparams.update(hyperparams)
+	    # self._agent = agent
+	    # self._hyperparams = copy.deepcopy(target_setup)
+	    # self._hyperparams.update(hyperparams)
 	    self._filedir = self._hyperparams['file_dir']
 
 		# Target setup
