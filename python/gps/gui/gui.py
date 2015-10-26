@@ -1,11 +1,14 @@
-# from gps.gui.config import target_setup
-# import copy 
-
+import copy
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 
+from gps.gui.config import target_setup
+from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
+from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
+from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
+from gps_agent_pkg.msg import PositionCommand
 # GUI includes:
 # Target setup (responsive to keyboard, gui, and PS3 controller)
 #   - set target number, set sensor type
@@ -21,12 +24,11 @@ from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 # Recorder: save out plotted data
 
 class GUI:
-	def __init__(self, agent, hyperparams):
-		# General
-		# self._agent = agent
-		# config = copy.deepcopy(target_setup)
-		# config.update(hyperparams)
-		# self._hyperparams = config
+  def __init__(self, agent, hyperparams)
+    # General
+    self._agent = agent
+    self._hyperparams = copy.deepcopy(target_setup)
+    self._hyperparams.update(hyperparams)
 
 		# Target setup
 		self.target_number = 1
@@ -36,7 +38,7 @@ class GUI:
 		r, c = 5, 5
 		self.fig = plt.figure(figsize=(8, 8))
 		self.gs  = gridspec.GridSpec(1, 2)
-		
+
 		self.gs_left   = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs[0])
 		self.gs_button = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_left[0])
 		self.gs_setup  = gridspec.GridSpecFromSubplotSpec(5, 2, subplot_spec=self.gs_button[0])
@@ -61,7 +63,7 @@ class GUI:
 		self.axarr = [plt.subplot(self.gs_setup[i]) for i in range(num_actions)]
 		self.buttons = [Button(self.axarr[i], self.actions[i][0]) for i in range(num_actions)]
 		[self.buttons[i].on_clicked(self.actions[i][1]) for i in range(num_actions)]
-		
+
 		# rax = plt.axes([0.05, 0.7, 0.15, 0.15], axisbg='white')
 		# radio = RadioButtons(rax, ('1', '2', '3'))
 		# def hzfunc(label):
@@ -72,12 +74,12 @@ class GUI:
 
 		# ~~~ RUN ~~~
 		self.run_ax = plt.subplot(self.gs_run[0])
-		
+
 		self.set_run_output("please set target number")
 
 		# ~~~ VIS ~~~
 		pass
-	
+
 	def set_run_output(self, text):
 		self.run_ax.clear()
 		self.run_ax.set_axis_off()
@@ -100,18 +102,18 @@ class GUI:
 
 	def set_initial_position(self, event):
 		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
-		x0 = get_arm_state(self.arm)	# currently not implemented
+		x0 = self._agent.get_data(self.arm, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
 		scipy.io.savemat(filename, {'x0': x0})
 
 	def move_to_initial(self, event):
 		filename = 'matfiles/' + self.arm + '_initial_' + self.target_number + '.mat'
 		with scipy.io.loadmat(filename) as f:
 			x0 = f['x0']
-		move_arm(self.arm, x0)
+		self._agent.reset_arm(self.arm, 0, x0)
 
 	def set_target_position(self, event):
 		filename = 'matfiles/' + self.arm + '_target_' + self.target_number + '.mat'
-		xf = get_arm_state(self.arm)	# currently not implemented
+		xf = self._agent.get_data(self.arm, END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
 		scipy.io.savemat(filename, {'xf': xf})
 
 	def move_to_target(self, event):

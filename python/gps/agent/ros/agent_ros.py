@@ -46,7 +46,7 @@ class AgentROS(Agent):
         self._seq_id = (self._seq_id + 1) % (2**32)  # Max uint32
         return self._seq_id
 
-    def get_data(self, data_type):
+    def get_data(self, data_type, arm=-1):
         """
         Request for the most recent value for data/sensor readings.
         Ex. Joint angles, end effector position, jacobians.
@@ -54,6 +54,7 @@ class AgentROS(Agent):
         Args:
             data_type: Integer code for a data type.
                 These are defined in proto.gps_pb2
+            arm: Either ARM_LEFT or ARM_RIGHT, or -1 if not applicable
         """
         request = DataRequest()
         request.id = self._get_next_seq_id()
