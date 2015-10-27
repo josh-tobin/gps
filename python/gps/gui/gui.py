@@ -37,16 +37,17 @@ from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 #	- create movie from image visualizations
 
 class GUI:
-  def __init__(self, agent, hyperparams):
-	    # General
-	    # self._agent = agent
-	    # self._hyperparams = copy.deepcopy(target_setup)
-	    # self._hyperparams.update(hyperparams)
-	    self._filedir = self._hyperparams['file_dir']
+	def __init__(self, agent, hyperparams):
+		# General
+		# self._agent = agent
+		# self._hyperparams = copy.deepcopy(target_setup)
+		# self._hyperparams.update(hyperparams)
+		# self._filedir = self._hyperparams['file_dir']
 
 		# Target setup
 		self.target_number = 1
-		self.sensor_type = 'right_arm'
+		self.sensor_names = {1: 'right_arm', 2: 'left_arm'}
+		self.sensor_type = self.sensor_names[1]
 
 		# GUI components
 		r, c = 5, 5
@@ -54,15 +55,13 @@ class GUI:
 		self.gs  = gridspec.GridSpec(1, 2)
 
 		self.gs_left   = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs[0])
-		self.gs_button = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_left[0])
-		self.gs_setup  = gridspec.GridSpecFromSubplotSpec(5, 2, subplot_spec=self.gs_button[0])
+		self.gs_setup  = gridspec.GridSpecFromSubplotSpec(5, 2, subplot_spec=self.gs_left[0])
 
 		self.gs_right  = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=self.gs[1])
-		self.gs_run    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_right[0])
+		self.gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_right[0])
 		self.gs_vis    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs_right[1])
 
-		# ~~~BUTTON~~~
-		# SETUP
+		# ~~~ SETUP ~~~
 		self.actions = [('set_target_number', self.set_target_number),
 						('set_sensor_type', self.set_sensor_type),
 						('relax_controller', self.relax_controller),
@@ -75,79 +74,118 @@ class GUI:
 						('set_ft_target', self.set_ft_target)]
 		num_actions = len(self.actions)
 		self.axarr = [plt.subplot(self.gs_setup[i]) for i in range(num_actions)]
-		self.buttons = [Button(self.axarr[i], self.actions[i][0]) for i in range(num_actions)]
-		[self.buttons[i].on_clicked(self.actions[i][1]) for i in range(num_actions)]
+		
+		self.axarr[0].text(0, 0.75, 'set_target_number')
+		self.target_slider = DiscreteSlider(self.axarr[0], '', 1, 13, valinit=1, valfmt='%d')
+		self.target_slider.on_changed(self.set_target_number)
+		self.axarr[1].text(1, 0.75, 'set_sensor_type')
+		self.sensor_slider = DiscreteSlider(self.axarr[1], '', 1,  2, valinit=1, valfmt='%d')
+		self.sensor_slider.on_changed(self.set_sensor_type)
 
-		# rax = plt.axes([0.05, 0.7, 0.15, 0.15], axisbg='white')
-		# radio = RadioButtons(rax, ('1', '2', '3'))
-		# def hzfunc(label):
-		#     tgtdict = {'1':1, '2':2, '3':3}
-		#     self.target_number = tgtdict['label']
-		#     self.set_output("target number: " + str(self.target_number))
-		# radio.on_clicked(hzfunc)
+		buttons_start = 2
+		self.actions_button = self.actions[buttons_start:]
+		num_buttons = len(self.actions_button)
+		self.buttons = [Button(self.axarr[buttons_start+i], self.actions_button[i][0]) for i in range(num_buttons)]
+		[self.buttons[i].on_clicked(self.actions_button[i][1]) for i in range(num_buttons)]
 
-		# ~~~ RUN ~~~
-		self.run_ax = plt.subplot(self.gs_run[0])
-
-		self.set_run_output("please set target number")
+		# ~~~ OUTPUT ~~~
+		self.output_ax = plt.subplot(self.gs_output[0])
+		self.set_output("target number: " +  str(self.target_number) + "\n" +
+				"sensor type: " + self.sensor_type)
 
 		# ~~~ VIS ~~~
 		pass
 
-	def set_run_output(self, text):
-		self.run_ax.clear()
-		self.run_ax.set_axis_off()
-		self.run_ax.text(0.95, 0.01, text,
-			verticalalignment='bottom', horizontalalignment='right',
-			transform=self.run_ax.transAxes, color='green', fontsize=15)
+	def set_output(self, text):
+		self.output_ax.clear()
+		self.output_ax.set_axis_off()
+		self.output_ax.text(0, 1, text,
+			verticalalignment='top', horizontalalignment='left',
+			transform=self.output_ax.transAxes, color='green', fontsize=12)
+		self.fig.canvas.draw()
 
 	# SETUP FUNCTIONS
-	def set_target_number(self, event):
-		self.set_run_output("target number: " + str(self.target_number))
+	def set_target_number(self, val):
+		self.target_number = int(val)
+		self.set_output("set_target_number: " + str(self.target_number))
 
-	def set_sensor_type(self, event):
-		pass
+	def set_sensor_type(self, val):
+		self.sensor_type = self.sensor_names[int(val)]
+		self.set_output("set_sensor_type: " + self.sensor_type)
 
 	def relax_controller(self, event):
-		pass
+		self._agent.relax_arm(self.sensor_type)
+		self.set_output("relax_controller: " + self.sensor_type)
 
 	def mannequin_mode(self, event):
-		pass
+		# TO-DO
+		self.set_output("mannequin_mode: " + "NOT YET IMPLEMENTED")
 
 	def set_initial_position(self, event):
-		filename = self._filedir + self.arm + '_initial_' + self.target_number + '.mat'
-		x0 = self._agent.get_data(self.arm, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
-		scipy.io.savemat(filename, {'x0': x0})
+		x = self._agent.get_data(self.sensor_type, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
+		filename = self._filedir + self.sensor_type + '_initial_' + self.target_number + '.npz'
+		np.savez(filename, x=x)
+		self.set_output("set_initial_position: " + x)
 
 	def move_to_initial(self, event):
-		filename = self._filedir + self.arm + '_initial_' + self.target_number + '.mat'
-		with scipy.io.loadmat(filename) as f:
-			x0 = f['x0']
-		self._agent.reset_arm(self.arm, 0, x0)
+		filename = self._filedir + self.sensor_type + '_initial_' + self.target_number + '.npz'
+		with np.load(filename) as f:
+			x = f['x']
+		self._agent.reset_arm(self.sensor_type, 0, x)
+		self.set_output("move_to_initial: " + x)
 
 	def set_target_position(self, event):
-		filename = self._filedir + self.arm + '_target_' + self.target_number + '.mat'
-		xf = self._agent.get_data(self.arm, END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
-		scipy.io.savemat(filename, {'xf': xf})
+		x = self._agent.get_data(self.sensor_type, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
+		filename = self._filedir + self.sensor_type + '_target_' + self.target_number + '.npz'
+		np.savez(filename, x=x)
+		self.set_output("set_target_position: " + x)
 
 	def move_to_target(self, event):
-		filename = self._filedir + self.arm + '_target_' + self.target_number + '.mat'
-		with scipy.io.loadmat(filename) as f:
-			x0 = f['x0']
-		move_arm(self.arm, x0)
+		filename = self._filedir + self.sensor_type + '_target_' + self.target_number + '.npz'
+		with np.load(filename) as f:
+			x = f['x']
+		self._agent.reset_arm(self.sensor_type, 0, x)
+		self.set_output("move_to_target: " + x)
 
 	def set_ee_target(self, event):
-		pass
+		x = self._agent.get_data(self.sensor_type, END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
+		filename = self._filedir + 'ee' + '_target_' + self.target_number + '.npz'
+		np.savez(filename, x=x)
+		self.set_output("set_ee_target: " + x)
 
 	def set_ft_target(self, event):
 		num_samples = 50
+		threshold = 0.8
+
+		ft_points_samples = np.empty()
+		ft_prsnce_samples = np.empty()
 		for i in range(num_samples):
-			samples.append(new_features)	# currently not implemented
-			samples.append(ft_pres)
-		ft_pres = (ft_pres.sum() >= 0.8 * num_samples)
-		print(samples)
-		# save files
-		pass
+			ft_points_samples.append(self._agent.get_data(self.sensor_type, VISUAL_FEATURE_POINTS))		# currently not implemented
+			ft_prsnce_samples.append(self._agent.get_data(self.sensor_type, VISUAL_FEATURE_PRESENCE))	# currently not implemented
+		ft_points_mean = np.mean(ft_points)
+		ft_prsnce_mean = np.mean(ft_pres)
+
+		ft_stable = np.array(ft_prsnce_mean >= threshold, dtype=int)
+		ft_points = ft_stable * ft_points_mean
+
+		filename = self._filedir + 'ft' + '_target_' + self.target_number + '.npz'
+		np.savez(filename, ft_points=ft_points, ft_stable=ft_stable)
+		self.set_output("set_ft_target: " + "\n" + 
+				"ft_points: " + ft_points + "\n" +
+				"ft_stable: " + ft_stable)
+
+class DiscreteSlider(Slider):
+	def set_val(self, val):
+		self.val = val
+		discrete_val = round(val)
+		self.valtext.set_text(self.valfmt % discrete_val)
+		self.poly.xy[2] = discrete_val, 1
+		self.poly.xy[3] = discrete_val, 0
+		if self.drawon:
+			self.ax.figure.canvas.draw()
+		if self.eventson:
+			for cid, func in self.observers.iteritems():
+				func(discrete_val)
 
 if __name__ == "__main__":
 	g = GUI(None, None)
