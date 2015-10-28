@@ -42,17 +42,18 @@ rosbuild_add_boost_directories()
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 set(DDP_FILES src/robotplugin.cpp
-			  src/pr2plugin.cpp
+              src/pr2plugin.cpp
               src/sample.cpp
-		      src/sensor.cpp
-		      src/lingausscontroller.cpp
-		      src/controller.cpp
-		      src/caffecontroller.cpp
-		      src/camerasensor.cpp
-		      src/positioncontroller.cpp
-		      src/trialcontroller.cpp
-		      src/encodersensor.cpp
-		      src/encoderfilter.cpp)
+              src/sensor.cpp
+              src/neuralnetwork.cpp
+              src/controller.cpp
+              src/lingausscontroller.cpp
+              src/caffecontroller.cpp
+              src/camerasensor.cpp
+              src/positioncontroller.cpp
+              src/trialcontroller.cpp
+              src/encodersensor.cpp
+              src/encoderfilter.cpp)
 
 # Include Caffe
 if (USE_CAFFE)
@@ -71,7 +72,7 @@ if (USE_CAFFE)
     # extra header paths
     include_directories(${CAFFE_EXTRA_PATH})
     # add neural network to DDP controller files
-    #set(DDP_FILES ${DDP_FILES} src/neural_network_caffe.cpp)
+    set(DDP_FILES ${DDP_FILES} src/neuralnetworkcaffe.cpp)
     # compile Caffe test
     #rosbuild_add_executable(caffe_test src/caffe_test.cpp src/neural_network_caffe.cpp)
     #target_link_libraries(caffe_test caffe protobuf)
