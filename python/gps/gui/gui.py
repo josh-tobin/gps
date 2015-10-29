@@ -1,3 +1,5 @@
+import roslib; roslib.load_manifest('gps_agent_pkg')
+
 from datetime import datetime
 import copy
 import numpy as np
@@ -6,11 +8,16 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 from matplotlib.text import Text
 
-# from gps.gui.config import target_setup
-# from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
-# from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
-# from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
-# from gps_agent_pkg.msg import PositionCommand
+from gps.gui.config import target_setup
+from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
+from gps.agent.ros.agent_ros import AgentROS
+#from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
+#from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
+from gps_agent_pkg.msg import PositionCommand
+from gps.hyperparam_pr2 import defaults as agent_config
+
+ARM_LEFT = 1
+ARM_RIGHT = 2
 
 # ~~~ GUI Specifications ~~~
 # Target setup (responsive to keyboard, gui, and PS3 controller)
@@ -41,10 +48,10 @@ from matplotlib.text import Text
 class GUI:
 	def __init__(self, agent, hyperparams):
 		# General
-		# self._agent = agent
-		# self._hyperparams = copy.deepcopy(target_setup)
-		# self._hyperparams.update(hyperparams)
-		# self._filedir = self._hyperparams['file_dir']
+		self._agent = agent
+		self._hyperparams = copy.deepcopy(target_setup)
+		self._hyperparams.update(hyperparams)
+		self._filedir = self._hyperparams['file_dir']
 
 		# Target setup
 		self._target_number = 1
@@ -161,7 +168,7 @@ class GUI:
 		self.set_output("mannequin_mode: " + "NOT YET IMPLEMENTED")
 
 	def set_initial_position(self, event):
-		x = self._agent.get_data(self._sensor_type, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
+		x = self._agent.get_data(JOINT_ANGLES)	# TODO - this is specific to AgentROS...
 		filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
 		np.savez(filename, x=x)
 		self.set_output("set_initial_position: " + x)
@@ -170,11 +177,11 @@ class GUI:
 		filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
 		with np.load(filename) as f:
 			x = f['x']
-		self._agent.reset_arm(self._sensor_type, 0, x)
+		self._agent.reset_arm(ARM_LEFT, 1, x)
 		self.set_output("move_to_initial: " + x)
 
 	def set_target_position(self, event):
-		x = self._agent.get_data(self._sensor_type, JOINT_ANGLES)	# TODO - this is specific to AgentROS...
+		x = self._agent.get_data(JOINT_ANGLES)	# TODO - this is specific to AgentROS...
 		filename = self._filedir + self._sensor_type + '_target_' + self._target_number + '.npz'
 		np.savez(filename, x=x)
 		self.set_output("set_target_position: " + x)
@@ -183,11 +190,11 @@ class GUI:
 		filename = self._filedir + self._sensor_type + '_target_' + self._target_number + '.npz'
 		with np.load(filename) as f:
 			x = f['x']
-		self._agent.reset_arm(self._sensor_type, 0, x)
+		self._agent.reset_arm(ARM_LEFT, 1, x)
 		self.set_output("move_to_target: " + x)
 
 	def set_ee_target(self, event):
-		x = self._agent.get_data(self._sensor_type, END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
+		x = self._agent.get_data(END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
 		filename = self._filedir + 'ee' + '_target_' + self._target_number + '.npz'
 		np.savez(filename, x=x)
 		self.set_output("set_ee_target: " + x)
@@ -240,5 +247,6 @@ class DiscreteSlider(Slider):
 				func(discrete_val)
 
 if __name__ == "__main__":
-	g = GUI(None, None)
+	a = AgentROS(agent_config['agent'])
+	g = GUI(a, agent_config['gui'])
 	plt.show()

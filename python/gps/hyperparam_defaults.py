@@ -52,7 +52,7 @@ agent = {
 }
 
 gui = {
-  'file_dir' = common['experiment_dir'] + 'target_files/'
+  'file_dir' : common['experiment_dir'] + 'target_files/',
 }
 
 algorithm = {
@@ -121,5 +121,6 @@ defaults = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
+    'gui': gui,
     'algorithm': algorithm,
 }
