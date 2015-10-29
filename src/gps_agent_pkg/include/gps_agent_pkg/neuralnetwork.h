@@ -12,9 +12,6 @@ is a helper class for running neural networks on the robot.
 namespace gps_control
 {
 
-// Forward declaration.
-//class NeuralNetwork
-
 class NeuralNetwork {
 protected:
     // Internal scales and biases.
