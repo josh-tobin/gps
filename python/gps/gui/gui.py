@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
+from matplotlib.text import Text
 
 # from gps.gui.config import target_setup
 # from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
@@ -50,6 +51,28 @@ class GUI:
 		self._sensor_names = {1: 'right_arm', 2: 'left_arm'}
 		self._sensor_type = self._sensor_names[1]
 		# self._output_file = self._filedir + "gui_output_" + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M')
+		self._keybindings = {
+			'1': lambda event: self.set_target_number(1),
+			'2': lambda event: self.set_target_number(2),
+			'3': lambda event: self.set_target_number(3),
+			'4': lambda event: self.set_target_number(4),
+			'5': lambda event: self.set_target_number(5),
+			'6': lambda event: self.set_target_number(6),
+			'7': lambda event: self.set_target_number(7),
+			'8': lambda event: self.set_target_number(8),
+			'9': lambda event: self.set_target_number(9),
+			'0': lambda event: self.set_target_number(0),
+			'z': lambda event: self.set_sensor_type(1),
+			'x': lambda event: self.set_sensor_type(2),
+			'q': lambda event: self.set_initial_position(event),
+			'w': lambda event: self.set_target_position(event),
+			'e': lambda event: self.set_ee_target(event),
+			'r': lambda event: self.set_ft_target(event),
+			'u': lambda event: self.move_to_initial(event),
+			'i': lambda event: self.set_target_position(event),
+			'o': lambda event: self.relax_controller(event),
+			'p': lambda event: self.mannequin_mode(event),
+		}
 
 		# GUI components
 		r, c = 5, 5
@@ -63,25 +86,23 @@ class GUI:
 		self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_right[0])
 		self._gs_vis    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_right[1])
 
-		# ~~~ SETUP ~~~
+		# ~~~ SETUP PANEL ~~~
 		self._actions = [('set_target_number', self.set_target_number),
 						('set_sensor_type', self.set_sensor_type),
-						('relax_controller', self.relax_controller),
-						('mannequin_mode', self.mannequin_mode),
 						('set_initial_position', self.set_initial_position),
 						('move_to_initial', self.move_to_initial),
 						('set_target_position', self.set_target_position),
 						('move_to_target', self.move_to_target),
 						('set_ee_target', self.set_ee_target),
-						('set_ft_target', self.set_ft_target)]
+						('relax_controller', self.relax_controller),
+						('set_ft_target', self.set_ft_target),
+						('mannequin_mode', self.mannequin_mode)]
 		num_actions = len(self._actions)
 		self._axarr = [plt.subplot(self._gs_setup[i]) for i in range(num_actions)]
 		
-		self._axarr[0].text(0, 0.75, 'set_target_number')
-		self._target_slider = DiscreteSlider(self._axarr[0], '', 1, 13, valinit=1, valfmt='%d')
+		self._target_slider = DiscreteSlider(self._axarr[0], 'set_target_number', 1, 13, valinit=1, valfmt='%d')
 		self._target_slider.on_changed(self.set_target_number)
-		self._axarr[1].text(1, 0.75, 'set_sensor_type')
-		self._sensor_slider = DiscreteSlider(self._axarr[1], '', 1,  2, valinit=1, valfmt='%d')
+		self._sensor_slider = DiscreteSlider(self._axarr[1], 'set_sensor_type', 1,  2, valinit=1, valfmt='%d')
 		self._sensor_slider.on_changed(self.set_sensor_type)
 
 		buttons_start = 2
@@ -90,31 +111,45 @@ class GUI:
 		self._buttons = [Button(self._axarr[buttons_start+i], self._actions_button[i][0]) for i in range(num_buttons)]
 		[self._buttons[i].on_clicked(self._actions_button[i][1]) for i in range(num_buttons)]
 
-		# ~~~ OUTPUT ~~~
+		# ~~~ OUTPUT PANEL ~~~
 		self._output_ax = plt.subplot(self._gs_output[0])
 		self.set_output("target number: " +  str(self._target_number) + "\n" +
 				"sensor type: " + self._sensor_type)
 
-		# ~~~ VIS ~~~
+		# ~~~ VISUALIZATIONS PANEL ~~~
+
+		# Keyboard Input
+		self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+
+		# PS3 Controller Input
 		pass
+
+	def on_key_press(self, event):
+		if event.key in self._keybindings.keys():
+			self._keybindings[event.key](event)
+		else:
+			self.set_output("unrecognized keybinding: " + event.key)
 
 	def set_output(self, text):
 		self._output_ax.clear()
 		self._output_ax.set_axis_off()
-		self._output_ax.text(0, 1, text,
-			verticalalignment='top', horizontalalignment='left',
-			transform=self._output_ax.transAxes, color='green', fontsize=12)
+		self._output_ax.text(0, 1, text, color='green', fontsize=12,
+			va='top', ha='left', transform=self._output_ax.transAxes)
 		self._fig.canvas.draw()
 		# with open(output_file, "a") as f:
 		# 	f.write(text)
 
 	# SETUP FUNCTIONS
 	def set_target_number(self, val):
-		self._target_number = int(val)
+		discrete_val = int(val)
+		self._target_number = discrete_val
+		# self._target_slider.set_val(discrete_val)
 		self.set_output("set_target_number: " + str(self._target_number))
 
 	def set_sensor_type(self, val):
-		self._sensor_type = self._sensor_names[int(val)]
+		discrete_val = int(val)
+		self._sensor_type = self._sensor_names[discrete_val]
+		# self._sensor_slider.set_val(discrete_val)
 		self.set_output("set_sensor_type: " + self._sensor_type)
 
 	def relax_controller(self, event):
@@ -179,6 +214,19 @@ class GUI:
 				"ft_stable: " + ft_stable)
 
 class DiscreteSlider(Slider):
+	def __init__(self, *args, **kwargs):
+		Slider.__init__(self, *args, **kwargs)
+
+		self.label.set_transform(self.ax.transAxes)
+		self.label.set_position((0.5, 0.5))
+		self.label.set_ha('center')
+		self.label.set_va('center')
+		
+		self.valtext.set_transform(self.ax.transAxes)
+		self.valtext.set_position((0.5, 0.3))
+		self.valtext.set_ha('center')
+		self.valtext.set_va('center')
+
 	def set_val(self, val):
 		self.val = val
 		discrete_val = round(val)
