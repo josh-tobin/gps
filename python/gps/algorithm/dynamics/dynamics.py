@@ -7,9 +7,8 @@ class Dynamics(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         self._hyperparams = hyperparams
-        self._sample_data = sample_data
 
         # TODO - Currently assuming that dynamics will always be linear with X.
 
@@ -30,6 +29,13 @@ class Dynamics(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def fit(self, sample_idx):
+    def fit(self, sample):
         """ Fit dynamics. """
         raise NotImplementedError("Must be implemented in subclass")
+
+    def copy(self):
+        dyn = type(self)({})
+        dyn.Fm = np.copy(self.Fm)
+        dyn.fv = np.copy(self.fv)
+        dyn.dyn_covar = np.copy(self.dyn_covar)
+        return dyn

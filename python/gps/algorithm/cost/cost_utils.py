@@ -30,7 +30,8 @@ def finite_differences_cost_test(cost, x, u, obs, sample_meta, epsilon=1e-5, thr
     -- Broken for now, since this will not update things like Jacobians when it
     tweaks the state (relevant for CostFK)
     """
-    # TODO: Lots of repeated code blocks here - can make this a bit cleaner
+    #TODO: Lots of repeated code blocks here - can make this a bit cleaner
+    #TODO: This will need significant rewriting after the refactoring
 
     l, lx, lu, lxx, luu, lux = cost.eval(x, u, obs, sample_meta)
     T, Dx = x.shape

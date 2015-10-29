@@ -6,9 +6,9 @@ import numpy as np
 import scipy as sp
 import scipy.linalg
 
-from algorithm.dynamics.dynamics_util import guess_dynamics
-from lin_gauss_policy import LinearGaussianPolicy
-from config import init_lg
+from gps.algorithm.dynamics.dynamics_util import guess_dynamics
+from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
+from gps.algorithm.policy.config import init_lg
 # TODO - put other arguments into a dictionary? include in hyperparams?
 
 

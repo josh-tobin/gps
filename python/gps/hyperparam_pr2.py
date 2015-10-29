@@ -49,6 +49,7 @@ agent = {
     'init_pose': np.zeros(14),#np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
     #'init_pose': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
     'conditions': common['conditions'],
+    'T': 100,
     'reset_conditions': {
         0: {
             'trial_arm': {
@@ -62,6 +63,9 @@ agent = {
             }, 
         },
      },
+    'sensor_dims': SENSOR_DIMS,
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'obs_include': [],
 }
 
 algorithm = {
@@ -80,7 +84,10 @@ algorithm['init_traj_distr'] = {
             'init_stiffness_vel': 0.5,
         },
         'dt': agent['dt'],
+        'T': agent['T'],
         'x0': np.zeros(14),
+        'dX': 14,
+        'dU': 7,
         #'x0': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
     }
 }

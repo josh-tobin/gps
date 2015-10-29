@@ -1,4 +1,3 @@
-
 def bundletype(name, vars):
     """
     Creates a class that bundles many fields.

@@ -21,7 +21,7 @@ def setup_agent(T=50):
     defaults['sample_data']['T'] = T
     defaults['sample_data']['state_include'] = [JOINT_ANGLES, JOINT_VELOCITIES]
     sample_data = SampleData(defaults['sample_data'], defaults['common'], False)
-    agent = AgentROS(defaults['agent'], sample_data)
+    agent = AgentROS(defaults['agent'])
     r = rospy.Rate(1) 
     r.sleep()
     return sample_data, agent
@@ -31,12 +31,12 @@ def run_offline():
     Run offline controller, and save results to controllerfile
     """
     sample_data, agent = setup_agent()
-    algorithm = defaults['algorithm']['type'](defaults['algorithm'], sample_data)
+    algorithm = defaults['algorithm']['type'](defaults['algorithm'])
     conditions = 1
     idxs = [[] for _ in range(conditions)]
     for m in range(conditions):
         pol = algorithm.cur[m].traj_distr
-        sample = agent.sample(pol, sample_data.T, m)
+        sample = agent.sample(pol, m)
         agent.reset(m)
     for itr in range(15): # Iterations
         print 'iter: ', itr

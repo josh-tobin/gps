@@ -1,12 +1,12 @@
-from numpy.linalg import LinAlgError
 import numpy as np
+from numpy.linalg import LinAlgError
 import scipy as sp
 import logging
 import copy
 
-from config import traj_opt_lqr
-from traj_opt import TrajOpt
-from traj_opt_util import LineSearch, traj_distr_kl, DGD_MAX_ITER, THRESHA, THRESHB
+from gps.algorithm.traj_opt.config import traj_opt_lqr
+from gps.algorithm.traj_opt.traj_opt import TrajOpt
+from gps.algorithm.traj_opt.traj_opt_util import LineSearch, traj_distr_kl, DGD_MAX_ITER, THRESHA, THRESHB
 
 
 LOGGER = logging.getLogger(__name__)

@@ -1,12 +1,14 @@
 from copy import deepcopy
 import rospy
 
-from agent.agent import Agent
-from agent.config import agent_ros
-from ros_utils import ServiceEmulator, msg_to_sample, policy_to_msg
+from gps.agent.agent import Agent
+from gps.agent.config import agent_ros
+from gps.agent.ros.ros_utils import ServiceEmulator, msg_to_sample, policy_to_msg
 from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, \
     DataRequest
 from std_msgs.msg import Empty
+
+#from gps.agent.ros.ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
 
 ARM_LEFT = RelaxCommand.LEFT_ARM
 ARM_RIGHT = RelaxCommand.RIGHT_ARM
@@ -16,12 +18,10 @@ class AgentROS(Agent):
     """
     All communication between the algorithms and ROS is done through this class.
     """
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         config = deepcopy(agent_ros)
         config.update(hyperparams)
-        Agent.__init__(self, config, sample_data)
-        self.sample_data = sample_data
-
+        Agent.__init__(self, config)
         rospy.init_node('gps_agent_ros_node')
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands
@@ -102,7 +102,8 @@ class AgentROS(Agent):
                        condition_data['auxiliary_arm']['mode'],
                        condition_data['auxiliary_arm']['data'])
 
-    def sample(self, policy, T, condition=0):
+    #def sample(self, policy, T, condition=0):
+    def sample(self, policy, condition):
         """
         Execute a policy and collect a sample
 
@@ -118,7 +119,10 @@ class AgentROS(Agent):
         # Execute Trial
         trial_command = TrialCommand()
         trial_command.controller = policy_to_msg(policy)
-        trial_command.T = T
+        #trial_command.policy = policy_object_to_ros_msg(policy)
+        trial_command.header.seq = self._get_next_seq_id()
+        trial_command.header.stamp = rospy.get_rostime()
+        trial_command.T = self.T
         trial_command.frequency = self._hyperparams['frequency']
         #TODO: Read this from hyperparams['state_include']
         print 'TODO: Using JOINT_ANGLES, JOINT_VELOCITIES as state (see agent_ros.py)'
@@ -128,5 +132,7 @@ class AgentROS(Agent):
         trial_command.obs_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
-        sample = msg_to_sample(sample_msg, self.sample_data)
-        return sample
+        sample = msg_to_sample(sample_msg)
+        #sample = construct_sample_from_ros_msg(sample_msg)
+        self._samples[condition].append(sample)
+        #return sample

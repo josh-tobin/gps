@@ -1,14 +1,14 @@
 import numpy as np
 
-from dynamics import Dynamics
+from gps.algorithm.dynamics.dynamics import Dynamics
 
 
 class DynamicsLR(Dynamics):
     """Dynamics with linear regression, with constant prior.
 
     """
-    def __init__(self,hyperparams, sample_data):
-        Dynamics.__init__(self, hyperparams, sample_data)
+    def __init__(self,hyperparams):
+        Dynamics.__init__(self, hyperparams)
         self.Fm = None
         self.fv = None
         self.dyn_covar = None
@@ -21,14 +21,14 @@ class DynamicsLR(Dynamics):
     def get_prior(self):
         return None
 
-    def fit(self, sample_idx):
+    def fit(self, sample_list):
         """ Fit dynamics. """
-        X = self._sample_data.get_X(idx=sample_idx)  # Use all samples to fit dynamics.
-        U = self._sample_data.get_U(idx=sample_idx)
+        X = sample_list.get_X()  # Use all samples to fit dynamics.
+        U = sample_list.get_U()
         N, T, dX = X.shape
         dU = U.shape[2]
 
-        if N==1: 
+        if N==1:
             raise ValueError("Cannot fit dynamics on 1 sample")
 
         self.Fm = np.zeros([T, dX, dX+dU])
