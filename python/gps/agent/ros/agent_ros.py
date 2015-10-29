@@ -33,7 +33,7 @@ class AgentROS(Agent):
                                               self._hyperparams['sample_result_topic'], SampleResult)
         self._relax_service = ServiceEmulator(self._hyperparams['relax_command_topic'], RelaxCommand,
                                               self._hyperparams['sample_result_topic'], SampleResult)
-        self._data_service = ServiceEmulator(self._hyperparams['data_command_topic'], RelaxCommand,
+        self._data_service = ServiceEmulator(self._hyperparams['data_command_topic'], DataRequest,
                                              self._hyperparams['sample_result_topic'], SampleResult)
 
     def _get_next_seq_id(self):
@@ -51,10 +51,10 @@ class AgentROS(Agent):
             arm: Either ARM_LEFT or ARM_RIGHT, or -1 if not applicable
         """
         msg = DataRequest()
-        msg.header.seq = self._get_next_seq_id()
-        msg.header.stamp = rospy.get_rostime()
+        # msg.header.seq = self._get_next_seq_id()
+        msg.stamp = rospy.get_rostime()
         msg.data_type = data_type
-        msg.arm = arm
+        # msg.arm = arm
         result_msg = self._data_service.publish_and_wait(msg)
         assert result_msg.data_type == data_type
         return result_msg.data

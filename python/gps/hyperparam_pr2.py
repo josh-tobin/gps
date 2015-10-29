@@ -56,16 +56,20 @@ agent = {
                 'mode': 1,
                 'data': np.zeros(7),
                 #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
-            }, 
+            },
             'auxiliary_arm': {
                 'mode': 0,
                 'data': np.zeros(7),
-            }, 
+            },
         },
      },
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
     'obs_include': [],
+}
+
+gui = {
+  'file_dir' : common['experiment_dir'] + 'target_files/',
 }
 
 algorithm = {
@@ -132,5 +136,6 @@ defaults = {
     'common': common,
     'sample_data': sample_data,
     'agent': agent,
+    'gui': gui,
     'algorithm': algorithm,
 }

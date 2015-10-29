@@ -4,14 +4,15 @@ import numpy as np
 
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
-from agent.agent_utils import generate_noise
-from sample_data.sample import Sample
+from gps.agent.agent_utils import generate_noise
+from gps.sample.sample import Sample
 
 
 def msg_to_sample(ros_msg):
     """
     Convert a SampleResult ROS message into a Sample python object
     """
+    # TODO - this won't work???
     sample = Sample(sample_data)
     for sensor in ros_msg.sensor_data:
         sensor_id = sensor.data_type
