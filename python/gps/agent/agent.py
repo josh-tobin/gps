@@ -37,6 +37,7 @@ class Agent(object):
         self._x_data_idx = {d: i for d, i in zip(self.x_data_types, self._state_idx)}
         self._obs_data_idx = {d: i for d, i in zip(self.obs_data_types, self._obs_idx)}
 
+    #def sample(self, policy, T, condition=0):
     @abc.abstractmethod
     def sample(self, policy, condition):
         raise NotImplementedError("Must be implemented in subclass")

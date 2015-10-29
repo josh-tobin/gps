@@ -87,7 +87,8 @@ class AgentMuJoCo(Agent):
 
         Args:
             policy: policy to to used in the trial
-            verbose: whether or not to plot the trial
+            condition (int): Which condition setup to run.
+            verbose (boolean): whether or not to plot the trial
         """
         new_sample = self._init_sample(condition)  # create new sample, populate first time step
         mj_X = self._hyperparams['init_pose'][condition]
