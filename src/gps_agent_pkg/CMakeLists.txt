@@ -67,8 +67,8 @@ if (USE_CAFFE)
         add_definitions(-DCPU_ONLY)
     endif (USE_CAFFE_GPU)
     # add paths to CAFFE
-    link_directories(${CAFFE_LIBRARY_PATH})
-    include_directories(${CAFFE_INCLUDE_PATH})
+    link_directories(${CAFFE_LIBRARY_PATH})  # Should be set to /path/to/caffe/build/lib
+    include_directories(${CAFFE_INCLUDE_PATH})  # Should be set to /path/to/caffe/distribute/include
     # extra header paths
     include_directories(${CAFFE_EXTRA_PATH})
     # add neural network to DDP controller files
