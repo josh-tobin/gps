@@ -76,6 +76,7 @@ if (USE_CAFFE)
     # compile Caffe test
     #rosbuild_add_executable(caffe_test src/caffe_test.cpp src/neural_network_caffe.cpp)
     #target_link_libraries(caffe_test caffe protobuf)
+
     # compile image processor node
     #rosbuild_add_executable(caffe_img_processor src/img_processor.cpp src/neural_network_caffe.cpp)
     #target_link_libraries(caffe_img_processor caffe protobuf)

@@ -15,13 +15,12 @@ namespace gps_control
 class NeuralNetwork {
 protected:
     // Internal scales and biases.
-    Eigen::MatrixXd scale_;
-    Eigen::VectorXd bias_;
+    Eigen::MatrixXd scale_;  // Scale on nn input
+    Eigen::VectorXd bias_;  // Bias on nn input
 
 public:
     bool scale_bias_set_, weights_set_;
-    // Constructor -- doesn't do much, since most of the action is in setting parameters and scales & biases.
-    NeuralNetwork(int num_layers, std::vector<int> link_functions, std::vector<int> layer_size, int output_dims, const std::vector<double> data);
+    Eigen::VectorXd input_scaled_;  // Pre-allocated scaled input data.
 
     virtual ~NeuralNetwork();
 
