@@ -39,7 +39,10 @@ try:
         'auxiliary_arm': PositionCommand.LEFT_ARM,
         'trial_timeout': 20,  # Give this many seconds to execute a trial.
         'reset_conditions': [],  # Defines reset modes + positions for trial and auxiliary arms
-        'frequency': 20
+        'frequency': 20,
+        'smooth_noise': False,
+        'smooth_noise_var': 2.0,
+        'smooth_noise_renormalize': True,
     }
 except ImportError as e:
     print 'No ROS enabled', e
