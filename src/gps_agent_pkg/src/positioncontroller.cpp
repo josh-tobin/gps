@@ -20,6 +20,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
 
     // Initialize integral terms to zero.
     pd_integral_.resize(size);
+    i_clamp_.resize(size);
 
     // Initialize current angle and position.
     current_angles_.resize(size);
@@ -45,6 +46,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
         pd_gains_p_[i] = 1.0;
         pd_gains_d_[i] = 0.3;
         pd_gains_i_[i] = 0.02;
+        i_clamp_[i] = 4;
         max_velocities_[i] = 3.0;
         //target_angles_[i] = 0.5;
     }
@@ -114,6 +116,16 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
 
         // Add to integral term.
         pd_integral_ += temp_angles_;
+
+        // Clamp integral term
+        for (int i = 0; i < temp_angles_.rows(); i++){
+            if (pd_integral_(i) > i_clamp_(i)) {
+                pd_integral_(i) = i_clamp_(i);
+            }
+            else if (-pd_integral_(i) > i_clamp_(i)) {
+                pd_integral_(i) = -i_clamp_(i);
+            }
+        }
 
         // Compute torques.
         // TODO: look at PR2 PD controller implementation and make sure our version matches!
