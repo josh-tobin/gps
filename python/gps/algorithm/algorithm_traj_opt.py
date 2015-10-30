@@ -42,7 +42,6 @@ class AlgorithmTrajOpt(Algorithm):
         self.T = init_args['T']
         self.dX = init_args['dX']
         self.dU = init_args['dU']
-        init_args['x0'] = np.zeros(sample_data.dX) # Hack
 
         self.dynamics = [None]*self.M
         for m in range(self.M):
