@@ -6,8 +6,7 @@ import numpy as np
 
 #TODO: commenting out AgentROS stuff for now because the following import
 #      seems to be breaking things. will have to revisit this
-#from gps.agent.ros.agent_ros import ARM_RIGHT, ARM_LEFT
-#from gps_agent_pkg.msg import PositionCommand
+from gps.proto.gps_pb2 import LEFT_ARM, RIGHT_ARM
 
 
 """ Agent """
@@ -35,8 +34,8 @@ try:
         'relax_command_topic': 'gps_controller_relax_command',
         'data_command_topic': 'gps_controller_data_command',
         'sample_result_topic': 'gps_controller_report',
-        'trial_arm': PositionCommand.RIGHT_ARM,
-        'auxiliary_arm': PositionCommand.LEFT_ARM,
+        'trial_arm': RIGHT_ARM,
+        'auxiliary_arm': LEFT_ARM,
         'trial_timeout': 20,  # Give this many seconds to execute a trial.
         'reset_conditions': [],  # Defines reset modes + positions for trial and auxiliary arms
         'frequency': 20,
