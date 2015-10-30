@@ -31,3 +31,18 @@ message Sample {
   repeated float U = 6 [packed = true];
   repeated float obs = 7 [packed = true];
 }
+
+// Enum for actuator types
+enum AcuatuorType {
+  LEFT_ARM = 0;
+  RIGHT_ARM = 1;
+  TOTAL_ACTUATOR_TYPES = 2;
+}
+
+// Enum for control modes
+enum ControlMode {
+  NO_CONTROL = 0;
+  JOINT_SPACE = 1;
+  TASK_SPACE = 2;
+  TOTAL_CONTROL_MODES = 3;
+}
