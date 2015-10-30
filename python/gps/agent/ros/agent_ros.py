@@ -29,7 +29,7 @@ class AgentROS(Agent):
 
         self.x0 = []
         self.x0.append(self._hyperparams['init_pose'])
-        r = rospy.Rate(1) 
+        r = rospy.Rate(1)
         r.sleep()
 
     def _init_pubs_and_subs(self):
@@ -39,7 +39,7 @@ class AgentROS(Agent):
                                               self._hyperparams['sample_result_topic'], SampleResult)
         self._relax_service = ServiceEmulator(self._hyperparams['relax_command_topic'], RelaxCommand,
                                               self._hyperparams['sample_result_topic'], SampleResult)
-        self._data_service = ServiceEmulator(self._hyperparams['data_command_topic'], RelaxCommand,
+        self._data_service = ServiceEmulator(self._hyperparams['data_command_topic'], DataRequest,
                                              self._hyperparams['sample_result_topic'], SampleResult)
 
     def _get_next_seq_id(self):
@@ -55,11 +55,10 @@ class AgentROS(Agent):
             data_type: Integer code for a data type.
                 These are defined in proto.gps_pb2
         """
-        msg = DataRequest()
-        msg.header.seq = self._get_next_seq_id()
-        msg.header.stamp = rospy.get_rostime()
-        msg.data_type = data_type
-        result_msg = self._data_service.publish_and_wait(msg)
+        request = DataRequest()
+        request.id = self._get_next_seq_id()
+        request.data_type = data_type
+        result_msg = self._data_service.publish_and_wait(request)
         assert result_msg.data_type == data_type
         return result_msg.data
 
@@ -68,12 +67,11 @@ class AgentROS(Agent):
         Relax one of the arms of the robot.
 
         Args:
-            arm: Either ARM_LEFT or ARM_RIGHT
+            arm: Either 'trial_arm', or 'auxillary_arm'.
         """
         relax_command = RelaxCommand()
-        relax_command.header.seq = self._get_next_seq_id()
-        relax_command.header.stamp = rospy.get_rostime()
-        relax_command.arm = arm
+        relax_command.id = self._get_next_seq_id()
+        relax_command.arm = self._hyperparams[arm]
         self._relax_service.publish_and_wait(relax_command)
 
     def reset_arm(self, arm, mode, data):
@@ -81,7 +79,7 @@ class AgentROS(Agent):
         Issues a position command to an arm
         Args:
             arm: Either 'trial_arm', or 'auxillary_arm'.
-            mode: An integer code (defined in PositionCommand.msg)
+            mode: An integer code (defined gps_pb2)
             data: An array of floats.
         """
         reset_command = PositionCommand()
@@ -91,6 +89,7 @@ class AgentROS(Agent):
         reset_command.pd_gains = self._hyperparams['pid_params']
         reset_command.arm = self._hyperparams[arm]
         timeout = self._hyperparams['trial_timeout']
+        reset_command.id = self._get_next_seq_id()
         reset_sample = self._reset_service.publish_and_wait(reset_command, \
             timeout=timeout)
         # TODO: Maybe verify that you reset to the correct position.
@@ -117,7 +116,6 @@ class AgentROS(Agent):
 
         Args:
             policy: A Policy object (ex. LinGauss, or CaffeNetwork)
-            T: Trajectory length
             condition (int): Which condition setup to run.
 
         Returns:
@@ -132,6 +130,7 @@ class AgentROS(Agent):
 
         # Execute Trial
         trial_command = TrialCommand()
+        trial_command.id = self._get_next_seq_id()
         trial_command.controller = policy_to_msg(policy, noise)
         trial_command.T = self.T
         trial_command.frequency = self._hyperparams['frequency']
