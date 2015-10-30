@@ -8,11 +8,11 @@ from agent.agent_utils import generate_noise
 from sample_data.sample import Sample
 
 
-def msg_to_sample(ros_msg):
+def msg_to_sample(ros_msg, agent):
     """
     Convert a SampleResult ROS message into a Sample python object
     """
-    sample = Sample(sample_data)
+    sample = Sample(agent)
     for sensor in ros_msg.sensor_data:
         sensor_id = sensor.data_type
         shape = np.array(sensor.shape)
@@ -21,7 +21,7 @@ def msg_to_sample(ros_msg):
     return sample
 
 
-def policy_to_msg(policy):
+def policy_to_msg(policy, noise):
     """
     Convert a policy object to a ROS ControllerParams message
     """
@@ -33,8 +33,6 @@ def policy_to_msg(policy):
         msg.lingauss.dX = policy.dX
         msg.lingauss.dU = policy.dU
         msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
-        #TODO: Initialize noise somewhere else
-        noise = generate_noise(policy.T, policy.dU)
         msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
     else:
         raise NotImplementedError("Unknown policy object: %s" % policy)

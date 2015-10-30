@@ -66,6 +66,7 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
+        'x0': agent['init_pose'][:SENSOR_DIMS[JOINT_ANGLES]]
         'dt': agent['dt'],
         'T': agent['T'],
     }

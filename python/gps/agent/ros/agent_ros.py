@@ -2,6 +2,7 @@ from copy import deepcopy
 import rospy
 
 from gps.agent.agent import Agent
+from gps.agent.agent_utils import generate_noise
 from gps.agent.config import agent_ros
 from gps.agent.ros.ros_utils import ServiceEmulator, msg_to_sample, policy_to_msg
 from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, \
@@ -83,7 +84,8 @@ class AgentROS(Agent):
         reset_data = data
         reset_command.data = reset_data
         reset_command.arm = self._hyperparams[arm]
-        reset_sample = self._reset_service.publish_and_wait(reset_command)
+        reset_sample = self._reset_service.publish_and_wait(reset_command, \
+            timeout=self._hyperparams['trial_timeout'])
         # TODO: Maybe verify that you reset to the correct position.
 
     def reset(self, condition):
@@ -116,12 +118,15 @@ class AgentROS(Agent):
             A Sample object
         """
 
+        #Generate noise
+        noise = generate_noise(self.T, self.dU,
+            smooth=self._hyperparams['smooth_noise'],
+            var=self._hyperparams['smooth_noise_var'],
+            renorm=self._hyperparams['smooth_noise_renormalize'])
+
         # Execute Trial
         trial_command = TrialCommand()
-        trial_command.controller = policy_to_msg(policy)
-        #trial_command.policy = policy_object_to_ros_msg(policy)
-        trial_command.header.seq = self._get_next_seq_id()
-        trial_command.header.stamp = rospy.get_rostime()
+        trial_command.controller = policy_to_msg(policy, noise)
         trial_command.T = self.T
         trial_command.frequency = self._hyperparams['frequency']
         #TODO: Read this from hyperparams['state_include']
@@ -132,7 +137,6 @@ class AgentROS(Agent):
         trial_command.obs_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
-        sample = msg_to_sample(sample_msg)
-        #sample = construct_sample_from_ros_msg(sample_msg)
+        sample = msg_to_sample(sample_msg, self)
         self._samples[condition].append(sample)
         #return sample
