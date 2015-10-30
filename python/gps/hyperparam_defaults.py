@@ -3,11 +3,7 @@ from __future__ import division
 from datetime import datetime
 import numpy as np
 
-try:
-    from agent.mjc.agent_mjc import AgentMuJoCo
-except ImportError as e: # TODO: Need a way to systematically do this for ROS and MJC
-    print e
-    AgentMuJoCo = None
+from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_fk import CostFK
 from gps.algorithm.cost.cost_state import CostState
@@ -100,7 +96,7 @@ fk_cost = {
 
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
+    'costs': [torque_cost, fk_cost],
     'weights': [1.0, 1.0],
 }
 

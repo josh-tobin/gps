@@ -154,7 +154,6 @@ class AlgorithmTrajOpt(Algorithm):
         new_mc_obj = np.mean(np.sum(self.cur[m].cs, axis=1), axis=0)
 
         LOGGER.debug('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)
-        print 'Trajectory step: ent: %f cost: %f -> %f' %( ent, previous_mc_obj, new_mc_obj)
 
         # Compute misprediction vs Monte-Carlo score.
         mispred_std = np.abs(np.sum(new_actual_laplace_obj) - new_mc_obj) / \
