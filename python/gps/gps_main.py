@@ -38,7 +38,7 @@ class GPSMain():
                     self.agent.reset(m)
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
+            self.algorithm.iteration([(self.agent.get_samples(m, -n) for m in range(self._conditions)])
 
     def resume(self, itr):
         """
