@@ -2,6 +2,7 @@
 
 using namespace gps_control;
 
+// Construct network from prototxt file
 NeuralNetworkCaffe::NeuralNetworkCaffe(const char *model_file, Phase phase)
 {
     scale_bias_set_ = false;
@@ -17,6 +18,7 @@ NeuralNetworkCaffe::NeuralNetworkCaffe(const char *model_file, Phase phase)
     ROS_INFO("Net constructed");
 }
 
+// Construct network from model specs.
 NeuralNetworkCaffe::NeuralNetworkCaffe(NetParameter& model_param)
 {
     scale_bias_set_ = false;
@@ -24,7 +26,7 @@ NeuralNetworkCaffe::NeuralNetworkCaffe(NetParameter& model_param)
 
     ROS_INFO("Constructing Caffe net from net param");
     net_.reset(new Net<float>(model_param));
-    // If we're not in CPU_ONLY mode, use the GPU
+    // If we're not in CPU_ONLY mode, use the GPU.
 #ifndef CPU_ONLY
     Caffe::set_mode(Caffe::GPU);
 #endif
@@ -63,7 +65,7 @@ void NeuralNetworkCaffe::forward(const Eigen::VectorXd &input, std::vector<float
     }
 }
 
-// F
+// Run forward pass of network with passed in input, and fill in output.
 void NeuralNetworkCaffe::forward(const Eigen::VectorXd &input, Eigen::VectorXd &output)
 {
     // Transform the input by scale and bias.
@@ -91,7 +93,7 @@ void NeuralNetworkCaffe::forward(const Eigen::VectorXd &input, Eigen::VectorXd &
 
 }
 
-// Set the weights on the network/
+// Set the weights on the network from protobuffer string
 void NeuralNetworkCaffe::set_weights(void *weights_ptr)
 {
     ROS_INFO("Reading model weights");

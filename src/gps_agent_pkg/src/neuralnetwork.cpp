@@ -23,10 +23,10 @@ void NeuralNetwork::set_scalebias(const std::vector<double> data, const std::vec
     // Check validity.
     assert(dims[0] == dims[1]*dims[1]);
 
-    // initialize readback index
+    // Initialize readback index
     int idx = 0;
 
-    // unpack the scaling matrix (stored in column major order)
+    // Unpack the scaling matrix (stored in column major order)
     scale_.resize(dims[1],dims[1]);
     for (int j = 0; j < dims[1]; ++j)
     {
@@ -37,7 +37,7 @@ void NeuralNetwork::set_scalebias(const std::vector<double> data, const std::vec
         }
     }
 
-    // unpack the bias vector
+    // Unpack the bias vector
     bias_.resize(dims[1]);
     for (int i = 0; i < dims[1]; ++i)
     {
@@ -45,7 +45,7 @@ void NeuralNetwork::set_scalebias(const std::vector<double> data, const std::vec
         idx++;
     }
 
-    // preallocate temporaries
+    // Preallocate temporaries
     input_scaled_.resize(dims[1]);
     ROS_INFO("Scale and bias set successfully");
     scale_bias_set_ = true;
