@@ -2,8 +2,8 @@ import copy
 import numpy as np
 import logging
 
-from gps.algorithm.config import alg_traj_opt
 from gps.algorithm.algorithm import Algorithm
+from gps.algorithm.config import alg_traj_opt
 from gps.utility.general_utils import bundletype
 
 
