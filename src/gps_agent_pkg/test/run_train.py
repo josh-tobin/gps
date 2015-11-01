@@ -48,7 +48,6 @@ def run_offline():
                 print 'n: ', n
                 pol = algorithm.cur[m].traj_distr
                 sample = agent.sample(pol, sample_data.T, m)
-                #TODO: Reset
                 sample_data.add_samples(sample)
                 idxs[m].append(n)
                 agent.reset(m)

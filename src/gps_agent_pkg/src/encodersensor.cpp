@@ -90,7 +90,6 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
         // If they are roughly from one step ago, assume the step is correct, otherwise use actual time.
 
-        //TODO: For some reason none of this code gets executed. update_time is always 0
         double update_time = current_time.toSec() - previous_angles_time_.toSec();
         if (!previous_angles_time_.isZero())
         { // Only compute velocities if we have a previous sample.
@@ -165,8 +164,6 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 
     // Set jacobian size and format.
     OptionsMap eejac_metadata;
-    //eejac_metadata["rows"] = previous_jacobian_.rows();
-    //eejac_metadata["cols"] = previous_jacobian_.cols();
     sample->set_meta_data(gps::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormatEigenMatrix,eejac_metadata);
 }
 
@@ -181,32 +178,32 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 
 
     // Set end effector point.
+    // Flatten points - maybe this should be kept as a matrix?
     Eigen::VectorXd flattened_ee_pts = previous_end_effector_points_;
     flattened_ee_pts.resize(previous_end_effector_points_.cols()*previous_end_effector_points_.rows(), 1);
     sample->set_data(t,gps::END_EFFECTOR_POINTS,flattened_ee_pts,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector point velocities.
+    //Flatten velocities - maybe this should be kept as a matrix?
     Eigen::VectorXd flattened_ee_vel = previous_end_effector_point_velocities_;
     flattened_ee_vel.resize(previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(), 1);
     sample->set_data(t,gps::END_EFFECTOR_POINT_VELOCITIES,flattened_ee_vel,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector position.
-    Eigen::VectorXd flattened_position; //Need to convert Vector3d to VectorXd
+    Eigen::VectorXd flattened_position; //Need to convert Vector3d to VectorXd. Eigen seems finicky about this.
     flattened_position.resize(3, 1);
     for (unsigned i = 0; i < 3; i++)
         flattened_position[i] = previous_position_[i];
     sample->set_data(t,gps::END_EFFECTOR_POSITIONS,flattened_position,3,SampleDataFormatEigenVector);
 
-    // Set end effector rotation. TODO: Keep these as a matrix; don't flatten
-    Eigen::MatrixXd flattened_rot; //Need to convert Matrix3d to MatrixXd
-    flattened_rot.resize(3, 3);
+    // Set end effector rotation.
+    Eigen::MatrixXd new_rot; //Need to convert Matrix3d to MatrixXd. Eigen seems finicky about this.
+    new_rot.resize(3, 3);
     for (unsigned i = 0; i < 3; i++)
         for (unsigned j = 0; j < 3; j++)
-            flattened_rot(i,j) = previous_rotation_(i,j);
-    sample->set_data(t,gps::END_EFFECTOR_ROTATIONS,flattened_rot,9,SampleDataFormatEigenMatrix);
+            new_rot(i,j) = previous_rotation_(i,j);
+    sample->set_data(t,gps::END_EFFECTOR_ROTATIONS,new_rot,9,SampleDataFormatEigenMatrix);
 
     // Set end effector jacobian.
-    //Eigen::VectorXd flattened_jac = previous_jacobian_;
-    //flattened_jac.resize(previous_jacobian_.cols()*previous_jacobian_.rows(), 1);
     sample->set_data(t,gps::END_EFFECTOR_JACOBIANS,previous_jacobian_,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormatEigenMatrix);
 }
