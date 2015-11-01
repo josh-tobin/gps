@@ -105,7 +105,7 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
-    if(!is_controller_step){
+    if(!is_controller_step){ //TODO: Remove this
         return;
     }
     // Update all of the sensors and fill in the sample.
@@ -113,7 +113,7 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
     //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
     for (int sensor = 0; sensor < 1; sensor++)
     {
-        sensors_[sensor]->update(this, last_update_time_, is_controller_step);
+        sensors_[sensor]->update(this, current_time, is_controller_step);
         if (trial_controller_ != NULL){
             sensors_[sensor]->set_sample_data(current_time_step_sample_,
                 trial_controller_->get_step_counter());
@@ -182,11 +182,8 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
     // TODO ZDM: make end effector samples work so that this doesn't crash
-    //sample->get_available_dtypes(dtypes);
+    sample->get_available_dtypes(dtypes);
     // currently hardcoded to actions, joint angles, and joint velocities
-    dtypes.push_back((gps::SampleType)0);
-    dtypes.push_back((gps::SampleType)1);
-    dtypes.push_back((gps::SampleType)2);
 
     report_publisher_->msg_.sensor_data.resize(dtypes.size()); //TODO: Only doing pos/vel right now
     for(int d=0; d<dtypes.size(); d++){
@@ -244,6 +241,14 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
 
     float frequency = msg->frequency;  // Controller frequency
+
+    // Update sensor frequency
+    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
+    for (int sensor = 0; sensor < 1; sensor++)
+    {
+        sensors_[sensor]->set_update(1.0/frequency);
+    }
+
     std::vector<int> state_datatypes, obs_datatypes;
     state_datatypes.resize(msg->state_datatypes.size());
     for(int i=0; i<state_datatypes.size(); i++){

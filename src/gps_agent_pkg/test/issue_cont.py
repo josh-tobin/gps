@@ -6,10 +6,9 @@ from gps_agent_pkg.msg import PositionCommand, TrialCommand, ControllerParams, L
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Empty
 import numpy as np
-from algorithm.policy.lin_gauss_init import init_pd
-from agent.ros.ros_utils import policy_to_msg, msg_to_sample
-from proto.gps_pb2 import *
-from sample_data.sample_data import SampleData
+from gps.algorithm.policy.lin_gauss_init import init_pd
+from gps.agent.ros.ros_utils import policy_to_msg, msg_to_sample
+from gps.proto.gps_pb2 import *
 
 POS_COM_TOPIC = '/gps_controller_position_command'
 TRIAL_COM_TOPIC = '/gps_controller_trial_command'
@@ -21,20 +20,18 @@ def listen(msg):
 
 def listen_report(msg):
     print msg.__class__
-    sample_data = SampleData({'T':10, 'obs_include':[], 'state_include':[JOINT_ANGLES, JOINT_VELOCITIES],
-        'sensor_dims':{ACTION:7, JOINT_ANGLES:7, JOINT_VELOCITIES:7}}, {}, 0)
-    sample = msg_to_sample(msg, sample_data)
     import pdb; pdb.set_trace();
 
 def get_lin_gauss_test(T=50):
     dX = 14
     x0 = np.zeros(dX)
     x0[0] = 1.0
-    lgpol = init_pd({}, x0, 7, 7, dX, T)
+    lgpol = init_pd({'init_var': 0.01}, x0, 7, 7, dX, T)
     print 'T:', lgpol.T
     print 'dX:', lgpol.dX
     #Conver lgpol to message
-    controller_params = policy_to_msg(lgpol)
+    noise = np.zeros((T, 7))
+    controller_params = policy_to_msg(lgpol, noise)
     return controller_params
 
 def main():
@@ -46,7 +43,7 @@ def main():
     #sub = rospy.Subscriber('/joint_states', JointState, listen)
 
     tc = TrialCommand()
-    T = 10
+    T = 20
     tc.controller = get_lin_gauss_test(T=T)
     tc.T = T
     tc.frequency = 20.0

@@ -13,7 +13,8 @@ from agent.ros.agent_ros import AgentROS
 from proto.gps_pb2 import *
 import rospy
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.debug("Test debug message")
 np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -22,7 +23,7 @@ def setup_agent(T=50):
     defaults['sample_data']['state_include'] = [JOINT_ANGLES, JOINT_VELOCITIES]
     sample_data = SampleData(defaults['sample_data'], defaults['common'], False)
     agent = AgentROS(defaults['agent'])
-    r = rospy.Rate(1) 
+    r = rospy.Rate(1)
     r.sleep()
     return sample_data, agent
 
@@ -38,6 +39,7 @@ def run_offline():
         pol = algorithm.cur[m].traj_distr
         sample = agent.sample(pol, m)
         agent.reset(m)
+
     for itr in range(15): # Iterations
         print 'iter: ', itr
         for m in range(conditions):
@@ -46,11 +48,13 @@ def run_offline():
                 print 'n: ', n
                 pol = algorithm.cur[m].traj_distr
                 sample = agent.sample(pol, sample_data.T, m)
+                #TODO: Reset
                 sample_data.add_samples(sample)
                 idxs[m].append(n)
                 agent.reset(m)
         print [idx[-20:] for idx in idxs]
         algorithm.iteration([idx[-5:] for idx in idxs])
         print 'Finished itr ', itr
+    import pdb; pdb.set_trace()
 
 run_offline()
