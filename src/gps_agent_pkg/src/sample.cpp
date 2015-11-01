@@ -10,6 +10,7 @@ Sample::Sample(int T)
 	T_ = T;
 	internal_data_size_.resize((int)gps::TOTAL_DATA_TYPES);
 	internal_data_format_.resize((int)gps::TOTAL_DATA_TYPES);
+	meta_data_.resize((int)gps::TOTAL_DATA_TYPES);
 	//Fill in all possible sample types
 	for(int i=0; i<gps::TOTAL_DATA_TYPES; i++){
 		SampleList samples_list;
@@ -43,11 +44,12 @@ void Sample::get_data(int t, gps::SampleType type, void *data, int data_size, Sa
 }
 
 
-void Sample::set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_)
+void Sample::set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data)
 {
     int type_key = (int) type;
     internal_data_size_[type_key] = data_size;
     internal_data_format_[type_key] = data_format;
+    meta_data_[type_key] = meta_data;
     return;
 }
 
@@ -77,7 +79,6 @@ void Sample::get_obs(int t, Eigen::VectorXd &obs) const
 }
 
 void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype){
-	ROS_INFO("get_data_all_timesteps for dtype=%d", (int)datatype);
 	int size = internal_data_size_[(int)datatype];
 	data.resize(size*T_);
 	std::vector<gps::SampleType> dtype_vector;
@@ -85,7 +86,6 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 
 	Eigen::VectorXd tmp_data;
 	for(int t=0; t<T_; t++){
-		ROS_INFO("filling data for t=%d", t);
 		get_data(t, tmp_data, dtype_vector);
 		//Fill in original data
 		for(int i=0; i<size; i++){
@@ -121,13 +121,25 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 			ROS_ERROR("Requested internal data of dtype %d, but internal_data_ only has %d elements", dtype,
 				internal_data_.size());
 		}
-		int size = internal_data_size_[dtype];
 		SampleList sample_list = internal_data_[datatypes[i]];
 		SampleVariant sample_variant = sample_list[t];
-		//TODO: Hardcoded Eigen::VectorXd
-		Eigen::VectorXd sensor_data = boost::get<Eigen::VectorXd>(sample_variant);
-		data.segment(current_idx, size) = sensor_data;
-		current_idx += size;
+		int size = internal_data_size_[dtype];
+
+		//Handling for specific datatypes
+		if(internal_data_format_[dtype] == SampleDataFormatEigenVector){
+			Eigen::VectorXd sensor_data = boost::get<Eigen::VectorXd>(sample_variant);
+			data.segment(current_idx, size) = sensor_data;
+			current_idx += size;
+		}else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
+			Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
+			Eigen::VectorXd flattened_mat = sensor_data;
+			flattened_mat.resize(sensor_data.cols()*sensor_data.rows(), 1);
+			data.segment(current_idx, size) = flattened_mat;
+			current_idx += size;
+		}else {
+			ROS_ERROR("Datatypes currently must be in Eigen::Vector/Eigen::Matrix format. Offender: dtype=%d", dtype);
+		}
+
 	}
 
 	return;
