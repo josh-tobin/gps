@@ -131,19 +131,11 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 			data.segment(current_idx, size) = sensor_data;
 			current_idx += size;
 		}else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
-			try{
-				Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
-			    Eigen::VectorXd flattened_mat = sensor_data;
-			    flattened_mat.resize(sensor_data.cols()*sensor_data.rows(), 1);
-				data.segment(current_idx, size) = flattened_mat;
-				current_idx += size;
-			}catch(boost::bad_get badget){
-				Eigen::VectorXd flattened_mat;
-				flattened_mat.resize(size);
-				flattened_mat.fill(-1.0);
-				data.segment(current_idx, size) = flattened_mat;
-				current_idx += size;
-			}
+			Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
+			Eigen::VectorXd flattened_mat = sensor_data;
+			flattened_mat.resize(sensor_data.cols()*sensor_data.rows(), 1);
+			data.segment(current_idx, size) = flattened_mat;
+			current_idx += size;
 		}else {
 			ROS_ERROR("Datatypes currently must be in Eigen::Vector/Eigen::Matrix format. Offender: dtype=%d", dtype);
 		}
