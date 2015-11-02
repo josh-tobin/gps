@@ -4,7 +4,7 @@ import numpy as np
 
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
-from agent.agent_utils import generate_noise
+from gps.agent.agent_utils import generate_noise
 from gps.sample.sample import Sample
 
 
