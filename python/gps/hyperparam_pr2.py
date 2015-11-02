@@ -39,9 +39,11 @@ sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
 }
+
+num_samples = 2
 
 agent = {
     'type': AgentROS,
@@ -64,7 +66,7 @@ agent = {
         },
      },
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
 }
 
@@ -88,7 +90,6 @@ algorithm['init_traj_distr'] = {
         'x0': np.zeros(14),
         'dX': 14,
         'dU': 7,
-        #'x0': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
     }
 }
 
@@ -133,4 +134,5 @@ defaults = {
     'sample_data': sample_data,
     'agent': agent,
     'algorithm': algorithm,
+    'num_samples': num_samples,
 }
