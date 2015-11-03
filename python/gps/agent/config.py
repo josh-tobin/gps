@@ -43,6 +43,14 @@ try:
         'smooth_noise': False,
         'smooth_noise_var': 2.0,
         'smooth_noise_renormalize': True,
+        'pid_params': np.array([120, 60, 18, 4,
+                                60, 30, 20, 4,
+                                50, 30, 6, 4,
+                                35, 20, 4, 4,
+                                15, 10, 6, 4,
+                                15, 10, 2, 4,
+                                15, 10, 2, 4,
+                               ])
     }
 except ImportError as e:
     print 'No ROS enabled', e

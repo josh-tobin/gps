@@ -213,9 +213,12 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     params["data"] = data;
 
     Eigen::MatrixXd pd_gains;
-    pd_gains.resize(msg->pd_gains.size(), 3);
-    for(int i=0; i<pd_gains.size(); i++){
-        pd_gains(i, 0) = msg->pd_gains[i];
+    pd_gains.resize(msg->pd_gains.size() / 4, 4);
+    for(int i=0; i<pd_gains.rows(); i++){
+        for(int j=0; j<4; j++){
+            pd_gains(i, j) = msg->pd_gains[i * 4 + j];
+            ROS_INFO("pd_gain[%f]", pd_gains(i, j));
+        }
     }
     params["pd_gains"] = pd_gains;
 

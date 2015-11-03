@@ -88,6 +88,7 @@ class AgentROS(Agent):
         reset_command.mode = mode
         reset_data = data
         reset_command.data = reset_data
+        reset_command.pd_gains = self._hyperparams['pid_params']
         reset_command.arm = self._hyperparams[arm]
         timeout = self._hyperparams['trial_timeout']
         reset_sample = self._reset_service.publish_and_wait(reset_command, \
