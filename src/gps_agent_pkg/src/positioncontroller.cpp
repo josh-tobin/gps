@@ -41,15 +41,92 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
     temp_jacobian_.resize(6,size);
     ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
 
-    for (int i = 0; i < size; i++)
-    {
-        pd_gains_p_[i] = 1.0;
-        pd_gains_d_[i] = 0.3;
-        pd_gains_i_[i] = 0.02;
-        i_clamp_[i] = 4;
-        max_velocities_[i] = 3.0;
+
+    // TODO: ZDM finish pid sending code, un-hard code this
+
+    /* high gains
+    pd_gains_p_[0] = 2400;
+    pd_gains_i_[0] = 18;
+    pd_gains_d_[0] = 800;
+       i_clamp_[0] = 4;
+
+    pd_gains_p_[1] = 1200;
+    pd_gains_i_[1] = 700;
+    pd_gains_d_[1] = 10;
+       i_clamp_[1] = 4;
+
+    pd_gains_p_[2] = 1000;
+    pd_gains_i_[2] = 600;
+    pd_gains_d_[2] = 6;
+       i_clamp_[2] = 4;
+
+    pd_gains_p_[3] = 700;
+    pd_gains_i_[3] = 450;
+    pd_gains_d_[3] = 4;
+       i_clamp_[3] = 4;
+
+    pd_gains_p_[4] = 300;
+    pd_gains_i_[4] = 10;
+    pd_gains_d_[4] = 6;
+       i_clamp_[4] = 2;
+
+    pd_gains_p_[5] = 300;
+    pd_gains_i_[5] = 300;
+    pd_gains_d_[5] = 4;
+       i_clamp_[5] = 2;
+
+    pd_gains_p_[6] = 300;
+    pd_gains_i_[6] = 300;
+    pd_gains_d_[6] = 4;
+       i_clamp_[6] = 2;
+
+       */
+
+    pd_gains_p_[0] = 10;
+    pd_gains_i_[0] = 1;
+    pd_gains_d_[0] = 3;
+       i_clamp_[0] = 4;
+
+    pd_gains_p_[1] = 60;
+    pd_gains_i_[1] = 30;
+    pd_gains_d_[1] = 20;
+       i_clamp_[1] = 4;
+
+    pd_gains_p_[2] = 50;
+    pd_gains_i_[2] = 30;
+    pd_gains_d_[2] = 6;
+       i_clamp_[2] = 4;
+
+    pd_gains_p_[3] = 35;
+    pd_gains_i_[3] = 20;
+    pd_gains_d_[3] = 4;
+       i_clamp_[3] = 4;
+
+    pd_gains_p_[4] = 15;
+    pd_gains_i_[4] = 10;
+    pd_gains_d_[4] = 6;
+       i_clamp_[4] = 2;
+
+    pd_gains_p_[5] = 15;
+    pd_gains_i_[5] = 10;
+    pd_gains_d_[5] = 4;
+       i_clamp_[5] = 2;
+
+    pd_gains_p_[6] = 15;
+    pd_gains_i_[6] = 10;
+    pd_gains_d_[6] = 4;
+       i_clamp_[6] = 2;
+
+
+    //for (int i = 0; i < size; i++)
+    //{  TODO: ZDM get rid of
+        //pd_gains_p_[i] = 1.0;
+        //pd_gains_d_[i] = 0.3;
+        //pd_gains_i_[i] = 0.02;
+        //i_clamp_[i] = 4;
+        //max_velocities_[i] = 3.0;
         //target_angles_[i] = 0.5;
-    }
+    //}
     // Set initial mode.
     mode_ = NoControl;
 
