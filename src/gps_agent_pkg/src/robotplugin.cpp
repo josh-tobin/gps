@@ -132,7 +132,8 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     }
     //ROS_INFO_STREAM("beginning controller update");
     // If we have a trial controller, update that, otherwise update position controller.
-    if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
+    if (trial_init) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
@@ -140,7 +141,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
-    if (trial_controller_ != NULL && trial_controller_->is_finished()) {
+    if (trial_init && trial_controller_->is_finished()) {
 
         // Publish sample after trial completion
         publish_sample_report(current_time_step_sample_);
@@ -158,17 +159,13 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
         }
     }
     if (active_arm_controller_->report_waiting){
-        ROS_INFO("cp1report1");
         if (active_arm_controller_->is_finished()){
-            ROS_INFO("cp2report1");
             publish_sample_report(current_time_step_sample_);
             active_arm_controller_->report_waiting = false;
         }
     }
     if (passive_arm_controller_->report_waiting){
-        ROS_INFO("cp1report2");
         if (passive_arm_controller_->is_finished()){
-            ROS_INFO("cp2report2");
             publish_sample_report(current_time_step_sample_);
             passive_arm_controller_->report_waiting = false;
         }
@@ -204,6 +201,7 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
 
 void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
 
+    ROS_INFO_STREAM("received position command");
     OptionsMap params;
     uint8_t arm = msg->arm;
     params["mode"] = msg->mode;
@@ -233,6 +231,7 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
 void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg){
 
     OptionsMap controller_params;
+    ROS_INFO_STREAM("received trial command");
 
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
@@ -299,6 +298,7 @@ void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
 
 void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg){
 
+    ROS_INFO_STREAM("received relax command");
     OptionsMap params;
     int8_t arm = msg->arm;
     params["mode"] = NoControl;

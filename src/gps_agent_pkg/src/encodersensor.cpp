@@ -178,22 +178,19 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 
 
     // Set end effector point.
-    // Flatten points - maybe this should be kept as a matrix?
-    Eigen::VectorXd flattened_ee_pts = previous_end_effector_points_;
-    flattened_ee_pts.resize(previous_end_effector_points_.cols()*previous_end_effector_points_.rows(), 1);
+    Eigen::VectorXd flattened_ee_pts(Eigen::Map<Eigen::VectorXd>(previous_end_effector_points_.data(), 3 * 3));
     sample->set_data(t,gps::END_EFFECTOR_POINTS,flattened_ee_pts,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector point velocities.
-    //Flatten velocities - maybe this should be kept as a matrix?
-    Eigen::VectorXd flattened_ee_vel = previous_end_effector_point_velocities_;
-    flattened_ee_vel.resize(previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(), 1);
+    Eigen::VectorXd flattened_ee_vel(Eigen::Map<Eigen::VectorXd>(previous_end_effector_point_velocities_.data(), 3 * 3));
     sample->set_data(t,gps::END_EFFECTOR_POINT_VELOCITIES,flattened_ee_vel,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector position.
     Eigen::VectorXd flattened_position; //Need to convert Vector3d to VectorXd. Eigen seems finicky about this.
     flattened_position.resize(3, 1);
-    for (unsigned i = 0; i < 3; i++)
+    for (unsigned i = 0; i < 3; i++){
         flattened_position[i] = previous_position_[i];
+    }
     sample->set_data(t,gps::END_EFFECTOR_POSITIONS,flattened_position,3,SampleDataFormatEigenVector);
 
     // Set end effector rotation.

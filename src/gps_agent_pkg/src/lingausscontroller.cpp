@@ -8,6 +8,7 @@ using namespace gps_control;
 LinearGaussianController::LinearGaussianController()
 : TrialController()
 {
+    is_configured_ = false;
 }
 
 // Destructor.
@@ -28,16 +29,21 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
 
     // TODO: Update K_
     int T = boost::get<int>(options["T"]);
+    int dX = boost::get<int>(options["dX"]);
+    int dU = boost::get<int>(options["dU"]);
 
     //TODO Don't do this hacky string indexing
     K_.resize(T);
     for(int i=0; i<T; i++){
+        K_[i].resize(dU, dX);
         K_[i] = boost::get<Eigen::MatrixXd>(options["K_"+to_string(i)]);
     }
 
     k_.resize(T);
     for(int i=0; i<T; i++){
+        k_[i].resize(dU);
         k_[i] = boost::get<Eigen::VectorXd>(options["k_"+to_string(i)]);
     }
     ROS_INFO_STREAM("Set LG parameters");
+    is_configured_ = true;
 }
