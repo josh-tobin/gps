@@ -32,6 +32,7 @@ private:
     Eigen::VectorXd pd_gains_i_;
     // Integral terms.
     Eigen::VectorXd pd_integral_;
+    Eigen::VectorXd i_clamp_;
     // Maximum joint velocities.
     Eigen::VectorXd max_velocities_;
     // Temporary storage for Jacobian.

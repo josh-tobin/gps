@@ -8,6 +8,7 @@ using namespace gps_control;
 LinearGaussianController::LinearGaussianController()
 : TrialController()
 {
+    is_configured_ = false;
 }
 
 // Destructor.
@@ -40,4 +41,5 @@ void LinearGaussianController::configure_controller(OptionsMap &options)
         k_[i] = boost::get<Eigen::VectorXd>(options["k_"+to_string(i)]);
     }
     ROS_INFO_STREAM("Set LG parameters");
+    is_configured_ = true;
 }

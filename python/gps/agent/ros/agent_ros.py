@@ -27,6 +27,11 @@ class AgentROS(Agent):
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands
 
+        self.x0 = []
+        self.x0.append(self._hyperparams['init_pose'])
+        r = rospy.Rate(1) 
+        r.sleep()
+
     def _init_pubs_and_subs(self):
         self._trial_service = ServiceEmulator(self._hyperparams['trial_command_topic'], TrialCommand,
                                               self._hyperparams['sample_result_topic'], SampleResult)
@@ -83,9 +88,11 @@ class AgentROS(Agent):
         reset_command.mode = mode
         reset_data = data
         reset_command.data = reset_data
+        reset_command.pd_gains = self._hyperparams['pid_params']
         reset_command.arm = self._hyperparams[arm]
+        timeout = self._hyperparams['trial_timeout']
         reset_sample = self._reset_service.publish_and_wait(reset_command, \
-            timeout=self._hyperparams['trial_timeout'])
+            timeout=timeout)
         # TODO: Maybe verify that you reset to the correct position.
 
     def reset(self, condition):
@@ -104,8 +111,7 @@ class AgentROS(Agent):
                        condition_data['auxiliary_arm']['mode'],
                        condition_data['auxiliary_arm']['data'])
 
-    #def sample(self, policy, T, condition=0):
-    def sample(self, policy, condition):
+    def sample(self, policy, condition, verbose=True):
         """
         Execute a policy and collect a sample
 
@@ -139,4 +145,4 @@ class AgentROS(Agent):
 
         sample = msg_to_sample(sample_msg, self)
         self._samples[condition].append(sample)
-        #return sample
+        return sample

@@ -97,7 +97,7 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes)
 {
 	if(t >= T_) ROS_ERROR("Out of bounds t: %d/%d", t, T_);
-	//ROS_INFO("Getting data");
+	ROS_INFO("Getting data");
     //Calculate size
     int total_size = 0;
 	for(int i=0; i<datatypes.size(); i++){
@@ -132,7 +132,7 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 			current_idx += size;
 		}else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
 			Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
-			Eigen::VectorXd flattened_mat = sensor_data;
+            Eigen::VectorXd flattened_mat(Eigen::Map<Eigen::VectorXd>(sensor_data.data(), sensor_data.size()));
 			flattened_mat.resize(sensor_data.cols()*sensor_data.rows(), 1);
 			data.segment(current_idx, size) = flattened_mat;
 			current_idx += size;

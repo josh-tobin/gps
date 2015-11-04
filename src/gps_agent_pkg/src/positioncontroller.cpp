@@ -20,6 +20,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
 
     // Initialize integral terms to zero.
     pd_integral_.resize(size);
+    i_clamp_.resize(size);
 
     // Initialize current angle and position.
     current_angles_.resize(size);
@@ -40,14 +41,6 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
     temp_jacobian_.resize(6,size);
     ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
 
-    for (int i = 0; i < size; i++)
-    {
-        pd_gains_p_[i] = 1.0;
-        pd_gains_d_[i] = 0.3;
-        pd_gains_i_[i] = 0.02;
-        max_velocities_[i] = 3.0;
-        //target_angles_[i] = 0.5;
-    }
     // Set initial mode.
     mode_ = NoControl;
 
@@ -115,6 +108,16 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         // Add to integral term.
         pd_integral_ += temp_angles_;
 
+        // Clamp integral term
+        for (int i = 0; i < temp_angles_.rows(); i++){
+            if (pd_integral_(i) > i_clamp_(i)) {
+                pd_integral_(i) = i_clamp_(i);
+            }
+            else if (-pd_integral_(i) > i_clamp_(i)) {
+                pd_integral_(i) = -i_clamp_(i);
+            }
+        }
+
         // Compute torques.
         // TODO: look at PR2 PD controller implementation and make sure our version matches!
         torques = -((pd_gains_p_.array() * temp_angles_.array()) +
@@ -151,6 +154,12 @@ void PositionController::configure_controller(OptionsMap &options)
     if (mode_ != NoControl){
         Eigen::VectorXd data = boost::get<Eigen::VectorXd>(options["data"]);
         Eigen::MatrixXd pd_gains = boost::get<Eigen::MatrixXd>(options["pd_gains"]);
+        for(int i=0; i<pd_gains.rows(); i++){
+            pd_gains_p_(i) = pd_gains(i, 0);
+            pd_gains_i_(i) = pd_gains(i, 1);
+            pd_gains_d_(i) = pd_gains(i, 2);
+            i_clamp_(i) = pd_gains(i, 3);
+        }
         if(mode_ == JointSpaceControl){
             target_angles_ = data;
         }else{
@@ -165,10 +174,13 @@ bool PositionController::is_finished() const
     // Check whether we are close enough to the current target.
     // TODO: implement.
     if (mode_ == JointSpaceControl){
-        double eps = 0.185;
+        double epspos = 0.185;
+        double epsvel = 0.01;
         double error = (current_angles_ - target_angles_).norm();
+        double vel = current_angle_velocities_.norm();
         ROS_INFO("error: %f", error);
-        return (error < eps);
+        ROS_INFO("vel: %f", vel);
+        return (error < epspos && vel < epsvel);
     }
     else if (mode_ == NoControl){
         return true;
