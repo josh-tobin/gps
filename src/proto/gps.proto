@@ -32,14 +32,14 @@ message Sample {
   repeated float obs = 7 [packed = true];
 }
 
-// Enum for actuator types
+// Enum for actuator types (Specified in Relax/PositionCommand msgs)
 enum AcuatuorType {
   LEFT_ARM = 0;
   RIGHT_ARM = 1;
   TOTAL_ACTUATOR_TYPES = 2;
 }
 
-// Enum for control modes
+// Enum for position control modes (sent in PositionCommand msg)
 enum ControlMode {
   NO_CONTROL = 0;
   JOINT_SPACE = 1;

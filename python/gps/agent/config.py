@@ -4,8 +4,6 @@
 from copy import deepcopy
 import numpy as np
 
-#TODO: commenting out AgentROS stuff for now because the following import
-#      seems to be breaking things. will have to revisit this
 from gps.proto.gps_pb2 import LEFT_ARM, RIGHT_ARM
 
 
