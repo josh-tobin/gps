@@ -174,10 +174,13 @@ bool PositionController::is_finished() const
     // Check whether we are close enough to the current target.
     // TODO: implement.
     if (mode_ == JointSpaceControl){
-        double eps = 0.185;
+        double epspos = 0.185;
+        double epsvel = 0.01;
         double error = (current_angles_ - target_angles_).norm();
+        double vel = current_angle_velocities_.norm();
         ROS_INFO("error: %f", error);
-        return (error < eps);
+        ROS_INFO("vel: %f", vel);
+        return (error < epspos && vel < epsvel);
     }
     else if (mode_ == NoControl){
         return true;
