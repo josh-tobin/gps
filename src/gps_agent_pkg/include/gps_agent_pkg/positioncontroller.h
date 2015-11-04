@@ -9,17 +9,10 @@ space.
 
 // Superclass.
 #include "gps_agent_pkg/controller.h"
+#include "gps/proto/gps.pb.h"
 
 namespace gps_control
 {
-
-// Current motion type.
-enum PositionControlMode
-{
-    NoControl,
-    JointSpaceControl,
-    TaskSpaceControl
-};
 
 class PositionController : public Controller
 {
@@ -53,7 +46,7 @@ private:
     //Eigen::VectorXd torques_;
 
     // Current mode.
-    PositionControlMode mode_;
+    gps::PositionControlMode mode_;
     // Current arm.
     ArmType arm_;
     // Time since motion start.
