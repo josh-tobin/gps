@@ -35,9 +35,7 @@ class GPSMain():
         for itr in range(self._iterations):
             for m in range(self._conditions):
                 for i in range(n):
-                    print 'Entering Reset'
                     self.agent.reset(m)
-                    print 'Leaving Reset'
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
             self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
