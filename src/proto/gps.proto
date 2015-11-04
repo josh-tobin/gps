@@ -46,3 +46,9 @@ enum ControlMode {
   TASK_SPACE = 2;
   TOTAL_CONTROL_MODES = 3;
 }
+
+enum ControllerType {
+  LIN_GAUSS_CONTROLLER = 0;
+  CAFFE_CONTROLLER = 1;
+  TOTAL_CONTROLLER_TYPES = 2;
+}
