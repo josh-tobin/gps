@@ -105,9 +105,9 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
-    if(!is_controller_step){ //TODO: Remove this
-        return;
-    }
+    //if(!is_controller_step){ //TODO: Remove this
+        //return;
+    //}
     // Update all of the sensors and fill in the sample.
     // TODO ZDM :uncomment the following to account for more than joint sensors
     //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
@@ -127,12 +127,12 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 // Update the controllers at each time step.
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
-    if(!is_controller_step){
+    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
+    if(!is_controller_step && trial_init){
         return;
     }
     //ROS_INFO_STREAM("beginning controller update");
     // If we have a trial controller, update that, otherwise update position controller.
-    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
     if (trial_init) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);

@@ -43,14 +43,24 @@ try:
         'smooth_noise': False,
         'smooth_noise_var': 2.0,
         'smooth_noise_renormalize': True,
-        'pid_params': np.array([120, 60, 18, 4,
-                                60, 30, 20, 4,
-                                50, 30, 6, 4,
-                                35, 20, 4, 4,
-                                15, 10, 6, 4,
-                                15, 10, 2, 4,
-                                15, 10, 2, 4,
-                               ])
+        # low gains
+        #'pid_params': np.array([120, 60, 18, 4,
+                                #60, 30, 20, 4,
+                                #50, 30, 6, 4,
+                                #35, 20, 4, 4,
+                                #15, 10, 6, 4,
+                                #15, 10, 2, 4,
+                                #15, 10, 2, 4,
+                               #]),
+        # high gains
+        'pid_params': np.array([2400, 0.5, 18, 4,
+                                1200, 0.5, 10, 4,
+                                1000, 0.5, 6, 4,
+                                700, 0.5, 4, 4,
+                                300, 0.5, 6, 2,
+                                300, 0.5, 4, 2,
+                                300, 0.5, 4, 2,
+                               ]),
     }
 except ImportError as e:
     print 'No ROS enabled', e
