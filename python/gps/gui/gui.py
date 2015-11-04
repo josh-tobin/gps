@@ -1,4 +1,6 @@
+import rospy
 import roslib; roslib.load_manifest('gps_agent_pkg')
+from sensor_msgs.msg import Joy
 
 from datetime import datetime
 import copy
@@ -9,6 +11,7 @@ from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider
 from matplotlib.text import Text
 
 from gps.gui.config import target_setup
+from gps.gui.config import keybindings, controller_bindings
 from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
 from gps.agent.ros.agent_ros import AgentROS
 #from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
@@ -58,36 +61,40 @@ class GUI:
 		self._sensor_names = {1: 'right_arm', 2: 'left_arm'}
 		self._sensor_type = self._sensor_names[1]
 		# self._output_file = self._filedir + "gui_output_" + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M')
-		self._keybindings = {
-			'1': lambda event: self.set_target_number(1),
-			'2': lambda event: self.set_target_number(2),
-			'3': lambda event: self.set_target_number(3),
-			'4': lambda event: self.set_target_number(4),
-			'5': lambda event: self.set_target_number(5),
-			'6': lambda event: self.set_target_number(6),
-			'7': lambda event: self.set_target_number(7),
-			'8': lambda event: self.set_target_number(8),
-			'9': lambda event: self.set_target_number(9),
-			'0': lambda event: self.set_target_number(0),
-			'z': lambda event: self.set_sensor_type(1),
-			'x': lambda event: self.set_sensor_type(2),
-			'q': lambda event: self.set_initial_position(event),
-			'w': lambda event: self.set_target_position(event),
-			'e': lambda event: self.set_ee_target(event),
-			'r': lambda event: self.set_ft_target(event),
-			'u': lambda event: self.move_to_initial(event),
-			'i': lambda event: self.set_target_position(event),
-			'o': lambda event: self.relax_controller(event),
-			'p': lambda event: self.mannequin_mode(event),
+		self._keybindings = keybindings
+		self._controller_bindings = controller_bindings
+		self._keyfunctions = {
+			'stn1': lambda event: self.set_target_number(1),
+			'stn2': lambda event: self.set_target_number(2),
+			'stn3': lambda event: self.set_target_number(3),
+			'stn4': lambda event: self.set_target_number(4),
+			'stn5': lambda event: self.set_target_number(5),
+			'stn6': lambda event: self.set_target_number(6),
+			'stn7': lambda event: self.set_target_number(7),
+			'stn8': lambda event: self.set_target_number(8),
+			'stn9': lambda event: self.set_target_number(9),
+			'stn0': lambda event: self.set_target_number(0),
+			'sst1': lambda event: self.set_sensor_type(1),
+			'sst2': lambda event: self.set_sensor_type(2),
+			'sip': lambda event: self.set_initial_position(event),
+			'stp': lambda event: self.set_target_position(event),
+			'set': lambda event: self.set_ee_target(event),
+			'sft': lambda event: self.set_ft_target(event),
+			'mti': lambda event: self.move_to_initial(event),
+			'mtt': lambda event: self.move_to_target(event),
+			'rc': lambda event: self.relax_controller(event),
+			'mm': lambda event: self.mannequin_mode(event),
 		}
+		rospy.Subscriber("joy", Joy, self.joystick_callback)
 
 		# GUI components
 		r, c = 5, 5
 		self._fig = plt.figure(figsize=(8, 8))
 		self._gs  = gridspec.GridSpec(1, 2)
 
-		self._gs_left   = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[0])
+		self._gs_left   = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[0])
 		self._gs_setup  = gridspec.GridSpecFromSubplotSpec(5, 2, subplot_spec=self._gs_left[0])
+		self._gs_train  = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs_left[1])
 
 		self._gs_right  = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=self._gs[1])
 		self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_right[0])
@@ -118,6 +125,15 @@ class GUI:
 		self._buttons = [Button(self._axarr[buttons_start+i], self._actions_button[i][0]) for i in range(num_buttons)]
 		[self._buttons[i].on_clicked(self._actions_button[i][1]) for i in range(num_buttons)]
 
+		# ~~~ TRAIN PANEL ~~~
+		# self._actions_train = [('stop', self.stop_training),
+		# 					   ('stop_reset', self.stop_reset_training),
+		# 					   ('reset', self.reset_training),
+		# 					   ('start', self.start_training),]
+		# self._axarr_train = [plt.subplot(self._gs_train[i]) for i in range(len(_actions_train))]
+		# self._buttons_train = [Button(self._axarr_train[i], self._actions_train[i][0]) for i in range(len(_actions_train))]
+		# [self._buttons_train[i].on_clicked(self._actions_train[i][1]) for i in range(len(_actions_train))]
+
 		# ~~~ OUTPUT PANEL ~~~
 		self._output_ax = plt.subplot(self._gs_output[0])
 		self.set_output("target number: " +  str(self._target_number) + "\n" +
@@ -133,9 +149,13 @@ class GUI:
 
 	def on_key_press(self, event):
 		if event.key in self._keybindings.keys():
-			self._keybindings[event.key](event)
+			self._keyfunctions[self._keybindings[event.key]](event)
 		else:
 			self.set_output("unrecognized keybinding: " + event.key)
+
+	def joystick_callback(self, joy_msg):
+		buttons_pressed = tuple([i for i in range(len(joy_msg.buttons)) if joy_msg.buttons[i]])
+		self._keyfunctions[self._controller_bindings[buttons_pressed]](None)
 
 	def set_output(self, text):
 		self._output_ax.clear()
@@ -150,7 +170,7 @@ class GUI:
 	def set_target_number(self, val):
 		discrete_val = int(val)
 		self._target_number = discrete_val
-		# self._target_slider.set_val(discrete_val)
+		self._target_slider.update_val(discrete_val)
 		self.set_output("set_target_number: " + str(self._target_number))
 
 	def set_sensor_type(self, val):
@@ -220,6 +240,19 @@ class GUI:
 				"ft_points: " + ft_points + "\n" +
 				"ft_stable: " + ft_stable)
 
+	# TRAIN FUNCTIONS
+	def stop_training(self, event):
+		pass
+
+	def stop_reset_training(self, event):
+		pass
+
+	def reset_training(self, event):
+		pass
+
+	def start_training(self, event):
+		pass
+
 class DiscreteSlider(Slider):
 	def __init__(self, *args, **kwargs):
 		Slider.__init__(self, *args, **kwargs)
@@ -246,7 +279,20 @@ class DiscreteSlider(Slider):
 			for cid, func in self.observers.iteritems():
 				func(discrete_val)
 
+	def update_val(self, val):
+		# self.val = val
+		discrete_val = round(val)
+		self.valtext.set_text(self.valfmt % discrete_val)
+		self.poly.xy[2] = discrete_val, 1
+		self.poly.xy[3] = discrete_val, 0
+		# if self.drawon:
+		# 	self.ax.figure.canvas.draw()
+		# if self.eventson:
+		# 	for cid, func in self.observers.iteritems():
+		# 		func(discrete_val)
+
 if __name__ == "__main__":
+	# rospy.init_node('gui')
 	a = AgentROS(agent_config['agent'])
 	g = GUI(a, agent_config['gui'])
 	plt.show()
