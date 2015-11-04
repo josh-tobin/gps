@@ -7,6 +7,7 @@
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
 #include "gps_agent_pkg/utils.h"
+#include "gps/proto/gps.pb.h"
 #include <vector>
 
 using namespace gps_control;
@@ -222,6 +223,7 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     }
     params["pd_gains"] = pd_gains;
 
+    // TODO - this is currently inconsistent with python/the message which encodes left vs. right, not trial vs. auxiliary
     if(arm == TrialArm){
         active_arm_controller_->configure_controller(params);
     }else if (arm == AuxiliaryArm){
@@ -263,7 +265,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }
     controller_params["obs_datatypes"] = obs_datatypes;
 
-    if(msg->controller.controller_to_execute == gps_agent_pkg::ControllerParams::LIN_GAUSS_CONTROLLER){
+    if(msg->controller.controller_to_execute == gps::LIN_GAUSS_CONTROLLER){
         //
         gps_agent_pkg::LinGaussParams lingauss = msg->controller.lingauss;
         trial_controller_.reset(new LinearGaussianController());
@@ -304,7 +306,7 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
     ROS_INFO_STREAM("received relax command");
     OptionsMap params;
     int8_t arm = msg->arm;
-    params["mode"] = NoControl;
+    params["mode"] = gps::NO_CONTROL;
 
     if(arm == TrialArm){
         active_arm_controller_->configure_controller(params);

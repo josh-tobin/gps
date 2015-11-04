@@ -6,6 +6,7 @@ from gps_agent_pkg.msg import PositionCommand
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Empty
 import numpy as np
+from gps.proto.gps_pb2 import *
 
 POS_COM_TOPIC = '/gps_controller_position_command'
 TRIAL_COM_TOPIC = '/gps_controller_trial_command'
@@ -22,7 +23,7 @@ def main():
     #sub = rospy.Subscriber('/joint_states', JointState, listen)
 
     pc = PositionCommand()
-    pc.mode = PositionCommand.JOINT_SPACE
+    pc.mode = JOINT_SPACE
     #pc.arm = PositionCommand.LEFT_ARM
     pc.arm = 1#PositionCommand.RIGHT_ARM
     pc.data = np.zeros(7)
