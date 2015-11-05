@@ -48,14 +48,14 @@ private:
     // Current mode.
     gps::PositionControlMode mode_;
     // Current arm.
-    ArmType arm_;
+    gps::ActuatorType arm_;
     // Time since motion start.
     ros::Time start_time_;
     // Time of last update.
     ros::Time last_update_time_;
 public:
     // Constructor.
-    PositionController(ros::NodeHandle& n, ArmType arm, int size);
+    PositionController(ros::NodeHandle& n, gps::ActuatorType arm, int size);
     // Destructor.
     virtual ~PositionController();
     // Update the controller (take an action).

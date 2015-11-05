@@ -87,10 +87,10 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
     // Create passive arm position controller.
     // TODO: fix this to be something that comes out of the robot itself
-    passive_arm_controller_.reset(new PositionController(n, AuxiliaryArm, 7));
+    passive_arm_controller_.reset(new PositionController(n, gps::AUXILIARY_ARM, 7));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new PositionController(n, TrialArm, 7));
+    active_arm_controller_.reset(new PositionController(n, gps::TRIAL_ARM, 7));
 }
 
 // Helper function to initialize a sample from the current sensors.
@@ -231,10 +231,9 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     }
     params["pd_gains"] = pd_gains;
 
-    // TODO - this is currently inconsistent with python/the message which encodes left vs. right, not trial vs. auxiliary
-    if(arm == TrialArm){
+    if(arm == gps::TRIAL_ARM){
         active_arm_controller_->configure_controller(params);
-    }else if (arm == AuxiliaryArm){
+    }else if (arm == gps::AUXILIARY_ARM){
         passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
@@ -316,9 +315,9 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
     int8_t arm = msg->arm;
     params["mode"] = gps::NO_CONTROL;
 
-    if(arm == TrialArm){
+    if(arm == gps::TRIAL_ARM){
         active_arm_controller_->configure_controller(params);
-    }else if (arm == AuxiliaryArm){
+    }else if (arm == gps::AUXILIARY_ARM){
         passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
@@ -339,15 +338,15 @@ Sensor *RobotPlugin::get_sensor(SensorType sensor)
 }
 
 // Get forward kinematics solver.
-void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm)
+void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm)
 {
     //TODO: compile errors related to boost::scoped_ptr
-    if (arm == AuxiliaryArm)
+    if (arm == gps::AUXILIARY_ARM)
     {
         fk_solver = passive_arm_fk_solver_;
         jac_solver = passive_arm_jac_solver_;
     }
-    else if (arm == TrialArm)
+    else if (arm == gps::TRIAL_ARM)
     {
         fk_solver = active_arm_fk_solver_;
         jac_solver = active_arm_jac_solver_;

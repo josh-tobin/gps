@@ -22,9 +22,9 @@ with the robot.
 #include "gps_agent_pkg/SampleResult.h"
 #include "gps_agent_pkg/DataRequest.h"
 #include "gps_agent_pkg/sensor.h"
-#include "gps_agent_pkg/ArmType.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
+#include "gps/proto/gps.pb.h"
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -129,9 +129,9 @@ public:
     // Get sensor
     virtual Sensor *get_sensor(SensorType sensor);
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const = 0;
+    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const = 0;
     // Get forward kinematics solver.
-    virtual void get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
+    virtual void get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm);
 };
 
 }

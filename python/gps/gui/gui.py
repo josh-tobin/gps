@@ -12,15 +12,10 @@ from matplotlib.text import Text
 
 from gps.gui.config import target_setup
 from gps.gui.config import keybindings, controller_bindings
-from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES
+from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
 from gps.agent.ros.agent_ros import AgentROS
-#from gps_agent_pkg.msg import RelaxCommand.LEFT_ARM as ARM_LEFT
-#from gps_agent_pkg.msg import RelaxCommand.RIGHT_ARM as ARM_RIGHT
 from gps_agent_pkg.msg import PositionCommand
 from gps.hyperparam_pr2 import defaults as agent_config
-
-ARM_LEFT = 1
-ARM_RIGHT = 2
 
 # ~~~ GUI Specifications ~~~
 # Target setup (responsive to keyboard, gui, and PS3 controller)
@@ -177,10 +172,10 @@ class GUI
         discrete_val = int(val)
         self._sensor_type = self._sensor_names[discrete_val]
         # self._sensor_slider.set_val(discrete_val
-        self.set_output("set_sensor_type: " + self._sensor_type
+        self.set_output("set_sensor_type: " + self._sensor_type)
 
     def relax_controller(self, event):
-        self._agent.relax_arm(self._sensor_type)
+        self._agent.relax_arm(arm=self._sensor_type)
         self.set_output("relax_controller: " + self._sensor_type)
 
     def mannequin_mode(self, event):
@@ -188,7 +183,8 @@ class GUI
         self.set_output("mannequin_mode: " + "NOT YET IMPLEMENTED")
 
     def set_initial_position(self, event):
-        x = self._agent.get_data(JOINT_ANGLES)    # TODO - this is specific to AgentROS...
+        x = self._agent.get_data(arm=self._sensor_type)
+        # TODO get joint angles from x
         filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
         np.savez(filename, x=x)
         self.set_output("set_initial_position: " + x)
@@ -197,24 +193,25 @@ class GUI
         filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
         with np.load(filename) as f:
             x = f['x']
-        self._agent.reset_arm(ARM_LEFT, 1, x)
+        self._agent.reset_arm(arm=self._sensor_type, mode=JOINT_SPACE, data=x)
         self.set_output("move_to_initial: " + x)
 
     def set_target_position(self, event):
-        x = self._agent.get_data(JOINT_ANGLES)    # TODO - this is specific to AgentROS...
-        filename = self._filedir + self._sensor_type + '_target_' + self._target_number + '.npz'
+        x = self._agent.get_data(TRIAL_ARM)  # TODO - this should save both joint angles and ee.
+        filename = self._filedir + '_target_' + self._target_number + '.npz'
         np.savez(filename, x=x)
         self.set_output("set_target_position: " + x)
 
-    def move_to_target(self, event):
+    def move_to_target(self, event):  # TODO - need to load up joint angles from target file.
         filename = self._filedir + self._sensor_type + '_target_' + self._target_number + '.npz'
         with np.load(filename) as f:
             x = f['x']
-        self._agent.reset_arm(ARM_LEFT, 1, x)
+        self._agent.reset_arm(arm=TRIAL_ARM, mode=TASK_SPACE, data=x)
         self.set_output("move_to_target: " + x)
 
+    # Dennis - what is the difference between this and set target position?
     def set_ee_target(self, event):
-        x = self._agent.get_data(END_EFFECTOR_POINTS)    # TODO - this is specific to AgentROS...
+        x = self._agent.get_data(arm=TRIAL_ARM)    # TODO - this is specific to AgentROS...
         filename = self._filedir + 'ee' + '_target_' + self._target_number + '.npz'
         np.savez(filename, x=x)
         self.set_output("set_ee_target: " + x)

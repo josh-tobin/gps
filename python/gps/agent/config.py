@@ -4,7 +4,7 @@
 from copy import deepcopy
 import numpy as np
 
-from gps.proto.gps_pb2 import LEFT_ARM, RIGHT_ARM
+from gps.proto.gps_pb2 import AUXILIARY_ARM, TRIAL_ARM
 
 
 """ Agent """

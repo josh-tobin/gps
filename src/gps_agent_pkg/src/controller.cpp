@@ -3,7 +3,7 @@
 using namespace gps_control;
 
 // Constructors.
-Controller::Controller(ros::NodeHandle& n, ArmType arm, int size)
+Controller::Controller(ros::NodeHandle& n, gps::ActuatorType arm, int size)
 {
 }
 

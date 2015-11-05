@@ -8,7 +8,7 @@ from gps.agent.ros.ros_utils import ServiceEmulator, msg_to_sample, policy_to_ms
 from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, PositionCommand, RelaxCommand, \
     DataRequest
 from std_msgs.msg import Empty
-#from gps.proto.gps_pb2 import LEFT_ARM, RIGHT_ARM
+from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
 #from gps.agent.ros.ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
 
@@ -52,30 +52,29 @@ class AgentROS(Agent):
         self._seq_id = (self._seq_id + 1) % (2**32)  # Max uint32
         return self._seq_id
 
-    def get_data(self, data_type, arm=-1):
+    def get_data(self, arm=TRIAL_ARM):
         """
         Request for the most recent value for data/sensor readings.
         Ex. Joint angles, end effector position, jacobians.
+        Returns entire sample report (all available data)
 
         Args:
-            data_type: Integer code for a data type.
-                These are defined in proto.gps_pb2
-            arm: Either ARM_LEFT or ARM_RIGHT, or -1 if not applicable
+            arm: TRIAL_ARM or AUXILIARY_ARM
         """
         # TODO - stuff to do here.
         request = DataRequest()
         request.id = self._get_next_seq_id()
-        #request.data_type = data_type
         result_msg = self._data_service.publish_and_wait(request)
-        #assert result_msg.data_type == data_type
+        assert result_msg.id == request.id
         return result_msg.data
 
+    # TODO - the following could be more general by being relax_actuator and reset_actuator
     def relax_arm(self, arm):
         """
         Relax one of the arms of the robot.
 
         Args:
-            arm: Either 'trial_arm', or 'auxilary_arm'.
+            arm: Either TRIAL_ARM or AUXILIARY_ARM
         """
         relax_command = RelaxCommand()
         relax_command.id = self._get_next_seq_id()
@@ -92,8 +91,7 @@ class AgentROS(Agent):
         """
         reset_command = PositionCommand()
         reset_command.mode = mode
-        reset_data = data
-        reset_command.data = reset_data
+        reset_command.data = data
         reset_command.pd_gains = self._hyperparams['pid_params']
         reset_command.arm = self._hyperparams[arm]
         timeout = self._hyperparams['trial_timeout']

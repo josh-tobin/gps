@@ -54,13 +54,13 @@ agent = {
     'T': 100,
     'reset_conditions': {
         0: {
-            'trial_arm': {
-                'mode': 1,
+            TRIAL_ARM: {
+                'mode': TASK_SPACE,
                 'data': np.zeros(7),
                 #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
             },
-            'auxiliary_arm': {
-                'mode': 0,
+            AUXILIARY_ARM: {
+                'mode': JOINT_SPACE,
                 'data': np.zeros(7),
             },
         },

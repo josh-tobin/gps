@@ -10,7 +10,7 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 {
     // Get current joint angles.
     ROS_INFO_STREAM("beginning constructor");
-    plugin->get_joint_encoder_readings(previous_angles_, TrialArm);
+    plugin->get_joint_encoder_readings(previous_angles_, gps::TRIAL_ARM);
 
     // Initialize velocities.
     previous_velocities_.resize(previous_angles_.size());
@@ -49,12 +49,12 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     if (is_controller_step)
     {
         // Get new vector of joint angles from plugin.
-        plugin->get_joint_encoder_readings(temp_joint_angles_, TrialArm);
+        plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
 
         // TODO: use Kalman filter...
 
         // Get FK solvers from plugin.
-        plugin->get_fk_solver(fk_solver_,jac_solver_,TrialArm);
+        plugin->get_fk_solver(fk_solver_,jac_solver_, gps::TRIAL_ARM);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.
