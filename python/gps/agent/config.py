@@ -4,7 +4,7 @@
 from copy import deepcopy
 import numpy as np
 
-from gps.proto.gps_pb2 import LEFT_ARM, RIGHT_ARM
+from gps.proto.gps_pb2 import AUXILIARY_ARM, TRIAL_ARM
 
 
 """ Agent """
@@ -30,7 +30,7 @@ try:
         'trial_command_topic': 'gps_controller_trial_command',
         'reset_command_topic': 'gps_controller_position_command',
         'relax_command_topic': 'gps_controller_relax_command',
-        'data_command_topic': 'gps_controller_data_command',
+        'data_request_topic': 'gps_controller_data_request',
         'sample_result_topic': 'gps_controller_report',
         'trial_arm': RIGHT_ARM,
         'auxiliary_arm': LEFT_ARM,

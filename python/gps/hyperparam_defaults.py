@@ -51,6 +51,10 @@ agent = {
     'obs_include': [],
 }
 
+gui = {
+  'file_dir' : common['experiment_dir'] + 'target_files/',
+}
+
 algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
@@ -76,6 +80,7 @@ torque_cost = {
     'type': CostTorque,
     'wu': 5e-5/PR2_GAINS,
 }
+
 state_cost = {
     'type': CostState,
     'data_types' : {
@@ -116,5 +121,6 @@ defaults = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
+    #'gui': gui,  # For sim, we probably don't want the gui right now.
     'algorithm': algorithm,
 }

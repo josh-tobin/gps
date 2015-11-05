@@ -12,7 +12,7 @@ Joint encoder sensor: returns joint angles and, optionally, their velocities.
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Dense>
 
-#include "gps_agent_pkg/ArmType.h"
+#include "gps/proto/gps.pb.h"
 
 // Superclass.
 #include "gps_agent_pkg/sensor.h"

@@ -28,6 +28,8 @@ RobotPlugin::~RobotPlugin()
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     ROS_INFO_STREAM("Initializing RobotPlugin");
+    data_request_waiting_ = false;
+
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
 
@@ -53,7 +55,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
     test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
     relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
-    //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
+    data_request_subscriber_ = n.subscribe("/gps_controller_data_request", 1, &RobotPlugin::data_request_subscriber_callback, this);
 
     // Create publishers.
     report_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::SampleResult>(n, "/gps_controller_report", 1));
@@ -85,10 +87,10 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
     // Create passive arm position controller.
     // TODO: fix this to be something that comes out of the robot itself
-    passive_arm_controller_.reset(new PositionController(n, AuxiliaryArm, 7));
+    passive_arm_controller_.reset(new PositionController(n, gps::AUXILIARY_ARM, 7));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new PositionController(n, TrialArm, 7));
+    active_arm_controller_.reset(new PositionController(n, gps::TRIAL_ARM, 7));
 }
 
 // Helper function to initialize a sample from the current sensors.
@@ -119,9 +121,15 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_,
                 trial_controller_->get_step_counter());
         }
-        else if (active_arm_controller_->report_waiting){
+        else {
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
+    }
+
+    // If a data request is waiting, publish the sample.
+    if (data_request_waiting_) {
+        publish_sample_report(current_time_step_sample_);
+        data_request_waiting_ = false;
     }
 }
 
@@ -223,10 +231,9 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     }
     params["pd_gains"] = pd_gains;
 
-    // TODO - this is currently inconsistent with python/the message which encodes left vs. right, not trial vs. auxiliary
-    if(arm == TrialArm){
+    if(arm == gps::TRIAL_ARM){
         active_arm_controller_->configure_controller(params);
-    }else if (arm == AuxiliaryArm){
+    }else if (arm == gps::AUXILIARY_ARM){
         passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
@@ -308,13 +315,18 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
     int8_t arm = msg->arm;
     params["mode"] = gps::NO_CONTROL;
 
-    if(arm == TrialArm){
+    if(arm == gps::TRIAL_ARM){
         active_arm_controller_->configure_controller(params);
-    }else if (arm == AuxiliaryArm){
+    }else if (arm == gps::AUXILIARY_ARM){
         passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
     }
+}
+
+void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {
+    ROS_INFO_STREAM("received data request");
+    data_request_waiting_ = true;
 }
 
 // Get sensor.
@@ -326,15 +338,15 @@ Sensor *RobotPlugin::get_sensor(SensorType sensor)
 }
 
 // Get forward kinematics solver.
-void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm)
+void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm)
 {
     //TODO: compile errors related to boost::scoped_ptr
-    if (arm == AuxiliaryArm)
+    if (arm == gps::AUXILIARY_ARM)
     {
         fk_solver = passive_arm_fk_solver_;
         jac_solver = passive_arm_jac_solver_;
     }
-    else if (arm == TrialArm)
+    else if (arm == gps::TRIAL_ARM)
     {
         fk_solver = active_arm_fk_solver_;
         jac_solver = active_arm_jac_solver_;

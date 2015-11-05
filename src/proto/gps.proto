@@ -33,9 +33,9 @@ message Sample {
 }
 
 // Enum for actuator types (Specified in Relax/PositionCommand msgs)
-enum AcuatuorType {
-  LEFT_ARM = 0;
-  RIGHT_ARM = 1;
+enum ActuatorType {
+  TRIAL_ARM = 0;
+  AUXILIARY_ARM = 1;
   TOTAL_ACTUATOR_TYPES = 2;
 }
 

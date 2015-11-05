@@ -7,7 +7,7 @@ using namespace gps_control;
 // Constructor.
 
 // Constructor.
-PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size)
+PositionController::PositionController(ros::NodeHandle& n, gps::ActuatorType arm, int size)
     : Controller(n, arm, size)
 {
     // Initialize PD gains.
@@ -64,7 +64,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
 {
     //ROS_INFO_STREAM(">beginning position update");
     // Get current joint angles.
-    plugin->get_joint_encoder_readings(temp_angles_,arm_);
+    plugin->get_joint_encoder_readings(temp_angles_, arm_);
 
     // Check dimensionality.
     assert(temp_angles_.rows() == torques.rows());
