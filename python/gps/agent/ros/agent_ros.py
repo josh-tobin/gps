@@ -19,11 +19,19 @@ class AgentROS(Agent):
     """
     All communication between the algorithms and ROS is done through this class.
     """
-    def __init__(self, hyperparams):
+    def __init__(self, hyperparams, init_node=True):
+    """
+    Initialize agent.
+
+    Args:
+        hyperparams: dictionary of hyperparameters
+        init_node: whether or not to initialize a new ros node.
+    """
         config = deepcopy(agent_ros)
         config.update(hyperparams)
         Agent.__init__(self, config)
-        rospy.init_node('gps_agent_ros_node')
+        if init_node:
+            rospy.init_node('gps_agent_ros_node')
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands
 
