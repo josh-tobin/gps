@@ -21,7 +21,7 @@ class GPSMain():
         self._conditions = config['common']['conditions']
 
         self.agent = config['agent']['type'](config['agent'])
-        self.gui = GUI(self.agent, defaults['gui'])
+        self.gui = GUI(self.agent, config['gui'])
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this

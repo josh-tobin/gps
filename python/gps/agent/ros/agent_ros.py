@@ -37,7 +37,7 @@ class AgentROS(Agent):
                                               self._hyperparams['sample_result_topic'], SampleResult)
         self._relax_service = ServiceEmulator(self._hyperparams['relax_command_topic'], RelaxCommand,
                                               self._hyperparams['sample_result_topic'], SampleResult)
-        self._data_service = ServiceEmulator(self._hyperparams['data_command_topic'], DataRequest,
+        self._data_service = ServiceEmulator(self._hyperparams['data_request_topic'], DataRequest,
                                              self._hyperparams['sample_result_topic'], SampleResult)
 
     def _get_next_seq_id(self):
@@ -54,11 +54,12 @@ class AgentROS(Agent):
                 These are defined in proto.gps_pb2
             arm: Either ARM_LEFT or ARM_RIGHT, or -1 if not applicable
         """
+        # TODO - stuff to do here.
         request = DataRequest()
         request.id = self._get_next_seq_id()
-        request.data_type = data_type
+        #request.data_type = data_type
         result_msg = self._data_service.publish_and_wait(request)
-        assert result_msg.data_type == data_type
+        #assert result_msg.data_type == data_type
         return result_msg.data
 
     def relax_arm(self, arm):
@@ -66,7 +67,7 @@ class AgentROS(Agent):
         Relax one of the arms of the robot.
 
         Args:
-            arm: Either 'trial_arm', or 'auxillary_arm'.
+            arm: Either 'trial_arm', or 'auxilary_arm'.
         """
         relax_command = RelaxCommand()
         relax_command.id = self._get_next_seq_id()

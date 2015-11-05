@@ -20,6 +20,7 @@ with the robot.
 #include "gps_agent_pkg/TrialCommand.h"
 #include "gps_agent_pkg/RelaxCommand.h"
 #include "gps_agent_pkg/SampleResult.h"
+#include "gps_agent_pkg/DataRequest.h"
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/ArmType.h"
 #include "gps_agent_pkg/controller.h"
@@ -80,10 +81,12 @@ protected:
     // Subscriber for relax commands.
     ros::Subscriber relax_subscriber_;
     // Subscriber for current state report request.
-    ros::Subscriber report_subscriber_;
+    ros::Subscriber data_request_subscriber_;
     // Publishers.
     // Publish result of a trial, completion of position command, or just a report.
     ros_publisher_ptr(gps_agent_pkg::SampleResult) report_publisher_;
+    // Is a data request pending?
+    bool data_request_waiting_;
 public:
     // Constructor (this should do nothing).
     RobotPlugin();
@@ -112,8 +115,8 @@ public:
     virtual void test_callback(const std_msgs::Empty::ConstPtr& msg);
     // Relax command callback.
     virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
-    // Report request callback.
-    //virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+    // Data request callback.
+    virtual void data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg);
 
     // Update functions.
     // Update the sensors at each time step.

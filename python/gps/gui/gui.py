@@ -58,7 +58,7 @@ class GUI:
 
 		# Target setup
 		self._target_number = 1
-		self._sensor_names = {1: 'right_arm', 2: 'left_arm'}
+		self._sensor_names = {1: 'trial_arm', 2: 'auxiliary_arm'}
 		self._sensor_type = self._sensor_names[1]
 		# self._output_file = self._filedir + "gui_output_" + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M')
 		self._keybindings = keybindings
@@ -113,7 +113,7 @@ class GUI:
 						('mannequin_mode', self.mannequin_mode)]
 		num_actions = len(self._actions)
 		self._axarr = [plt.subplot(self._gs_setup[i]) for i in range(num_actions)]
-		
+
 		self._target_slider = DiscreteSlider(self._axarr[0], 'set_target_number', 1, 13, valinit=1, valfmt='%d')
 		self._target_slider.on_changed(self.set_target_number)
 		self._sensor_slider = DiscreteSlider(self._axarr[1], 'set_sensor_type', 1,  2, valinit=1, valfmt='%d')
@@ -180,7 +180,9 @@ class GUI:
 		self.set_output("set_sensor_type: " + self._sensor_type)
 
 	def relax_controller(self, event):
+		print 'relaxing controller'
 		self._agent.relax_arm(self._sensor_type)
+		print 'relaxed controller'
 		self.set_output("relax_controller: " + self._sensor_type)
 
 	def mannequin_mode(self, event):
@@ -188,7 +190,9 @@ class GUI:
 		self.set_output("mannequin_mode: " + "NOT YET IMPLEMENTED")
 
 	def set_initial_position(self, event):
+		print 'getting initial position data'
 		x = self._agent.get_data(JOINT_ANGLES)	# TODO - this is specific to AgentROS...
+		print 'saving initial position data'
 		filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
 		np.savez(filename, x=x)
 		self.set_output("set_initial_position: " + x)
@@ -214,7 +218,9 @@ class GUI:
 		self.set_output("move_to_target: " + x)
 
 	def set_ee_target(self, event):
+		print 'getting ee data'
 		x = self._agent.get_data(END_EFFECTOR_POINTS)	# TODO - this is specific to AgentROS...
+		print 'saving ee data'
 		filename = self._filedir + 'ee' + '_target_' + self._target_number + '.npz'
 		np.savez(filename, x=x)
 		self.set_output("set_ee_target: " + x)
@@ -236,7 +242,7 @@ class GUI:
 
 		filename = self._filedir + 'ft' + '_target_' + self._target_number + '.npz'
 		np.savez(filename, ft_points=ft_points, ft_stable=ft_stable)
-		self.set_output("set_ft_target: " + "\n" + 
+		self.set_output("set_ft_target: " + "\n" +
 				"ft_points: " + ft_points + "\n" +
 				"ft_stable: " + ft_stable)
 
@@ -261,7 +267,7 @@ class DiscreteSlider(Slider):
 		self.label.set_position((0.5, 0.5))
 		self.label.set_ha('center')
 		self.label.set_va('center')
-		
+
 		self.valtext.set_transform(self.ax.transAxes)
 		self.valtext.set_position((0.5, 0.3))
 		self.valtext.set_ha('center')

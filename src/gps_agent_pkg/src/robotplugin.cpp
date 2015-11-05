@@ -28,6 +28,8 @@ RobotPlugin::~RobotPlugin()
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     ROS_INFO_STREAM("Initializing RobotPlugin");
+    data_request_waiting_ = false;
+
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
 
@@ -53,7 +55,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
     test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
     relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
-    //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
+    data_request_subscriber_ = n.subscribe("/gps_controller_data_request", 1, &RobotPlugin::data_request_subscriber_callback, this);
 
     // Create publishers.
     report_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::SampleResult>(n, "/gps_controller_report", 1));
@@ -119,9 +121,15 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_,
                 trial_controller_->get_step_counter());
         }
-        else if (active_arm_controller_->report_waiting){
+        else {
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
+    }
+
+    // If a data request is waiting, publish the sample.
+    if (data_request_waiting_) {
+        publish_sample_report(current_time_step_sample_);
+        data_request_waiting_ = false;
     }
 }
 
@@ -315,6 +323,11 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
     }else{
         ROS_ERROR("Unknown position controller arm type");
     }
+}
+
+void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {
+    ROS_INFO_STREAM("received data request");
+    data_request_waiting_ = true;
 }
 
 // Get sensor.
