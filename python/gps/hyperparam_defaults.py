@@ -121,6 +121,6 @@ defaults = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
-    'gui': gui,
+    #'gui': gui,  # For sim, we probably don't want the gui right now.
     'algorithm': algorithm,
 }

@@ -137,7 +137,7 @@ defaults = {
     'common': common,
     'sample_data': sample_data,
     'agent': agent,
-    'gui': gui,
+    #'gui': gui,
     'algorithm': algorithm,
     'num_samples': num_samples,
 }
