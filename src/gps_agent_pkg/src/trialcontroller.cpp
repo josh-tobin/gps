@@ -1,6 +1,5 @@
 #include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/trialcontroller.h"
-#include "gps_agent_pkg/ArmType.h"
 
 using namespace gps_control;
 
