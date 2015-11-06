@@ -19,7 +19,7 @@ from gps.hyperparam_pr2 import defaults as agent_config
 
 # ~~~ GUI Specifications ~~~
 # Target setup (responsive to keyboard, gui, and PS3 controller)
-#   - set target number, set sensor type
+#   - set target number, set actuator type
 #    - relax controller, mannequin mode
 #   - set initial position (joint angles), move to initial position
 #    - set target position (joint angles), move to target position
@@ -53,8 +53,8 @@ class GUI
 
         # Target setup
         self._target_number = 1
-        self._sensor_names = {1: 'trial_arm', 2: 'auxiliary_arm'}
-        self._sensor_type = self._sensor_names[1]
+        self._actuator_names = self._hyperparams['actuator_names']
+        self._actuator_type = self._actuator_names[0]
         # self._output_file = self._filedir + "gui_output_" + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M')
         self._keybindings = keybindings
         self._controller_bindings = controller_bindings
@@ -69,8 +69,8 @@ class GUI
             'stn8': lambda event: self.set_target_number(8),
             'stn9': lambda event: self.set_target_number(9),
             'stn0': lambda event: self.set_target_number(0),
-            'sst1': lambda event: self.set_sensor_type(1),
-            'sst2': lambda event: self.set_sensor_type(2),
+            'sst1': lambda event: self.set_actuator_type(1),
+            'sst2': lambda event: self.set_actuator_type(2),
             'sip': lambda event: self.set_initial_position(event),
             'stp': lambda event: self.set_target_position(event),
             'set': lambda event: self.set_ee_target(event),
@@ -97,7 +97,7 @@ class GUI
 
         # ~~~ SETUP PANEL ~~~
         self._actions = [('set_target_number', self.set_target_number),
-                        ('set_sensor_type', self.set_sensor_type),
+                        ('set_actuator_type', self.set_actuator_type),
                         ('set_initial_position', self.set_initial_position),
                         ('move_to_initial', self.move_to_initial),
                         ('set_target_position', self.set_target_position),
@@ -111,8 +111,8 @@ class GUI
 
         self._target_slider = DiscreteSlider(self._axarr[0], 'set_target_number', 1, 13, valinit=1, valfmt='%d')
         self._target_slider.on_changed(self.set_target_number)
-        self._sensor_slider = DiscreteSlider(self._axarr[1], 'set_sensor_type', 1,  2, valinit=1, valfmt='%d')
-        self._sensor_slider.on_changed(self.set_sensor_type)
+        self._actuator_slider = DiscreteSlider(self._axarr[1], 'set_actuator_type', 1,  2, valinit=1, valfmt='%d')
+        self._actuator_slider.on_changed(self.set_actuator_type)
 
         buttons_start = 2
         self._actions_button = self._actions[buttons_start:]
@@ -132,7 +132,7 @@ class GUI
         # ~~~ OUTPUT PANEL ~~~
         self._output_ax = plt.subplot(self._gs_output[0])
         self.set_output("target number: " +  str(self._target_number) + "\n" +
-                "sensor type: " + self._sensor_type)
+                "sensor type: " + self._actuator_type)
 
         # ~~~ VISUALIZATIONS PANEL ~~~
 
@@ -168,32 +168,32 @@ class GUI
         self._target_slider.update_val(discrete_val)
         self.set_output("set_target_number: " + str(self._target_number))
 
-    def set_sensor_type(self, val):
-        discrete_val = int(val)
-        self._sensor_type = self._sensor_names[discrete_val]
-        # self._sensor_slider.set_val(discrete_val
-        self.set_output("set_sensor_type: " + self._sensor_type)
+    def set_actuator_type(self, val):
+        index = int(val) - 1
+        self._actuator_type = self._actuator_names[index]
+        # self._actuator_slider.set_val(discrete_val
+        self.set_output("set_actuator_type: " + self._actuator_type)
 
     def relax_controller(self, event):
-        self._agent.relax_arm(arm=self._sensor_type)
-        self.set_output("relax_controller: " + self._sensor_type)
+        self._agent.relax_arm(arm=self._actuator_type)
+        self.set_output("relax_controller: " + self._actuator_type)
 
     def mannequin_mode(self, event):
         # TO-DO
         self.set_output("mannequin_mode: " + "NOT YET IMPLEMENTED")
 
     def set_initial_position(self, event):
-        x = self._agent.get_data(arm=self._sensor_type)
+        x = self._agent.get_data(arm=self._actuator_type)
         # TODO get joint angles from x
-        filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
+        filename = self._filedir + self._actuator_type + '_initial_' + self._target_number + '.npz'
         np.savez(filename, x=x)
         self.set_output("set_initial_position: " + x)
 
     def move_to_initial(self, event):
-        filename = self._filedir + self._sensor_type + '_initial_' + self._target_number + '.npz'
+        filename = self._filedir + self._actuator_type + '_initial_' + self._target_number + '.npz'
         with np.load(filename) as f:
             x = f['x']
-        self._agent.reset_arm(arm=self._sensor_type, mode=JOINT_SPACE, data=x)
+        self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=x)
         self.set_output("move_to_initial: " + x)
 
     def set_target_position(self, event):
@@ -203,7 +203,7 @@ class GUI
         self.set_output("set_target_position: " + x)
 
     def move_to_target(self, event):  # TODO - need to load up joint angles from target file.
-        filename = self._filedir + self._sensor_type + '_target_' + self._target_number + '.npz'
+        filename = self._filedir + self._actuator_type + '_target_' + self._target_number + '.npz'
         with np.load(filename) as f:
             x = f['x']
         self._agent.reset_arm(arm=TRIAL_ARM, mode=TASK_SPACE, data=x)
@@ -223,8 +223,8 @@ class GUI
         ft_points_samples = np.empty()
         ft_prsnce_samples = np.empty()
         for i in range(num_samples):
-            ft_points_samples.append(self._agent.get_data(self._sensor_type, VISUAL_FEATURE_POINTS))        # currently not implemented
-            ft_prsnce_samples.append(self._agent.get_data(self._sensor_type, VISUAL_FEATURE_PRESENCE))    # currently not implemented
+            ft_points_samples.append(self._agent.get_data(self._actuator_type, VISUAL_FEATURE_POINTS))        # currently not implemented
+            ft_prsnce_samples.append(self._agent.get_data(self._actuator_type, VISUAL_FEATURE_PRESENCE))    # currently not implemented
         ft_points_mean = np.mean(ft_points)
         ft_prsnce_mean = np.mean(ft_pres)
 

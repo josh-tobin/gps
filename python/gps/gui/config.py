@@ -1,12 +1,14 @@
 """Default configuration and hyperparameter values for gui objects
 
 """
+from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
 """ TargetSetup """
 target_setup = {
     'ps3_controller_topic': 'PS3',
     'keyboard_keybindings' : {},
     'ps3_controller_keybindings': {},
+    'actuator_names': [TRIAL_ARM,AUXILIARY_ARM];
 }
 
 keybindings = {
