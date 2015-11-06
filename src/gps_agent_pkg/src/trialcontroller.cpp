@@ -1,6 +1,5 @@
 #include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/trialcontroller.h"
-#include "gps_agent_pkg/ArmType.h"
 
 using namespace gps_control;
 
@@ -40,7 +39,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
     ROS_INFO_STREAM("Torques commanded:");
-    for(int i=0; i<7; i++){
+    for(int i=0; i<torques.size(); i++){
         ROS_INFO("%f", torques[i]);
     }
 

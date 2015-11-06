@@ -7,6 +7,7 @@
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
 #include "gps_agent_pkg/utils.h"
+#include "gps/proto/gps.pb.h"
 #include <vector>
 
 using namespace gps_control;
@@ -27,6 +28,8 @@ RobotPlugin::~RobotPlugin()
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     ROS_INFO_STREAM("Initializing RobotPlugin");
+    data_request_waiting_ = false;
+
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
 
@@ -52,7 +55,7 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     trial_subscriber_ = n.subscribe("/gps_controller_trial_command", 1, &RobotPlugin::trial_subscriber_callback, this);
     test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
     relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
-    //report_subscriber_ = n.subscribe("/gps_controller_report_command", 1, &RobotPlugin::report_subscriber_callback, this);
+    data_request_subscriber_ = n.subscribe("/gps_controller_data_request", 1, &RobotPlugin::data_request_subscriber_callback, this);
 
     // Create publishers.
     report_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::SampleResult>(n, "/gps_controller_report", 1));
@@ -84,10 +87,10 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
     // Create passive arm position controller.
     // TODO: fix this to be something that comes out of the robot itself
-    passive_arm_controller_.reset(new PositionController(n, AuxiliaryArm, 7));
+    passive_arm_controller_.reset(new PositionController(n, gps::AUXILIARY_ARM, 7));
 
     // Create active arm position controller.
-    active_arm_controller_.reset(new PositionController(n, TrialArm, 7));
+    active_arm_controller_.reset(new PositionController(n, gps::TRIAL_ARM, 7));
 }
 
 // Helper function to initialize a sample from the current sensors.
@@ -105,9 +108,9 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
-    if(!is_controller_step){ //TODO: Remove this
-        return;
-    }
+    //if(!is_controller_step){ //TODO: Remove this
+        //return;
+    //}
     // Update all of the sensors and fill in the sample.
     // TODO ZDM :uncomment the following to account for more than joint sensors
     //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
@@ -118,21 +121,28 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_,
                 trial_controller_->get_step_counter());
         }
-        else if (active_arm_controller_->report_waiting){
+        else {
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
+    }
+
+    // If a data request is waiting, publish the sample.
+    if (data_request_waiting_) {
+        publish_sample_report(current_time_step_sample_);
+        data_request_waiting_ = false;
     }
 }
 
 // Update the controllers at each time step.
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
-    if(!is_controller_step){
+    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
+    if(!is_controller_step && trial_init){
         return;
     }
     //ROS_INFO_STREAM("beginning controller update");
     // If we have a trial controller, update that, otherwise update position controller.
-    if (trial_controller_ != NULL) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
+    if (trial_init) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
@@ -140,7 +150,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
-    if (trial_controller_ != NULL && trial_controller_->is_finished()) {
+    if (trial_init && trial_controller_->is_finished()) {
 
         // Publish sample after trial completion
         publish_sample_report(current_time_step_sample_);
@@ -158,17 +168,13 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
         }
     }
     if (active_arm_controller_->report_waiting){
-        ROS_INFO("cp1report1");
         if (active_arm_controller_->is_finished()){
-            ROS_INFO("cp2report1");
             publish_sample_report(current_time_step_sample_);
             active_arm_controller_->report_waiting = false;
         }
     }
     if (passive_arm_controller_->report_waiting){
-        ROS_INFO("cp1report2");
         if (passive_arm_controller_->is_finished()){
-            ROS_INFO("cp2report2");
             publish_sample_report(current_time_step_sample_);
             passive_arm_controller_->report_waiting = false;
         }
@@ -204,6 +210,7 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
 
 void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionCommand::ConstPtr& msg){
 
+    ROS_INFO_STREAM("received position command");
     OptionsMap params;
     uint8_t arm = msg->arm;
     params["mode"] = msg->mode;
@@ -215,15 +222,18 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     params["data"] = data;
 
     Eigen::MatrixXd pd_gains;
-    pd_gains.resize(msg->pd_gains.size(), 3);
-    for(int i=0; i<pd_gains.size(); i++){
-        pd_gains(i, 0) = msg->pd_gains[i];
+    pd_gains.resize(msg->pd_gains.size() / 4, 4);
+    for(int i=0; i<pd_gains.rows(); i++){
+        for(int j=0; j<4; j++){
+            pd_gains(i, j) = msg->pd_gains[i * 4 + j];
+            ROS_INFO("pd_gain[%f]", pd_gains(i, j));
+        }
     }
     params["pd_gains"] = pd_gains;
 
-    if(arm == TrialArm){
+    if(arm == gps::TRIAL_ARM){
         active_arm_controller_->configure_controller(params);
-    }else if (arm == AuxiliaryArm){
+    }else if (arm == gps::AUXILIARY_ARM){
         passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
@@ -233,6 +243,7 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
 void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::ConstPtr& msg){
 
     OptionsMap controller_params;
+    ROS_INFO_STREAM("received trial command");
 
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
@@ -261,7 +272,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }
     controller_params["obs_datatypes"] = obs_datatypes;
 
-    if(msg->controller.controller_to_execute == gps_agent_pkg::ControllerParams::LIN_GAUSS_CONTROLLER){
+    if(msg->controller.controller_to_execute == gps::LIN_GAUSS_CONTROLLER){
         //
         gps_agent_pkg::LinGaussParams lingauss = msg->controller.lingauss;
         trial_controller_.reset(new LinearGaussianController());
@@ -299,17 +310,23 @@ void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
 
 void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg){
 
+    ROS_INFO_STREAM("received relax command");
     OptionsMap params;
     int8_t arm = msg->arm;
-    params["mode"] = NoControl;
+    params["mode"] = gps::NO_CONTROL;
 
-    if(arm == TrialArm){
+    if(arm == gps::TRIAL_ARM){
         active_arm_controller_->configure_controller(params);
-    }else if (arm == AuxiliaryArm){
+    }else if (arm == gps::AUXILIARY_ARM){
         passive_arm_controller_->configure_controller(params);
     }else{
         ROS_ERROR("Unknown position controller arm type");
     }
+}
+
+void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {
+    ROS_INFO_STREAM("received data request");
+    data_request_waiting_ = true;
 }
 
 // Get sensor.
@@ -321,15 +338,15 @@ Sensor *RobotPlugin::get_sensor(SensorType sensor)
 }
 
 // Get forward kinematics solver.
-void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm)
+void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm)
 {
     //TODO: compile errors related to boost::scoped_ptr
-    if (arm == AuxiliaryArm)
+    if (arm == gps::AUXILIARY_ARM)
     {
         fk_solver = passive_arm_fk_solver_;
         jac_solver = passive_arm_jac_solver_;
     }
-    else if (arm == TrialArm)
+    else if (arm == gps::TRIAL_ARM)
     {
         fk_solver = active_arm_fk_solver_;
         jac_solver = active_arm_jac_solver_;

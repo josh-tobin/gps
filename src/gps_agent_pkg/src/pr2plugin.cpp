@@ -212,16 +212,16 @@ ros::Time PR2Plugin::get_current_time() const
 }
 
 // Get current encoder readings (robot-dependent).
-void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const
+void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const
 {
-    if (arm == AuxiliaryArm)
+    if (arm == gps::AUXILIARY_ARM)
     {
         if (angles.rows() != passive_arm_joint_state_.size())
             angles.resize(passive_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
             angles(i) = passive_arm_joint_state_[i]->position_;
     }
-    else if (arm == TrialArm)
+    else if (arm == gps::TRIAL_ARM)
     {
         if (angles.rows() != active_arm_joint_state_.size())
             angles.resize(active_arm_joint_state_.size());

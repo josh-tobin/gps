@@ -1,6 +1,8 @@
 import logging
 
-from gps.hyperparam_defaults import defaults as config
+#from gps.hyperparam_defaults import defaults as config
+from gps.hyperparam_pr2 import defaults as config
+from gps.gui.gui import GUI
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -19,6 +21,9 @@ class GPSMain():
         self._conditions = config['common']['conditions']
 
         self.agent = config['agent']['type'](config['agent'])
+        if 'gui' in config:
+            self.gui = GUI(self.agent, config['gui'])
+
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
         config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
@@ -34,6 +39,7 @@ class GPSMain():
         for itr in range(self._iterations):
             for m in range(self._conditions):
                 for i in range(n):
+                    self.agent.reset(m)
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
             self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])

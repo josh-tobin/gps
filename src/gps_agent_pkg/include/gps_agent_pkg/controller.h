@@ -12,7 +12,7 @@ Base class for a controller. Controllers take in sensor readings and choose the 
 
 // This allows us to use options.
 #include "gps_agent_pkg/options.h"
-#include "gps_agent_pkg/ArmType.h"
+#include "gps/proto/gps.pb.h"
 
 namespace gps_control
 {
@@ -27,7 +27,7 @@ private:
 
 public:
     // Constructor.
-    Controller(ros::NodeHandle& n, ArmType arm, int size);
+    Controller(ros::NodeHandle& n, gps::ActuatorType arm, int size);
     Controller();
     // Destructor.
     virtual ~Controller();

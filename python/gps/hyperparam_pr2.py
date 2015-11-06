@@ -39,9 +39,11 @@ sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
 }
+
+num_samples = 2
 
 agent = {
     'type': AgentROS,
@@ -52,20 +54,24 @@ agent = {
     'T': 100,
     'reset_conditions': {
         0: {
-            'trial_arm': {
-                'mode': 1,
+            TRIAL_ARM: {
+                'mode': TASK_SPACE,
                 'data': np.zeros(7),
                 #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
-            }, 
-            'auxiliary_arm': {
-                'mode': 0,
+            },
+            AUXILIARY_ARM: {
+                'mode': JOINT_SPACE,
                 'data': np.zeros(7),
-            }, 
+            },
         },
      },
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
+}
+
+gui = {
+  'file_dir' : common['experiment_dir'] + 'target_files/',
 }
 
 algorithm = {
@@ -88,7 +94,6 @@ algorithm['init_traj_distr'] = {
         'x0': np.zeros(14),
         'dX': 14,
         'dU': 7,
-        #'x0': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
     }
 }
 
@@ -132,5 +137,7 @@ defaults = {
     'common': common,
     'sample_data': sample_data,
     'agent': agent,
+    #'gui': gui,
     'algorithm': algorithm,
+    'num_samples': num_samples,
 }

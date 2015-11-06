@@ -16,6 +16,7 @@ This is the PR2-specific version of the robot plugin.
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps_agent_pkg/encodersensor.h"
+#include "gps/proto/gps.pb.h"
 
 namespace gps_control
 {
@@ -70,7 +71,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const;
+    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const;
 };
 
 }

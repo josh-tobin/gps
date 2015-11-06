@@ -6,6 +6,7 @@ from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
 from gps.agent.agent_utils import generate_noise
 from gps.sample.sample import Sample
+from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER
 
 
 def msg_to_sample(ros_msg, agent):
@@ -27,7 +28,7 @@ def policy_to_msg(policy, noise):
     """
     msg = ControllerParams()
     if isinstance(policy, LinearGaussianPolicy):
-        msg.controller_to_execute = ControllerParams.LIN_GAUSS_CONTROLLER
+        msg.controller_to_execute = LIN_GAUSS_CONTROLLER
         msg.lingauss = LinGaussParams()
         msg.lingauss.T = policy.T
         msg.lingauss.dX = policy.dX

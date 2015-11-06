@@ -10,7 +10,7 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 {
     // Get current joint angles.
     ROS_INFO_STREAM("beginning constructor");
-    plugin->get_joint_encoder_readings(previous_angles_, TrialArm);
+    plugin->get_joint_encoder_readings(previous_angles_, gps::TRIAL_ARM);
 
     // Initialize velocities.
     previous_velocities_.resize(previous_angles_.size());
@@ -49,12 +49,12 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     if (is_controller_step)
     {
         // Get new vector of joint angles from plugin.
-        plugin->get_joint_encoder_readings(temp_joint_angles_, TrialArm);
+        plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
 
         // TODO: use Kalman filter...
 
         // Get FK solvers from plugin.
-        plugin->get_fk_solver(fk_solver_,jac_solver_,TrialArm);
+        plugin->get_fk_solver(fk_solver_,jac_solver_, gps::TRIAL_ARM);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.
@@ -178,22 +178,19 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 
 
     // Set end effector point.
-    // Flatten points - maybe this should be kept as a matrix?
-    Eigen::VectorXd flattened_ee_pts = previous_end_effector_points_;
-    flattened_ee_pts.resize(previous_end_effector_points_.cols()*previous_end_effector_points_.rows(), 1);
+    Eigen::VectorXd flattened_ee_pts(Eigen::Map<Eigen::VectorXd>(previous_end_effector_points_.data(), 3 * 3));
     sample->set_data(t,gps::END_EFFECTOR_POINTS,flattened_ee_pts,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector point velocities.
-    //Flatten velocities - maybe this should be kept as a matrix?
-    Eigen::VectorXd flattened_ee_vel = previous_end_effector_point_velocities_;
-    flattened_ee_vel.resize(previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(), 1);
+    Eigen::VectorXd flattened_ee_vel(Eigen::Map<Eigen::VectorXd>(previous_end_effector_point_velocities_.data(), 3 * 3));
     sample->set_data(t,gps::END_EFFECTOR_POINT_VELOCITIES,flattened_ee_vel,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector position.
     Eigen::VectorXd flattened_position; //Need to convert Vector3d to VectorXd. Eigen seems finicky about this.
     flattened_position.resize(3, 1);
-    for (unsigned i = 0; i < 3; i++)
+    for (unsigned i = 0; i < 3; i++){
         flattened_position[i] = previous_position_[i];
+    }
     sample->set_data(t,gps::END_EFFECTOR_POSITIONS,flattened_position,3,SampleDataFormatEigenVector);
 
     // Set end effector rotation.
