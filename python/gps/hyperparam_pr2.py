@@ -35,6 +35,10 @@ common = {
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
+gui = {
+  'file_dir' : common['experiment_dir'] + 'target_files/',
+}
+
 sample_data = {
     'filename': 'sample_data.pkl',
     'T': 100,
@@ -45,18 +49,25 @@ sample_data = {
 
 num_samples = 2
 
+x0 = np.zeros(14)  # Assume initial state should have 0 velocity
+filename = gui['file_dir']+'trial_arm_initial.npz'
+try:
+    with np.load(filename) as file:
+        x0[0:7] = file['x']
+except IOError as e:
+    print('No initial file found, defaulting to all zeros state')
+
 agent = {
     'type': AgentROS,
     'dt': 0.05,
-    'init_pose': np.zeros(14),#np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
-    #'init_pose': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
+    'x0': x0,
     'conditions': common['conditions'],
     'T': 100,
     'reset_conditions': {
         0: {
             TRIAL_ARM: {
                 'mode': TASK_SPACE,
-                'data': np.zeros(7),
+                'data': x0[0:7],
                 #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
             },
             AUXILIARY_ARM: {
@@ -68,10 +79,6 @@ agent = {
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
-}
-
-gui = {
-  'file_dir' : common['experiment_dir'] + 'target_files/',
 }
 
 algorithm = {
@@ -91,7 +98,7 @@ algorithm['init_traj_distr'] = {
         },
         'dt': agent['dt'],
         'T': agent['T'],
-        'x0': np.zeros(14),
+        'x0': agent['x0'],
         'dX': 14,
         'dU': 7,
     }

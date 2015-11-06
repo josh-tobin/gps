@@ -43,7 +43,7 @@ from gps.hyperparam_pr2 import defaults as agent_config
 #    - save tracked data to file
 #    - create movie from image visualizations
 
-class GUI
+class GUI:
     def __init__(self, agent, hyperparams):
         # General
         self._agent = agent
@@ -73,7 +73,7 @@ class GUI
             'sst2': lambda event: self.set_actuator_type(2),
             'sip': lambda event: self.set_initial_position(event),
             'stp': lambda event: self.set_target_position(event),
-            'set': lambda event: self.set_ee_target(event),
+            #'set': lambda event: self.set_ee_target(event),
             'sft': lambda event: self.set_ft_target(event),
             'mti': lambda event: self.move_to_initial(event),
             'mtt': lambda event: self.move_to_target(event),
@@ -102,7 +102,7 @@ class GUI
                         ('move_to_initial', self.move_to_initial),
                         ('set_target_position', self.set_target_position),
                         ('move_to_target', self.move_to_target),
-                        ('set_ee_target', self.set_ee_target),
+                        #('set_ee_target', self.set_ee_target),
                         ('relax_controller', self.relax_controller),
                         ('set_ft_target', self.set_ft_target),
                         ('mannequin_mode', self.mannequin_mode)]
@@ -183,38 +183,43 @@ class GUI
         self.set_output("mannequin_mode: " + "NOT YET IMPLEMENTED")
 
     def set_initial_position(self, event):
-        x = self._agent.get_data(arm=self._actuator_type)
-        # TODO get joint angles from x
-        filename = self._filedir + self._actuator_type + '_initial_' + self._target_number + '.npz'
-        np.savez(filename, x=x)
-        self.set_output("set_initial_position: " + x)
+        sample = self._agent.get_data(arm=self._actuator_type)
+        # TODO(chelsea) make this all go in one file.
+        if self._actuator_type == TRIAL_ARM:
+            # Assuming that the initial arm pose will be the same for all targets.
+            filename = self._filedir + 'trialarm_initial.npz'
+        elif self._actuator_type == AUXILIARY_ARM:
+            filename = self._filedir + 'auxiliaryarm_initial' + self._target_number + '.npz'
+        else:
+            print('Unknown actuator type')
+            return
+        np.savez(filename, x0=sample.get(JOINT_ANGLES))
+        self.set_output("set_initial_position: " + sample.get(JOINT_ANGLES))
 
     def move_to_initial(self, event):
         filename = self._filedir + self._actuator_type + '_initial_' + self._target_number + '.npz'
         with np.load(filename) as f:
-            x = f['x']
+            x = f['x0']
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=x)
         self.set_output("move_to_initial: " + x)
 
     def set_target_position(self, event):
-        x = self._agent.get_data(TRIAL_ARM)  # TODO - this should save both joint angles and ee.
-        filename = self._filedir + '_target_' + self._target_number + '.npz'
-        np.savez(filename, x=x)
-        self.set_output("set_target_position: " + x)
+        """
+        Grabs the current end effector points and joint angles of the trial
+        arm and saves to target file.
+        """
+        sample = self._agent.get_data(TRIAL_ARM)
+        filename = self._filedir + '_target.npz'
+        add_to_npz(filename, str(self._target_number), {'ee': sample.get(END_EFFECTOR_POINTS),
+                                                        'ja': sample.get(JOINT_ANGLES)})
+        self.set_output("set_target_position: " + sample.get(END_EFFECTOR_POINTS))
 
     def move_to_target(self, event):  # TODO - need to load up joint angles from target file.
-        filename = self._filedir + self._actuator_type + '_target_' + self._target_number + '.npz'
+        filename = self._filedir + '_target.npz'
         with np.load(filename) as f:
-            x = f['x']
-        self._agent.reset_arm(arm=TRIAL_ARM, mode=TASK_SPACE, data=x)
+            x = f[str(self._target_number)]['ja']
+        self._agent.reset_arm(arm=TRIAL_ARM, mode=JOINT_SPACE, data=x)
         self.set_output("move_to_target: " + x)
-
-    # Dennis - what is the difference between this and set target position?
-    def set_ee_target(self, event):
-        x = self._agent.get_data(arm=TRIAL_ARM)    # TODO - this is specific to AgentROS...
-        filename = self._filedir + 'ee' + '_target_' + self._target_number + '.npz'
-        np.savez(filename, x=x)
-        self.set_output("set_ee_target: " + x)
 
     def set_ft_target(self, event):
         num_samples = 50
@@ -287,6 +292,20 @@ class DiscreteSlider(Slider):
         # if self.eventson:
         #     for cid, func in self.observers.iteritems():
         #         func(discrete_val)
+
+def add_to_npz(filename, key, value):
+    """
+    Helper function for adding a new (key,value) pair to a npz dictionary.
+
+    Note: key must be a string
+    """
+
+    f = np.load(filename)
+    tmp = {}
+    for k in f.keys():
+        tmp[k] = f[k]
+    tmp[key] = value
+    np.savez(filename,**tmp)
 
 if __name__ == "__main__":
     rospy.init_node('gui')

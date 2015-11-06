@@ -8,7 +8,7 @@ target_setup = {
     'ps3_controller_topic': 'PS3',
     'keyboard_keybindings' : {},
     'ps3_controller_keybindings': {},
-    'actuator_names': [TRIAL_ARM,AUXILIARY_ARM];
+    'actuator_names': [TRIAL_ARM, AUXILIARY_ARM]
 }
 
 keybindings = {
