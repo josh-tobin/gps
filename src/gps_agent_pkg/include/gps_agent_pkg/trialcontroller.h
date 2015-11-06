@@ -9,7 +9,6 @@ a subclass.
 #include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
 
-#include "gps_agent_pkg/ArmType.h"
 #include "gps/proto/gps.pb.h"
 
 // Superclass.
