@@ -21,14 +21,14 @@ class GPSMain():
         self._conditions = config['common']['conditions']
 
         self.agent = config['agent']['type'](config['agent'])
-        if 'gui' in config:
-            self.gui = GUI(self.agent, config['gui'])
+        #if 'gui' in config:
+        #    self.gui = GUI(self.agent, config['gui'])
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
-        config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
         config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
+
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
     def run(self):

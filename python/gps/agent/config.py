@@ -32,8 +32,6 @@ try:
         'relax_command_topic': 'gps_controller_relax_command',
         'data_request_topic': 'gps_controller_data_request',
         'sample_result_topic': 'gps_controller_report',
-        'trial_arm': RIGHT_ARM,
-        'auxiliary_arm': LEFT_ARM,
         'trial_timeout': 20,  # Give this many seconds to execute a trial.
         'reset_conditions': [],  # Defines reset modes + positions for trial and auxiliary arms
         'frequency': 20,

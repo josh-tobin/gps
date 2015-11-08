@@ -1,99 +1,108 @@
 """Default configuration and hyperparameter values for gui objects
 
 """
+from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
 """ TargetSetup """
 target_setup = {
     'ps3_controller_topic': 'PS3',
-    'keyboard_keybindings' : {},
-    'ps3_controller_keybindings': {},
+    'keyboard_bindings' : {},
+    'ps3_controller_bindings': {},
+    'actuator_names': [TRIAL_ARM, AUXILIARY_ARM]
 }
 
-keybindings = {
-	'1': 'stn1',
-	'2': 'stn2',
-	'3': 'stn3',
-	'4': 'stn4',
-	'5': 'stn5',
-	'6': 'stn6',
-	'7': 'stn7',
-	'8': 'stn8',
-	'9': 'stn9',
-	'0': 'stn0',
-	'z': 'sst1',
-	'x': 'sst2',
-	'q': 'sip',
-	'w': 'stp',
-	'e': 'set',
-	'r': 'sft',
-	'u': 'mti',
-	'i': 'mti',
-	'o': 'rc',
-	'p': 'mm',
+# TO-DO: hide this somewhere
+ps3_controller_buttons = {
+    'select':  0,       # select
+    'l_joy_c': 1,       # left joystick center
+    'r_joy_c': 2,       # right joystick center
+    'start':   3,       # start
+    'l_but_u': 4,       # left button up
+    'l_but_r': 5,       # left button right
+    'l_but_d': 6,       # left button down
+    'l_but_l': 7,       # left button left
+    'l_tri_2': 8,       # left trigger 2
+    'r_tri_2': 9,       # right trigger 2
+    'l_tri_1': 10,      # left trigger 1
+    'r_tri_1': 11,      # right trigger 1
+    'r_but_u': 12,      # right button up (triangle)
+    'r_but_r': 13,      # right button right (circle)
+    'r_but_d': 14,      # right button down (X)
+    'r_but_l': 15,      # right button left (square)
+    'ply_sta': 16,      # play station
 }
 
-controller_bindings = {
-	'1': 'stn1',
-	'2': 'stn2',
-	'3': 'stn3',
-	'4': 'stn4',
-	'5': 'stn5',
-	'6': 'stn6',
-	'7': 'stn7',
-	'8': 'stn8',
-	'9': 'stn9',
-	'0': 'stn0',
-	'z': 'sst1',
-	'x': 'sst2',
-	(4, 9): 'sip',
-	(5, 9): 'stp',
-	(6, 9): 'set',
-	(7, 9): 'sft',
-	(9, 12): 'mti',
-	(9, 13): 'mti',
-	(9, 14): 'rc',
-	(9, 15): 'mm',
+# TO-DO: hide this somewhere
+ps3_controller_axes = {
+    'l_joy_h': 0,       # left joystick horizontal
+    'l_joy_v': 1,       # left joystick vertical
+    'r_joy_h': 2,       # right joystick horizontal
+    'r_joy_v': 3,       # right joystick vertical
+    'l_but_u': 4,       # left button up
+    'l_but_r': 5,       # left button right
+    'l_but_d': 6,       # left button down
+    'l_but_l': 7,       # left button left
+    'l_tri_2': 8,       # left trigger 2
+    'r_tri_2': 9,       # right trigger 2
+    'l_tri_1': 10,      # left trigger 1
+    'r_tri_1': 11,      # right trigger 1
+    'r_but_u': 12,      # right button up (triangle)
+    'r_but_r': 13,      # right button right (circle)
+    'r_but_d': 14,      # right button down (X)
+    'r_but_l': 15,      # right button left (square)
+    'tilt_h':  16,      # tilt horizontal
+    'tilt_v':  17,      # tilt vertical
+    'tilt_n':  18,      # tilt normal
+    '???':     19,      # unknown
 }
 
-# controller_buttons = {
-# 	0: select
-# 	1: left joystick center
-# 	2: right joystick center
-# 	3: start
-# 	4: left button up
-# 	5: left button right
-# 	6: left button down
-# 	7: left button left
-# 	8: left trigger 2
-# 	9: right trigger 2
-# 	10: left trigger 1
-# 	11: right trigger 1
-# 	12: right button up
-#	13: right button right
-#	14: right button down
-#	15: right button left
-#	16: play station
-# }
+# TO-DO: hide these as default bindings and provide sample code for user to create custom bindings
+keyboard_bindings = {
+    # Target Setup
+    'ptn': 'left',
+    'ntn': 'right',
+    'pat': 'down',
+    'nat': 'up',
 
-# controller_axes = {
-# 	0: left joystick horizontal
-# 	1: left joystick vertical
-# 	2: right joystick horizontal
-# 	3: right joystick vertical
-# 	4: left button up
-# 	5: left button right
-# 	6: left button down
-# 	7: left button left
-# 	8: left trigger 2
-# 	9: right trigger 2
-# 	10: left trigger 1
-# 	11: right trigger 1
-# 	12: right button up
-#	13: right button right
-#	14: right button down
-#	15: right button left
-#	16: tilt left/right
-#	17: tilt up/down
-#	18: tilt normal
-#	19: ???
-# }
+    'spi': 'j',
+    'spt': 'k',
+    'sfi': 'l',
+    'sft': ';',
+
+    'mpi': 'u',
+    'mpt': 'i',
+    'rc':  'o',
+    'mm':  'p',
+
+    # Training Handler
+    'stop':  's',
+    'st-re': 'd',
+    'reset': 'f',
+    'start': 'g',
+}
+
+# TO-DO: hide these as default bindings and provide sample code for user to create custom bindings
+ps3 = ps3_controller_buttons    # using shorter name
+ps3_controller_bindings = {
+    # Target Setup
+    'ptn': (ps3['r_tri_1'], ps3['l_but_l']),
+    'ntn': (ps3['r_tri_1'], ps3['l_but_r']),
+    'pat': (ps3['r_tri_1'], ps3['l_but_d']),
+    'nat': (ps3['r_tri_1'], ps3['l_but_u']),
+
+    'spi': (ps3['r_tri_1'], ps3['r_but_l']),
+    'spt': (ps3['r_tri_1'], ps3['r_but_r']),
+    'sfi': (ps3['r_tri_1'], ps3['r_but_d']),
+    'sft': (ps3['r_tri_1'], ps3['r_but_u']),
+
+    'mpi': (ps3['r_tri_2'], ps3['l_but_l']),
+    'mpt': (ps3['r_tri_2'], ps3['l_but_r']),
+    'rc':  (ps3['r_tri_2'], ps3['l_but_d']),
+    'mm':  (ps3['r_tri_2'], ps3['l_but_u']),
+
+    # Training Handler
+    'stop':  (ps3['r_tri_2'], ps3['r_but_l']),
+    'st-re': (ps3['r_tri_2'], ps3['r_but_d']),
+    'reset': (ps3['r_tri_2'], ps3['r_but_u']),
+    'start': (ps3['r_tri_2'], ps3['r_but_r']),
+}

@@ -18,13 +18,13 @@ class AgentROS(Agent):
     All communication between the algorithms and ROS is done through this class.
     """
     def __init__(self, hyperparams, init_node=True):
-    """
-    Initialize agent.
+        """
+        Initialize agent.
 
-    Args:
-        hyperparams: dictionary of hyperparameters
-        init_node: whether or not to initialize a new ros node.
-    """
+        Args:
+            hyperparams: dictionary of hyperparameters
+            init_node: whether or not to initialize a new ros node.
+        """
         config = deepcopy(agent_ros)
         config.update(hyperparams)
         Agent.__init__(self, config)
@@ -34,7 +34,7 @@ class AgentROS(Agent):
         self._seq_id = 0  # Used for setting seq in ROS commands
 
         self.x0 = []
-        self.x0.append(self._hyperparams['init_pose'])
+        self.x0.append(self._hyperparams['x0'])
         r = rospy.Rate(1)
         r.sleep()
 
@@ -56,17 +56,19 @@ class AgentROS(Agent):
         """
         Request for the most recent value for data/sensor readings.
         Ex. Joint angles, end effector position, jacobians.
-        Returns entire sample report (all available data)
+        Returns entire sample report (all available data) in sample object
 
         Args:
             arm: TRIAL_ARM or AUXILIARY_ARM
         """
-        # TODO - stuff to do here.
         request = DataRequest()
         request.id = self._get_next_seq_id()
+        request.arm = arm
         result_msg = self._data_service.publish_and_wait(request)
-        assert result_msg.id == request.id
-        return result_msg.data
+        # TODO - make IDs match, assert that they match elsewhere here.
+        #assert result_msg.id == request.id
+        sample = msg_to_sample(result_msg, self)
+        return sample
 
     # TODO - the following could be more general by being relax_actuator and reset_actuator
     def relax_arm(self, arm):
@@ -78,14 +80,14 @@ class AgentROS(Agent):
         """
         relax_command = RelaxCommand()
         relax_command.id = self._get_next_seq_id()
-        relax_command.arm = self._hyperparams[arm]
+        relax_command.arm = arm
         self._relax_service.publish_and_wait(relax_command)
 
     def reset_arm(self, arm, mode, data):
         """
         Issues a position command to an arm
         Args:
-            arm: Either 'trial_arm', or 'auxillary_arm'.
+            arm: Either TRIAL_ARM or AUXILIARY_ARM
             mode: An integer code (defined gps_pb2)
             data: An array of floats.
         """
@@ -93,7 +95,7 @@ class AgentROS(Agent):
         reset_command.mode = mode
         reset_command.data = data
         reset_command.pd_gains = self._hyperparams['pid_params']
-        reset_command.arm = self._hyperparams[arm]
+        reset_command.arm = arm
         timeout = self._hyperparams['trial_timeout']
         reset_command.id = self._get_next_seq_id()
         reset_sample = self._reset_service.publish_and_wait(reset_command, \
@@ -109,12 +111,12 @@ class AgentROS(Agent):
         """
         #TODO: Discuss reset + implement reset
         condition_data = self._hyperparams['reset_conditions'][condition]
-        self.reset_arm('trial_arm',
-                       condition_data['trial_arm']['mode'],
-                       condition_data['trial_arm']['data'])
-        self.reset_arm('auxiliary_arm',
-                       condition_data['auxiliary_arm']['mode'],
-                       condition_data['auxiliary_arm']['data'])
+        self.reset_arm(TRIAL_ARM,
+                       condition_data[TRIAL_ARM]['mode'],
+                       condition_data[TRIAL_ARM]['data'])
+        self.reset_arm(AUXILIARY_ARM,
+                       condition_data[AUXILIARY_ARM]['mode'],
+                       condition_data[AUXILIARY_ARM]['data'])
 
     def sample(self, policy, condition, verbose=True):
         """
