@@ -2,20 +2,20 @@ from __future__ import division
 
 from datetime import datetime
 import numpy as np
+import os.path
 
-#from agent.mjc.agent_mjc import AgentMuJoCo
-from agent.ros.agent_ros import AgentROS
-from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
-from algorithm.cost.cost_fk import CostFK
-from algorithm.cost.cost_state import CostState
-from algorithm.cost.cost_torque import CostTorque
-from algorithm.cost.cost_sum import CostSum
-
-from algorithm.dynamics.dynamics_lr import DynamicsLR
-from algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
-from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from algorithm.policy.lin_gauss_init import init_lqr, init_pd
-from proto.gps_pb2 import *
+from gps import __file__ as gps_filepath
+from gps.agent.ros.agent_ros import AgentROS
+from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from gps.algorithm.cost.cost_fk import CostFK
+from gps.algorithm.cost.cost_state import CostState
+from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_sum import CostSum
+from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
+from gps.proto.gps_pb2 import *
 
 
 SENSOR_DIMS = {
@@ -28,16 +28,23 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
     'conditions': 1,
-    'experiment_dir': 'experiments/default_experiment/',
+    'experiment_dir': BASE_DIR + '/experiments/default_pr2_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
 gui = {
   'file_dir' : common['experiment_dir'] + 'target_files/',
 }
+
+if not os.path.exists(common['experiment_dir']):
+    os.makedirs(common['experiment_dir'])
+
+if not os.path.exists(gui['file_dir']):
+    os.makedirs(gui['file_dir'])
 
 sample_data = {
     'filename': 'sample_data.pkl',
