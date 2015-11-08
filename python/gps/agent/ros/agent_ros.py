@@ -61,12 +61,11 @@ class AgentROS(Agent):
         Args:
             arm: TRIAL_ARM or AUXILIARY_ARM
         """
-        # TODO - stuff to do here.
         request = DataRequest()
         request.id = self._get_next_seq_id()
+        request.arm = arm
         result_msg = self._data_service.publish_and_wait(request)
-        print('Result id' + str(result_msg.id))
-        print('Request id' + str(request.id))
+        # TODO - make IDs match, assert that they match elsewhere here.
         #assert result_msg.id == request.id
         sample = msg_to_sample(result_msg, self)
         return sample
