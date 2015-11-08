@@ -136,6 +136,11 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 // Update the controllers at each time step.
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
+
+    // Update passive arm controller.
+    // TODO - don't pass in wrong sample if used
+    passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
+
     bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
     if(!is_controller_step && trial_init){
         return;
@@ -146,8 +151,6 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
 
-    // Update passive arm controller.
-    passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
     // Check if the trial controller finished and delete it.
     if (trial_init && trial_controller_->is_finished()) {
@@ -212,7 +215,7 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
 
     ROS_INFO_STREAM("received position command");
     OptionsMap params;
-    uint8_t arm = msg->arm;
+    int8_t arm = msg->arm;
     params["mode"] = msg->mode;
     Eigen::VectorXd data;
     data.resize(msg->data.size());
