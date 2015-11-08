@@ -38,7 +38,7 @@ class TargetSetup:
         self._target_number = 0
         self._actuator_number = 0
         self._actuator_type = self._actuator_names[self._actuator_number]
-    
+
     def prev_target_number(self, event=None):
         self._target_number = (self._target_number - 1) % self._target_number_max
         self._gui.set_output("prev_target_number\n" + "target number = " + str(self._target_number))
@@ -67,14 +67,14 @@ class TargetSetup:
         if self._actuator_type == TRIAL_ARM:
             # Assuming that the initial arm pose will be the same for all targets.
             filename = self._filedir + 'trialarm_initial.npz'
+            self._gui.set_output("trial arm initial position set: " + str(sample.get(JOINT_ANGLES).T))
         elif self._actuator_type == AUXILIARY_ARM:
             filename = self._filedir + 'auxiliaryarm_initial' + self._target_number + '.npz'
+            self._gui.set_output("aux arm initial position set: " + str(sample.get(JOINT_ANGLES).T))
         else:
             print('Unknown actuator type')
             return
         np.savez(filename, x0=sample.get(JOINT_ANGLES))
-        #import ipdb; ipdb.set_trace()
-        self._gui.set_output("set_initial_position: " + str(sample.get(JOINT_ANGLES).T))
 
     def set_position_target(self, event=None):
         """
@@ -85,11 +85,11 @@ class TargetSetup:
         filename = self._filedir + 'target.npz'
         add_to_npz(filename, 'ee'+str(self._target_number), sample.get(END_EFFECTOR_POINTS))
         add_to_npz(filename, 'ja'+str(self._target_number), sample.get(JOINT_ANGLES))
-        self._gui.set_output("set_target_position: " + str(sample.get(END_EFFECTOR_POINTS).T))
+        self._gui.set_output("target set: " + str(sample.get(END_EFFECTOR_POINTS).T))
 
     def set_feature_initial(self, event=None):
         pass
-        
+
     def set_feature_target(self, event=None):
         num_samples = 50
         threshold = 0.8
@@ -112,22 +112,25 @@ class TargetSetup:
                 "ft_stable: " + ft_stable)
 
     def move_position_initial(self, event=None):
-        filename = self._filedir + self._actuator_type + '_initial_' + self._target_number + '.npz'
+        if self._actuator_type == TRIAL_ARM:
+            filename = self._filedir + 'trialarm_initial.npz'
+        elif self._actuator_type == AUXILIARY_ARM:
+            filename = self._filedir + 'auxiliaryarm_initial' + self._target_number + '.npz'
         with np.load(filename) as f:
             x = f['x0']
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=x)
-        self._gui.set_output("move_to_initial: " + x)
+        self._gui.set_output("move to initial position: " + str(x.T))
 
-    def move_position_target(self, event=None):  # TODO - need to load up joint angles from target file.
+    def move_position_target(self, event=None):
         filename = self._filedir + 'target.npz'
         with np.load(filename) as f:
-            x = f[str(self._target_number)]['ja']
+            x = f['ja'+str(self._target_number)]
         self._agent.reset_arm(arm=TRIAL_ARM, mode=JOINT_SPACE, data=x)
-        self._gui.set_output("move_to_target: " + x)
+        self._gui.set_output("move to target: " + str(x.T))
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self._gui.set_output("relax_controller: " + self._actuator_type)
+        self._gui.set_output("relax controller: " + str(self._actuator_type))
 
     def mannequin_mode(self, event=None):
         # TO-DO
@@ -137,7 +140,7 @@ def add_to_npz(filename, key, value):
     """
     Helper function for adding a new (key,value) pair to a npz dictionary.
 
-    Note: key must be a string
+    Note: key must be a string and value must be a numpy array.
     """
 
     tmp = {}
