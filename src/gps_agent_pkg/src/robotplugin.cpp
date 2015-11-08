@@ -181,20 +181,29 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
-    // TODO ZDM: make end effector samples work so that this doesn't crash
     sample->get_available_dtypes(dtypes);
-    // currently hardcoded to actions, joint angles, and joint velocities
 
-    report_publisher_->msg_.sensor_data.resize(dtypes.size()); //TODO: Only doing pos/vel right now
-    for(int d=0; d<dtypes.size(); d++){
+    report_publisher_->msg_.sensor_data.resize(dtypes.size());
+    for(int d=0; d<dtypes.size(); d++){ //Fill in each sample type
         report_publisher_->msg_.sensor_data[d].data_type = dtypes[d];
         Eigen::VectorXd tmp_data;
-        sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
+        sample->get_data_all_timesteps(tmp_data, shape, (gps::SampleType)dtypes[d]);
         report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
 
-        report_publisher_->msg_.sensor_data[d].shape.resize(2); //Tx? Matrix
-        report_publisher_->msg_.sensor_data[d].shape[0] = sample->get_T();
-        report_publisher_->msg_.sensor_data[d].shape[1] = tmp_data.size()/sample->get_T();
+
+        std::vector<int> shape;
+        sample->get_shape((gps::SampleType)dtypes[d], shape);
+        shape.insert(0, sample->get_T());
+        report_publisher_->msg_.sensor_data[d].shape.resize(shape.size());
+        int total_expected_shape = 1;
+        for(int i=0; i< shape.size(); i++){
+            report_publisher_->msg_.sensor_data[d].shape[i] = shape[i];
+            total_expected_shape *= shape[i];
+        }
+        if(total_expected_shape != tmp_data.size()){
+            ROS_ERROR("Data stored in sample has different length than expected (%d vs %d)", 
+                    tmp_data.size(), total_expected_shape);
+        }
         for(int i=0; i<tmp_data.size(); i++){
             report_publisher_->msg_.sensor_data[d].data[i] = tmp_data[i];
         }

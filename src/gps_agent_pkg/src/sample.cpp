@@ -94,6 +94,23 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 	}
 }
 
+void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
+{
+    int dtype = (int)sample_type;
+    int size = internal_data_size_[dtype];
+    shape.clear();
+    if(internal_data_format_[dtype] == SampleDataFormatEigenVector){
+        shape.push_back(size);
+    }else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
+        //TODO: Maybe specify shape in the metadata, instead of relying on the T=0 sample
+        //Grab shape from first entry at T=0
+        SampleVariant sample_variant = sample_list[0];
+        Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
+        shape.push_back(sensor_data.rows());
+        shape.push_back(sensor_data.cols());
+    }
+}
+
 void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes)
 {
 	if(t >= T_) ROS_ERROR("Out of bounds t: %d/%d", t, T_);
