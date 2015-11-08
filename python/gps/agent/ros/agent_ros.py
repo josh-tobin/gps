@@ -65,7 +65,9 @@ class AgentROS(Agent):
         request = DataRequest()
         request.id = self._get_next_seq_id()
         result_msg = self._data_service.publish_and_wait(request)
-        assert result_msg.id == request.id
+        print('Result id' + str(result_msg.id))
+        print('Request id' + str(request.id))
+        #assert result_msg.id == request.id
         sample = msg_to_sample(result_msg, self)
         return sample
 

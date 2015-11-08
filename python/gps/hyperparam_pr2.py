@@ -47,15 +47,24 @@ sample_data = {
     'obs_include': [],
 }
 
-num_samples = 2
+num_samples = 5
 
 x0 = np.zeros(14)  # Assume initial state should have 0 velocity
-filename = gui['file_dir']+'trial_arm_initial.npz'
+filename = gui['file_dir']+'trialarm_initial.npz'
 try:
-    with np.load(filename) as file:
-        x0[0:7] = file['x']
+    with np.load(filename) as f:
+        x0[0:7] = f['x0']
 except IOError as e:
     print('No initial file found, defaulting to all zeros state')
+
+tgt = np.zeros(7)  # Assume initial state should have 0 velocity
+filename = gui['file_dir']+'target.npz'
+try:
+    with np.load(filename) as f:
+        tgt = f['ja0']
+except IOError as e:
+    print('No target file found, defaulting to all zeros state')
+
 
 agent = {
     'type': AgentROS,
@@ -66,7 +75,7 @@ agent = {
     'reset_conditions': {
         0: {
             TRIAL_ARM: {
-                'mode': TASK_SPACE,
+                'mode': JOINT_SPACE,
                 'data': x0[0:7],
                 #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
             },
@@ -106,7 +115,7 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-5/PR2_GAINS,
+    'wu': 5e-3/PR2_GAINS,
 }
 
 state_cost = {
@@ -116,7 +125,8 @@ state_cost = {
             'wp': np.ones(SENSOR_DIMS[ACTION]),
             #'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
                 #-1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
-            'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
+            #'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
+            'desired_state': tgt,
         },
     },
     'wp': np.array([1, 1, 1, 1, 1, 1]),
@@ -144,7 +154,7 @@ defaults = {
     'common': common,
     'sample_data': sample_data,
     'agent': agent,
-    #'gui': gui,
+    'gui': gui,
     'algorithm': algorithm,
     'num_samples': num_samples,
 }
