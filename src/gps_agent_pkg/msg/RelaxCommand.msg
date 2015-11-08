@@ -1,5 +1,2 @@
-int8 LEFT_ARM=1
-int8 RIGHT_ARM=2
-
-int32 id
-int8 arm
+int32 id  # ID must be echoed back in SampleResult
+int32 arm  # which arm to relax (ActuatorType enum)

@@ -2,7 +2,9 @@ from __future__ import division
 
 from datetime import datetime
 import numpy as np
+import os.path
 
+from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_fk import CostFK
@@ -26,12 +28,23 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
     'conditions': 4,
-    'experiment_dir': 'experiments/default_experiment/',
+    'experiment_dir': BASE_DIR + '/experiments/default_mjc_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
+
+gui = {
+  'file_dir' : common['experiment_dir'] + 'target_files/',
+}
+
+if not os.path.exists(common['experiment_dir']):
+    os.mkdirs(common['experiment_dir'])
+
+if not os.path.exists(gui['file_dir']):
+    os.mkdirs(gui['file_dir'])
 
 agent = {
     'type': AgentMuJoCo,
@@ -66,7 +79,7 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        'x0': agent['init_pose'][:SENSOR_DIMS[JOINT_ANGLES]]
+        'x0': agent['init_pose'][:SENSOR_DIMS[JOINT_ANGLES]],
         'dt': agent['dt'],
         'T': agent['T'],
     }
@@ -76,6 +89,7 @@ torque_cost = {
     'type': CostTorque,
     'wu': 5e-5/PR2_GAINS,
 }
+
 state_cost = {
     'type': CostState,
     'data_types' : {
@@ -116,5 +130,6 @@ defaults = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
+    'gui': gui,  # For sim, we probably don't want the gui right now.
     'algorithm': algorithm,
 }
