@@ -1,11 +1,12 @@
 from caffe import layers as L, NetSpec
-from caffe.proto import caffe_pb2
+from caffe.proto.caffe_pb2 import TRAIN, TEST
 
 def construct_fc_network(n_layers = 3,
                          dim_hidden = [40,40],
                          dim_input = 27,
                          dim_output = 7,
-                         batch_size = 25):
+                         batch_size = 25,
+                         phase = TRAIN):
     """
     Constructs an anonymous network (no layer names) with the specified number
     of inner product layers, and returns NetParameter protobuffer.
@@ -24,15 +25,15 @@ def construct_fc_network(n_layers = 3,
     Returns:
         NetParameter specification of network
     """
-    [input, action, precision] = L.DummyData(ntop=3,
-            shape=[dict(dim=[batch_size, dim_input]),
-                   dict(dim=[batch_size, dim_output]),
-                   dict(dim=[batch_size, dim_output, dim_output])])
+    if phase == TRAIN:
+        [input, action, precision] = L.DummyData(ntop=3,
+                shape=[dict(dim=[batch_size, dim_input]),
+                dict(dim=[batch_size, dim_output]),
+                dict(dim=[batch_size, dim_output, dim_output])])
+    else:
+        [input] = L.DummyData(ntop=1,
+                shape=[dict(dim=[batch_size, dim_input])])
 
-    #[input, precision, action] = L.MemoryData(ntop=3,
-    #        input_shapes=[dict(dim=[batch_size, Di]),
-    #                      dict(dim=[batch_size,Do,Do]),
-    #                      dict(dim=[batch_size,Do])])
     cur_top = input
     dim_hidden.append(Do)
     for i in range(n_layers):
@@ -43,19 +44,10 @@ def construct_fc_network(n_layers = 3,
         # Add nonlinearity to all hidden layers
         if i < n_layers-1:
             cur_top = L.ReLU(cur_top, in_place=True)
-    # TODO - the below layer should only exist during training phase
-    loss = L.WeightedEuclideanLoss(cur_top, action, precision)
-    return loss.to_proto()
 
-def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
-    assert len(inputs) == len(targets)
-    if shuffle:
-        indices = np.arange(len(inputs))
-        np.random.shuffle(indices)
-    for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
-        if shuffle:
-            excerpt = indices[start_idx:start_idx + batchsize]
-        else:
-            excerpt = slice(start_idx, start_idx + batchsize)
-        yield inputs[excerpt], targets[excerpt]
+    if phase == TRAIN:
+        out = L.WeightedEuclideanLoss(cur_top, action, precision)
+    else:
+        out = cur_top
 
+    return out.to_proto()

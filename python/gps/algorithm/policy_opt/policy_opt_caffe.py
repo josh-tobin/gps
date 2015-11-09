@@ -1,5 +1,5 @@
 import caffe
-from caffe.proto.caffe_pb2 import SolverParameter
+from caffe.proto.caffe_pb2 import SolverParameter, TRAIN, TEST
 from google.protobuf.text_format import MessageToString
 import tempfile
 
@@ -44,8 +44,10 @@ class PolicyOptCaffe(object):
             network_arch_params = self._hyperparams['network_arch_params']
             network_arch_params['batch_size'] = self.batch_size
             network_arch_params['dim_input'] = self._dObs
-            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**net_arch_params))
-            solver_param.test_net_param.add().CopyFrom(self._hyperparams['network_model'](**net_arch_params))
+            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**net_arch_params,
+                                                                                     phase=TRAIN))
+            solver_param.test_net_param.add().CopyFrom(self._hyperparams['network_model'](**net_arch_params,
+                                                                                          phase=TEST))
 
             # These are required by caffe to be set, but not used.
             solver_param.test_iter() = 1
