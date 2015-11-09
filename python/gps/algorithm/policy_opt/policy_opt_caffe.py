@@ -11,11 +11,11 @@ class PolicyOptCaffe(object):
 
     """
 
-    def __init__(self, hyperparams):
+    def __init__(self, hyperparams, dObs):
         config = copy.deepcopy(policy_opt_caffe)
         config.update(hyperparams)
 
-        PolicyOpt.__init__(self, config)
+        PolicyOpt.__init__(self, config, dObs)
 
         self.batch_size = self._hyperparams['batch_size']
 
@@ -28,7 +28,7 @@ class PolicyOptCaffe(object):
         self.init_solver()
         # TODO - deal with variance
         # TODO - handle test network assumption a bit nicer, and/or document it
-        #self.policy = CaffePolicy(self.solver.test_nets[0], 0) # Is this network immutable?
+        self.policy = CaffePolicy(self.solver.test_nets[0], 0)
 
     def init_solver(self):
         """ Helper method to initialize the solver from hyperparameters. """
@@ -43,7 +43,13 @@ class PolicyOptCaffe(object):
         else:
             network_arch_params = self._hyperparams['network_arch_params']
             network_arch_params['batch_size'] = self.batch_size
-            solver_param.net_param.CopyFrom(self._hyperparams['network_model'](**net_arch_params))
+            network_arch_params['dim_input'] = self._dObs
+            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**net_arch_params))
+            solver_param.test_net_param.add().CopyFrom(self._hyperparams['network_model'](**net_arch_params))
+
+            # These are required by caffe to be set, but not used.
+            solver_param.test_iter() = 1
+            solver_param.test_interval = 1000000
 
         f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
         f.write(MessageToString(solver_param))
@@ -92,7 +98,6 @@ class PolicyOptCaffe(object):
         # Save out the weights, TODO - figure out how to get itr number
         solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
 
-        # TODO - does this do the right thing? Is the policy going to have the new weights?
         return self.policy
 
     def prob(self, obs):

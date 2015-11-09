@@ -2,9 +2,9 @@ from caffe import layers as L, NetSpec
 from caffe.proto import caffe_pb2
 
 def construct_fc_network(n_layers = 3,
-                         Dh = [40,40],
-                         Di = 27,
-                         Do = 7,
+                         dim_hidden = [40,40],
+                         dim_input = 27,
+                         dim_output = 7,
                          batch_size = 25):
     """
     Constructs an anonymous network (no layer names) with the specified number
@@ -17,27 +17,27 @@ def construct_fc_network(n_layers = 3,
 
     Args:
         n_layers: number of fully connected layers (including output layer)
-        Dh (list): dimensionality of each hidden layer
-        Di: dimensionality of input
-        Do: dimensionality of the output
+        dim_hidden (list): dimensionality of each hidden layer
+        dim_input: dimensionality of input
+        dim_output: dimensionality of the output
         batch_size: batch size
     Returns:
         NetParameter specification of network
     """
     [input, action, precision] = L.DummyData(ntop=3,
-            shape=[dict(dim=[batch_size, Di]),
-                   dict(dim=[batch_size,Do]),
-                   dict(dim=[batch_size,Do,Do])])
+            shape=[dict(dim=[batch_size, dim_input]),
+                   dict(dim=[batch_size, dim_output]),
+                   dict(dim=[batch_size, dim_output, dim_output])])
 
     #[input, precision, action] = L.MemoryData(ntop=3,
     #        input_shapes=[dict(dim=[batch_size, Di]),
     #                      dict(dim=[batch_size,Do,Do]),
     #                      dict(dim=[batch_size,Do])])
     cur_top = input
-    Dh.append(Do)
+    dim_hidden.append(Do)
     for i in range(n_layers):
         cur_top = L.InnerProduct(cur_top,
-                                 num_output=Dh[i],
+                                 num_output=dim_hidden[i],
                                  weight_filler=dict(type='gaussian', std=0.01),
                                  bias_filler=dict(type='constant', value=0))
         # Add nonlinearity to all hidden layers
@@ -58,6 +58,4 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         else:
             excerpt = slice(start_idx, start_idx + batchsize)
         yield inputs[excerpt], targets[excerpt]
-
-
 
