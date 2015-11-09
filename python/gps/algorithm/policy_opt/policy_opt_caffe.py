@@ -28,23 +28,26 @@ class PolicyOptCaffe(object):
     def init_solver(self):
         """ Helper method to initialize the solver from hyperparameters. """
 
-        SolverParameter solver_param = new SolverParameter()
+        solver_param = SolverParameter()
         solver_param.base_lr = self._hyperparams['lr']
+        #solver_param.type = self._hyperparams['solver_type']
 
         # Pass in net parameter either by filename or protostring
         if isinstance(self._hyperparams['network_model'], basestring):
-            solver_param.train_net = self._hyperparams['network_model']
+            solver_param.net = self._hyperparams['network_model']  # filename
         else:
-            solver_param.train_net_param = self._hyperparams['network_model'](**self._hyperparams['network_params'])
+            solver_param.net_param.CopyFrom(self._hyperparams['network_model'](**self._hyperparams['network_params']))
 
-        self.solver = config['solver'](solver_param)
+        self.solver = config['solver'](solver_param) # TODO - this won't work yet... :/
 
-    def update(self):
+    def update(self, obs, tgt_mu, tgt_prc, tgt_wt):
         """ Update policy.
 
         Returns:
             a CaffePolicy with updated weights
         """
+        # TODO - this next line won't work yet. Also, need to convert to single?
+        solver.net.SetInputArrays(obs,tgt_mu,tgt_prc,tgt_wt)
 
         for itr in range(self._hyperparams['iterations']):
             self.solver.step(1)
@@ -63,3 +66,11 @@ class PolicyOptCaffe(object):
         # TODO - does this do the right thing? Is the policy going to have the new weights?
         return self.policy
 
+    def prob(self, obs):
+        # TODO - docs.
+        """ Run policy forward.
+        """
+        # TODO - float?
+        solver.test_nets[0].SetInputArrays(obs)
+
+        return solver.test_nets[0].forward(), []

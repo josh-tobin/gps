@@ -1,4 +1,4 @@
-from caffe import NetSpec, layers as L, to_proto
+from caffe import layers as L, NetSpec
 from caffe.proto import caffe_pb2
 
 def construct_fc_network(n_layers = 3,
@@ -25,21 +25,20 @@ def construct_fc_network(n_layers = 3,
         NetParameter specification of network
     """
 
-    # TODO - Don't use memory data layer?
-    [input, precision, action] = L.MemoryDataLayer(
+    [input, precision, action] = L.MemoryData(ntop=3,
             input_shapes=[dict(dim=[batch_size, Di]),
-                          dict(dim=[batch_size,units[-1],Do]),
-                          dict(dim=[batch_size,Do]], ntop=3)
-    cur_top = mem_tops[0]
-    units.append(Do)
+                          dict(dim=[batch_size,Do,Do]),
+                          dict(dim=[batch_size,Do])])
+    cur_top = input
+    Dh.append(Do)
     for i in range(n_layers):
         cur_top = L.InnerProduct(cur_top,
-                                 num_output=units[i],
+                                 num_output=Dh[i],
                                  weight_filler=dict(type='gaussian', std=0.01),
                                  bias_filler=dict(type='constant', value=0))
         # Add nonlinearity to all hidden layers
         if i < n_layers-1:
             cur_top = L.ReLU(cur_top, in_place=True)
+    # TODO - the below layer should only exist during training phase
     loss = L.WeightedEuclideanLoss(cur_top, action, precision)
     return loss.to_proto()
-
