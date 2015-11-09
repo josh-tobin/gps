@@ -79,6 +79,18 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     initialize_sample(current_time_step_sample_);
 }
 
+
+//Helper method to configure all sensors
+void RobotPlugin::configure_sensors(OptionsMap &opts)
+{
+    for (int i = 0; i < 1; i++)
+    // TODO: readd this when more sensors work
+    //for (int i = 0; i < TotalSensorTypes; i++)
+    {
+        sensors_[i].configure_sensor(opts);
+    }
+}
+
 // Initialize position controllers.
 void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
@@ -300,6 +312,24 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }else{
         ROS_ERROR("Unknown trial controller arm type");
     }
+
+    // Configure sensor for trial
+    OptionsMap sensor_params;
+
+    // Feed EE points/sites to sensors
+    Matrix::Xd ee_points_;
+    if( msg->ee_points.size() % 3 != 0){
+        ROS_ERROR("Got %d ee_points (must be multiple of 3)", msg->ee_points.size());
+    }
+    int n_points = msg->ee_points.size()/3;
+    ee_points_.resize(n_points, 3);
+    for(int i=0; i<n_points; i++){
+        for(int j=0; j<3; j++){
+            ee_points_(i, j) = msg->ee_points[j+3*i];
+        }
+    }
+    sensor_params["ee_sites"] = ee_points_;
+    configure_sensors(sensor_params);
 }
 
 void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){

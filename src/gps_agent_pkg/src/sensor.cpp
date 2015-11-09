@@ -51,7 +51,7 @@ void Sensor::set_update(double new_sensor_step_length)
 }
 
 // Configure the sensor (for sensor-specific trial settings).
-void Sensor::configure_sensor(const OptionsMap &options)
+void Sensor::configure_sensor(OptionsMap &options)
 {
     // Nothing to do.
 }

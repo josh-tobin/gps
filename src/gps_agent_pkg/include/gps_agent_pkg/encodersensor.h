@@ -49,6 +49,11 @@ private:
     KDL::Frame temp_tip_pose_;
     // Temporary storage for KDL Jacobian.
     KDL::Jacobian temp_jacobian_;
+    // End-effector site/point offsets
+    int n_points_;
+    // EE Point jacobian
+    Eigen::MatrixXd point_jacobians_;
+    Eigen::MatrixXd point_jacobians_rot_;
 
     boost::shared_ptr<KDL::ChainFkSolverPos> fk_solver_;
     boost::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
@@ -78,7 +83,7 @@ public:
     virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
     // The settings include the configuration for the Kalman filter.
-    virtual void configure_sensor(const OptionsMap &options);
+    virtual void configure_sensor(OptionsMap &options);
     // Set data format and meta data on the provided sample.
     virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.

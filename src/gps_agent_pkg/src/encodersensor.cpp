@@ -25,11 +25,16 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
     previous_jacobian_.resize(6,previous_angles_.size());
     temp_jacobian_.resize(previous_angles_.size());
 
-    // Allocate space for end effector points (default number is 3).
-    previous_end_effector_points_.resize(3,3);
-    previous_end_effector_point_velocities_.resize(3,3);
-    temp_end_effector_points_.resize(3,3);
-    end_effector_points_.resize(3,3);
+    // Allocate space for end effector points
+    previous_end_effector_points_.resize(1,3);
+    previous_end_effector_point_velocities_.resize(1,3);
+    temp_end_effector_points_.resize(1,3);
+    end_effector_points_.resize(1,3);
+
+    // Resize point jacobians
+    point_jacobians_.resize(3, previous_angles_.size());
+    point_jacobians_rot_.resize(3, previous_angles_.size());
+
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
@@ -77,8 +82,45 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // effector itself. In the old code, this correction was done in Matlab, but since the simulator will produce Jacobians of end
         // effector points directly, it would make sense to also do this transformation on the robot, and send back N Jacobians, one for
         // each feature point.
-        // TODO: fix this
-        //ROS_ERROR("FIX THIS!!");
+        // Compute jacobian
+        unsigned n_actuator = previous_joint_angles_.size(); //TODO: Assuming we are using all joints
+        ROS_INFO("n_actuator: %d", n_actuator);
+        for(unsigned i=0; i<n_sites_; i++){
+            ROS_INFO("Setting point %d", i);
+            unsigned site_start = i*3;
+            unsigned site_end = (i+1)*3;
+            Eigen::VectorXd ovec = end_effector_points_.row(i);
+            ROS_INFO("Site vec= (%d,%d,%d)", site_vec[0], site_vec[1], site_vec[2]);
+            
+            //point_jacobians_[site_start:site_end, iq] = temp_jacobian_[0:3,:]
+            //point_jacobians_rot_[site_start:site_end, iq] = temp_jacobian_[3:6,:]
+            for(unsigned j=0; j<3; j++){
+                for(unsigned k=0; k<n_actuator; k++){
+                    point_jacobians_(site_start+j, k) = temp_jacobian_(j,k)
+                    point_jacobians_rot_(site_start+j, k) = temp_jacobian_(j+3,k)
+                }
+            }
+            ROS_INFO("Copied jac");
+            
+            // Compute site Jacobian.
+            ovec = previous_rotation*ovec;
+
+            for(unsigned j=0; j<3; j++){
+                point_jacobians_[site_start:site_end, iq]
+                MatrixXd Jr;
+                Jr = point_jacobians_rot_;
+                for(int k=0; k<n_actuator; k++){
+                    point_jacobians_(site_start, k) = Jr(site_start+1, k)*ovec[2] - Jr(site_start+2, k)*ovec[1];
+                    point_jacobians_(site_start+1, k) = Jr(site_start+2, k)*ovec[0] - Jr(site_start, k)*ovec[2];
+                    point_jacobians_(site_start+2, k) = Jr(site_start, k)*ovec[1] - Jr(site_start+1, k)*ovec[0];
+                }
+                /*
+                np.c_[Jr[site_start+1, iq]*ovec[2] - Jr[site_start+2, iq]*ovec[1] , 
+                 Jr[site_start+2, iq]*ovec[0] - Jr[site_start, iq]*ovec[2] , 
+                 Jr[site_start, iq]*ovec[1] - Jr[site_start+1, iq]*ovec[0]].T
+                */
+            }
+        }
 
         // Compute current end effector points and store in temporary storage.
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
@@ -122,7 +164,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 }
 
 // The settings include the configuration for the Kalman filter.
-void EncoderSensor::configure_sensor(const OptionsMap &options)
+void EncoderSensor::configure_sensor(OptionsMap &options)
 {
     // TODO: should set up Kalman filter here.
     /* TODO: note that this will get called every time there is a report, so
@@ -130,9 +172,21 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
     to set end-effector points. Instead, just use the stored transform to
     compute what the points should be! This will allow us to query positions
     and velocities each time. */
-    ROS_ERROR("Not implemented!");
+    ROS_WARNING("Kalman filter configuration not implemented!");
 
-    // TODO: Also configure end effector points
+    end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]);
+    n_points_ = end_effector_points_.rows()
+    if( end_effector_points_.cols() != 3){
+        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", n_points_,
+                end_effector_points_.cols());
+    }
+    previous_end_effector_points_.resize(n_points_,3);
+    previous_end_effector_point_velocities_.resize(n_points_,3);
+    temp_end_effector_points_.resize(n_points_,3);
+    end_effector_points_.resize(n_points_,3);
+    point_jacobians_.resize(3*n_points_, previous_angles_.size());
+    point_jacobians_rot_.resize(3*n_points_, previous_angles_.size());
+
 }
 
 // Set data format and meta data on the provided sample.
