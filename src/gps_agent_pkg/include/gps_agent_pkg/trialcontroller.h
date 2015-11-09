@@ -26,6 +26,8 @@ private:
     ros::Time last_update_time_;
     // Counter for time step increment.
     int step_counter_;
+    // Holds the last step of a trial
+    int trial_end_step_;
     // Current time step.
     boost::scoped_ptr<Sample> current_step_;
     // Trajectory sample.
@@ -46,6 +48,8 @@ public:
     virtual void configure_controller(OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
+    // Return trial step index
+    virtual int get_step_counter();
     // Ask the controller to return the sample collected from its latest execution.
     virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Called when controller is turned on

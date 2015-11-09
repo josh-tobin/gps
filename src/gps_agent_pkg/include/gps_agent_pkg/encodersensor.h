@@ -16,6 +16,7 @@ Joint encoder sensor: returns joint angles and, optionally, their velocities.
 
 // Superclass.
 #include "gps_agent_pkg/sensor.h"
+#include "gps_agent_pkg/sample.h"
 
 /*
 TODO: this thing needs a Kalman filter.
@@ -49,8 +50,8 @@ private:
     // Temporary storage for KDL Jacobian.
     KDL::Jacobian temp_jacobian_;
 
-    boost::scoped_ptr<KDL::ChainFkSolverPos> fk_solver_;
-    boost::scoped_ptr<KDL::ChainJntToJacSolver> jac_solver_;
+    boost::shared_ptr<KDL::ChainFkSolverPos> fk_solver_;
+    boost::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
 
     // End-effector points in the space of the end-effector.
     Eigen::MatrixXd end_effector_points_;
@@ -79,9 +80,9 @@ public:
     // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(const OptionsMap &options);
     // Set data format and meta data on the provided sample.
-    virtual void set_sample_data_format(boost::scoped_ptr<Sample> sample) const;
+    virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.
-    virtual void set_sample_data(boost::scoped_ptr<Sample> sample) const;
+    virtual void set_sample_data(boost::scoped_ptr<Sample>& sample, int t);
 };
 
 }

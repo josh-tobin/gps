@@ -9,19 +9,21 @@ using namespace gps_control;
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
 {
     // Get current joint angles.
+    ROS_INFO_STREAM("beginning constructor");
     plugin->get_joint_encoder_readings(previous_angles_, TrialArm);
 
     // Initialize velocities.
-    previous_velocities_.resize(previous_angles_.size(),0.0);
+    previous_velocities_.resize(previous_angles_.size());
 
     // Initialize temporary angles.
-    temp_joint_angles_.resize(previous_angles_.size(),0.0);
+    temp_joint_angles_.resize(previous_angles_.size());
 
     // Resize KDL joint array.
     temp_joint_array_.resize(previous_angles_.size());
 
     // Resize Jacobian.
     previous_jacobian_.resize(6,previous_angles_.size());
+    temp_jacobian_.resize(previous_angles_.size());
 
     // Allocate space for end effector points (default number is 3).
     previous_end_effector_points_.resize(3,3);
@@ -31,6 +33,7 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
+    ROS_INFO_STREAM("ending constructor");
 }
 
 // Destructor.
@@ -42,17 +45,16 @@ EncoderSensor::~EncoderSensor()
 // Update the sensor (called every tick).
 void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
 {
+    //ROS_INFO_STREAM("EncoderSensor::update");
     if (is_controller_step)
     {
         // Get new vector of joint angles from plugin.
         plugin->get_joint_encoder_readings(temp_joint_angles_, TrialArm);
 
         // TODO: use Kalman filter...
-        
+
         // Get FK solvers from plugin.
-        boost::scoped_ptr<KDL::ChainFkSolverPos> fk_solver;
-        boost::scoped_ptr<KDL::ChainJntToJacSolver> jac_solver;
-        plugin->get_fk_solver(fk_solver,jac_solver,TrialArm);
+        plugin->get_fk_solver(fk_solver_,jac_solver_,TrialArm);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.
@@ -75,17 +77,19 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // effector itself. In the old code, this correction was done in Matlab, but since the simulator will produce Jacobians of end
         // effector points directly, it would make sense to also do this transformation on the robot, and send back N Jacobians, one for
         // each feature point.
-        ROS_ERROR("FIX THIS!!");
+        // TODO: fix this
+        //ROS_ERROR("FIX THIS!!");
 
         // Compute current end effector points and store in temporary storage.
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        /* TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes... */
+        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes...
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
         // If they are roughly from one step ago, assume the step is correct, otherwise use actual time.
+
         double update_time = current_time.toSec() - previous_angles_time_.toSec();
         if (!previous_angles_time_.isZero())
         { // Only compute velocities if we have a previous sample.
@@ -93,14 +97,16 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
                 fabs(update_time)/sensor_step_length_ <= 2.0)
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/sensor_step_length_;
-                for (unsigned i = 0; i < previous_velocities_.size(); i++)
+                for (unsigned i = 0; i < previous_velocities_.size(); i++){
                     previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
+                }
             }
             else
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/update_time;
-                for (unsigned i = 0; i < previous_velocities_.size(); i++)
+                for (unsigned i = 0; i < previous_velocities_.size(); i++){
                     previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
+                }
             }
         }
 
@@ -125,61 +131,79 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
     compute what the points should be! This will allow us to query positions
     and velocities each time. */
     ROS_ERROR("Not implemented!");
+
+    // TODO: Also configure end effector points
 }
 
 // Set data format and meta data on the provided sample.
-void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample> sample) const
+void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 {
     // Set joint angles size and format.
     OptionsMap joints_metadata;
-    sample->set_meta_data(gps::SampleType::JOINT_ANGLES,previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble,joints_metadata);
+    sample->set_meta_data(gps::JOINT_ANGLES,previous_angles_.size(),SampleDataFormatEigenVector,joints_metadata);
 
     // Set joint velocities size and format.
     OptionsMap velocities_metadata;
-    sample->set_meta_data(gps::SampleType::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble,joints_metadata);
+    sample->set_meta_data(gps::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormatEigenVector,joints_metadata);
 
     // Set end effector point size and format.
     OptionsMap eep_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble,eep_metadata);
+    sample->set_meta_data(gps::END_EFFECTOR_POINTS,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector,eep_metadata);
 
     // Set end effector point velocities size and format.
     OptionsMap eepv_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormat::SampleDataFormatDouble,eepv_metadata);
+    sample->set_meta_data(gps::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector,eepv_metadata);
 
     // Set end effector position size and format.
     OptionsMap eepos_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_POSITIONS,3,SampleDataFormat::SampleDataFormatDouble,eepos_metadata);
+    sample->set_meta_data(gps::END_EFFECTOR_POSITIONS,3,SampleDataFormatEigenVector,eepos_metadata);
 
     // Set end effector rotation size and format.
     OptionsMap eerot_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_ROTATIONS,9,SampleDataFormat::SampleDataFormatDouble,eerot_metadata);
+    sample->set_meta_data(gps::END_EFFECTOR_ROTATIONS,9,SampleDataFormatEigenMatrix,eerot_metadata);
 
     // Set jacobian size and format.
     OptionsMap eejac_metadata;
-    sample->set_meta_data(gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble,eejac_metadata);
+    sample->set_meta_data(gps::END_EFFECTOR_JACOBIANS,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormatEigenMatrix,eejac_metadata);
 }
 
 // Set data on the provided sample.
-void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample> sample) const
+void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 {
     // Set joint angles.
-    sample->set_data(0,gps::SampleType::JOINT_ANGLES,&previous_angles_[0],previous_angles_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::JOINT_ANGLES,previous_angles_,previous_angles_.size(),SampleDataFormatEigenVector);
 
     // Set joint velocities.
-    sample->set_data(0,gps::SampleType::JOINT_VELOCITIES,&previous_velocities_[0],previous_velocities_.size(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::JOINT_VELOCITIES,previous_velocities_,previous_velocities_.size(),SampleDataFormatEigenVector);
+
 
     // Set end effector point.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_POINTS,previous_end_effector_points_.data(),previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    // Flatten points - maybe this should be kept as a matrix?
+    Eigen::VectorXd flattened_ee_pts = previous_end_effector_points_;
+    flattened_ee_pts.resize(previous_end_effector_points_.cols()*previous_end_effector_points_.rows(), 1);
+    sample->set_data(t,gps::END_EFFECTOR_POINTS,flattened_ee_pts,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector point velocities.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.data(),previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    //Flatten velocities - maybe this should be kept as a matrix?
+    Eigen::VectorXd flattened_ee_vel = previous_end_effector_point_velocities_;
+    flattened_ee_vel.resize(previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(), 1);
+    sample->set_data(t,gps::END_EFFECTOR_POINT_VELOCITIES,flattened_ee_vel,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector position.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_POSITIONS,previous_position_.data(),3,SampleDataFormat::SampleDataFormatDouble);
+    Eigen::VectorXd flattened_position; //Need to convert Vector3d to VectorXd. Eigen seems finicky about this.
+    flattened_position.resize(3, 1);
+    for (unsigned i = 0; i < 3; i++)
+        flattened_position[i] = previous_position_[i];
+    sample->set_data(t,gps::END_EFFECTOR_POSITIONS,flattened_position,3,SampleDataFormatEigenVector);
 
     // Set end effector rotation.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_ROTATIONS,previous_rotation_.data(),9,SampleDataFormat::SampleDataFormatDouble);
+    Eigen::MatrixXd new_rot; //Need to convert Matrix3d to MatrixXd. Eigen seems finicky about this.
+    new_rot.resize(3, 3);
+    for (unsigned i = 0; i < 3; i++)
+        for (unsigned j = 0; j < 3; j++)
+            new_rot(i,j) = previous_rotation_(i,j);
+    sample->set_data(t,gps::END_EFFECTOR_ROTATIONS,new_rot,9,SampleDataFormatEigenMatrix);
 
     // Set end effector jacobian.
-    sample->set_data(0,gps::SampleType::END_EFFECTOR_JACOBIANS,previous_jacobian_.data(),previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormat::SampleDataFormatDouble);
+    sample->set_data(t,gps::END_EFFECTOR_JACOBIANS,previous_jacobian_,previous_jacobian_.cols()*previous_jacobian_.rows(),SampleDataFormatEigenMatrix);
 }

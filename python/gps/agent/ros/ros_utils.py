@@ -1,27 +1,41 @@
 import rospy
-from algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
+import numpy as np
+
+
+from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams
+from gps.agent.agent_utils import generate_noise
+from gps.sample.sample import Sample
 
 
-def construct_sample_from_ros_msg(ros_msg):
+def msg_to_sample(ros_msg, agent):
     """
     Convert a SampleResult ROS message into a Sample python object
     """
-    raise NotImplementedError()
+    sample = Sample(agent)
+    for sensor in ros_msg.sensor_data:
+        sensor_id = sensor.data_type
+        shape = np.array(sensor.shape)
+        data = np.array(sensor.data).reshape(shape)
+        sample.set(sensor_id, data)
+    return sample
 
 
-def policy_object_to_ros_msg(policy_object):
+def policy_to_msg(policy, noise):
     """
     Convert a policy object to a ROS ControllerParams message
     """
     msg = ControllerParams()
-    if isinstance(policy_object, LinearGaussianPolicy):
+    if isinstance(policy, LinearGaussianPolicy):
         msg.controller_to_execute = ControllerParams.LIN_GAUSS_CONTROLLER
         msg.lingauss = LinGaussParams()
-        msg.lingauss.K_t = policy_object.K
-        msg.lingauss.k_t = policy_object.fold_k()
+        msg.lingauss.T = policy.T
+        msg.lingauss.dX = policy.dX
+        msg.lingauss.dU = policy.dU
+        msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
+        msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
     else:
-        raise NotImplementedError("Unknown policy object: %s" % policy_object)
+        raise NotImplementedError("Unknown policy object: %s" % policy)
     return msg
 
 
@@ -46,16 +60,12 @@ class ServiceEmulator(object):
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
 
         self._waiting = False
-        self._header_seq = -1
         self._subscriber_msg = None
 
     def _callback(self, message):
         if self._waiting:
-            if message.header.seq != self._header_seq:
-                return
             self._subscriber_msg = message
             self._waiting = False
-            self._header_seq = -1
 
     def publish(self, pub_msg):
         """ Publish a message without waiting for response """
@@ -72,7 +82,6 @@ class ServiceEmulator(object):
             sub_msg (sub_type): Subscriber message
         """
         self._waiting = True
-        self._header_seq = pub_msg.header.seq
         self.publish(pub_msg)
 
         time_waited = 0

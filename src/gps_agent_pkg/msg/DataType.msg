@@ -1,2 +1,3 @@
 int8 data_type  # Enum
-std_msgs/Float64MultiArray data
+float64[] data
+int32[] shape

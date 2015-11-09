@@ -1,0 +1,7 @@
+<launch>
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <!-- <arg name="use_sim_time" value="false"/>  -->
+    </include>
+	<include file="$(find pr2_gazebo)/launch/pr2_no_controllers.launch" />
+
+</launch>

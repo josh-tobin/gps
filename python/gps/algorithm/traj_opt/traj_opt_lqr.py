@@ -1,4 +1,4 @@
-from traj_opt import TrajOpt
+from gps.algorithm.traj_opt.traj_opt import TrajOpt
 
 class TrajOptLQR(TrajOpt):
     """LQR trajectory optimization

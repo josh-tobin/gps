@@ -5,15 +5,21 @@ Base class for a controller. Controllers take in sensor readings and choose the 
 
 // Headers.
 #include <boost/scoped_ptr.hpp>
+#include <ros/ros.h>
+#include <time.h>
+#include <ros/time.h>
+#include <Eigen/Dense>
 
 // This allows us to use options.
-#include "options.h"
+#include "gps_agent_pkg/options.h"
+#include "gps_agent_pkg/ArmType.h"
 
 namespace gps_control
 {
 
 // Forward declarations.
 class Sample;
+class RobotPlugin;
 
 class Controller
 {
@@ -21,7 +27,7 @@ private:
 
 public:
     // Constructor.
-    Controller(ros::NodeHandle& n, ArmType arm);
+    Controller(ros::NodeHandle& n, ArmType arm, int size);
     Controller();
     // Destructor.
     virtual ~Controller();

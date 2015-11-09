@@ -1,22 +1,23 @@
+from copy import deepcopy
 import mjcpy
 import numpy as np
-
-from copy import deepcopy
-from agent.agent import Agent
-from agent.agent_utils import generate_noise
-from agent.config import agent_mujoco
-from proto.gps_pb2 import *
 from scipy.ndimage.filters import gaussian_filter
+
+from gps.agent.agent import Agent
+from gps.agent.agent_utils import generate_noise
+from gps.agent.config import agent_mujoco
+from gps.proto.gps_pb2 import *
+from gps.sample.sample import Sample
 
 
 class AgentMuJoCo(Agent):
     """
     All communication between the algorithms and MuJoCo is done through this class.
     """
-    def __init__(self, hyperparams, sample_data):
+    def __init__(self, hyperparams):
         config = deepcopy(agent_mujoco)
         config.update(hyperparams)
-        Agent.__init__(self, config, sample_data)
+        Agent.__init__(self, config)
         self._setup_conditions()
         self._setup_world(hyperparams['filename'])
 
@@ -80,20 +81,19 @@ class AgentMuJoCo(Agent):
         for x0 in self._hyperparams['init_pose']:
             self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
-    def sample(self, policy, T, condition, verbose=True):
+    def sample(self, policy, condition, verbose=True):
         """
-        Runs a trial and constructs and returns a new sample containing information
-        about the trial.
+        Runs a trial and constructs a new sample containing information about the trial.
 
         Args:
             policy: policy to to used in the trial
-            T: number of time steps for the trial
-            verbose: whether or not to plot the trial
+            condition (int): Which condition setup to run.
+            verbose (boolean): whether or not to plot the trial
         """
         new_sample = self._init_sample(condition)  # create new sample, populate first time step
         mj_X = self._hyperparams['init_pose'][condition]
-        U = np.zeros([T, self.sample_data.dU])
-        noise = generate_noise(T, self.sample_data.dU, smooth=self._hyperparams['smooth_noise'], \
+        U = np.zeros([self.T, self.dU])
+        noise = generate_noise(self.T, self.dU, smooth=self._hyperparams['smooth_noise'], \
                 var=self._hyperparams['smooth_noise_var'], \
                 renorm=self._hyperparams['smooth_noise_renormalize'])
         if np.any(self._hyperparams['x0var'][condition] > 0):
@@ -106,27 +106,27 @@ class AgentMuJoCo(Agent):
                 var = self._hyperparams['noisy_body_var'][condition][i]
                 self._model[condition]['body_pos'][idx,:] += (var * np.random.randn(1,3))
         self._world.set_model(self._model[condition])
-        for t in range(T):
+        for t in range(self.T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
             mj_U = policy.act(X_t, obs_t, t, noise[t,:])
             U[t,:] = mj_U
             if verbose:
                 self._world.plot(mj_X)
-            if (t+1) < T:
+            if (t+1) < self.T:
                 for step in range(self._hyperparams['substeps']):
                     mj_X, _ = self._world.step(mj_X, mj_U)
                 #TODO: some hidden state stuff will go here
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
         new_sample.set(ACTION, U)
-        return new_sample
+        self._samples[condition].append(new_sample)
 
     def _init_sample(self, condition):
         """
         Construct a new sample and fill in the first time step.
         """
-        sample = self.sample_data.create_new()
+        sample = Sample(self)
         sample.set(JOINT_ANGLES, self._hyperparams['init_pose'][condition][self._joint_idx], t=0)
         sample.set(JOINT_VELOCITIES, self._hyperparams['init_pose'][condition][self._vel_idx], t=0)
         self._data = self._world.get_data()

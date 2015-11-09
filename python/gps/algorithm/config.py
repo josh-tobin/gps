@@ -1,8 +1,8 @@
 """Default configuration and hyperparameter values for algorithm objects
 
 """
-from traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 
 """ AlgorithmTrajOpt """
 alg_traj_opt = {

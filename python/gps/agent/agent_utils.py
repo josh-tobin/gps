@@ -38,5 +38,5 @@ def generate_noise(T, dU, smooth=False, var=1.0, renorm=False):
             noise[:, i] = sp_ndimage.filters.gaussian_filter(noise[:, i], var)
         if renorm:
             variance = np.var(noise, axis=0)
-            noise = noise/variance
+            noise = noise/np.sqrt(variance)
     return noise

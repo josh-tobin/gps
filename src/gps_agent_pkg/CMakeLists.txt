@@ -24,26 +24,36 @@ rosbuild_genmsg()
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
 #Include protobuf
 include_directories($ENV{GPS_ROOT_DIR}/build/gps)
 
+#Include boost
+rosbuild_add_boost_directories()
+#find_package(Boost 1.46.0 COMPONENTS)
+#if(Boost_FOUND)
+    #include_directories(${Boost_INCLUDE_DIRS})
+#endif()
+
 #Use C++0x
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 set(DDP_FILES src/robotplugin.cpp
-			  src/pr2plugin.cpp
+              src/pr2plugin.cpp
               src/sample.cpp
-		      src/sensor.cpp
-		      src/lingausscontroller.cpp
-		      src/positioncontroller.cpp
-		      src/trialcontroller.cpp
-		      src/encodersensor.cpp
-		      src/encoderfilter.cpp)
+              src/sensor.cpp
+              src/neuralnetwork.cpp
+              src/controller.cpp
+              src/lingausscontroller.cpp
+              src/caffecontroller.cpp
+              src/camerasensor.cpp
+              src/positioncontroller.cpp
+              src/trialcontroller.cpp
+              src/encodersensor.cpp
+              src/encoderfilter.cpp)
 
 # Include Caffe
 if (USE_CAFFE)
@@ -57,21 +67,24 @@ if (USE_CAFFE)
         add_definitions(-DCPU_ONLY)
     endif (USE_CAFFE_GPU)
     # add paths to CAFFE
-    link_directories(${CAFFE_LIBRARY_PATH})
-    include_directories(${CAFFE_INCLUDE_PATH})
+    link_directories(${CAFFE_LIBRARY_PATH})  # Should be set to /path/to/caffe/build/lib
+    include_directories(${CAFFE_INCLUDE_PATH})  # Should be set to /path/to/caffe/distribute/include
     # extra header paths
     include_directories(${CAFFE_EXTRA_PATH})
     # add neural network to DDP controller files
-    #set(DDP_FILES ${DDP_FILES} src/neural_network_caffe.cpp)
+    set(DDP_FILES ${DDP_FILES} src/neuralnetworkcaffe.cpp)
     # compile Caffe test
     #rosbuild_add_executable(caffe_test src/caffe_test.cpp src/neural_network_caffe.cpp)
     #target_link_libraries(caffe_test caffe protobuf)
+
     # compile image processor node
     #rosbuild_add_executable(caffe_img_processor src/img_processor.cpp src/neural_network_caffe.cpp)
     #target_link_libraries(caffe_img_processor caffe protobuf)
 endif (USE_CAFFE)
 
 rosbuild_add_library(gps_agent_lib ${DDP_FILES})
+#uncomment for test executable
+#rosbuild_add_executable(main src/main.cpp)
 
 #rosbuild_add_executable(kinematic_baseline src/kinematic_baseline.cpp)
 
@@ -88,3 +101,4 @@ if (USE_CAFFE)
     target_link_libraries(gps_agent_lib caffe protobuf)
 endif (USE_CAFFE)
 
+rosbuild_link_boost(gps_agent_lib thread)# smart_ptr)

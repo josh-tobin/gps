@@ -1,6 +1,6 @@
 import numpy as np
 
-from policy import Policy
+from gps.algorithm.policy.policy import Policy
 
 
 class LinearGaussianPolicy(Policy):
@@ -57,8 +57,8 @@ class LinearGaussianPolicy(Policy):
         """
         k = np.zeros_like(self.k)
         for i in range(self.T):
-            noise = self.chol_pol_covar[i].T.dot(noise[i])
-            k[i] = noise + self.k[i]
+            scaled_noise = self.chol_pol_covar[i].T.dot(noise[i])
+            k[i] = scaled_noise + self.k[i]
         return k
 
     def nans_like(self):
