@@ -12,5 +12,5 @@ class PolicyOpt(object):
 
     @abc.abstractmethod
     def update(self):
-        """ Update cost policy. """
+        """ Update policy. """
         raise NotImplementedError("Must be implemented in subclass");
