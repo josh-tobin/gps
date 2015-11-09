@@ -22,6 +22,7 @@ agent = {
 
 try:
     import roslib
+    import rospkg
     roslib.load_manifest('gps_agent_pkg')
     from gps_agent_pkg.msg import PositionCommand
     """ AgentROS """
@@ -59,6 +60,8 @@ try:
     }
 except ImportError as e:
     print 'No ROS enabled', e
+except rospkg.common.ResourceNotFound as e:
+    print 'No gps_agent_pkg', e
 
 """ AgentMuJoCo """
 agent_mujoco = deepcopy(agent)
