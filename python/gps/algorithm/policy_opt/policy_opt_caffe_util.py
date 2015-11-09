@@ -24,11 +24,15 @@ def construct_fc_network(n_layers = 3,
     Returns:
         NetParameter specification of network
     """
+    [input, action, precision] = L.DummyData(ntop=3,
+            shape=[dict(dim=[batch_size, Di]),
+                   dict(dim=[batch_size,Do]),
+                   dict(dim=[batch_size,Do,Do])])
 
-    [input, precision, action] = L.MemoryData(ntop=3,
-            input_shapes=[dict(dim=[batch_size, Di]),
-                          dict(dim=[batch_size,Do,Do]),
-                          dict(dim=[batch_size,Do])])
+    #[input, precision, action] = L.MemoryData(ntop=3,
+    #        input_shapes=[dict(dim=[batch_size, Di]),
+    #                      dict(dim=[batch_size,Do,Do]),
+    #                      dict(dim=[batch_size,Do])])
     cur_top = input
     Dh.append(Do)
     for i in range(n_layers):
@@ -42,3 +46,18 @@ def construct_fc_network(n_layers = 3,
     # TODO - the below layer should only exist during training phase
     loss = L.WeightedEuclideanLoss(cur_top, action, precision)
     return loss.to_proto()
+
+def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
+    assert len(inputs) == len(targets)
+    if shuffle:
+        indices = np.arange(len(inputs))
+        np.random.shuffle(indices)
+    for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
+        if shuffle:
+            excerpt = indices[start_idx:start_idx + batchsize]
+        else:
+            excerpt = slice(start_idx, start_idx + batchsize)
+        yield inputs[excerpt], targets[excerpt]
+
+
+
