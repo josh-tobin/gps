@@ -33,7 +33,7 @@ class AgentMuJoCo(Agent):
 
         #TODO: discuss a different way to organize some of this
         conds = self._hyperparams['conditions']
-        for field in ('init_pose', 'x0var', 'pos_body_idx', 'pos_body_offset', \
+        for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
                 'noisy_body_idx', 'noisy_body_var'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
 
@@ -64,9 +64,9 @@ class AgentMuJoCo(Agent):
                 idx = self._hyperparams['pos_body_idx'][i][j]
                 self._model[i]['body_pos'][idx,:] += self._hyperparams['pos_body_offset'][i]
             self._world.set_model(self._model[i])
-            init_pose = self._hyperparams['init_pose'][i]
-            idx = len(init_pose) // 2
-            data = {'qpos': init_pose[:idx], 'qvel': init_pose[idx:]}
+            x0 = self._hyperparams['x0'][i]
+            idx = len(x0) // 2
+            data = {'qpos': x0[:idx], 'qvel': x0[idx:]}
             self._world.set_data(data)
             self._world.kinematics()
 
@@ -78,7 +78,7 @@ class AgentMuJoCo(Agent):
         self._vel_idx = [i + self._model[0]['nq'] for i in self._joint_idx]
 
         self.x0 = []
-        for x0 in self._hyperparams['init_pose']:
+        for x0 in self._hyperparams['x0']:
             self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
     def sample(self, policy, condition, verbose=True):

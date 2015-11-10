@@ -49,7 +49,7 @@ if not os.path.exists(gui['file_dir']):
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
-    'init_pose': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
+    'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
@@ -79,7 +79,7 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        'x0': agent['init_pose'][:SENSOR_DIMS[JOINT_ANGLES]],
+        'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
         'dt': agent['dt'],
         'T': agent['T'],
     }
@@ -130,6 +130,6 @@ defaults = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
-    'gui': gui,  # For sim, we probably don't want the gui right now.
+    'gui': gui,
     'algorithm': algorithm,
 }
