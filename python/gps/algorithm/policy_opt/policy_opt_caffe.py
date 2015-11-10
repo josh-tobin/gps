@@ -88,9 +88,9 @@ class PolicyOptCaffe(PolicyOpt):
             # Load in data for this batch
             start_idx = itr % batches_per_epoch
             idx = range(start_idx,start_idx+self.batch_size)
-            solver.net.blobs[blob_names[0]].data = obs[idx]
-            solver.net.blobs[blob_names[1]].data = tgt_mu[idx]
-            solver.net.blobs[blob_names[1]].data = tgt_prc[idx]
+            solver.net.blobs[blob_names[0]].data[0] = obs[idx]
+            solver.net.blobs[blob_names[1]].data[0] = tgt_mu[idx]
+            solver.net.blobs[blob_names[1]].data[0] = tgt_prc[idx]
 
             self.solver.step(1)
 
@@ -111,21 +111,23 @@ class PolicyOptCaffe(PolicyOpt):
         """ Run policy forward.
 
         Args:
-            obs: numpy array that is N x Dobs
+            obs: numpy array that is N x T x Dobs
 
         Returns:
             tuple of network output and variance
         """
         # TODO - Don't hardcode 7
-        output = np.zeros(obs.shape[0], 7)
-        blob_names = solver.test_nets[0].blobs.keys()
+        #import ipdb; ipdb.set_trace()
+        output = np.zeros([obs.shape[0], obs.shape[1], 7])
+        blob_names = self.solver.test_nets[0].blobs.keys()
 
         for i in range(obs.shape[0]):
-            # Feed in data
-            solver.test_nets[0].blobs[blob_names[0]].data = obs[i]
+            for t in range(obs.shape[1]):
+                # Feed in data
+                self.solver.test_nets[0].blobs[blob_names[0]].data[0] = obs[i,t]
 
-            # Assume that the first output blob is what we want
-            output[i,:] = solver.test_nets[0].forward().values()[0]
+                # Assume that the first output blob is what we want
+                output[i,t,:] = self.solver.test_nets[0].forward().values()[0]
 
         # TODO - variance
         return output, []
