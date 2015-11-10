@@ -1,11 +1,12 @@
-from caffe import NetSpec, layers as L, to_proto
-from caffe.proto import caffe_pb2
+from caffe import layers as L, NetSpec
+from caffe.proto.caffe_pb2 import TRAIN, TEST
 
 def construct_fc_network(n_layers = 3,
-                         Dh = [40,40],
-                         Di = 27,
-                         Do = 7,
-                         batch_size = 25):
+                         dim_hidden = [40,40],
+                         dim_input = 27,
+                         dim_output = 7,
+                         batch_size = 25,
+                         phase = TRAIN):
     """
     Constructs an anonymous network (no layer names) with the specified number
     of inner product layers, and returns NetParameter protobuffer.
@@ -17,29 +18,36 @@ def construct_fc_network(n_layers = 3,
 
     Args:
         n_layers: number of fully connected layers (including output layer)
-        Dh (list): dimensionality of each hidden layer
-        Di: dimensionality of input
-        Do: dimensionality of the output
+        dim_hidden (list): dimensionality of each hidden layer
+        dim_input: dimensionality of input
+        dim_output: dimensionality of the output
         batch_size: batch size
     Returns:
         NetParameter specification of network
     """
+    if phase == TRAIN:
+        [input, action, precision] = L.DummyData(ntop=3,
+                shape=[dict(dim=[batch_size, dim_input]),
+                dict(dim=[batch_size, dim_output]),
+                dict(dim=[batch_size, dim_output, dim_output])])
+    else:
+        input = L.DummyData(ntop=1,
+                shape=[dict(dim=[batch_size, dim_input])])
 
-    # TODO - Don't use memory data layer?
-    [input, precision, action] = L.MemoryDataLayer(
-            input_shapes=[dict(dim=[batch_size, Di]),
-                          dict(dim=[batch_size,units[-1],Do]),
-                          dict(dim=[batch_size,Do]], ntop=3)
-    cur_top = mem_tops[0]
-    units.append(Do)
+    cur_top = input
+    dim_hidden.append(dim_output)
     for i in range(n_layers):
         cur_top = L.InnerProduct(cur_top,
-                                 num_output=units[i],
+                                 num_output=dim_hidden[i],
                                  weight_filler=dict(type='gaussian', std=0.01),
                                  bias_filler=dict(type='constant', value=0))
         # Add nonlinearity to all hidden layers
         if i < n_layers-1:
             cur_top = L.ReLU(cur_top, in_place=True)
-    loss = L.WeightedEuclideanLoss(cur_top, action, precision)
-    return loss.to_proto()
 
+    if phase == TRAIN:
+        out = L.WeightedEuclideanLoss(cur_top, action, precision)
+    else:
+        out = cur_top
+
+    return out.to_proto()
