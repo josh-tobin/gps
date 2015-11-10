@@ -43,7 +43,7 @@ class PolicyOptCaffe(PolicyOpt):
 
         # Pass in net parameter either by filename or protostring
         if isinstance(self._hyperparams['network_model'], basestring):
-            solver_param.net = self._hyperparams['network_model']  # filename
+            self.solver = caffe.get_solver(self._hyperparams['network_model'])
         else:
             network_arch_params = self._hyperparams['network_arch_params']
             network_arch_params['batch_size'] = self.batch_size
@@ -59,11 +59,11 @@ class PolicyOptCaffe(PolicyOpt):
             solver_param.test_iter.append(1)
             solver_param.test_interval = 1000000
 
-        f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
-        f.write(MessageToString(solver_param))
-        f.close()
+            f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+            f.write(MessageToString(solver_param))
+            f.close()
 
-        self.solver = caffe.get_solver(f.name)
+            self.solver = caffe.get_solver(f.name)
 
     # TODO - this assumes that the obs is a vector being passed into the
     # network in the same place (won't work with images or multimodal networks)
