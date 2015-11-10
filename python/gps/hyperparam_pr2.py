@@ -46,16 +46,6 @@ if not os.path.exists(common['experiment_dir']):
 if not os.path.exists(gui['file_dir']):
     os.makedirs(gui['file_dir'])
 
-sample_data = {
-    'filename': 'sample_data.pkl',
-    'T': 100,
-    'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
-    'obs_include': [],
-}
-
-num_samples = 5
-
 x0 = np.zeros(14)  # Assume initial state should have 0 velocity
 filename = gui['file_dir']+'trialarm_initial.npz'
 try:
@@ -115,8 +105,6 @@ algorithm['init_traj_distr'] = {
         'dt': agent['dt'],
         'T': agent['T'],
         'x0': agent['x0'],
-        'dX': 14,
-        'dU': 7,
     }
 }
 
@@ -136,7 +124,6 @@ state_cost = {
             'desired_state': tgt,
         },
     },
-    'wp': np.array([1, 1, 1, 1, 1, 1]),
 }
 
 algorithm['cost'] = {
@@ -159,9 +146,8 @@ algorithm['policy_opt'] = {}
 defaults = {
     'iterations': 20,
     'common': common,
-    'sample_data': sample_data,
     'agent': agent,
     'gui': gui,
     'algorithm': algorithm,
-    'num_samples': num_samples,
+    'num_samples': 5,
 }
