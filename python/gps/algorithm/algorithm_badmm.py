@@ -180,7 +180,7 @@ class AlgorithmBADMM(Algorithm):
         # Choose samples to use.
         samples = self.cur[m].sample_list
         N = len(samples)
-        traj_info = self.cur[m].traj_info
+        traj_info, pol_info = self.cur[m].traj_info, self.cur[m].pol_info
         X, obs = samples.get_X(), samples.get_obs()
         pol_mu, pol_sig = self.policy_opt.prob(samples.get_obs())[:2]
         pol_info.pol_mu, pol_info.pol_sig = pol_mu, pol_sig
@@ -225,7 +225,7 @@ class AlgorithmBADMM(Algorithm):
         samples = self.cur[m].sample_list
         N = len(samples)
         X, obs = samples.get_X(), samples.get_obs()
-        traj, traj_info = self.cur[m].traj_distr, self.cur[m].traj_info
+        traj, traj_info, pol_info = self.cur[m].traj_distr, self.cur[m].traj_info, self.cur[m].pol_info
         # Compute trajectory action at each sampled state.
         traj_mu = np.zeros((N, T, dU))
         for i in range(N):
