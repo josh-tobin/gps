@@ -47,7 +47,7 @@ class AlgorithmBADMM(Algorithm):
         self.T = init_args['T']
         self.dX = init_args['dX']
         self.dU = init_args['dU']
-        self.dO = init_args['dO']
+        self.dO = self._hyperparams['dO']
 
         self.dynamics = [None]*self.M
         for m in range(self.M):
@@ -260,7 +260,7 @@ class AlgorithmBADMM(Algorithm):
                 for i in range(len(pol_info.pol_wt)):
                     if kl_change[i] < 0.8:
                         pol_info.pol_wt[i] *= 0.5
-                    elif kl_change[i] >= 0.95
+                    elif kl_change[i] >= 0.95:
                         pol_info.pol_wt[i] *= 2.0
         elif self._hyperparams['fixed_lg_step'] == 3:
             # Increase/decrease based on difference from average.

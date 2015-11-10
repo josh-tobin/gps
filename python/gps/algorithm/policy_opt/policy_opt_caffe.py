@@ -49,7 +49,7 @@ class PolicyOptCaffe(PolicyOpt):
             network_arch_params['batch_size'] = self.batch_size
             network_arch_params['dim_input'] = self._dObs
             network_arch_params['phase'] = TRAIN
-            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
+            solver_param.net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
 
             network_arch_params['batch_size'] = 1
             network_arch_params['phase'] = TEST
@@ -84,7 +84,6 @@ class PolicyOptCaffe(PolicyOpt):
         blob_names = solver.net.blobs.keys()
 
         batches_per_epoch = np.floor(obs.shape[0] / self.batch_size)
-
         for itr in range(self._hyperparams['iterations']):
             # Load in data for this batch
             start_idx = itr % batches_per_epoch
