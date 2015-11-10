@@ -91,7 +91,7 @@ class AgentMuJoCo(Agent):
             verbose (boolean): whether or not to plot the trial
         """
         new_sample = self._init_sample(condition)  # create new sample, populate first time step
-        mj_X = self._hyperparams['init_pose'][condition]
+        mj_X = self._hyperparams['x0'][condition]
         U = np.zeros([self.T, self.dU])
         noise = generate_noise(self.T, self.dU, smooth=self._hyperparams['smooth_noise'], \
                 var=self._hyperparams['smooth_noise_var'], \
@@ -127,8 +127,8 @@ class AgentMuJoCo(Agent):
         Construct a new sample and fill in the first time step.
         """
         sample = Sample(self)
-        sample.set(JOINT_ANGLES, self._hyperparams['init_pose'][condition][self._joint_idx], t=0)
-        sample.set(JOINT_VELOCITIES, self._hyperparams['init_pose'][condition][self._vel_idx], t=0)
+        sample.set(JOINT_ANGLES, self._hyperparams['x0'][condition][self._joint_idx], t=0)
+        sample.set(JOINT_VELOCITIES, self._hyperparams['x0'][condition][self._vel_idx], t=0)
         self._data = self._world.get_data()
         eepts = self._data['site_xpos'].flatten()
         sample.set(END_EFFECTOR_POINTS, eepts, t=0)

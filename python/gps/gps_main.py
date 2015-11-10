@@ -1,8 +1,8 @@
 import logging
 
-#from gps.hyperparam_defaults import defaults as config
-from gps.hyperparam_pr2 import defaults as config
-from gps.gui.gui import GUI
+from gps.hyperparam_defaults import defaults as config
+#from gps.hyperparam_pr2 import defaults as config
+#from gps.gui.gui import GUI
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -26,6 +26,8 @@ class GPSMain():
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
+        # TODO - the following line of code is needed for agent_mjc, but not agent_ros
+        config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
         config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
 

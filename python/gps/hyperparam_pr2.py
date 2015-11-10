@@ -124,7 +124,6 @@ state_cost = {
             'desired_state': tgt,
         },
     },
-    'wp': np.array([1, 1, 1, 1, 1, 1]),
 }
 
 algorithm['cost'] = {

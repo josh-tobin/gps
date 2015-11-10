@@ -41,10 +41,10 @@ gui = {
 }
 
 if not os.path.exists(common['experiment_dir']):
-    os.mkdirs(common['experiment_dir'])
+    os.makedirs(common['experiment_dir'])
 
 if not os.path.exists(gui['file_dir']):
-    os.mkdirs(gui['file_dir'])
+    os.makedirs(gui['file_dir'])
 
 agent = {
     'type': AgentMuJoCo,
@@ -79,7 +79,7 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
+        #'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
         'dt': agent['dt'],
         'T': agent['T'],
     }
