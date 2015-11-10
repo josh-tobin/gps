@@ -1,12 +1,16 @@
 import caffe
 from caffe.proto.caffe_pb2 import SolverParameter, TRAIN, TEST
+import copy
 from google.protobuf.text_format import MessageToString
+import numpy as np
 import tempfile
 
+from gps.algorithm.policy.caffe_policy import CaffePolicy
+from gps.algorithm.policy_opt.policy_opt import PolicyOpt
 from gps.algorithm.policy_opt.config import policy_opt_caffe
 
 
-class PolicyOptCaffe(object):
+class PolicyOptCaffe(PolicyOpt):
     """Policy optimization using caffe neural network library
 
     """
@@ -28,7 +32,7 @@ class PolicyOptCaffe(object):
         self.init_solver()
         # TODO - deal with variance
         # TODO - handle test network assumption a bit nicer, and/or document it
-        self.policy = CaffePolicy(self.solver.test_nets[0], 0)
+        self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(7))
 
     def init_solver(self):
         """ Helper method to initialize the solver from hyperparameters. """
@@ -44,13 +48,15 @@ class PolicyOptCaffe(object):
             network_arch_params = self._hyperparams['network_arch_params']
             network_arch_params['batch_size'] = self.batch_size
             network_arch_params['dim_input'] = self._dObs
-            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**net_arch_params,
-                                                                                     phase=TRAIN))
-            solver_param.test_net_param.add().CopyFrom(self._hyperparams['network_model'](**net_arch_params,
-                                                                                          phase=TEST))
+            network_arch_params['phase'] = TRAIN
+            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
+
+            network_arch_params['batch_size'] = 1
+            network_arch_params['phase'] = TEST
+            solver_param.test_net_param.add().CopyFrom(self._hyperparams['network_model'](**network_arch_params))
 
             # These are required by caffe to be set, but not used.
-            solver_param.test_iter() = 1
+            solver_param.test_iter.append(1)
             solver_param.test_interval = 1000000
 
         f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
@@ -103,11 +109,24 @@ class PolicyOptCaffe(object):
         return self.policy
 
     def prob(self, obs):
-        # TODO - docs.
         """ Run policy forward.
-        """
-        # TODO - test net batch size? might need to iterate n/batch_size times
-        blob_names = solver.test_nets[0].blobs.keys()
-        solver.test_nets[0].blobs[blob_names[0]].data = obs
 
-        return solver.test_nets[0].forward(), []
+        Args:
+            obs: numpy array that is N x Dobs
+
+        Returns:
+            tuple of network output and variance
+        """
+        # TODO - Don't hardcode 7
+        output = np.zeros(obs.shape[0], 7)
+        blob_names = solver.test_nets[0].blobs.keys()
+
+        for i in range(obs.shape[0]):
+            # Feed in data
+            solver.test_nets[0].blobs[blob_names[0]].data = obs[i]
+
+            # Assume that the first output blob is what we want
+            output[i,:] = solver.test_nets[0].forward().values()[0]
+
+        # TODO - variance
+        return output, []

@@ -31,11 +31,11 @@ def construct_fc_network(n_layers = 3,
                 dict(dim=[batch_size, dim_output]),
                 dict(dim=[batch_size, dim_output, dim_output])])
     else:
-        [input] = L.DummyData(ntop=1,
+        input = L.DummyData(ntop=1,
                 shape=[dict(dim=[batch_size, dim_input])])
 
     cur_top = input
-    dim_hidden.append(Do)
+    dim_hidden.append(dim_output)
     for i in range(n_layers):
         cur_top = L.InnerProduct(cur_top,
                                  num_output=dim_hidden[i],
