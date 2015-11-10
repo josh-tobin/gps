@@ -13,18 +13,18 @@ class ActionLib:
         self._th = training_handler
         action_arr = [
                 # Target Setup
-                Action('ptn',   'prev_target_number',        self._ts.prev_target_number),
-                Action('ntn',   'next_target_number',        self._ts.next_target_number),
-                Action('pat',   'prev_actuator_type',        self._ts.prev_actuator_type),
-                Action('nat',   'next_actuator_type',        self._ts.next_actuator_type),
+                Action('ptn',   'prev_target_number',       self._ts.prev_target_number),
+                Action('ntn',   'next_target_number',       self._ts.next_target_number),
+                Action('pat',   'prev_actuator_type',       self._ts.prev_actuator_type),
+                Action('nat',   'next_actuator_type',       self._ts.next_actuator_type),
 
-                Action('spi',   'set_position_initial',     self._ts.set_position_initial),
-                Action('spt',   'set_position_target',      self._ts.set_position_target),
-                Action('sfi',   'set_feature_initial',      self._ts.set_feature_initial),
-                Action('sft',   'set_feature_target',       self._ts.set_feature_target),
+                Action('sip',   'set_initial_position',     self._ts.set_initial_position),
+                Action('stp',   'set_target_position',      self._ts.set_target_position),
+                Action('sif',   'set_initial_features',     self._ts.set_initial_features),
+                Action('stf',   'set_target_features',      self._ts.set_target_features),
 
-                Action('mpi',   'move_position_initial',    self._ts.move_position_initial),
-                Action('mpt',   'move_position_target',     self._ts.move_position_target),
+                Action('mti',   'move_to_initial',          self._ts.move_to_initial),
+                Action('mtt',   'move_to_target',           self._ts.move_to_target),
                 Action('rc',    'relax_controller',         self._ts.relax_controller),
                 Action('mm',    'mannequin_mode',           self._ts.mannequin_mode),
 

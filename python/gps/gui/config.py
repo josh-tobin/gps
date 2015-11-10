@@ -3,15 +3,7 @@
 """
 from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
-""" TargetSetup """
-target_setup = {
-    'ps3_controller_topic': 'PS3',
-    'keyboard_bindings' : {},
-    'ps3_controller_bindings': {},
-    'actuator_names': [TRIAL_ARM, AUXILIARY_ARM]
-}
-
-# TO-DO: hide this somewhere
+# Mappings from ps3 controller buttons to their corresponding array indices
 ps3_controller_buttons = {
     'select':  0,       # select
     'l_joy_c': 1,       # left joystick center
@@ -32,7 +24,7 @@ ps3_controller_buttons = {
     'ply_sta': 16,      # play station
 }
 
-# TO-DO: hide this somewhere
+# Mappings from ps3 controller axes to their corresponding array indices
 ps3_controller_axes = {
     'l_joy_h': 0,       # left joystick horizontal
     'l_joy_v': 1,       # left joystick vertical
@@ -56,7 +48,7 @@ ps3_controller_axes = {
     '???':     19,      # unknown
 }
 
-# TO-DO: hide these as default bindings and provide sample code for user to create custom bindings
+# Mappings from actions to their corresponding keyboard bindings
 keyboard_bindings = {
     # Target Setup
     'ptn': 'left',
@@ -64,13 +56,13 @@ keyboard_bindings = {
     'pat': 'down',
     'nat': 'up',
 
-    'spi': 'j',
-    'spt': 'k',
-    'sfi': 'l',
-    'sft': ';',
+    'sip': 'j',
+    'stp': 'k',
+    'sif': 'l',
+    'stf': ';',
 
-    'mpi': 'u',
-    'mpt': 'i',
+    'mti': 'u',
+    'mtt': 'i',
     'rc':  'o',
     'mm':  'p',
 
@@ -81,28 +73,45 @@ keyboard_bindings = {
     'start': 'g',
 }
 
-# TO-DO: hide these as default bindings and provide sample code for user to create custom bindings
-ps3 = ps3_controller_buttons    # using shorter name
+# Mappings from actions to their corresponding ps3 controller bindings
 ps3_controller_bindings = {
     # Target Setup
-    'ptn': (ps3['r_tri_1'], ps3['l_but_l']),
-    'ntn': (ps3['r_tri_1'], ps3['l_but_r']),
-    'pat': (ps3['r_tri_1'], ps3['l_but_d']),
-    'nat': (ps3['r_tri_1'], ps3['l_but_u']),
+    'ptn': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['l_but_l']),
+    'ntn': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['l_but_r']),
+    'pat': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['l_but_d']),
+    'nat': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['l_but_u']),
 
-    'spi': (ps3['r_tri_1'], ps3['r_but_l']),
-    'spt': (ps3['r_tri_1'], ps3['r_but_r']),
-    'sfi': (ps3['r_tri_1'], ps3['r_but_d']),
-    'sft': (ps3['r_tri_1'], ps3['r_but_u']),
+    'sip': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['r_but_l']),
+    'stp': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['r_but_r']),
+    'sif': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['r_but_d']),
+    'stf': (ps3_controller_buttons['r_tri_1'], ps3_controller_buttons['r_but_u']),
 
-    'mpi': (ps3['r_tri_2'], ps3['l_but_l']),
-    'mpt': (ps3['r_tri_2'], ps3['l_but_r']),
-    'rc':  (ps3['r_tri_2'], ps3['l_but_d']),
-    'mm':  (ps3['r_tri_2'], ps3['l_but_u']),
+    'mti': (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['l_but_l']),
+    'mtt': (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['l_but_r']),
+    'rc':  (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['l_but_d']),
+    'mm':  (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['l_but_u']),
 
     # Training Handler
-    'stop':  (ps3['r_tri_2'], ps3['r_but_l']),
-    'st-re': (ps3['r_tri_2'], ps3['r_but_d']),
-    'reset': (ps3['r_tri_2'], ps3['r_but_u']),
-    'start': (ps3['r_tri_2'], ps3['r_but_r']),
+    'stop':  (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['r_but_l']),
+    'st-re': (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['r_but_d']),
+    'reset': (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['r_but_u']),
+    'start': (ps3_controller_buttons['r_tri_2'], ps3_controller_buttons['r_but_r']),
+}
+
+gui = {
+    'keyboard_bindings' : keyboard_bindings,
+    'ps3_controller_bindings': ps3_controller_bindings,
+    'ps3_controller_topic': 'joy',
+    'log_file_name': 'actions_log.txt',
+}
+
+target_setup = {
+    'num_targets': 10,
+    'actuator_types': [TRIAL_ARM, AUXILIARY_ARM],
+    'actuator_names': ['trial_arm', 'auxiliary_arm'],
+}
+target_setup['num_actuators'] = len(target_setup['actuator_types'])
+
+training_handler = {
+    
 }

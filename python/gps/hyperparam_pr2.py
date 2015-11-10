@@ -35,27 +35,26 @@ common = {
     'experiment_dir': BASE_DIR + '/experiments/default_pr2_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
-
-gui = {
-  'file_dir' : common['experiment_dir'] + 'target_files/',
-}
+common['target_files_dir'] = common['experiment_dir'] + 'target_files/'
+common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
 
 if not os.path.exists(common['experiment_dir']):
     os.makedirs(common['experiment_dir'])
-
-if not os.path.exists(gui['file_dir']):
-    os.makedirs(gui['file_dir'])
+if not os.path.exists(common['target_files_dir']):
+    os.makedirs(common['target_files_dir'])
+if not os.path.exists(common['output_files_dir']):
+    os.makedirs(common['output_files_dir'])
 
 x0 = np.zeros(14)  # Assume initial state should have 0 velocity
-filename = gui['file_dir']+'trialarm_initial.npz'
+filename = common['target_files_dir'] + 'trial_arm' + '_initial.npz'
 try:
     with np.load(filename) as f:
-        x0[0:7] = f['x0']
+        x0[0:7] = f['ja0']
 except IOError as e:
     print('No initial file found, defaulting to all zeros state')
 
-tgt = np.zeros(7)  # Assume initial state should have 0 velocity
-filename = gui['file_dir']+'target.npz'
+tgt = np.zeros(7)  # Assume target state should have 0 velocity
+filename = common['target_files_dir'] + 'trial_arm' + '_target.npz'
 try:
     with np.load(filename) as f:
         tgt = f['ja0']
@@ -147,7 +146,7 @@ defaults = {
     'iterations': 20,
     'common': common,
     'agent': agent,
-    'gui': gui,
+    # 'gui': gui,
     'algorithm': algorithm,
     'num_samples': 5,
 }
