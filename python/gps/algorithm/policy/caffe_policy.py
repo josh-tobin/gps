@@ -27,11 +27,11 @@ class CaffePolicy(Policy):
 
         Args:
             x: State vector
-            obs: Observation vectors
+            obs: Observation vector
             t: timestep
             noise: Action noise vector. This will be scaled by the variance.
         """
-        self.net.blobs['data'] = obs # TODO - how do we know that the data processing/dimensions are correct?
-        action_mean = self.net.forward()
+        self.net.blobs[self.net.blobs.keys()[0]] = obs
+        action_mean = self.net.forward().values()[0]
         u = action_mean + self.chol_pol_covar.T.dot(noise)
         return u
