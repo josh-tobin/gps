@@ -56,7 +56,7 @@ class AlgorithmBADMM(Algorithm):
             pol_info = PolicyInfo()
             pol_info.lambda_k = np.zeros((self.T, self.dU))
             pol_info.lambda_K = np.zeros((self.T, self.dU, self.dX))
-            pol_info.pol_wt = np.zeros(self.T)
+            pol_info.pol_wt = np.ones(self.T)
             pol_info.pol_K = np.zeros((self.T, self.dU, self.dX))
             pol_info.pol_k = np.zeros((self.T, self.dU))
             pol_info.pol_S = np.zeros((self.T, self.dU, self.dU))
@@ -143,7 +143,7 @@ class AlgorithmBADMM(Algorithm):
         """
         dX, dU, dO, T = self.dX, self.dU, self.dO, self.T
         # Compute target mean, cov, and weight for each sample.
-        tgt_mu, tgt_prc, tgt_wt = np.zeros((0, T, dU)), np.zeros((0, T, dU, dU)), np.ones((0, T))
+        tgt_mu, tgt_prc, tgt_wt = np.zeros((0, T, dU)), np.zeros((0, T, dU, dU)), np.zeros((0, T))
         obs_data = np.zeros((0, T, dO))
         for m in range(self.M):
             #TODO: handle synthetic samples, for now just assuming no
@@ -154,7 +154,7 @@ class AlgorithmBADMM(Algorithm):
             traj, pol_info, traj_info = self.cur[m].traj_distr, self.cur[m].pol_info, self.cur[m].traj_info
             mu = np.zeros((N, T, dU))
             prc = np.zeros((N, T, dU, dU))
-            wt = np.ones((N, T))
+            wt = np.zeros((N, T))
             # Get time-indexed actions.
             for t in range(T):
                 # Compute actions along this trajectory.
