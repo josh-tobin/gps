@@ -141,9 +141,10 @@ class AlgorithmBADMM(Algorithm):
         """
         Compute the new policy.
         """
-        dX, dU, T = self.dX, self.dU, self.T
+        dX, dU, dO, T = self.dX, self.dU, self.dO, self.T
         # Compute target mean, cov, and weight for each sample.
         tgt_mu, tgt_prc, tgt_wt = np.zeros((0, T, dU)), np.zeros((0, T, dU, dU)), np.zeros((0, T))
+        obs_data = np.zeros((0, T, dO))
         for m in range(self.M):
             #TODO: handle synthetic samples, for now just assuming no
             #      synthetic samples and using all samples
@@ -166,7 +167,8 @@ class AlgorithmBADMM(Algorithm):
             tgt_mu = np.concatenate((tgt_mu, mu))
             tgt_prc = np.concatenate((tgt_prc, prc))
             tgt_wt = np.concatenate((tgt_wt, wt))
-        self.policy_opt.update(samples.get_obs(), tgt_mu, tgt_prc, tgt_wt)
+            obs_data = np.concatenate((obs_data, samples.get_obs()))
+        self.policy_opt.update(obs_data, tgt_mu, tgt_prc, tgt_wt)
 
     def _update_policy_fit(self, m, init=False):
         """

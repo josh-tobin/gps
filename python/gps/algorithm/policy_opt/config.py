@@ -6,6 +6,9 @@ policy_opt_caffe = {
     'iterations': 500,  # Number of iterations of training per inner iteration
     'batch_size': 25,
     'lr': 0.001,  # Base learning rate (by default it's fixed) for SGD
+    'lr_policy': 'fixed',  # Learning rate policy
+    'momentum': 0.9,  # Learning rate policy
+    'weight_decay': 0.0,  # Learning rate policy
     'use_gpu': 1,  # Whether or not to use the gpu for caffe training
     'gpu_id': 0,
     'solver_type': 'SGD',  # Solver type to use (e.g. 'SGD', 'Adam', etc.)

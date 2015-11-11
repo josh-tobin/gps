@@ -2,6 +2,7 @@ import caffe
 from caffe.proto.caffe_pb2 import SolverParameter, TRAIN, TEST
 import copy
 from google.protobuf.text_format import MessageToString
+import logging
 import numpy as np
 import tempfile
 
@@ -9,6 +10,8 @@ from gps.algorithm.policy.caffe_policy import CaffePolicy
 from gps.algorithm.policy_opt.policy_opt import PolicyOpt
 from gps.algorithm.policy_opt.config import policy_opt_caffe
 
+
+LOGGER = logging.getLogger(__name__)
 
 class PolicyOptCaffe(PolicyOpt):
     """Policy optimization using caffe neural network library
@@ -38,7 +41,11 @@ class PolicyOptCaffe(PolicyOpt):
         """ Helper method to initialize the solver from hyperparameters. """
 
         solver_param = SolverParameter()
+        solver_param.display = 0  # Don't display anything.
         solver_param.base_lr = self._hyperparams['lr']
+        solver_param.lr_policy = self._hyperparams['lr_policy']
+        solver_param.momentum = self._hyperparams['momentum']
+        solver_param.weight_decay = self._hyperparams['weight_decay']
         solver_param.type = self._hyperparams['solver_type']
 
         # Pass in net parameter either by filename or protostring
@@ -72,9 +79,10 @@ class PolicyOptCaffe(PolicyOpt):
         """ Update policy.
 
         Args:
-            obs: numpy array that is N x Dobs
-            tgt_mu: numpy array that is N x Du
-            tgt_prc: numpy array that is N x Du x Dx
+            obs: numpy array that is N x dObs
+            tgt_mu: numpy array that is N x dU
+            tgt_prc: numpy array that is N x dU x dU
+            tgt_wt: numpy array that is N x T
 
         Returns:
             a CaffePolicy with updated weights
@@ -82,29 +90,37 @@ class PolicyOptCaffe(PolicyOpt):
         # TODO make sure that self.batch_size == solver.net.blobs['DummyDataX'].data.shape[0]?
         # TODO also make sure that obs.shape[0] == tgt_mu.shape[0] == ..., etc?
         # TODO incorporate importance weights tgt_wt
-        blob_names = solver.net.blobs.keys()
+        N, T = obs.shape[:2]
+        obs = np.reshape(obs, (N*T, self._dObs))
+        tgt_mu = np.reshape(tgt_mu, (N*T, self._dU))
+        tgt_prc = np.reshape(tgt_prc, (N*T, self._dU, self._dU))
+        blob_names = self.solver.net.blobs.keys()
 
-        batches_per_epoch = np.floor(obs.shape[0] / self.batch_size)
+        # Assuming that N*T >= self.batch_size
+        batches_per_epoch = np.floor(N*T / self.batch_size)
+        idx = range(N*T)
+        np.random.shuffle(idx)
         for itr in range(self._hyperparams['iterations']):
             # Load in data for this batch
-            start_idx = itr % batches_per_epoch
-            idx = range(start_idx,start_idx+self.batch_size)
-            solver.net.blobs[blob_names[0]].data[0] = obs[idx]
-            solver.net.blobs[blob_names[1]].data[0] = tgt_mu[idx]
-            solver.net.blobs[blob_names[1]].data[0] = tgt_prc[idx]
+            start_idx = int(itr % batches_per_epoch)
+            idx_i = idx[start_idx:start_idx+self.batch_size]
+            self.solver.net.blobs[blob_names[0]].data[:] = obs[idx_i]
+            self.solver.net.blobs[blob_names[1]].data[:] = tgt_mu[idx_i]
+            self.solver.net.blobs[blob_names[2]].data[:] = tgt_prc[idx_i]
 
             self.solver.step(1)
 
             # To get the training loss:
-            #train_loss = solver.net.blobs['loss'].data
+            train_loss = self.solver.net.blobs[blob_names[-1]].data
+            LOGGER.debug('Caffe iteration %d, loss %f', itr, train_loss)
 
-            # To run a  test:
+            # To run a  test
             #if itr % test_interval:
             #    print 'Iteration', itr, 'testing...'
             #    solver.test_nets[0].forward()
 
         # Save out the weights, TODO - figure out how to get itr number
-        solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
+        self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
 
         return self.policy
 
@@ -124,10 +140,12 @@ class PolicyOptCaffe(PolicyOpt):
         for i in range(obs.shape[0]):
             for t in range(obs.shape[1]):
                 # Feed in data
-                self.solver.test_nets[0].blobs[blob_names[0]].data[0] = obs[i,t]
+                self.solver.test_nets[0].blobs[blob_names[0]].data[:] = obs[i,t]
 
                 # Assume that the first output blob is what we want
                 output[i,t,:] = self.solver.test_nets[0].forward().values()[0]
 
         # TODO - variance
-        return output, []
+        dU = self._dU
+        N, T = obs.shape[:2]
+        return output, np.zeros((N,T,dU,dU)), np.zeros((N,T,dU,dU)), np.zeros((N,T))
