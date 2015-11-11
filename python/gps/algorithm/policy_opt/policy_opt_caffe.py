@@ -15,7 +15,7 @@ class PolicyOptCaffe(PolicyOpt):
 
     """
 
-    def __init__(self, hyperparams, dObs):
+    def __init__(self, hyperparams, dObs, dU):
         config = copy.deepcopy(policy_opt_caffe)
         config.update(hyperparams)
 
