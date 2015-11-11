@@ -51,4 +51,9 @@ alg_badmm = {
     },
     # Costs
     'cost': None,  # A list of Cost objects for each condition
+
+    'policy_dual_rate': 1.0,
+    'policy_dual_rate_covar': 0.0,
+    'fixed_lg_step': 0,
+    'lg_step': 10.0,
 }

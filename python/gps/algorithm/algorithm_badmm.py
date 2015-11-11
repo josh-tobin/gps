@@ -143,25 +143,25 @@ class AlgorithmBADMM(Algorithm):
         """
         dX, dU, T = self.dX, self.dU, self.T
         # Compute target mean, cov, and weight for each sample.
-        tgt_mu, tgt_prc, tgt_wt = np.array([]), np.array([]), np.array([])
+        tgt_mu, tgt_prc, tgt_wt = np.zeros((0, T, dU)), np.zeros((0, T, dU, dU)), np.zeros((0, T))
         for m in range(self.M):
             #TODO: handle synthetic samples, for now just assuming no
             #      synthetic samples and using all samples
             samples = self.cur[m].sample_list
             X, U = samples.get_X(), samples.get_U()
             N = len(samples)
-            traj, traj_info = self.cur[m].traj_distr, self.cur[m].traj_info
+            traj, pol_info, traj_info = self.cur[m].traj_distr, self.cur[m].pol_info, self.cur[m].traj_info
             mu = np.zeros((N, T, dU))
             prc = np.zeros((N, T, dU, dU))
             wt = np.zeros((N, T))
             # Get time-indexed actions.
             for t in range(T):
                 # Compute actions along this trajectory.
-                prc[:,t,:,:] = np.tile(traj.inv_pol_covar[t,:,:], [N, 1, 1, 1])
+                prc[:,t,:,:] = np.tile(traj.inv_pol_covar[t,:,:], [N, 1, 1])
                 for i in range(N):
                     mu[i,t,:] = (traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]) - \
                             np.linalg.solve(prc[i,t,:,:],
-                            pol_info.lambda_K[t,:,:] * X[i,t,:] + pol_info.lambda_k[t,:])
+                            pol_info.lambda_K[t,:,:].dot(X[i,t,:]) + pol_info.lambda_k[t,:])
                 wt[:,t].fill(pol_info.pol_wt[t])
             tgt_mu = np.concatenate((tgt_mu, mu))
             tgt_prc = np.concatenate((tgt_prc, prc))
@@ -197,8 +197,8 @@ class AlgorithmBADMM(Algorithm):
         for t in range(T):
             # Assemble diagonal weights matrix and data.
             dwts = (1./N) * np.ones((N,))
-            Ts = np.transpose(X[:,t,:], axes=[0, 2, 1])
-            Ps = np.transpose(pol_mu[:,t,:], axes=[0, 2, 1])
+            Ts = X[:,t,:]
+            Ps = pol_mu[:,t,:]
             Ys = np.concatenate((Ts, Ps), axis=1)
             # Obtain Normal-inverse-Wishart prior.
 #             mu0, Phi, m, n0 = self.policy_prior.eval(Ts, Ps)
@@ -238,16 +238,18 @@ class AlgorithmBADMM(Algorithm):
         pol_ev, pol_em = estimate_moments(X, pol_mu, pol_sig)
         # Compute the difference and increment based on pol_wt.
         for t in range(T):
-            tU, pU = np.transpose(traj_mu[:,t,:], axes=[0, 2, 1]), np.transpose(pol_mu[:,t,:], axes=[0, 2, 1])
+            tU, pU = traj_mu[:,t,:], pol_mu[:,t,:]
             # Increment mean term.
+            #TODO: is policy_dual_rate always a number here?
             pol_info.lambda_k[t,:] -= self._hyperparams['policy_dual_rate'] * pol_info.pol_wt[t] * \
-                    traj.inv_pol_covar[t,:,:] * np.mean(tU-pU, axis=1)
+                    traj.inv_pol_covar[t,:,:].dot(np.mean(tU-pU, axis=0))
             # Increment covariance term.
+            #TODO: is policy_dual_rate_covar always a number here?
             t_covar, p_covar = traj.K[t,:,:], pol_info.pol_K[t,:,:]
             pol_info.lambda_K[t,:,:] -= self._hyperparams['policy_dual_rate_covar'] * pol_info.pol_wt[t] * \
-                    traj.inv_pol_covar[t,:,:] * (t_covar - p_covar)
+                    traj.inv_pol_covar[t,:,:].dot(t_covar - p_covar)
         # Compute KL divergence.
-        kl = self._policy_kl()[0]
+        kl_m = self._policy_kl(m)[0]
         # Increment pol_wt based on change in KL divergence.
         if self._hyperparams['fixed_lg_step'] == 1:
             # Take fixed size step.
@@ -256,7 +258,7 @@ class AlgorithmBADMM(Algorithm):
         elif self._hyperparams['fixed_lg_step'] == 2:
             # Increase/decrease based on change in constraint satisfaction.
             if hasattr(traj_info, 'prev_kl'):
-                kl_change = kl / pol_info.prev_kl
+                kl_change = kl_m / pol_info.prev_kl
                 for i in range(len(pol_info.pol_wt)):
                     if kl_change[i] < 0.8:
                         pol_info.pol_wt[i] *= 0.5
@@ -267,9 +269,9 @@ class AlgorithmBADMM(Algorithm):
             pass  #TODO: implement this option
         else:
             # Standard DGD step.
-            pol_info.pol_wt = np.array([max(wt + self._hyperparams['lg_step']*kl, 0) \
-                                         for wt in pol_info.pol_wt])
-        pol_info.prev_kl = kl
+            pol_info.pol_wt = np.array([max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
+                                         for i in range(T)])
+        pol_info.prev_kl = kl_m
 
     def _update_trajectories(self):
         """
@@ -292,6 +294,15 @@ class AlgorithmBADMM(Algorithm):
         self.cur = [IterationData() for _ in range(self.M)]
         for m in range(self.M):
             self.cur[m].traj_info = TrajectoryInfo()
+            pol_info, prev_pol_info = PolicyInfo(), self.prev[m].pol_info
+            pol_info.lambda_k = np.copy(prev_pol_info.lambda_k)
+            pol_info.lambda_K = np.copy(prev_pol_info.lambda_K)
+            pol_info.pol_wt = np.copy(prev_pol_info.pol_wt)
+            pol_info.pol_K = np.copy(prev_pol_info.pol_K)
+            pol_info.pol_k = np.copy(prev_pol_info.pol_k)
+            pol_info.pol_S = np.copy(prev_pol_info.pol_S)
+            pol_info.chol_pol_S = np.copy(prev_pol_info.chol_pol_S)
+            self.cur[m].pol_info = pol_info
             self.cur[m].step_mult = self.prev[m].step_mult
             self.cur[m].traj_distr = self.new_traj_distr[m]
         delattr(self, 'new_traj_distr')
@@ -369,10 +380,10 @@ class AlgorithmBADMM(Algorithm):
         new_mc_obj = np.mean(np.sum(self.cur[m].cs, axis=1), axis=0)
 
         # Compute sample-based estimate of KL divergence between policy and trajectories.
-        new_mc_kl, new_mc_kl_samp, new_mc_lam, new_mc_lam_samp = self._policy_kl()
+        new_mc_kl, new_mc_kl_samp, new_mc_lam, new_mc_lam_samp = self._policy_kl(m)
         if self.iteration_count >= 1 and self.prev[m].sample_list:
             previous_mc_kl, previous_mk_kl_samp, previous_mc_lam, previous_mc_lam_samp = \
-                    self._policy_kl(prev=True)
+                    self._policy_kl(m, prev=True)
         else:
             previous_mc_kl = np.zeros_like(new_mc_kl)
 
@@ -422,13 +433,17 @@ class AlgorithmBADMM(Algorithm):
 
         self.cur[m].step_change = step_change
         self.cur[m].mispred_std = mispred_std
-        self.cur[m].pol_kl = pol_kl
+        #TODO: what to do with pol_kl?
+#         self.cur[m].pol_kl = pol_kl
 
-    def _policy_kl(self, prev=False):
+    def _policy_kl(self, m, prev=False):
         """
         Monte-Carlo estimate of KL divergence between policy and trajectory.
         """
         dX, dU, T = self.dX, self.dU, self.T
+        samples = self.cur[m].sample_list
+        N = len(samples)
+        X, obs = samples.get_X(), samples.get_obs()
         if prev:
             traj, pol_info, traj_info = self.prev[m].traj_distr, self.cur[m].pol_info, self.prev[m].traj_info
             samples = self.prev[m].sample_list
@@ -456,9 +471,9 @@ class AlgorithmBADMM(Algorithm):
             # IMPORTANT: note that this assumes that pol_prec does not depend
             # on state!!!! (only the last term makes this assumption)
             term4 = np.sum(diff * (diff.dot(pol_prec[1,t,:,:])), axis=1)
-            kl[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=2) - term2 + \
+            kl[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=1) - term2 + \
                     0.5 * term3 + 0.5 * term4
-            kl_m[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=1), axis=2) - term2 + \
+            kl_m[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=0), axis=0) - term2 + \
                     0.5 * np.mean(term3) * 0.5 * np.mean(term4)
             # Compute trajectory action at sample with Lagrange multiplier.
             traj_mu = np.zeros((N, dU))
@@ -468,11 +483,11 @@ class AlgorithmBADMM(Algorithm):
             # Compute KL divergence with Lagrange multiplier.
             diff_l = pol_mu[:,t,:] - traj_mu
             term4_l = np.sum(diff_l * (diff_l.dot(pol_prec[1,t,:,:])), axis=1)
-            kl_l[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=2) - term2 + \
+            kl_l[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=1) - term2 + \
                     0.5 * term3 + 0.5 * term4_l
-            kl_lm[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=1), axis=2) - term2 + \
+            kl_lm[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=0), axis=0) - term2 + \
                     0.5 * np.mean(term3) * 0.5 * np.mean(term4_l)
-        return kl, kl_m, kl_l, kl_lm
+        return kl_m, kl, kl_lm, kl_l
 
     def _estimate_cost(self, traj_distr, traj_info, m):
         """
@@ -503,8 +518,9 @@ class AlgorithmBADMM(Algorithm):
         # Compute KL divergence.
         predicted_kl = np.zeros(T)
         for t in range(T):
-            inv_pS = np.linalg.solve(pol_info.chol_pol_S[t,:,:],
-                    np.linalg.solve(np.transpose(pol_info.chol_pol_S[t,:,:]), np.eye(dU)))
+            inv_pS = np.zeros((dU, dU))
+#                     np.linalg.solve(pol_info.chol_pol_S[t,:,:],
+#                     np.linalg.solve(np.transpose(pol_info.chol_pol_S[t,:,:]), np.eye(dU)))
             Ufb = pol_info.pol_K[t,:,:].dot(np.transpose(mu[t,:dX])) + pol_info.pol_k[t,:]
             Kbar = traj_distr.K[t,:,:] - pol_info.pol_K[t,:,:]
             predicted_kl[t] = 0.5 * (mu[t,dX:] - Ufb).dot(inv_pS).dot(mu[t,dX:] - Ufb) + \

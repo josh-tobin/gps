@@ -12,10 +12,10 @@ class PolicyOptDummy(PolicyOpt):
         self.dO = dO
         self.dU = dU
 
-    def update(obs, mu, prc, wt):
+    def update(self, obs, mu, prc, wt):
         pass
 
-    def prob(obs):
+    def prob(self, obs):
         N, T = obs.shape[:2]
         dU = self.dU
         return np.zeros((N, T, dU)), np.zeros((N, T, dU, dU)), \
