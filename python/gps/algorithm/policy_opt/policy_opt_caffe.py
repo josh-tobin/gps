@@ -19,7 +19,7 @@ class PolicyOptCaffe(PolicyOpt):
         config = copy.deepcopy(policy_opt_caffe)
         config.update(hyperparams)
 
-        PolicyOpt.__init__(self, config, dObs)
+        PolicyOpt.__init__(self, config, dObs, dU)
 
         self.batch_size = self._hyperparams['batch_size']
 
@@ -32,7 +32,7 @@ class PolicyOptCaffe(PolicyOpt):
         self.init_solver()
         # TODO - deal with variance
         # TODO - handle test network assumption a bit nicer, and/or document it
-        self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(7))
+        self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(self._dU))
 
     def init_solver(self):
         """ Helper method to initialize the solver from hyperparameters. """
@@ -48,6 +48,7 @@ class PolicyOptCaffe(PolicyOpt):
             network_arch_params = self._hyperparams['network_arch_params']
             network_arch_params['batch_size'] = self.batch_size
             network_arch_params['dim_input'] = self._dObs
+            network_arch_params['dim_output'] = self._dU
             network_arch_params['phase'] = TRAIN
             solver_param.net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
 
@@ -116,9 +117,8 @@ class PolicyOptCaffe(PolicyOpt):
         Returns:
             tuple of network output and variance
         """
-        # TODO - Don't hardcode 7
         #import ipdb; ipdb.set_trace()
-        output = np.zeros([obs.shape[0], obs.shape[1], 7])
+        output = np.zeros([obs.shape[0], obs.shape[1], self._dU])
         blob_names = self.solver.test_nets[0].blobs.keys()
 
         for i in range(obs.shape[0]):
