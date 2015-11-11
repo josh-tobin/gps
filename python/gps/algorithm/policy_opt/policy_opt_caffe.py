@@ -33,9 +33,9 @@ class PolicyOptCaffe(PolicyOpt):
             caffe.set_mode_cpu()
 
         self.init_solver()
-        # TODO - deal with variance
-        # TODO - handle test network assumption a bit nicer, and/or document it
-        self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(self._dU))
+        self.var = self._hyperparams['init_var'] * np.ones(dObs)
+
+        self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
 
     def init_solver(self):
         """ Helper method to initialize the solver from hyperparameters. """
@@ -89,11 +89,15 @@ class PolicyOptCaffe(PolicyOpt):
         """
         # TODO make sure that self.batch_size == solver.net.blobs['DummyDataX'].data.shape[0]?
         # TODO also make sure that obs.shape[0] == tgt_mu.shape[0] == ..., etc?
-        # TODO incorporate importance weights tgt_wt
+        # TODO - normalization?
         N, T = obs.shape[:2]
-        obs = np.reshape(obs, (N*T, self._dObs))
-        tgt_mu = np.reshape(tgt_mu, (N*T, self._dU))
-        tgt_prc = np.reshape(tgt_prc, (N*T, self._dU, self._dU))
+        dU, dObs = self._dU, self._dObs
+        obs = np.reshape(obs, (N*T, dObs))
+        tgt_mu = np.reshape(tgt_mu, (N*T, dU))
+        tgt_prc = np.reshape(tgt_prc, (N*T, dU, dU))
+        tgt_wt = np.reshape(tgt_wt, (N*T, 1, 1))
+        tgt_prc = tgt_wt * tgt_prc
+
         blob_names = self.solver.net.blobs.keys()
 
         # Assuming that N*T >= self.batch_size
@@ -122,6 +126,13 @@ class PolicyOptCaffe(PolicyOpt):
         # Save out the weights, TODO - figure out how to get itr number
         self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
 
+        # Optimize variance
+        A = np.sum(tgt_prc,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
+        A = A / np.sum(tgt_wt)
+
+        # TODO - use dense covariance?
+        self.var = 1 / np.diag(A)
+
         return self.policy
 
     def prob(self, obs):
@@ -131,21 +142,24 @@ class PolicyOptCaffe(PolicyOpt):
             obs: numpy array that is N x T x Dobs
 
         Returns:
-            tuple of network output and variance
+            pol mu, pol var, pol prec, pol det sigma
         """
-        #import ipdb; ipdb.set_trace()
-        output = np.zeros([obs.shape[0], obs.shape[1], self._dU])
+        dU = self._dU
+        N, T = obs.shape[:2]
+
+        output = np.zeros([N, T, dU])
         blob_names = self.solver.test_nets[0].blobs.keys()
 
-        for i in range(obs.shape[0]):
-            for t in range(obs.shape[1]):
+        for i in range(N):
+            for t in range(T):
                 # Feed in data
                 self.solver.test_nets[0].blobs[blob_names[0]].data[:] = obs[i,t]
 
                 # Assume that the first output blob is what we want
                 output[i,t,:] = self.solver.test_nets[0].forward().values()[0]
 
-        # TODO - variance
-        dU = self._dU
-        N, T = obs.shape[:2]
-        return output, np.zeros((N,T,dU,dU)), np.zeros((N,T,dU,dU)), np.zeros((N,T))
+        pol_sigma = np.tile(np.diag(self.var), (N, T, 1, 1))
+        pol_prec = np.tile(np.diag(1 / self.var), (N, T, 1, 1))
+        pol_det_sigma = np.tile(np.prod(self.var), (N, T))
+
+        return output, pol_sigma, pol_prec, pol_det_sigma

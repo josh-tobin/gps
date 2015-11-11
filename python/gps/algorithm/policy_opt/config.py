@@ -2,6 +2,9 @@ import caffe
 from policy_opt_caffe_util import construct_fc_network
 
 policy_opt_caffe = {
+    # Initialization
+    'init_var': 0.1,  # Initial policy variance
+    'ent_reg': 0.0,  # Entropy regularizer
     # Solver hyperparameters
     'iterations': 500,  # Number of iterations of training per inner iteration
     'batch_size': 25,
