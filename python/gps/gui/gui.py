@@ -10,31 +10,31 @@ import matplotlib.gridspec as gridspec
 from matplotlib.widgets import Button
 
 from gps.gui.config import gui as gui_config
-
 from gps.hyperparam_pr2 import defaults as hyperparam_pr2
+
 from gps.agent.ros.agent_ros import AgentROS
-from gps.gui.action_lib import Action, ActionLib
+from gps.gui.action_lib import ActionLib
 from gps.gui.target_setup import TargetSetup
 from gps.gui.training_handler import TrainingHandler
 
 # ~~~ GUI Specifications ~~~
-# Target setup (responsive to mouse, keyboard, and PS3 controller)
+# Target Setup (responsive to mouse, keyboard, and PS3 controller)
 #     - set target number, set actuator type
 #     - relax controller, mannequin mode
 #     - set initial position (joint angles, end effector points), move to initial position
 #     - set target  position (joint angles, end effector points), move to target  position
 #     - set initial feature points, set target feature points
 
-# Robot training
+# Training Handler
 #     - stop, stop and reset, reset, start
 
-# Data plotter
+# Data Plotter
 #     - algorithm training costs
 #     - losses of feature points / end effector points
 #     - joint states, feature point states, etc.
 #     - save tracked data to file
 
-# Image visualizer
+# Image Visualizer
 #     - real-time image and feature points visualization
 #     - overlay of initial and target feature points
 #     - visualize hidden states?
@@ -42,11 +42,11 @@ from gps.gui.training_handler import TrainingHandler
 
 class GUI:
     def __init__(self, actionlib, hyperparams):
-        # General
+        # Hyperparameters
         self._hyperparams = copy.deepcopy(gui_config)
         self._hyperparams.update(hyperparams)
-        self._output_files_dir = self._hyperparams['common']['output_files_dir']
-        self._log_file_name = self._output_files_dir + self._hyperparams['log_file_name']
+        self._output_files_dir = self._hyperparams['output_files_dir']
+        self._actions_log_filename = self._output_files_dir + self._hyperparams['actions_log_filename']
 
         # Action Lib
         self._actions = actionlib._actions
@@ -97,9 +97,10 @@ class GUI:
         # Mouse Input
         self._buttons = {}
         for key, ax in action_ax.iteritems():
-            self._actions[key]._ax = ax
-            self._buttons[key] = Button(self._actions[key]._ax, self._actions[key]._name)
-            self._buttons[key].on_clicked(self._actions[key]._func)
+            action = self._actions[key]
+            action._ax = ax
+            self._buttons[key] = Button(action._ax, action._name)
+            self._buttons[key].on_clicked(action._func)
 
         # Keyboard Input
         self._keyboard_bindings = {}
@@ -119,7 +120,7 @@ class GUI:
         rospy.Subscriber(self._hyperparams['ps3_controller_topic'], Joy, self.ps3_controller_callback)
 
         # Output Panel
-        self.set_output("Waiting for response from agent...")
+        self.set_output_text("Waiting for response from agent...")
 
         # Visualizations Panel
         self._ax_vis.set_axis_off()
@@ -128,33 +129,31 @@ class GUI:
         if event.key in self._keyboard_bindings:
             self._actions[self._keyboard_bindings[event.key]]._func()
         else:
-            self.set_output("unrecognized keyboard input: " + str(event.key))
+            self.set_output_text("unrecognized keyboard input: " + str(event.key))
 
     def ps3_controller_callback(self, joy_msg):
         buttons_pressed = tuple([i for i in range(len(joy_msg.buttons)) if joy_msg.buttons[i]])
         if buttons_pressed in self._ps3_controller_bindings:
             self._actions[self._ps3_controller_bindings[buttons_pressed]]._func()
         else:
-            self.set_output("unrecognized ps3 controller input: " + str(buttons_pressed))
+            self.set_output_text("unrecognized ps3 controller input: " + str(buttons_pressed))
 
-    def set_output(self, text):
+    def set_output_text(self, text):
         self._ax_output.clear()
         self._ax_output.set_axis_off()
         self._ax_output.text(0, 1, text, color='black', fontsize=12,
             va='top', ha='left', transform=self._ax_output.transAxes)
         self._fig.canvas.draw()
-        with open(self._log_file_name, "a") as f:
+        with open(self._actions_log_filename, "a") as f:
             f.write(text + '\n\n')
         
 
 if __name__ == "__main__":
     rospy.init_node('gui')
     a = AgentROS(hyperparam_pr2['agent'], init_node=False)
-    gh = hyperparam_pr2
-
-    ts = TargetSetup(a, gh)
-    th = TrainingHandler(a, gh)
+    ts = TargetSetup(a, hyperparam_pr2['common'])
+    th = TrainingHandler(a, hyperparam_pr2['common'])
     
     actionlib = ActionLib(ts, th)
-    g = GUI(actionlib, gh)
+    g = GUI(actionlib, hyperparam_pr2['common'])
     plt.show()

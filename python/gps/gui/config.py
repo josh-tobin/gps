@@ -102,7 +102,7 @@ gui = {
     'keyboard_bindings' : keyboard_bindings,
     'ps3_controller_bindings': ps3_controller_bindings,
     'ps3_controller_topic': 'joy',
-    'log_file_name': 'actions_log.txt',
+    'actions_log_filename': 'actions_log.txt',
 }
 
 target_setup = {

@@ -14,7 +14,7 @@ class TargetSetup:
         self._hyperparams.update(hyperparams)
         self._gui = gui
 
-        self._target_files_dir = self._hyperparams['common']['target_files_dir']
+        self._target_files_dir = self._hyperparams['target_files_dir']
 
         self._num_targets = self._hyperparams['num_targets']
         self._num_actuators = self._hyperparams['num_actuators']
@@ -108,11 +108,20 @@ class TargetSetup:
         ft_stable = np.array(ft_prsnce_mean >= threshold, dtype=int)
         ft_points = ft_stable * ft_points_mean
 
-        filename = self._filedir + 'ft' + '_target_' + self._target_number + '.npz'
-        np.savez(filename, ft_points=ft_points, ft_stable=ft_stable)
-        self.output_text('set_ft_target: ' + '\n' +
-                'ft_points: ' + ft_points + '\n' +
-                'ft_stable: ' + ft_stable)
+        filename = self._target_files_dir + self._actuator_name + '_target.npz'
+
+        fp_key = 'fp' + str(self._target_number)
+        fp_value = ft_points
+        add_to_npz(filename, fp_key, fp_value)
+
+        fs_key = 'fs' + str(self._target_number)
+        fs_value = ft_stable
+        add_to_npz(filename, fs_key, fs_value)
+
+        self.output_text('set_target_features' + '\n' +
+                         'filename = ' + filename + '\n' +
+                         fp_key + ' = ' + str(fp_value.T) + '\n' +
+                         fs_key + ' = ' + str(fs_value.T))
 
     def move_to_initial(self, event=None):
         filename = self._target_files_dir + self._actuator_name + '_initial.npz'
@@ -135,7 +144,8 @@ class TargetSetup:
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
         self.output_text('relax_controller:' + '\n' + 
-                         str(self._actuator_name))
+                         'actuator type = ' + str(self._actuator_type) + '\n' +
+                         'actuator name = ' + str(self._actuator_name))
 
     def mannequin_mode(self, event=None):
         # TO-DO
@@ -144,7 +154,7 @@ class TargetSetup:
 
     def output_text(self, text):
         if self._gui:
-            self._gui.set_output(text)
+            self._gui.set_output_text(text)
         else:
             print(text)
 
@@ -156,10 +166,19 @@ def add_to_npz(filename, key, value):
     """
     tmp = {}
     if os.path.exists(filename):
-        f = np.load(filename)
-        for k in f.keys():
-            tmp[k] = f[k]
+        with np.load(filename) as f:
+            tmp = dict(f)
     tmp[key] = value
     np.savez(filename,**tmp)
 
-
+def load_from_npz(filename, key):
+    """
+    Helper function for loading a target setup value from a npz dictionary.
+    """
+    try:
+        with np.load(filename) as f:
+            return f[key]
+    except IOError as e:
+        print('File not found: ' + filename + '\n' +
+              'Using default value instead: ' + key + ' = np.zeros(14).')
+    return np.zeros(14)

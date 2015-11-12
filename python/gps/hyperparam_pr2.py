@@ -17,6 +17,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
+from gps.gui.target_setup import load_from_npz
 
 SENSOR_DIMS = {
     JOINT_ANGLES: 7,
@@ -45,22 +46,8 @@ if not os.path.exists(common['target_files_dir']):
 if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
 
-x0 = np.zeros(14)  # Assume initial state should have 0 velocity
-filename = common['target_files_dir'] + 'trial_arm' + '_initial.npz'
-try:
-    with np.load(filename) as f:
-        x0[0:7] = f['ja0']
-except IOError as e:
-    print('No initial file found, defaulting to all zeros state')
-
-tgt = np.zeros(7)  # Assume target state should have 0 velocity
-filename = common['target_files_dir'] + 'trial_arm' + '_target.npz'
-try:
-    with np.load(filename) as f:
-        tgt = f['ja0']
-except IOError as e:
-    print('No target file found, defaulting to all zeros state')
-
+x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0')
+tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0')
 
 agent = {
     'type': AgentROS,
