@@ -1,6 +1,5 @@
 #include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/trialcontroller.h"
-#include "gps_agent_pkg/ArmType.h"
 
 using namespace gps_control;
 
@@ -29,19 +28,21 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     Eigen::VectorXd X, obs;
     //TODO: Fill in X and obs from sample
     //sample->get_state(step_counter_, X);
-    ROS_INFO_STREAM("Getting state");
+    //ROS_INFO_STREAM("Getting state");
     sample->get_data(step_counter_, X, state_datatypes_);
+    /*
     ROS_INFO("Printing X:");
     for(int i=0; i<X.size(); i++){
         ROS_INFO("X[%d]=%f", i, X[i]);
     }
+    */
     //sample->get_obs(step_counter_, obs);
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
-    ROS_INFO_STREAM("Torques commanded:");
-    for(int i=0; i<7; i++){
-        ROS_INFO("%f", torques[i]);
+    //ROS_INFO_STREAM("Torques commanded:");
+    for(int i=0; i<torques.size(); i++){
+        //ROS_INFO("%f", torques[i]);
     }
 
     // Set the torques for the sample

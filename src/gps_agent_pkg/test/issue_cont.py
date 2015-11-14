@@ -20,6 +20,7 @@ def listen(msg):
 
 def listen_report(msg):
     print msg.__class__
+    sensor_data = msg.sensor_data
     import pdb; pdb.set_trace();
 
 def get_lin_gauss_test(T=50):
@@ -50,6 +51,7 @@ def main():
     # NOTE: ordering of datatypes in state is determined by the order here
     tc.state_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
     tc.obs_datatypes = tc.state_datatypes
+    tc.ee_points = [0.0, 0.0, 0.0, 1.0,0.5,0.5]
 
     r = rospy.Rate(1)
     #while not rospy.is_shutdown():

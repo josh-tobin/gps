@@ -7,7 +7,7 @@ using namespace gps_control;
 // Constructor.
 
 // Constructor.
-PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size)
+PositionController::PositionController(ros::NodeHandle& n, gps::ActuatorType arm, int size)
     : Controller(n, arm, size)
 {
     // Initialize PD gains.
@@ -20,6 +20,7 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
 
     // Initialize integral terms to zero.
     pd_integral_.resize(size);
+    i_clamp_.resize(size);
 
     // Initialize current angle and position.
     current_angles_.resize(size);
@@ -40,16 +41,8 @@ PositionController::PositionController(ros::NodeHandle& n, ArmType arm, int size
     temp_jacobian_.resize(6,size);
     ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
 
-    for (int i = 0; i < size; i++)
-    {
-        pd_gains_p_[i] = 1.0;
-        pd_gains_d_[i] = 0.3;
-        pd_gains_i_[i] = 0.02;
-        max_velocities_[i] = 3.0;
-        //target_angles_[i] = 0.5;
-    }
     // Set initial mode.
-    mode_ = NoControl;
+    mode_ = gps::NO_CONTROL;
 
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
@@ -71,7 +64,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
 {
     //ROS_INFO_STREAM(">beginning position update");
     // Get current joint angles.
-    plugin->get_joint_encoder_readings(temp_angles_,arm_);
+    plugin->get_joint_encoder_readings(temp_angles_, arm_);
 
     // Check dimensionality.
     assert(temp_angles_.rows() == torques.rows());
@@ -91,7 +84,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     last_update_time_ = current_time;
 
     // If doing task space control, compute joint positions target.
-    if (mode_ == TaskSpaceControl)
+    if (mode_ == gps::TASK_SPACE)
     {
         ROS_ERROR("Not implemented!");
 
@@ -107,13 +100,23 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     }
 
     // If we're doing any kind of control at all, compute torques now.
-    if (mode_ != NoControl)
+    if (mode_ != gps::NO_CONTROL)
     {
         // Compute error.
         temp_angles_ = current_angles_ - target_angles_;
 
         // Add to integral term.
         pd_integral_ += temp_angles_;
+
+        // Clamp integral term
+        for (int i = 0; i < temp_angles_.rows(); i++){
+            if (pd_integral_(i) > i_clamp_(i)) {
+                pd_integral_(i) = i_clamp_(i);
+            }
+            else if (-pd_integral_(i) > i_clamp_(i)) {
+                pd_integral_(i) = -i_clamp_(i);
+            }
+        }
 
         // Compute torques.
         // TODO: look at PR2 PD controller implementation and make sure our version matches!
@@ -147,11 +150,17 @@ void PositionController::configure_controller(OptionsMap &options)
     ROS_INFO_STREAM("Received controller configuration");
     // needs to report when finished
     report_waiting = true;
-    mode_ = (PositionControlMode) boost::get<int>(options["mode"]);
-    if (mode_ != NoControl){
+    mode_ = (gps::PositionControlMode) boost::get<int>(options["mode"]);
+    if (mode_ != gps::NO_CONTROL){
         Eigen::VectorXd data = boost::get<Eigen::VectorXd>(options["data"]);
         Eigen::MatrixXd pd_gains = boost::get<Eigen::MatrixXd>(options["pd_gains"]);
-        if(mode_ == JointSpaceControl){
+        for(int i=0; i<pd_gains.rows(); i++){
+            pd_gains_p_(i) = pd_gains(i, 0);
+            pd_gains_i_(i) = pd_gains(i, 1);
+            pd_gains_d_(i) = pd_gains(i, 2);
+            i_clamp_(i) = pd_gains(i, 3);
+        }
+        if(mode_ == gps::JOINT_SPACE){
             target_angles_ = data;
         }else{
             ROS_ERROR("Unimplemented position control mode!");
@@ -164,13 +173,16 @@ bool PositionController::is_finished() const
 {
     // Check whether we are close enough to the current target.
     // TODO: implement.
-    if (mode_ == JointSpaceControl){
-        double eps = 0.185;
+    if (mode_ == gps::JOINT_SPACE){
+        double epspos = 0.185;
+        double epsvel = 0.01;
         double error = (current_angles_ - target_angles_).norm();
+        double vel = current_angle_velocities_.norm();
         ROS_INFO("error: %f", error);
-        return (error < eps);
+        ROS_INFO("vel: %f", vel);
+        return (error < epspos && vel < epsvel);
     }
-    else if (mode_ == NoControl){
+    else if (mode_ == gps::NO_CONTROL){
         return true;
     }
 }

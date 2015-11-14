@@ -2,20 +2,20 @@ from __future__ import division
 
 from datetime import datetime
 import numpy as np
+import os.path
 
-#from agent.mjc.agent_mjc import AgentMuJoCo
-from agent.ros.agent_ros import AgentROS
-from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
-from algorithm.cost.cost_fk import CostFK
-from algorithm.cost.cost_state import CostState
-from algorithm.cost.cost_torque import CostTorque
-from algorithm.cost.cost_sum import CostSum
-
-from algorithm.dynamics.dynamics_lr import DynamicsLR
-from algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
-from algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from algorithm.policy.lin_gauss_init import init_lqr, init_pd
-from proto.gps_pb2 import *
+from gps import __file__ as gps_filepath
+from gps.agent.ros.agent_ros import AgentROS
+from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from gps.algorithm.cost.cost_fk import CostFK
+from gps.algorithm.cost.cost_state import CostState
+from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_sum import CostSum
+from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
+from gps.proto.gps_pb2 import *
 
 
 SENSOR_DIMS = {
@@ -28,43 +28,62 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
     'conditions': 1,
-    'experiment_dir': 'experiments/default_experiment/',
+    'experiment_dir': BASE_DIR + '/experiments/default_pr2_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
-sample_data = {
-    'filename': 'sample_data.pkl',
-    'T': 100,
-    'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
-    'obs_include': [],
+gui = {
+  'file_dir' : common['experiment_dir'] + 'target_files/',
 }
+
+if not os.path.exists(common['experiment_dir']):
+    os.makedirs(common['experiment_dir'])
+
+if not os.path.exists(gui['file_dir']):
+    os.makedirs(gui['file_dir'])
+
+x0 = np.zeros(14)  # Assume initial state should have 0 velocity
+filename = gui['file_dir']+'trialarm_initial.npz'
+try:
+    with np.load(filename) as f:
+        x0[0:7] = f['x0']
+except IOError as e:
+    print('No initial file found, defaulting to all zeros state')
+
+tgt = np.zeros(7)  # Assume initial state should have 0 velocity
+filename = gui['file_dir']+'target.npz'
+try:
+    with np.load(filename) as f:
+        tgt = f['ja0']
+except IOError as e:
+    print('No target file found, defaulting to all zeros state')
+
 
 agent = {
     'type': AgentROS,
     'dt': 0.05,
-    'init_pose': np.zeros(14),#np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
-    #'init_pose': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
+    'x0': x0,
     'conditions': common['conditions'],
     'T': 100,
     'reset_conditions': {
         0: {
-            'trial_arm': {
-                'mode': 1,
-                'data': np.zeros(7),
+            TRIAL_ARM: {
+                'mode': JOINT_SPACE,
+                'data': x0[0:7],
                 #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
-            }, 
-            'auxiliary_arm': {
-                'mode': 0,
+            },
+            AUXILIARY_ARM: {
+                'mode': JOINT_SPACE,
                 'data': np.zeros(7),
-            }, 
+            },
         },
      },
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
 }
 
@@ -85,16 +104,13 @@ algorithm['init_traj_distr'] = {
         },
         'dt': agent['dt'],
         'T': agent['T'],
-        'x0': np.zeros(14),
-        'dX': 14,
-        'dU': 7,
-        #'x0': np.concatenate([np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]), np.zeros(7)]),
+        'x0': agent['x0'],
     }
 }
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-5/PR2_GAINS,
+    'wu': 5e-3/PR2_GAINS,
 }
 
 state_cost = {
@@ -104,10 +120,10 @@ state_cost = {
             'wp': np.ones(SENSOR_DIMS[ACTION]),
             #'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
                 #-1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
-            'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
+            #'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
+            'desired_state': tgt,
         },
     },
-    'wp': np.array([1, 1, 1, 1, 1, 1]),
 }
 
 algorithm['cost'] = {
@@ -130,7 +146,8 @@ algorithm['policy_opt'] = {}
 defaults = {
     'iterations': 20,
     'common': common,
-    'sample_data': sample_data,
     'agent': agent,
+    'gui': gui,
     'algorithm': algorithm,
+    'num_samples': 5,
 }
