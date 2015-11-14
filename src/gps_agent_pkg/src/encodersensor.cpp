@@ -9,7 +9,6 @@ using namespace gps_control;
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
 {
     // Get current joint angles.
-    ROS_INFO_STREAM("beginning constructor");
     plugin->get_joint_encoder_readings(previous_angles_, gps::TRIAL_ARM);
 
     // Initialize velocities.
@@ -40,7 +39,6 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
-    ROS_INFO_STREAM("ending constructor");
 }
 
 // Destructor.
@@ -88,7 +86,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // Compute jacobian
         unsigned n_actuator = previous_angles_.size(); //TODO: Assuming we are using all joints
 
-        for(unsigned i=0; i<n_points_; i++){
+        for(int i=0; i<n_points_; i++){
             unsigned site_start = i*3;
             Eigen::VectorXd ovec = end_effector_points_.row(i);
 
@@ -101,7 +99,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 
             // Compute site Jacobian.
             ovec = previous_rotation_*ovec;
-            for(int k=0; k<n_actuator; k++){
+            for(unsigned k=0; k<n_actuator; k++){
                 point_jacobians_(site_start  , k) += point_jacobians_rot_(site_start+1, k)*ovec[2] - point_jacobians_rot_(site_start+2, k)*ovec[1];
                 point_jacobians_(site_start+1, k) += point_jacobians_rot_(site_start+2, k)*ovec[0] - point_jacobians_rot_(site_start  , k)*ovec[2];
                 point_jacobians_(site_start+2, k) += point_jacobians_rot_(site_start  , k)*ovec[1] - point_jacobians_rot_(site_start+1, k)*ovec[0];
@@ -162,7 +160,6 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
 
     end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]);
     n_points_ = end_effector_points_.rows();
-    ROS_INFO("Configure! Npoints: %d", n_points_);
 
     if( end_effector_points_.cols() != 3){
         ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", (int)n_points_,
