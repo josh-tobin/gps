@@ -104,6 +104,7 @@ void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
     }else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
         //TODO: Maybe specify shape in the metadata, instead of relying on the T=0 sample
         //Grab shape from first entry at T=0
+        SampleList sample_list = internal_data_[sample_type];
         SampleVariant sample_variant = sample_list[0];
         Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
         shape.push_back(sensor_data.rows());

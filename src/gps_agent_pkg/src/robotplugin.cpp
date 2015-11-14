@@ -87,7 +87,7 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
     // TODO: readd this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
     {
-        sensors_[i].configure_sensor(opts);
+        sensors_[i]->configure_sensor(opts);
     }
 }
 
@@ -199,13 +199,13 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
     for(int d=0; d<dtypes.size(); d++){ //Fill in each sample type
         report_publisher_->msg_.sensor_data[d].data_type = dtypes[d];
         Eigen::VectorXd tmp_data;
-        sample->get_data_all_timesteps(tmp_data, shape, (gps::SampleType)dtypes[d]);
+        sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
         report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
 
 
         std::vector<int> shape;
         sample->get_shape((gps::SampleType)dtypes[d], shape);
-        shape.insert(0, sample->get_T());
+        shape.insert(shape.begin(), sample->get_T());
         report_publisher_->msg_.sensor_data[d].shape.resize(shape.size());
         int total_expected_shape = 1;
         for(int i=0; i< shape.size(); i++){
@@ -213,7 +213,7 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
             total_expected_shape *= shape[i];
         }
         if(total_expected_shape != tmp_data.size()){
-            ROS_ERROR("Data stored in sample has different length than expected (%d vs %d)", 
+            ROS_ERROR("Data stored in sample has different length than expected (%d vs %d)",
                     tmp_data.size(), total_expected_shape);
         }
         for(int i=0; i<tmp_data.size(); i++){
@@ -237,7 +237,7 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
 
     Eigen::MatrixXd pd_gains;
     pd_gains.resize(msg->pd_gains.size(), 3);
-    for(int i=0; i<pd_gains.size(); i++){
+    for(unsigned int i=0; i<pd_gains.size(); i++){
         pd_gains(i, 0) = msg->pd_gains[i];
     }
     params["pd_gains"] = pd_gains;
@@ -317,18 +317,18 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     OptionsMap sensor_params;
 
     // Feed EE points/sites to sensors
-    Matrix::Xd ee_points_;
+    Eigen::MatrixXd ee_points;
     if( msg->ee_points.size() % 3 != 0){
-        ROS_ERROR("Got %d ee_points (must be multiple of 3)", msg->ee_points.size());
+        ROS_ERROR("Got %d ee_points (must be multiple of 3)", (int)msg->ee_points.size());
     }
     int n_points = msg->ee_points.size()/3;
-    ee_points_.resize(n_points, 3);
+    ee_points.resize(n_points, 3);
     for(int i=0; i<n_points; i++){
         for(int j=0; j<3; j++){
-            ee_points_(i, j) = msg->ee_points[j+3*i];
+            ee_points(i, j) = msg->ee_points[j+3*i];
         }
     }
-    sensor_params["ee_sites"] = ee_points_;
+    sensor_params["ee_sites"] = ee_points;
     configure_sensors(sensor_params);
 }
 
