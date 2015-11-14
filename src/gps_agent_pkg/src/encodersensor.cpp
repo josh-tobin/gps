@@ -87,16 +87,11 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 
         // Compute jacobian
         unsigned n_actuator = previous_angles_.size(); //TODO: Assuming we are using all joints
-        //if(is_controller_step) ROS_INFO("n_actuator: %d", n_actuator);
-        for(unsigned i=0; i<n_points_; i++){
-            //if(is_controller_step) ROS_INFO("Setting point %d", i);
-            unsigned site_start = i*3;
-            unsigned site_end = (i+1)*3;
-            Eigen::VectorXd ovec = end_effector_points_.row(i);
-            //if(is_controller_step) ROS_INFO("Site vec %d = (%f,%f,%f)", i, ovec[0], ovec[1], ovec[2]);
 
-            //point_jacobians_[site_start:site_end, iq] = temp_jacobian_[0:3,:]
-            //point_jacobians_rot_[site_start:site_end, iq] = temp_jacobian_[3:6,:]
+        for(unsigned i=0; i<n_points_; i++){
+            unsigned site_start = i*3;
+            Eigen::VectorXd ovec = end_effector_points_.row(i);
+
             for(unsigned j=0; j<3; j++){
                 for(unsigned k=0; k<n_actuator; k++){
                     point_jacobians_(site_start+j, k) = temp_jacobian_(j,k);
@@ -106,21 +101,10 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 
             // Compute site Jacobian.
             ovec = previous_rotation_*ovec;
-
-            for(unsigned j=0; j<3; j++){
-                //point_jacobians_[site_start:site_end, iq]
-                Eigen::MatrixXd Jr;
-                Jr = point_jacobians_rot_;
-                for(int k=0; k<n_actuator; k++){
-                    point_jacobians_(site_start, k) = Jr(site_start+1, k)*ovec[2] - Jr(site_start+2, k)*ovec[1];
-                    point_jacobians_(site_start+1, k) = Jr(site_start+2, k)*ovec[0] - Jr(site_start, k)*ovec[2];
-                    point_jacobians_(site_start+2, k) = Jr(site_start, k)*ovec[1] - Jr(site_start+1, k)*ovec[0];
-                }
-                /*
-                np.c_[Jr[site_start+1, iq]*ovec[2] - Jr[site_start+2, iq]*ovec[1] ,
-                 Jr[site_start+2, iq]*ovec[0] - Jr[site_start, iq]*ovec[2] ,
-                 Jr[site_start, iq]*ovec[1] - Jr[site_start+1, iq]*ovec[0]].T
-                */
+            for(int k=0; k<n_actuator; k++){
+                point_jacobians_(site_start  , k) += point_jacobians_rot_(site_start+1, k)*ovec[2] - point_jacobians_rot_(site_start+2, k)*ovec[1];
+                point_jacobians_(site_start+1, k) += point_jacobians_rot_(site_start+2, k)*ovec[0] - point_jacobians_rot_(site_start  , k)*ovec[2];
+                point_jacobians_(site_start+2, k) += point_jacobians_rot_(site_start  , k)*ovec[1] - point_jacobians_rot_(site_start+1, k)*ovec[0];
             }
         }
 
