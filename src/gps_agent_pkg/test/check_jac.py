@@ -15,7 +15,7 @@ TRIAL_COM_TOPIC = '/gps_controller_trial_command'
 TEST_TOPIC = '/test_sub'
 RESULT_TOPIC = '/gps_controller_report'
 
-EE_SITES = np.array([[0.1,0.2,0.3]])
+EE_SITES = np.array([[0,0,0],[0.1,0.2,0.3]])
 
 def listen(msg):
     print msg.__class__
