@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 from gps.algorithm.algorithm import Algorithm
-from gps.algorithm.algorithm_utils import estimate_moments
+from gps.algorithm.algorithm_utils import estimate_moments, gauss_fit_joint_prior
 from gps.algorithm.config import alg_badmm
 from gps.utility.general_utils import bundletype
 
@@ -18,7 +18,6 @@ IterationData = bundletype('ItrData', ITERATION_VARS)
 TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm']
 TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
 
-#TODO: these have to be initialized
 POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
                 'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl']
 PolicyInfo = bundletype('PolicyInfo', POLINFO_VARS)
@@ -67,8 +66,8 @@ class AlgorithmBADMM(Algorithm):
         self.eta = [1.0]*self.M
 
         self.policy_opt = self._hyperparams['policy_opt']['type'](self._hyperparams['policy_opt'], self.dO, self.dU)
-        #TODO: policy prior
-#         self.policy_prior = self._hyperparams['policy_prior']['type'](self._hyperparams['policy_prior'])
+        #TODO: policy prior GMM, for now just constant prior
+        self.policy_prior = self._hyperparams['policy_prior']['type'](self._hyperparams['policy_prior'])
 
     def iteration(self, sample_lists):
         """
@@ -187,10 +186,10 @@ class AlgorithmBADMM(Algorithm):
         pol_mu, pol_sig = self.policy_opt.prob(samples.get_obs())[:2]
         pol_info.pol_mu, pol_info.pol_sig = pol_mu, pol_sig
         # Update policy prior.
-#         if init:
-#             self.policy_prior.update(X, obs, self.policy)
-#         else:
-#             self.policy_prior.update([], [], self.policy, dX=dX)
+        if init:
+            self.policy_prior.update(X, obs, self.policy)
+        else:
+            self.policy_prior.update([], [], self.policy, dX=dX)
         # Collapse policy covariances.
         # TODO: This is not really correct, but it works fine so long
         #       as the policy covariance doesn't depend on state.
@@ -198,22 +197,21 @@ class AlgorithmBADMM(Algorithm):
         # Estimate the policy linearization at each time step.
         for t in range(T):
             # Assemble diagonal weights matrix and data.
-            dwts = (1./N) * np.ones((N,))
+            dwts = (1./N) * np.ones(N)
             Ts = X[:,t,:]
             Ps = pol_mu[:,t,:]
             Ys = np.concatenate((Ts, Ps), axis=1)
             # Obtain Normal-inverse-Wishart prior.
-#             mu0, Phi, m, n0 = self.policy_prior.eval(Ts, Ps)
-#             sig_reg = np.zeros((dX+dU, dX+dU))
-#             # On the first time step, always slightly regularize covariance.
-#             if t == 0:
-#                 sig_reg[:dX,:dX] = 1e-8 * np.eye(dX)
-#             # Perform computation.
-#             #TODO: write this, pass in correct arguments
-#             pol_K, pol_k, pol_S = gauss_fit_joint_prior(Ys, mu0, Phi, m, n0, dwts, sig_reg)
-#             pol_S += pol_sig[t,:,:]
-#             pol_info.pol_K[t,:,:], pol_info.pol_k[t,:] = pol_K, pol_k
-#             pol_info.pol_S[t,:,:], pol_info.chol_pol_S[t,:,:] = pol_S, sp.linalg.cholesky(pol_S)
+            mu0, Phi, m, n0 = self.policy_prior.eval(Ts, Ps)
+            sig_reg = np.zeros((dX+dU, dX+dU))
+            # On the first time step, always slightly regularize covariance.
+            if t == 0:
+                sig_reg[:dX,:dX] = 1e-8 * np.eye(dX)
+            # Perform computation.
+            pol_K, pol_k, pol_S = gauss_fit_joint_prior(Ys, mu0, Phi, m, n0, dwts, dX, dU, sig_reg)
+            pol_S += pol_sig[t,:,:]
+            pol_info.pol_K[t,:,:], pol_info.pol_k[t,:] = pol_K, pol_k
+            pol_info.pol_S[t,:,:], pol_info.chol_pol_S[t,:,:] = pol_S, sp.linalg.cholesky(pol_S)
 
     def _policy_dual_step(self, m, step=False):
         """
@@ -412,8 +410,13 @@ class AlgorithmBADMM(Algorithm):
         LOGGER.debug('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
         LOGGER.debug('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
         LOGGER.debug('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
+        LOGGER.debug('Previous KL: Laplace: %f MC: %f', np.sum(previous_laplace_kl), np.sum(previous_mc_kl))
+        LOGGER.debug('Predicted new KL: Laplace: %f MC: %f', np.sum(new_predicted_laplace_kl), np.sum(new_mc_kl))
+        LOGGER.debug('Actual new KL: Laplace: %f MC: %f', np.sum(new_actual_laplace_kl), np.sum(new_mc_kl))
+        LOGGER.debug('Previous w KL: Laplace: %f MC: %f', previous_laplace_kl_sum, previous_mc_kl_sum)
+        LOGGER.debug('Predicted w new KL: Laplace: %f MC: %f', new_predicted_kl_sum, new_mc_kl_sum)
+        LOGGER.debug('Actual w new KL: Laplace %f MC: %f', new_actual_laplace_kl_sum, new_mc_kl_sum)
         LOGGER.debug('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
-        # TODO: LOGGER.debug more stuff
 
         # TODO: Compute actual KL step taken at last iteration.
 
@@ -520,14 +523,13 @@ class AlgorithmBADMM(Algorithm):
         # Compute KL divergence.
         predicted_kl = np.zeros(T)
         for t in range(T):
-            inv_pS = np.zeros((dU, dU))
-#                     np.linalg.solve(pol_info.chol_pol_S[t,:,:],
-#                     np.linalg.solve(np.transpose(pol_info.chol_pol_S[t,:,:]), np.eye(dU)))
-            Ufb = pol_info.pol_K[t,:,:].dot(np.transpose(mu[t,:dX])) + pol_info.pol_k[t,:]
+            inv_pS = np.linalg.solve(pol_info.chol_pol_S[t,:,:],
+                    np.linalg.solve(pol_info.chol_pol_S[t,:,:].T, np.eye(dU)))
+            Ufb = pol_info.pol_K[t,:,:].dot(mu[t,:dX].T) + pol_info.pol_k[t,:]
             Kbar = traj_distr.K[t,:,:] - pol_info.pol_K[t,:,:]
             predicted_kl[t] = 0.5 * (mu[t,dX:] - Ufb).dot(inv_pS).dot(mu[t,dX:] - Ufb) + \
                     0.5 * np.sum(traj_distr.pol_covar[t,:,:] * inv_pS) + \
-                    0.5 * np.sum(sigma[t,:dX,:dX] * np.transpose(Kbar).dot(inv_pS).dot(Kbar)) + \
+                    0.5 * np.sum(sigma[t,:dX,:dX] * Kbar.T.dot(inv_pS).dot(Kbar)) + \
                     np.sum(np.log(np.diag(pol_info.chol_pol_S[t,:,:]))) - \
                     (np.sum(np.log(np.diag(traj_distr.chol_pol_covar[t,:,:]))) - 0.5 * dU)
 
