@@ -28,7 +28,7 @@ def gauss_fit_joint_prior(pts, mu0, Phi, m, n0, dwts, dX, dU, sig_reg):
     # Build weights matrix.
     D = np.diag(dwts)
     # Compute empirical mean and covariance.
-    mun = np.sum(pts * dwts, axis=0)
+    mun = np.sum((pts.T * dwts).T, axis=0)
     diff = pts - mun
     empsig = diff.T.dot(D).dot(diff)
     empsig = 0.5 * (empsig + empsig.T)

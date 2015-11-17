@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+import scipy as sp
 import logging
 
 from gps.algorithm.algorithm import Algorithm
@@ -78,6 +79,8 @@ class AlgorithmBADMM(Algorithm):
         for m in range(self.M):
             self.cur[m].sample_list = sample_lists[m]
 
+        self._set_interp_values()
+
         # Update dynamics model using all sample.
         self._update_dynamics()
 
@@ -97,6 +100,23 @@ class AlgorithmBADMM(Algorithm):
             self._update_trajectories()
 
         self._advance_iteration_variables()
+
+    def _set_interp_values(self):
+        """
+        Use iteration-based interpolation to set values of some parameters.
+        """
+        # Compute temporal interpolation value.
+        t = min((self.iteration_count + 1.0)/(self._hyperparams['iterations'] - 1), 1)
+        # Perform iteration-based interpolation of entropy penalty for policy.
+        if type(self._hyperparams['ent_reg_schedule']) in (int, float):
+            self.policy_opt._hyperparams['ent_reg'] = self._hyperparams['ent_reg_schedule']
+        else:
+            pass  #TODO: interpolation
+        # Perform iteration-based interpolation of Lagrange multiplier step.
+        if type(self._hyperparams['lg_step_schedule']) in (int, float):
+            self.policy_opt._hyperparams['lg_step'] = self._hyperparams['lg_step_schedule']
+        else:
+            pass  #TODO: interpolation
 
     def _update_dynamics(self):
         """
@@ -187,12 +207,13 @@ class AlgorithmBADMM(Algorithm):
         pol_info.pol_mu, pol_info.pol_sig = pol_mu, pol_sig
         # Update policy prior.
         if init:
-            self.policy_prior.update(X, obs, self.policy)
+            #TODO: what arguments need to be passed in here?
+            self.policy_prior.update()
         else:
-            self.policy_prior.update([], [], self.policy, dX=dX)
+            self.policy_prior.update()
         # Collapse policy covariances.
-        # TODO: This is not really correct, but it works fine so long
-        #       as the policy covariance doesn't depend on state.
+        #TODO: This is not really correct, but it works fine so long
+        #      as the policy covariance doesn't depend on state.
         pol_sig = np.mean(pol_sig, axis=0)
         # Estimate the policy linearization at each time step.
         for t in range(T):
@@ -414,11 +435,11 @@ class AlgorithmBADMM(Algorithm):
         LOGGER.debug('Predicted new KL: Laplace: %f MC: %f', np.sum(new_predicted_laplace_kl), np.sum(new_mc_kl))
         LOGGER.debug('Actual new KL: Laplace: %f MC: %f', np.sum(new_actual_laplace_kl), np.sum(new_mc_kl))
         LOGGER.debug('Previous w KL: Laplace: %f MC: %f', previous_laplace_kl_sum, previous_mc_kl_sum)
-        LOGGER.debug('Predicted w new KL: Laplace: %f MC: %f', new_predicted_kl_sum, new_mc_kl_sum)
+        LOGGER.debug('Predicted w new KL: Laplace: %f MC: %f', new_predicted_laplace_kl_sum, new_mc_kl_sum)
         LOGGER.debug('Actual w new KL: Laplace %f MC: %f', new_actual_laplace_kl_sum, new_mc_kl_sum)
         LOGGER.debug('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
 
-        # TODO: Compute actual KL step taken at last iteration.
+        #TODO: Compute actual KL step taken at last iteration.
 
         # model improvement as: I = predicted_dI * KL + penalty * KL^2
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
@@ -469,7 +490,7 @@ class AlgorithmBADMM(Algorithm):
                 traj_mu[i,:] = traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]
             # Compute KL divergence.
             diff = pol_mu[:,t,:] - traj_mu
-            # TODO: rename these
+            #TODO: rename these
             term1 = pol_prec[:,t,:,:] * traj.pol_covar[t,:,:]
             term2 = 0.5 * dU + np.sum(np.log(np.diag(traj.chol_pol_covar[t,:,:])))
             term3 = np.log(pol_det_sigma[:,t])
