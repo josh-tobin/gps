@@ -48,8 +48,7 @@ class TrajOptLQRPython(TrajOpt):
             kl_div = traj_distr_kl(new_mu, new_sigma, new_traj_distr,
                                    prev_traj_distr)
 
-            # TODO - Previously have stored lastklstep here, but that is only
-            # used in TrajOptBADMM, TrajOptADMM, and TrajOptCGPS
+            traj_info.last_kl_step = kl_div
 
             # Main convergence check - constraint satisfaction
             if (abs(kl_div - kl_step*T) < 0.1*kl_step*T or

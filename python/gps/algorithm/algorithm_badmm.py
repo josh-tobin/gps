@@ -16,7 +16,7 @@ ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
                   'step_change', 'mispred_std', 'pol_kl', 'step_mult']
 IterationData = bundletype('ItrData', ITERATION_VARS)
 
-TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm']
+TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
 TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
 
 POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
@@ -53,6 +53,7 @@ class AlgorithmBADMM(Algorithm):
         for m in range(self.M):
             self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
             self.cur[m].traj_info = TrajectoryInfo()
+            self.cur[m].traj_info.last_kl_step = float('inf')
             pol_info = PolicyInfo()
             pol_info.lambda_k = np.zeros((self.T, self.dU))
             pol_info.lambda_K = np.zeros((self.T, self.dU, self.dX))
@@ -111,12 +112,16 @@ class AlgorithmBADMM(Algorithm):
         if type(self._hyperparams['ent_reg_schedule']) in (int, float):
             self.policy_opt._hyperparams['ent_reg'] = self._hyperparams['ent_reg_schedule']
         else:
-            pass  #TODO: interpolation
+            sch = self._hyperparams['ent_reg_schedule']
+            self.policy_opt._hyperparams['ent_reg'] = np.exp(
+                    np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
         # Perform iteration-based interpolation of Lagrange multiplier step.
         if type(self._hyperparams['lg_step_schedule']) in (int, float):
             self._hyperparams['lg_step'] = self._hyperparams['lg_step_schedule']
         else:
-            pass  #TODO: interpolation
+            sch = self._hyperparams['lg_step_schedule']
+            self._hyperparams['lg_step'] = np.exp(
+                    np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
 
     def _update_dynamics(self):
         """
@@ -212,8 +217,7 @@ class AlgorithmBADMM(Algorithm):
         else:
             self.policy_prior.update()
         # Collapse policy covariances.
-        #TODO: This is not really correct, but it works fine so long
-        #      as the policy covariance doesn't depend on state.
+        # This is not really correct, but it works fine so long as the policy covariance doesn't depend on state.
         pol_sig = np.mean(pol_sig, axis=0)
         # Estimate the policy linearization at each time step.
         for t in range(T):
@@ -261,11 +265,9 @@ class AlgorithmBADMM(Algorithm):
         for t in range(T):
             tU, pU = traj_mu[:,t,:], pol_mu[:,t,:]
             # Increment mean term.
-            #TODO: is policy_dual_rate always a number here?
             pol_info.lambda_k[t,:] -= self._hyperparams['policy_dual_rate'] * pol_info.pol_wt[t] * \
                     traj.inv_pol_covar[t,:,:].dot(np.mean(tU-pU, axis=0))
             # Increment covariance term.
-            #TODO: is policy_dual_rate_covar always a number here?
             t_covar, p_covar = traj.K[t,:,:], pol_info.pol_K[t,:,:]
             pol_info.lambda_K[t,:,:] -= self._hyperparams['policy_dual_rate_covar'] * pol_info.pol_wt[t] * \
                     traj.inv_pol_covar[t,:,:].dot(t_covar - p_covar)
@@ -288,12 +290,20 @@ class AlgorithmBADMM(Algorithm):
                             pol_info.pol_wt[i] *= 2.0
             elif self._hyperparams['fixed_lg_step'] == 3:
                 # Increase/decrease based on difference from average.
-                pass  #TODO: implement this option
+                if hasattr(traj_info, 'prev_kl'):
+                    lower = np.mean(kl_m) - self._hyperparams['exp_step_lower'] * np.std(kl_m)
+                    upper = np.mean(kl_m) + self._hyperparams['exp_step_upper'] * np.std(kl_m)
+                    for i in range(len(pol_info.pol_wt)):
+                        if kl_m[i] < lower:
+                            pol_info.pol_wt *= self._hyperparams['exp_step_decrease']
+                        elif kl_m[i] >= upper:
+                            pol_info.pol_wt *= self._hyperparams['exp_step_increase']
             else:
                 # Standard DGD step.
                 pol_info.pol_wt = np.array([max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
                                              for i in range(T)])
             pol_info.prev_kl = kl_m
+        self.cur[m].pol_kl = kl_m
 
     def _update_trajectories(self):
         """
@@ -316,6 +326,7 @@ class AlgorithmBADMM(Algorithm):
         self.cur = [IterationData() for _ in range(self.M)]
         for m in range(self.M):
             self.cur[m].traj_info = TrajectoryInfo()
+            self.cur[m].traj_info.last_kl_step = self.prev[m].traj_info.last_kl_step
             pol_info, prev_pol_info = PolicyInfo(), self.prev[m].pol_info
             pol_info.lambda_k = np.copy(prev_pol_info.lambda_k)
             pol_info.lambda_K = np.copy(prev_pol_info.lambda_K)
@@ -440,7 +451,10 @@ class AlgorithmBADMM(Algorithm):
         LOGGER.debug('Actual w new KL: Laplace %f MC: %f', new_actual_laplace_kl_sum, new_mc_kl_sum)
         LOGGER.debug('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
 
-        #TODO: Compute actual KL step taken at last iteration.
+        # Compute actual KL step taken at last iteration.
+        actual_step = self.cur[m].traj_info.last_kl_step / (self._hyperparams['kl_step'] * self.T)
+        if actual_step < self.cur[m].step_mult:
+            self.cur[m].step_mult = max(actual_step, self._hyperparams['min_step_mult'])
 
         # model improvement as: I = predicted_dI * KL + penalty * KL^2
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
@@ -460,8 +474,7 @@ class AlgorithmBADMM(Algorithm):
 
         self.cur[m].step_change = step_change
         self.cur[m].mispred_std = mispred_std
-        #TODO: what to do with pol_kl?
-#         self.cur[m].pol_kl = pol_kl
+        self.cur[m].pol_kl = new_mc_kl
 
     def _policy_kl(self, m, prev=False):
         """
