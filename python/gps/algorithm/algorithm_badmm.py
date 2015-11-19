@@ -114,7 +114,7 @@ class AlgorithmBADMM(Algorithm):
             pass  #TODO: interpolation
         # Perform iteration-based interpolation of Lagrange multiplier step.
         if type(self._hyperparams['lg_step_schedule']) in (int, float):
-            self.policy_opt._hyperparams['lg_step'] = self._hyperparams['lg_step_schedule']
+            self._hyperparams['lg_step'] = self._hyperparams['lg_step_schedule']
         else:
             pass  #TODO: interpolation
 
@@ -271,28 +271,29 @@ class AlgorithmBADMM(Algorithm):
                     traj.inv_pol_covar[t,:,:].dot(t_covar - p_covar)
         # Compute KL divergence.
         kl_m = self._policy_kl(m)[0]
-        # Increment pol_wt based on change in KL divergence.
-        if self._hyperparams['fixed_lg_step'] == 1:
-            # Take fixed size step.
-            pol_info.pol_wt = np.array([max(wt + self._hyperparams['lg_step'], 0) \
-                                         for wt in pol_info.pol_wt])
-        elif self._hyperparams['fixed_lg_step'] == 2:
-            # Increase/decrease based on change in constraint satisfaction.
-            if hasattr(traj_info, 'prev_kl'):
-                kl_change = kl_m / pol_info.prev_kl
-                for i in range(len(pol_info.pol_wt)):
-                    if kl_change[i] < 0.8:
-                        pol_info.pol_wt[i] *= 0.5
-                    elif kl_change[i] >= 0.95:
-                        pol_info.pol_wt[i] *= 2.0
-        elif self._hyperparams['fixed_lg_step'] == 3:
-            # Increase/decrease based on difference from average.
-            pass  #TODO: implement this option
-        else:
-            # Standard DGD step.
-            pol_info.pol_wt = np.array([max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
-                                         for i in range(T)])
-        pol_info.prev_kl = kl_m
+        if step:
+            # Increment pol_wt based on change in KL divergence.
+            if self._hyperparams['fixed_lg_step'] == 1:
+                # Take fixed size step.
+                pol_info.pol_wt = np.array([max(wt + self._hyperparams['lg_step'], 0) \
+                                             for wt in pol_info.pol_wt])
+            elif self._hyperparams['fixed_lg_step'] == 2:
+                # Increase/decrease based on change in constraint satisfaction.
+                if hasattr(traj_info, 'prev_kl'):
+                    kl_change = kl_m / pol_info.prev_kl
+                    for i in range(len(pol_info.pol_wt)):
+                        if kl_change[i] < 0.8:
+                            pol_info.pol_wt[i] *= 0.5
+                        elif kl_change[i] >= 0.95:
+                            pol_info.pol_wt[i] *= 2.0
+            elif self._hyperparams['fixed_lg_step'] == 3:
+                # Increase/decrease based on difference from average.
+                pass  #TODO: implement this option
+            else:
+                # Standard DGD step.
+                pol_info.pol_wt = np.array([max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
+                                             for i in range(T)])
+            pol_info.prev_kl = kl_m
 
     def _update_trajectories(self):
         """
@@ -500,7 +501,7 @@ class AlgorithmBADMM(Algorithm):
             kl[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=1) - term2 + \
                     0.5 * term3 + 0.5 * term4
             kl_m[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=0), axis=0) - term2 + \
-                    0.5 * np.mean(term3) * 0.5 * np.mean(term4)
+                    0.5 * np.mean(term3) + 0.5 * np.mean(term4)
             # Compute trajectory action at sample with Lagrange multiplier.
             traj_mu = np.zeros((N, dU))
             for i in range(N):
@@ -512,7 +513,7 @@ class AlgorithmBADMM(Algorithm):
             kl_l[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=1) - term2 + \
                     0.5 * term3 + 0.5 * term4_l
             kl_lm[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=0), axis=0) - term2 + \
-                    0.5 * np.mean(term3) * 0.5 * np.mean(term4_l)
+                    0.5 * np.mean(term3) + 0.5 * np.mean(term4_l)
         return kl_m, kl, kl_lm, kl_l
 
     def _estimate_cost(self, traj_distr, traj_info, m):
