@@ -24,6 +24,7 @@ ps3_button = {
     'action_square'     : 15,
     'pairing'           : 16,
 }
+inverted_ps3_button = {value: key for key, value in ps3_button.iteritems()}
 
 # Mappings from ps3 controller axes to their corresponding array indices
 ps3_axis = {
@@ -48,6 +49,7 @@ ps3_axis = {
     'acceleratometer_up'        : 18,
     'gyro_yaw'                  : 19,
 }
+inverted_ps3_axis = {value: key for key, value in ps3_axis.iteritems()}
 
 # Mappings from actions to their corresponding keyboard bindings
 keyboard_bindings = {
@@ -103,6 +105,7 @@ gui = {
     'keyboard_bindings' : keyboard_bindings,
     'ps3_controller_bindings': ps3_controller_bindings,
     'ps3_controller_topic': 'joy',
+    'ps3_controller_message_rate': 20,  # only process every 1 of 20 ps3 controller messages
     'actions_log_filename': 'actions_log.txt',
 }
 

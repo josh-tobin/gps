@@ -10,6 +10,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.widgets import Button
 
 from gps.gui.config import gui as gui_config
+from gps.gui.config import ps3_button, inverted_ps3_button
 from gps.hyperparam_pr2 import defaults as hyperparam_pr2
 
 from gps.agent.ros.agent_ros import AgentROS
@@ -117,10 +118,12 @@ class GUI:
         self._ps3_controller_bindings = {}
         for key, ps3_controller_buttons in self._hyperparams['ps3_controller_bindings'].iteritems():
             self._actions[key]._cb = ps3_controller_buttons
-            self._keyboard_bindings[ps3_controller_buttons] = key
+            self._ps3_controller_bindings[ps3_controller_buttons] = key
         for key, value in list(self._ps3_controller_bindings.iteritems()):
             for permuted_key in itertools.permutations(key, len(key)):
                 self._ps3_controller_bindings[permuted_key] = value
+        self._ps3_controller_count = 0
+        self._ps3_controller_message_rate = self._hyperparams['ps3_controller_message_rate']
         rospy.Subscriber(self._hyperparams['ps3_controller_topic'], Joy, self.ps3_controller_callback)
 
         # Output Panel
@@ -141,11 +144,17 @@ class GUI:
             self.set_output_text("unrecognized keyboard input: " + str(event.key))
 
     def ps3_controller_callback(self, joy_msg):
+        self._ps3_controller_count += 1
+        if self._ps3_controller_count % self._ps3_controller_message_rate != 0:
+            return
         buttons_pressed = tuple([i for i in range(len(joy_msg.buttons)) if joy_msg.buttons[i]])
         if buttons_pressed in self._ps3_controller_bindings:
             self._actions[self._ps3_controller_bindings[buttons_pressed]]._func()
         else:
-            self.set_output_text("unrecognized ps3 controller input: " + str(buttons_pressed))
+            if not (len(buttons_pressed) == 0 or (len(buttons_pressed) == 1 and
+                    (buttons_pressed[0] == ps3_button['rear_right_1'] or buttons_pressed[0] == ps3_button['rear_right_2']))):
+                self.set_output_text("unrecognized ps3 controller input: " + '\n' +
+                                     str([inverted_ps3_button[b] for b in buttons_pressed]))
 
     def set_output_text(self, text):
         self._ax_output.clear()
