@@ -30,6 +30,7 @@ class GPSMain():
         config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
         config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
+        config['algorithm']['dO'] = self.agent.dO
 
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
