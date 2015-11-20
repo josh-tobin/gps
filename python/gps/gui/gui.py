@@ -16,6 +16,8 @@ from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.action_lib import ActionLib
 from gps.gui.target_setup import TargetSetup
 from gps.gui.training_handler import TrainingHandler
+from gps.gui.real_time_plotter import RealTimePlotter
+from gps.gui.image_visualizer import ImageVisualizer
 
 # ~~~ GUI Specifications ~~~
 # Target Setup (responsive to mouse, keyboard, and PS3 controller)
@@ -57,16 +59,18 @@ class GUI:
         self._fig = plt.figure(figsize=(10, 10))
         self._gs  = gridspec.GridSpec(2, 1)
 
-        self._gs_top   = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs[0])
-        self._gs_ts    = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs_top[0:3])
-        self._gs_th    = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=self._gs_top[3])
+        self._gs_top   = gridspec.GridSpecFromSubplotSpec(4, 4, subplot_spec=self._gs[0])
+        self._gs_ts    = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs_top[0:3, 0:4])
+        self._gs_th    = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=self._gs_top[3, 0:4])
         self._axarr_ts = [plt.subplot(self._gs_ts[i]) for i in range(3*4)]
         self._axarr_th = [plt.subplot(self._gs_th[i]) for i in range(1*4)]
 
-        self._gs_bottom = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1])
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_bottom[0])
-        self._gs_vis    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_bottom[1])
+        self._gs_bottom = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=self._gs[1])
+        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_bottom[0, 0])
+        self._gs_plot   = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_bottom[1, 0])
+        self._gs_vis    = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs_bottom[0:1, 1])
         self._ax_output = plt.subplot(self._gs_output[0])
+        self._ax_plot   = plt.subplot(self._gs_plot[0])
         self._ax_vis    = plt.subplot(self._gs_vis[0])
 
         # Button Locations
@@ -122,9 +126,14 @@ class GUI:
         # Output Panel
         self.set_output_text("Waiting for response from agent...")
 
-        # Visualizations Panel
-        self._ax_vis.set_axis_off()
+        # Plot Panel
+        self._plotter = RealTimePlotter(self._ax_plot, labels=['cost'])
+        # TODO: self._plotter.update(x)
 
+        # Visualizations Panel
+        self._visualizer = ImageVisualizer(self._ax_vis, cropsize=(240,240))
+        # TODO: self._visualizer.update(image)
+        
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:
             self._actions[self._keyboard_bindings[event.key]]._func()
@@ -146,7 +155,6 @@ class GUI:
         self._fig.canvas.draw()
         with open(self._actions_log_filename, "a") as f:
             f.write(text + '\n\n')
-        
 
 if __name__ == "__main__":
     rospy.init_node('gui')
