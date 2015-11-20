@@ -1,5 +1,6 @@
 from caffe import layers as L, NetSpec
 from caffe.proto.caffe_pb2 import TRAIN, TEST
+import json
 
 def construct_fc_network(n_layers = 3,
                          dim_hidden = [40,40],
@@ -25,12 +26,27 @@ def construct_fc_network(n_layers = 3,
     Returns:
         NetParameter specification of network
     """
+    data_layer_info = json.dumps({
+            'shape': [{'dim': (batch_size, dim_input)},
+                      {'dim': (batch_size, dim_output)},
+                      {'dim': (batch_size, dim_output, dim_output)}]})
+
     if phase == TRAIN:
-        [input, action, precision] = L.DummyData(ntop=3,
-                shape=[dict(dim=[batch_size, dim_input]),
-                dict(dim=[batch_size, dim_output]),
-                dict(dim=[batch_size, dim_output, dim_output])])
+        [input, action, precision] = L.Python(ntop=3,
+                                                   python_param=dict(
+                                                   module='policy_layers',
+                                                   param_str = data_layer_info,
+                                                   layer = 'PolicyDataLayer'))
+        #[input, action, precision] = L.DummyData(ntop=3,
+        #        shape=[dict(dim=[batch_size, dim_input]),
+        #        dict(dim=[batch_size, dim_output]),
+        #        dict(dim=[batch_size, dim_output, dim_output])])
     else:
+        [input, action, precision] = L.Python(ntop=3,
+                                                   python_param=dict(
+                                                   module='policy_layers',
+                                                   param_str = data_layer_info,
+                                                   layer = 'PolicyDataLayer'))
         input = L.DummyData(ntop=1,
                 shape=[dict(dim=[batch_size, dim_input])])
 
