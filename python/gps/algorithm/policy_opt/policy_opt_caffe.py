@@ -33,7 +33,7 @@ class PolicyOptCaffe(PolicyOpt):
             caffe.set_mode_cpu()
 
         self.init_solver()
-        self.var = self._hyperparams['init_var'] * np.ones(dObs)
+        self.var = self._hyperparams['init_var'] * np.ones(dU)
 
         self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
 

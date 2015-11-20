@@ -32,6 +32,8 @@ class GPSMain():
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
         config['algorithm']['dO'] = self.agent.dO
 
+        config['algorithm']['dO'] = self.agent.dO
+
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
     def run(self):
