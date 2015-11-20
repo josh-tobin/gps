@@ -57,4 +57,5 @@ alg_badmm = {
     'fixed_lg_step': 0,
     'lg_step_schedule': 10.0,
     'ent_reg_schedule': 0.0,
+    'init_pol_wt': 0.01,
 }
