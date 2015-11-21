@@ -46,7 +46,7 @@ if not os.path.exists(common['experiment_dir']):
 if not os.path.exists(gui['file_dir']):
     os.makedirs(gui['file_dir'])
 
-x0 = np.zeros(14)  # Assume initial state should have 0 velocity
+x0 = np.zeros(14+6)  # Assume initial state should have 0 velocity
 filename = gui['file_dir']+'trialarm_initial.npz'
 try:
     with np.load(filename) as f:
@@ -83,7 +83,8 @@ agent = {
         },
      },
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
+    'end_effector_points': np.array([[0.0,0.0,0.0],[0.1,0.2,0.3]]),
     'obs_include': [],
 }
 
@@ -102,6 +103,8 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
+        'dX': sum([SENSOR_DIMS[state_include] for state_include in agent['state_include']]),
+        'dU': 7,
         'dt': agent['dt'],
         'T': agent['T'],
         'x0': agent['x0'],
@@ -126,9 +129,16 @@ state_cost = {
     },
 }
 
+fk_cost = {
+    'type': CostFK,
+    'end_effector_target': np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'analytic_jacobian': False,
+    'wp': np.array([1, 1, 1, 1, 1, 1]),
+}
+
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
+    'costs': [torque_cost, fk_cost],
     'weights': [1.0, 1.0],
 }
 
