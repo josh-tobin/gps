@@ -17,6 +17,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
+from gps.gui.target_setup import load_from_npz
 
 SENSOR_DIMS = {
     JOINT_ANGLES: 7,
@@ -35,33 +36,18 @@ common = {
     'experiment_dir': BASE_DIR + '/experiments/default_pr2_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
-
-gui = {
-  'file_dir' : common['experiment_dir'] + 'target_files/',
-}
+common['target_files_dir'] = common['experiment_dir'] + 'target_files/'
+common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
 
 if not os.path.exists(common['experiment_dir']):
     os.makedirs(common['experiment_dir'])
+if not os.path.exists(common['target_files_dir']):
+    os.makedirs(common['target_files_dir'])
+if not os.path.exists(common['output_files_dir']):
+    os.makedirs(common['output_files_dir'])
 
-if not os.path.exists(gui['file_dir']):
-    os.makedirs(gui['file_dir'])
-
-x0 = np.zeros(14+6)  # Assume initial state should have 0 velocity
-filename = gui['file_dir']+'trialarm_initial.npz'
-try:
-    with np.load(filename) as f:
-        x0[0:7] = f['x0']
-except IOError as e:
-    print('No initial file found, defaulting to all zeros state')
-
-tgt = np.zeros(7)  # Assume initial state should have 0 velocity
-filename = gui['file_dir']+'target.npz'
-try:
-    with np.load(filename) as f:
-        tgt = f['ja0']
-except IOError as e:
-    print('No target file found, defaulting to all zeros state')
-
+x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0')
+tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0')
 
 agent = {
     'type': AgentROS,
@@ -158,7 +144,7 @@ defaults = {
     'iterations': 20,
     'common': common,
     'agent': agent,
-    'gui': gui,
+    # 'gui': gui,
     'algorithm': algorithm,
     'num_samples': 5,
 }

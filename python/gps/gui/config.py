@@ -3,60 +3,55 @@
 """
 from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
-""" TargetSetup """
-target_setup = {
-    'ps3_controller_topic': 'PS3',
-    'keyboard_bindings' : {},
-    'ps3_controller_bindings': {},
-    'actuator_names': [TRIAL_ARM, AUXILIARY_ARM]
+# PS3 Joystick Buttons and Axes (documentation: http://wiki.ros.org/ps3joy)
+# Mappings from ps3 controller buttons to their corresponding array indices
+ps3_button = {
+    'select'            :  0,
+    'stick_left'        :  1,
+    'stick_right'       :  2,
+    'start'             :  3,
+    'cross_up'          :  4,
+    'cross_right'       :  5,
+    'cross_down'        :  6,
+    'cross_left'        :  7,
+    'rear_left_2'       :  8,
+    'rear_right_2'      :  9,
+    'rear_left_1'       : 10,
+    'rear_right_1'      : 11,
+    'action_triangle'   : 12,
+    'action_circle'     : 13,
+    'action_cross'      : 14,
+    'action_square'     : 15,
+    'pairing'           : 16,
 }
+inverted_ps3_button = {value: key for key, value in ps3_button.iteritems()}
 
-# TO-DO: hide this somewhere
-ps3_controller_buttons = {
-    'select':  0,       # select
-    'l_joy_c': 1,       # left joystick center
-    'r_joy_c': 2,       # right joystick center
-    'start':   3,       # start
-    'l_but_u': 4,       # left button up
-    'l_but_r': 5,       # left button right
-    'l_but_d': 6,       # left button down
-    'l_but_l': 7,       # left button left
-    'l_tri_2': 8,       # left trigger 2
-    'r_tri_2': 9,       # right trigger 2
-    'l_tri_1': 10,      # left trigger 1
-    'r_tri_1': 11,      # right trigger 1
-    'r_but_u': 12,      # right button up (triangle)
-    'r_but_r': 13,      # right button right (circle)
-    'r_but_d': 14,      # right button down (X)
-    'r_but_l': 15,      # right button left (square)
-    'ply_sta': 16,      # play station
+# Mappings from ps3 controller axes to their corresponding array indices
+ps3_axis = {
+    'stick_left_leftwards'      :  0,
+    'stick_left_upwards'        :  1,
+    'stick_right_leftwards'     :  2,
+    'stick_right_upwards'       :  3,
+    'button_cross_up'           :  4,
+    'button_cross_right'        :  5,
+    'button_cross_down'         :  6,
+    'button_cross_left'         :  7,
+    'button_rear_left_2'        :  8,
+    'button_rear_right_2'       :  9,
+    'button_rear_left_1'        : 10,
+    'button_rear_right_1'       : 11,
+    'button_action_triangle'    : 12,
+    'button_action_circle'      : 13,
+    'button_action_cross'       : 14,
+    'button_action_square'      : 15,
+    'acceleratometer_left'      : 16,
+    'acceleratometer_forward'   : 17,
+    'acceleratometer_up'        : 18,
+    'gyro_yaw'                  : 19,
 }
+inverted_ps3_axis = {value: key for key, value in ps3_axis.iteritems()}
 
-# TO-DO: hide this somewhere
-ps3_controller_axes = {
-    'l_joy_h': 0,       # left joystick horizontal
-    'l_joy_v': 1,       # left joystick vertical
-    'r_joy_h': 2,       # right joystick horizontal
-    'r_joy_v': 3,       # right joystick vertical
-    'l_but_u': 4,       # left button up
-    'l_but_r': 5,       # left button right
-    'l_but_d': 6,       # left button down
-    'l_but_l': 7,       # left button left
-    'l_tri_2': 8,       # left trigger 2
-    'r_tri_2': 9,       # right trigger 2
-    'l_tri_1': 10,      # left trigger 1
-    'r_tri_1': 11,      # right trigger 1
-    'r_but_u': 12,      # right button up (triangle)
-    'r_but_r': 13,      # right button right (circle)
-    'r_but_d': 14,      # right button down (X)
-    'r_but_l': 15,      # right button left (square)
-    'tilt_h':  16,      # tilt horizontal
-    'tilt_v':  17,      # tilt vertical
-    'tilt_n':  18,      # tilt normal
-    '???':     19,      # unknown
-}
-
-# TO-DO: hide these as default bindings and provide sample code for user to create custom bindings
+# Mappings from actions to their corresponding keyboard bindings
 keyboard_bindings = {
     # Target Setup
     'ptn': 'left',
@@ -64,13 +59,13 @@ keyboard_bindings = {
     'pat': 'down',
     'nat': 'up',
 
-    'spi': 'j',
-    'spt': 'k',
-    'sfi': 'l',
-    'sft': ';',
+    'sip': 'j',
+    'stp': 'k',
+    'sif': 'l',
+    'stf': ';',
 
-    'mpi': 'u',
-    'mpt': 'i',
+    'mti': 'u',
+    'mtt': 'i',
     'rc':  'o',
     'mm':  'p',
 
@@ -81,28 +76,46 @@ keyboard_bindings = {
     'start': 'g',
 }
 
-# TO-DO: hide these as default bindings and provide sample code for user to create custom bindings
-ps3 = ps3_controller_buttons    # using shorter name
+# Mappings from actions to their corresponding ps3 controller bindings
 ps3_controller_bindings = {
     # Target Setup
-    'ptn': (ps3['r_tri_1'], ps3['l_but_l']),
-    'ntn': (ps3['r_tri_1'], ps3['l_but_r']),
-    'pat': (ps3['r_tri_1'], ps3['l_but_d']),
-    'nat': (ps3['r_tri_1'], ps3['l_but_u']),
+    'ptn'  : (ps3_button['rear_right_1'], ps3_button['cross_left']),
+    'ntn'  : (ps3_button['rear_right_1'], ps3_button['cross_right']),
+    'pat'  : (ps3_button['rear_right_1'], ps3_button['cross_down']),
+    'nat'  : (ps3_button['rear_right_1'], ps3_button['cross_up']),
 
-    'spi': (ps3['r_tri_1'], ps3['r_but_l']),
-    'spt': (ps3['r_tri_1'], ps3['r_but_r']),
-    'sfi': (ps3['r_tri_1'], ps3['r_but_d']),
-    'sft': (ps3['r_tri_1'], ps3['r_but_u']),
+    'sip'  : (ps3_button['rear_right_1'], ps3_button['action_square']),
+    'stp'  : (ps3_button['rear_right_1'], ps3_button['action_circle']),
+    'sif'  : (ps3_button['rear_right_1'], ps3_button['action_cross']),
+    'stf'  : (ps3_button['rear_right_1'], ps3_button['action_triangle']),
 
-    'mpi': (ps3['r_tri_2'], ps3['l_but_l']),
-    'mpt': (ps3['r_tri_2'], ps3['l_but_r']),
-    'rc':  (ps3['r_tri_2'], ps3['l_but_d']),
-    'mm':  (ps3['r_tri_2'], ps3['l_but_u']),
+    'mti'  : (ps3_button['rear_right_2'], ps3_button['cross_left']),
+    'mtt'  : (ps3_button['rear_right_2'], ps3_button['cross_right']),
+    'rc'   : (ps3_button['rear_right_2'], ps3_button['cross_down']),
+    'mm'   : (ps3_button['rear_right_2'], ps3_button['cross_up']),
 
     # Training Handler
-    'stop':  (ps3['r_tri_2'], ps3['r_but_l']),
-    'st-re': (ps3['r_tri_2'], ps3['r_but_d']),
-    'reset': (ps3['r_tri_2'], ps3['r_but_u']),
-    'start': (ps3['r_tri_2'], ps3['r_but_r']),
+    'stop' : (ps3_button['rear_right_2'], ps3_button['action_square']),
+    'st-re': (ps3_button['rear_right_2'], ps3_button['action_cross']),
+    'reset': (ps3_button['rear_right_2'], ps3_button['action_triangle']),
+    'start': (ps3_button['rear_right_2'], ps3_button['action_circle']),
+}
+
+gui = {
+    'keyboard_bindings' : keyboard_bindings,
+    'ps3_controller_bindings': ps3_controller_bindings,
+    'ps3_controller_topic': 'joy',
+    'ps3_controller_message_rate': 20,  # only process every 1 of 20 ps3 controller messages
+    'actions_log_filename': 'actions_log.txt',
+}
+
+target_setup = {
+    'num_targets': 10,
+    'actuator_types': [TRIAL_ARM, AUXILIARY_ARM],
+    'actuator_names': ['trial_arm', 'auxiliary_arm'],
+}
+target_setup['num_actuators'] = len(target_setup['actuator_types'])
+
+training_handler = {
+    
 }
