@@ -53,7 +53,7 @@ public:
     // Set Sensor update delay.
     virtual void set_update(double new_sensor_step_length);
     // Configure the Sensor (for Sensor-specific trial settings).
-    virtual void configure_sensor(const OptionsMap &options);
+    virtual void configure_sensor(OptionsMap &options);
     // Set data format and meta data on the provided sample.
     virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);
     // Set data on the provided sample.

@@ -8,3 +8,4 @@ int32 T  # Trajectory length
 float64 frequency  # Controller frequency
 int8[] state_datatypes  # Which data types to include in state
 int8[] obs_datatypes # Which data types to include in observation
+float64[] ee_points # A 3*n_points array containing offsets

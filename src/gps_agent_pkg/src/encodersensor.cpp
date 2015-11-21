@@ -9,7 +9,6 @@ using namespace gps_control;
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
 {
     // Get current joint angles.
-    ROS_INFO_STREAM("beginning constructor");
     plugin->get_joint_encoder_readings(previous_angles_, gps::TRIAL_ARM);
 
     // Initialize velocities.
@@ -25,15 +24,21 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
     previous_jacobian_.resize(6,previous_angles_.size());
     temp_jacobian_.resize(previous_angles_.size());
 
-    // Allocate space for end effector points (default number is 3).
-    previous_end_effector_points_.resize(3,3);
-    previous_end_effector_point_velocities_.resize(3,3);
-    temp_end_effector_points_.resize(3,3);
-    end_effector_points_.resize(3,3);
+    // Allocate space for end effector points
+    n_points_ = 1;
+    previous_end_effector_points_.resize(1,3);
+    previous_end_effector_point_velocities_.resize(1,3);
+    temp_end_effector_points_.resize(1,3);
+    end_effector_points_.resize(1,3);
+    end_effector_points_.fill(0.0);
+
+    // Resize point jacobians
+    point_jacobians_.resize(3, previous_angles_.size());
+    point_jacobians_rot_.resize(3, previous_angles_.size());
+
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
-    ROS_INFO_STREAM("ending constructor");
 }
 
 // Destructor.
@@ -77,8 +82,29 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // effector itself. In the old code, this correction was done in Matlab, but since the simulator will produce Jacobians of end
         // effector points directly, it would make sense to also do this transformation on the robot, and send back N Jacobians, one for
         // each feature point.
-        // TODO: fix this
-        //ROS_ERROR("FIX THIS!!");
+
+        // Compute jacobian
+        unsigned n_actuator = previous_angles_.size(); //TODO: Assuming we are using all joints
+
+        for(int i=0; i<n_points_; i++){
+            unsigned site_start = i*3;
+            Eigen::VectorXd ovec = end_effector_points_.row(i);
+
+            for(unsigned j=0; j<3; j++){
+                for(unsigned k=0; k<n_actuator; k++){
+                    point_jacobians_(site_start+j, k) = temp_jacobian_(j,k);
+                    point_jacobians_rot_(site_start+j, k) = temp_jacobian_(j+3,k);
+                }
+            }
+
+            // Compute site Jacobian.
+            ovec = previous_rotation_*ovec;
+            for(unsigned k=0; k<n_actuator; k++){
+                point_jacobians_(site_start  , k) += point_jacobians_rot_(site_start+1, k)*ovec[2] - point_jacobians_rot_(site_start+2, k)*ovec[1];
+                point_jacobians_(site_start+1, k) += point_jacobians_rot_(site_start+2, k)*ovec[0] - point_jacobians_rot_(site_start  , k)*ovec[2];
+                point_jacobians_(site_start+2, k) += point_jacobians_rot_(site_start  , k)*ovec[1] - point_jacobians_rot_(site_start+1, k)*ovec[0];
+            }
+        }
 
         // Compute current end effector points and store in temporary storage.
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
@@ -122,7 +148,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 }
 
 // The settings include the configuration for the Kalman filter.
-void EncoderSensor::configure_sensor(const OptionsMap &options)
+void EncoderSensor::configure_sensor(OptionsMap &options)
 {
     // TODO: should set up Kalman filter here.
     /* TODO: note that this will get called every time there is a report, so
@@ -130,9 +156,21 @@ void EncoderSensor::configure_sensor(const OptionsMap &options)
     to set end-effector points. Instead, just use the stored transform to
     compute what the points should be! This will allow us to query positions
     and velocities each time. */
-    ROS_ERROR("Not implemented!");
+    ROS_WARN("Kalman filter configuration not implemented!");
 
-    // TODO: Also configure end effector points
+    end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]);
+    n_points_ = end_effector_points_.rows();
+
+    if( end_effector_points_.cols() != 3){
+        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", (int)n_points_,
+                (int)end_effector_points_.cols());
+    }
+    previous_end_effector_points_.resize(n_points_,3);
+    previous_end_effector_point_velocities_.resize(n_points_,3);
+    temp_end_effector_points_.resize(n_points_,3);
+    point_jacobians_.resize(3*n_points_, previous_angles_.size());
+    point_jacobians_rot_.resize(3*n_points_, previous_angles_.size());
+
 }
 
 // Set data format and meta data on the provided sample.
@@ -153,6 +191,14 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
     // Set end effector point velocities size and format.
     OptionsMap eepv_metadata;
     sample->set_meta_data(gps::END_EFFECTOR_POINT_VELOCITIES,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector,eepv_metadata);
+
+    // Set end effector point jac size and format.
+    OptionsMap eeptjac_metadata;
+    sample->set_meta_data(gps::END_EFFECTOR_POINT_JACOBIANS,point_jacobians_.cols()*point_jacobians_.rows(),SampleDataFormatEigenMatrix,eeptjac_metadata);
+
+    // Set end effector point jac size and format.
+    OptionsMap eeptrotjac_metadata;
+    sample->set_meta_data(gps::END_EFFECTOR_POINT_ROT_JACOBIANS,point_jacobians_rot_.cols()*point_jacobians_rot_.rows(),SampleDataFormatEigenMatrix,eeptrotjac_metadata);
 
     // Set end effector position size and format.
     OptionsMap eepos_metadata;
@@ -178,12 +224,18 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 
 
     // Set end effector point.
-    Eigen::VectorXd flattened_ee_pts(Eigen::Map<Eigen::VectorXd>(previous_end_effector_points_.data(), 3 * 3));
+    Eigen::VectorXd flattened_ee_pts(Eigen::Map<Eigen::VectorXd>(previous_end_effector_points_.data(), n_points_ * 3));
     sample->set_data(t,gps::END_EFFECTOR_POINTS,flattened_ee_pts,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector);
 
     // Set end effector point velocities.
-    Eigen::VectorXd flattened_ee_vel(Eigen::Map<Eigen::VectorXd>(previous_end_effector_point_velocities_.data(), 3 * 3));
+    Eigen::VectorXd flattened_ee_vel(Eigen::Map<Eigen::VectorXd>(previous_end_effector_point_velocities_.data(), n_points_ * 3));
     sample->set_data(t,gps::END_EFFECTOR_POINT_VELOCITIES,flattened_ee_vel,previous_end_effector_point_velocities_.cols()*previous_end_effector_point_velocities_.rows(),SampleDataFormatEigenVector);
+
+    // Set end effector point jacobian.
+    sample->set_data(t,gps::END_EFFECTOR_POINT_JACOBIANS,point_jacobians_,point_jacobians_.cols()*point_jacobians_.rows(),SampleDataFormatEigenMatrix);
+
+    // Set end effector point rotation jacobian.
+    sample->set_data(t,gps::END_EFFECTOR_POINT_ROT_JACOBIANS,point_jacobians_rot_,point_jacobians_rot_.cols()*point_jacobians_rot_.rows(),SampleDataFormatEigenMatrix);
 
     // Set end effector position.
     Eigen::VectorXd flattened_position; //Need to convert Vector3d to VectorXd. Eigen seems finicky about this.

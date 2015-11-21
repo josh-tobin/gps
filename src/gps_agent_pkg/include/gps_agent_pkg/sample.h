@@ -83,6 +83,8 @@ public:
     virtual void get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes);
     // Fill data with data for all timesteps from a single datatype
     virtual void get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype);
+    // Fill shape with dimensions of data
+    virtual void get_shape(gps::SampleType sample_type, std::vector<int> &shape);
     // Get the action.
     virtual void get_action(int, Eigen::VectorXd &u) const;
     // Get T

@@ -82,6 +82,19 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     initialize_sample(current_time_step_sample_);
 }
 
+
+//Helper method to configure all sensors
+void RobotPlugin::configure_sensors(OptionsMap &opts)
+{
+    for (int i = 0; i < 1; i++)
+    // TODO: readd this when more sensors work
+    //for (int i = 0; i < TotalSensorTypes; i++)
+    {
+        sensors_[i]->configure_sensor(opts);
+        sensors_[i]->set_sample_data_format(current_time_step_sample_);
+    }
+}
+
 // Initialize position controllers.
 void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 {
@@ -190,20 +203,29 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
-    // TODO ZDM: make end effector samples work so that this doesn't crash
     sample->get_available_dtypes(dtypes);
-    // currently hardcoded to actions, joint angles, and joint velocities
 
-    report_publisher_->msg_.sensor_data.resize(dtypes.size()); //TODO: Only doing pos/vel right now
-    for(int d=0; d<dtypes.size(); d++){
+    report_publisher_->msg_.sensor_data.resize(dtypes.size());
+    for(int d=0; d<dtypes.size(); d++){ //Fill in each sample type
         report_publisher_->msg_.sensor_data[d].data_type = dtypes[d];
         Eigen::VectorXd tmp_data;
         sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
         report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
 
-        report_publisher_->msg_.sensor_data[d].shape.resize(2); //Tx? Matrix
-        report_publisher_->msg_.sensor_data[d].shape[0] = sample->get_T();
-        report_publisher_->msg_.sensor_data[d].shape[1] = tmp_data.size()/sample->get_T();
+
+        std::vector<int> shape;
+        sample->get_shape((gps::SampleType)dtypes[d], shape);
+        shape.insert(shape.begin(), sample->get_T());
+        report_publisher_->msg_.sensor_data[d].shape.resize(shape.size());
+        int total_expected_shape = 1;
+        for(int i=0; i< shape.size(); i++){
+            report_publisher_->msg_.sensor_data[d].shape[i] = shape[i];
+            total_expected_shape *= shape[i];
+        }
+        if(total_expected_shape != tmp_data.size()){
+            ROS_ERROR("Data stored in sample has different length than expected (%d vs %d)",
+                    tmp_data.size(), total_expected_shape);
+        }
         for(int i=0; i<tmp_data.size(); i++){
             report_publisher_->msg_.sensor_data[d].data[i] = tmp_data[i];
         }
@@ -305,6 +327,24 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }else{
         ROS_ERROR("Unknown trial controller arm type");
     }
+
+    // Configure sensor for trial
+    OptionsMap sensor_params;
+
+    // Feed EE points/sites to sensors
+    Eigen::MatrixXd ee_points;
+    if( msg->ee_points.size() % 3 != 0){
+        ROS_ERROR("Got %d ee_points (must be multiple of 3)", (int)msg->ee_points.size());
+    }
+    int n_points = msg->ee_points.size()/3;
+    ee_points.resize(n_points, 3);
+    for(int i=0; i<n_points; i++){
+        for(int j=0; j<3; j++){
+            ee_points(i, j) = msg->ee_points[j+3*i];
+        }
+    }
+    sensor_params["ee_sites"] = ee_points;
+    configure_sensors(sensor_params);
 }
 
 void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){

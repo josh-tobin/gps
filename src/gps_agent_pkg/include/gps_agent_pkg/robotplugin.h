@@ -103,6 +103,9 @@ public:
     // TODO: Comment
     virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
 
+    //Helper method to configure all sensors
+    virtual void configure_sensors(OptionsMap &opts);
+
     // Report publishers
     // Publish a whole sample (data from all timesteps)
     virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample);
