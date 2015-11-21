@@ -133,10 +133,10 @@ class AgentMuJoCo(Agent):
         eepts = self._data['site_xpos'].flatten()
         sample.set(END_EFFECTOR_POINTS, eepts, t=0)
         sample.set(END_EFFECTOR_POINT_VELOCITIES, np.zeros_like(eepts), t=0)
-        jac = np.zeros([eepts.shape[0], self.x0[condition].shape[0]])
+        jac = np.zeros([eepts.shape[0], self._model[condition]['nq']])
         for site in range(eepts.shape[0] // 3):
             idx = site * 3
-            jac[idx:(idx+3), range(self._model[condition]['nq'])] = self._world.get_jac_site(site)
+            jac[idx:(idx+3),:] = self._world.get_jac_site(site)
         sample.set(END_EFFECTOR_JACOBIANS, jac, t=0)
         return sample
 
@@ -148,10 +148,10 @@ class AgentMuJoCo(Agent):
         prev_eepts = sample.get(END_EFFECTOR_POINTS, t=t)
         eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
         sample.set(END_EFFECTOR_POINT_VELOCITIES, eept_vels, t=t+1)
-        jac = np.zeros([curr_eepts.shape[0], self.x0[condition].shape[0]])
+        jac = np.zeros([curr_eepts.shape[0], self._model[condition]['nq']])
         for site in range(curr_eepts.shape[0] // 3):
             idx = site * 3
-            jac[idx:(idx+3), range(self._model[condition]['nq'])] = self._world.get_jac_site(site)
+            jac[idx:(idx+3),:] = self._world.get_jac_site(site)
         sample.set(END_EFFECTOR_JACOBIANS, jac, t=t+1)
 
     def reset(self, condition):
