@@ -39,7 +39,7 @@ try:
         'smooth_noise': False,
         'smooth_noise_var': 2.0,
         'smooth_noise_renormalize': True,
-        'end_effector_points': np.array([[0.0,0.0,0.0],[0.1,0.2,0.3]])
+        'end_effector_points': np.array([]),
         # low gains
         #'pid_params': np.array([120, 60, 18, 4,
                                 #60, 30, 20, 4,

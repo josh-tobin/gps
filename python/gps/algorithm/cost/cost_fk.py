@@ -4,7 +4,7 @@ import numpy as np
 from gps.algorithm.cost.config import cost_fk
 from gps.algorithm.cost.cost import Cost
 from gps.algorithm.cost.cost_utils import get_ramp_multiplier
-from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_JACOBIANS
+from gps.proto.gps_pb2 import JOINT_ANGLES, END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_POINT_JACOBIANS
 
 
 class CostFK(Cost):
@@ -52,25 +52,24 @@ class CostFK(Cost):
         tgt = self._hyperparams['end_effector_target']
         pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
-        jx = sample.get(END_EFFECTOR_JACOBIANS)
+        jx = sample.get(END_EFFECTOR_POINT_JACOBIANS)
 
         # Evaluate penalty term.
         if self._hyperparams['analytic_jacobian']:
             jxx = sample.get(END_EFFECTOR_HESSIANS)
-            il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
+            l, ls, lss = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],
                                                           self._hyperparams['alpha'])
         else:
             # Use estimated Jacobians and no higher order terms
-            jxx_zeros = np.zeros((T, dist.shape[1], dX, dX))
-            il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
+            jxx_zeros = np.zeros((T, dist.shape[1], jx.shape[2], jx.shape[2]))
+            l, ls, lss = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
                                                           self._hyperparams['l1'],
                                                           self._hyperparams['l2'],
                                                           self._hyperparams['alpha'])
         # Add to current terms.
-        l = l + il
-        lx = lx + ilx
-        lxx = lxx + ilxx
+        sample.agent.pack_data_x(lx, ls, data_types=[JOINT_ANGLES])
+        sample.agent.pack_data_x(lxx, lss, data_types=[JOINT_ANGLES, JOINT_ANGLES])
 
         return l, lx, lu, lxx, luu, lux
