@@ -47,7 +47,8 @@ if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
 
 x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0')
-tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0')
+ja_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0')
+ee_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee0')
 
 agent = {
     'type': AgentROS,
@@ -111,14 +112,14 @@ state_cost = {
             #'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
                 #-1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
             #'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
-            'desired_state': tgt,
+            'target_state': ja_tgt,
         },
     },
 }
 
 fk_cost = {
     'type': CostFK,
-    'end_effector_target': np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'target_end_effector': np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
     'analytic_jacobian': False,
     'wp': np.array([1, 1, 1, 1, 1, 1]),
 }

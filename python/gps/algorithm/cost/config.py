@@ -16,7 +16,7 @@ cost_fk = {
     'l1': 0.0,
     'l2': 1.0,
     'alpha': 1e-2,
-    'end_effector_target': None,  # Target end-effector position
+    'target_end_effector': None,  # Target end-effector position
     'evalnorm': evallogl2term
 }
 
@@ -29,7 +29,7 @@ cost_state = {
     'wp_final_multiplier': 1.0,  # Weight multiplier on final timestep
     'data_types': {
         'JointAngle': {
-            'desired_state': None,  # Target state - must be set
+            'target_state': None,  # Target state - must be set
             'wp': None  # State weights - must be set
         }
     }

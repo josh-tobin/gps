@@ -94,7 +94,7 @@ state_cost = {
     'data_types' : {
         JOINT_ANGLES: {
             'wp': np.ones(SENSOR_DIMS[ACTION]),
-            'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
+            'target_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
                 -1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
         },
     },
@@ -102,7 +102,7 @@ state_cost = {
 
 fk_cost = {
     'type': CostFK,
-    'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
     'analytic_jacobian': False,
     'wp': np.array([1, 1, 1, 1, 1, 1]),
 }
