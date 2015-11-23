@@ -57,7 +57,7 @@ class AlgorithmBADMM(Algorithm):
             pol_info = PolicyInfo()
             pol_info.lambda_k = np.zeros((self.T, self.dU))
             pol_info.lambda_K = np.zeros((self.T, self.dU, self.dX))
-            pol_info.pol_wt = np.ones(self.T)
+            pol_info.pol_wt = self._hyperparams['init_pol_wt'] * np.ones(self.T)
             pol_info.pol_K = np.zeros((self.T, self.dU, self.dX))
             pol_info.pol_k = np.zeros((self.T, self.dU))
             pol_info.pol_S = np.zeros((self.T, self.dU, self.dU))
@@ -295,9 +295,9 @@ class AlgorithmBADMM(Algorithm):
                     upper = np.mean(kl_m) + self._hyperparams['exp_step_upper'] * np.std(kl_m)
                     for i in range(len(pol_info.pol_wt)):
                         if kl_m[i] < lower:
-                            pol_info.pol_wt *= self._hyperparams['exp_step_decrease']
+                            pol_info.pol_wt[i] *= self._hyperparams['exp_step_decrease']
                         elif kl_m[i] >= upper:
-                            pol_info.pol_wt *= self._hyperparams['exp_step_increase']
+                            pol_info.pol_wt[i] *= self._hyperparams['exp_step_increase']
             else:
                 # Standard DGD step.
                 pol_info.pol_wt = np.array([max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
