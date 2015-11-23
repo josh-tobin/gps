@@ -19,11 +19,14 @@ from gps.proto.gps_pb2 import *
 
 from gps.gui.target_setup import load_from_npz
 
+#ee_points = np.array([[0.0,0.0,0.0],[0.1,0.2,0.3]])
+ee_points = np.array([[0.02,-0.025,0.05],[0.02,-0.025,0.05],[0.02,0.05,0.0]])
+
 SENSOR_DIMS = {
     JOINT_ANGLES: 7,
     JOINT_VELOCITIES: 7,
-    END_EFFECTOR_POINTS: 6,
-    END_EFFECTOR_POINT_VELOCITIES: 6,
+    END_EFFECTOR_POINTS: 3*ee_points.shape[0],
+    END_EFFECTOR_POINT_VELOCITIES: 3*ee_points.shape[0],
     ACTION: 7,
 }
 
@@ -46,9 +49,34 @@ if not os.path.exists(common['target_files_dir']):
 if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
 
-x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0')
-ja_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0')
-ee_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee0')
+# TODO - put this somewhere else?
+def get_ee_points(offsets, ee_pos, ee_rot):
+    """ Helper method for computing the end effector points given a
+    position, rotation matrix, and offsets for each of the ee points.
+
+    Args:
+        offsets: Nx3 array where N is the number of points
+        ee_pos: 1x3 array of the end effector position
+        ee_rot: 3x3 rotation matrix of the end effector.
+    Returns:
+        3xN array of end effector points
+    """
+    return ee_rot.dot(offsets.T) + ee_pos.T
+
+ja_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0', default_dim=7)
+ee_pos_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_pos0', default_dim=3)
+ee_rot_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'rot_pos0', default_dim=9)[0]
+
+ja_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0', default_dim=7)
+ee_pos_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_pos0', default_dim=3)
+ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'rot_pos0', default_dim=9)[0]
+
+# TODO - construct this somewhere else?
+x0 = np.zeros(23)
+x0[0:7] = ja_x0
+x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0))
+
+ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt))
 
 agent = {
     'type': AgentROS,
@@ -72,7 +100,7 @@ agent = {
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
      #TODO: Controller will seg fault when passed in empty points. For now just use at least one point (0,0,0)
-    'end_effector_points': np.array([[0.0,0.0,0.0],[0.1,0.2,0.3]]),
+    'end_effector_points': ee_points,
     'obs_include': [],
 }
 
@@ -117,17 +145,33 @@ state_cost = {
     },
 }
 
-fk_cost = {
+from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
+fk_cost1 = {
     'type': CostFK,
-    'target_end_effector': np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
     'analytic_jacobian': False,
-    'wp': np.array([1, 1, 1, 1, 1, 1]),
+    'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
+    #'wp': np.array([1, 1, 1, 1, 1, 1]),
+    'l1': 0.1,
+    'l2': 0.0001,
+    'ramp_option': RAMP_LINEAR,  # How target cost increases over time.
+}
+
+fk_cost2 = {
+    'type': CostFK,
+    'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'analytic_jacobian': False,
+    'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
+    'l1': 1.0,
+    'l2': 0.0,
+    'wp_final_multiplier': 10.0,  # Weight multiplier on final timestep
+    'ramp_option': RAMP_FINAL_ONLY,  # How target cost increases over time.
 }
 
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, fk_cost],
-    'weights': [1.0, 1.0],
+    'costs': [torque_cost, fk_cost1, fk_cost2],
+    'weights': [1.0, 1.0, 1.0],
 }
 
 algorithm['dynamics'] = {
