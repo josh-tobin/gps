@@ -83,9 +83,10 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 }
 
 
-//Helper method to configure all sensors
+// Helper method to configure all sensors
 void RobotPlugin::configure_sensors(OptionsMap &opts)
 {
+    ROS_INFO("configure sensors");
     for (int i = 0; i < 1; i++)
     // TODO: readd this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
@@ -116,6 +117,7 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
     {
         sensors_[i]->set_sample_data_format(sample);
     }
+    ROS_INFO("set sample data format");
 }
 
 // Update the sensors at each time step.
@@ -149,7 +151,6 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 // Update the controllers at each time step.
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
-
     // Update passive arm controller.
     // TODO - don't pass in wrong sample if used
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);

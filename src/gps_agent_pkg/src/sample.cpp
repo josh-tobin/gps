@@ -18,6 +18,7 @@ Sample::Sample(int T)
 		internal_data_[(gps::SampleType)i] = samples_list;
 		internal_data_size_[i] = -1; //initialize to -1
 	}
+  ROS_INFO("done sample constructor");
 }
 
 Sample::~Sample()
