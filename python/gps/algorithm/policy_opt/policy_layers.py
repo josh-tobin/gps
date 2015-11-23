@@ -8,7 +8,6 @@ class PolicyDataLayer(caffe.Layer):
         info = json.loads(self.param_str)
         for ind, top_blob in enumerate(info['shape']):
             top[ind].reshape(*top_blob['dim'])
-        pass
 
     def reshape(self, bottom, top):
         pass
