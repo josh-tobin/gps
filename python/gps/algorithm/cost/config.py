@@ -11,11 +11,11 @@ cost_fk = {
     'ramp_option': RAMP_CONSTANT,  # How target cost increases over time.
     'wp': None,  # State weights - must be set
     'wp_final_multiplier': 1.0,  # Weight multiplier on final timestep
-    'env_target': True,
+    'env_target': True, # TODO - this isn't used
     'analytic_jacobian': True,
     'l1': 0.0,
     'l2': 1.0,
-    'alpha': 1e-2,
+    'alpha': 1e-5,
     'target_end_effector': None,  # Target end-effector position
     'evalnorm': evallogl2term
 }

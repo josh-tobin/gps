@@ -1,6 +1,6 @@
 import logging
 
-from gps.gui.gui import GUI
+from gps.gui.target_setup import TargetSetup
 from gps.hyperparam_pr2 import defaults as config
 
 
@@ -20,7 +20,9 @@ class TargetSetup():
         self._conditions = config['common']['conditions']
 
         self.agent = config['agent']['type'](config['agent'])
-        self.gui = GUI(self.agent, defaults['gui'])
+        self.ts = TargetSetup(self.agent, config['common'])
+        #self.gui = GUI(self.agent, config['gui'])
+
 
 if __name__ == "__main__":
     g = TargetSetup()

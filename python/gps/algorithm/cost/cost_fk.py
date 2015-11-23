@@ -52,6 +52,8 @@ class CostFK(Cost):
         tgt = self._hyperparams['target_end_effector']
         pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
+        print('Last time step summed distance:')
+        print(dist[99].sum())
         jx = sample.get(END_EFFECTOR_POINT_JACOBIANS)
 
         # Evaluate penalty term.
