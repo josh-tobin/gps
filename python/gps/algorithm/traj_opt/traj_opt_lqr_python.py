@@ -25,7 +25,7 @@ class TrajOptLQRPython(TrajOpt):
     # TODO - traj_distr and prev_traj_distr shouldn't be arguments - should exist in self?
     # If so, how to deal with multiple conditions? (multiple traj_distr)
     # - TODO add arg and return spec on this function
-    def update(self, T, step_mult, prev_eta, traj_info, prev_traj_distr):
+    def update(self, T, step_mult, prev_eta, traj_info, prev_traj_distr, pol_info=None):
         """Run dual gradient decent to optimize trajectories."""
 
         # Set KL-divergence step size (epsilon)
@@ -37,7 +37,8 @@ class TrajOptLQRPython(TrajOpt):
         for itr in range(DGD_MAX_ITER):
             new_traj_distr, new_eta = self.backward(prev_traj_distr,
                                                     traj_info,
-                                                    prev_eta)
+                                                    prev_eta,
+                                                    pol_info=pol_info)
             new_mu, new_sigma = self.forward(new_traj_distr, traj_info)
 
             # Update min eta if we had a correction after running backward
@@ -154,7 +155,7 @@ class TrajOptLQRPython(TrajOpt):
                 mu[t + 1, idx_x] = traj_info.dynamics.Fm[t, :, :].dot(mu[t, :]) + traj_info.dynamics.fv[t, :]
         return mu, sigma
 
-    def backward(self, prev_traj_distr, traj_info, eta):
+    def backward(self, prev_traj_distr, traj_info, eta, pol_info=None):
         """
         Perform LQR backward pass.
         This computes a new LinearGaussianPolicy object.
@@ -180,8 +181,38 @@ class TrajOptLQRPython(TrajOpt):
         idx_u = slice(dX, dX + dU)
 
         # Pull out cost and dynamics.
+        Cm = np.copy(traj_info.Cm)
+        cv = np.copy(traj_info.cv)
         Fm = traj_info.dynamics.Fm
         fv = traj_info.dynamics.fv
+
+        if pol_info:
+            # Modify policy action via Lagrange multiplier.
+            cv[:,dX:] -= pol_info.lambda_k
+            Cm[:,dX:,:dX] -= pol_info.lambda_K
+            Cm[:,:dX,dX:] -= np.transpose(pol_info.lambda_K, [0, 2, 1])
+
+            #Pre-process the costs with KL-divergence terms.
+            TKLm = np.zeros((T,dX+dU,dX+dU))
+            TKLv = np.zeros((T,dX+dU))
+            PKLm = np.zeros((T,dX+dU,dX+dU))
+            PKLv = np.zeros((T,dX+dU))
+            for t in range(T):
+                K, k = prev_traj_distr.K[t,:,:], prev_traj_distr.k[t,:]
+                inv_pol_covar = prev_traj_distr.inv_pol_covar[t,:,:]
+                # Trajectory KL-divergence terms.
+                TKLm[t,:,:] = np.vstack([
+                    np.hstack([K.T.dot(inv_pol_covar).dot(K), -K.T.dot(inv_pol_covar)]),
+                    np.hstack([-inv_pol_covar.dot(K), inv_pol_covar])])
+                TKLv[t,:] = np.concatenate([K.T.dot(inv_pol_covar).dot(k), -inv_pol_covar.dot(k)])
+                # Policy KL-divergence terms.
+                inv_pol_S = np.linalg.solve(pol_info.chol_pol_S[t,:,:],
+                    np.linalg.solve(pol_info.chol_pol_S[t,:,:].T, np.eye(dU)))
+                KB, kB = pol_info.pol_K[t,:,:], pol_info.pol_k[t,:]
+                PKLm[t,:,:] = np.vstack([
+                    np.hstack([KB.T.dot(inv_pol_S).dot(KB), -KB.T.dot(inv_pol_S)]),
+                    np.hstack([-inv_pol_S.dot(KB), inv_pol_S])])
+                PKLv[t,:] = np.concatenate([KB.T.dot(inv_pol_S).dot(kB), -inv_pol_S.dot(kB)])
 
         # Non-SPD correction terms.
         del_ = self._hyperparams['del0']
@@ -196,22 +227,33 @@ class TrajOptLQRPython(TrajOpt):
             Vxx = np.zeros((T, dX, dX))
             Vx = np.zeros((T, dX))
 
+            if pol_info:
+                # Compute new costs.
+                fCm, fcv = np.zeros(Cm.shape), np.zeros(cv.shape)
+                for t in range(T):
+                    wt = pol_info.pol_wt[t]
+                    fCm[t,:,:] = (Cm[t,:,:] + TKLm[t,:,:]*eta + PKLm[t,:,:]*wt)/(eta + wt)
+                    fcv[t,:] = (cv[t,:] + TKLv[t,:]*eta + PKLv[t,:]*wt)/(eta + wt)
+            else:
+                fCm, fcv = Cm / eta, cv / eta
+
             for t in range(T - 1, -1, -1):
                 # Compute state-action-state function at this step.
                 # Add in the cost.
-                Qtt = traj_info.Cm[t, :, :] / eta  # (X+U) x (X+U)
-                Qt = traj_info.cv[t, :] / eta  # (X+U) x 1
+                Qtt = fCm[t, :, :]  # (X+U) x (X+U)
+                Qt = fcv[t, :]  # (X+U) x 1
 
-                # Add in the trajectory divergence term.
-                Qtt = Qtt + np.vstack([
-                    np.hstack([prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :]).dot(
-                        prev_traj_distr.K[t, :, :]),
-                               -prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :])]),  # X x (X+U)
-                    np.hstack([-prev_traj_distr.inv_pol_covar[t, :, :].dot(prev_traj_distr.K[t, :, :]),
-                               prev_traj_distr.inv_pol_covar[t, :, :]])  # U x (X+U)
-                ])
-                Qt = Qt + np.hstack([prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :]).dot(
-                    prev_traj_distr.k[t, :]), -prev_traj_distr.inv_pol_covar[t, :, :].dot(prev_traj_distr.k[t, :])])
+                if not pol_info:
+                    # Add in the trajectory divergence term.
+                    Qtt = Qtt + np.vstack([
+                        np.hstack([prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :]).dot(
+                            prev_traj_distr.K[t, :, :]),
+                                   -prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :])]),  # X x (X+U)
+                        np.hstack([-prev_traj_distr.inv_pol_covar[t, :, :].dot(prev_traj_distr.K[t, :, :]),
+                                   prev_traj_distr.inv_pol_covar[t, :, :]])  # U x (X+U)
+                    ])
+                    Qt = Qt + np.hstack([prev_traj_distr.K[t, :, :].T.dot(prev_traj_distr.inv_pol_covar[t, :, :]).dot(
+                        prev_traj_distr.k[t, :]), -prev_traj_distr.inv_pol_covar[t, :, :].dot(prev_traj_distr.k[t, :])])
 
                 # Add in the value function from the next time step.
                 if t < T - 1:

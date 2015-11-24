@@ -185,7 +185,7 @@ class AlgorithmBADMM(Algorithm):
                 prc[:,t,:,:] = np.tile(traj.inv_pol_covar[t,:,:], [N, 1, 1])
                 for i in range(N):
                     mu[i,t,:] = (traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]) - \
-                            np.linalg.solve(prc[i,t,:,:],
+                            np.linalg.solve(prc[i,t,:,:],  #TODO: divide by pol_wt
                             pol_info.lambda_K[t,:,:].dot(X[i,t,:]) + pol_info.lambda_k[t,:])
                 wt[:,t].fill(pol_info.pol_wt[t])
             tgt_mu = np.concatenate((tgt_mu, mu))
@@ -314,7 +314,8 @@ class AlgorithmBADMM(Algorithm):
         for m in range(self.M):
             self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
                     self.T, self.cur[m].step_mult, self.eta[m],
-                    self.cur[m].traj_info, self.new_traj_distr[m])
+                    self.cur[m].traj_info, self.new_traj_distr[m],
+                    self.cur[m].pol_info)
 
     def _advance_iteration_variables(self):
         """
