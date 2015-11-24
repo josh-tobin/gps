@@ -1,4 +1,5 @@
-## GPS
+GPS
+======
 Guided Policy Search
 
 # Dependencies
@@ -17,17 +18,21 @@ Optional agent interfaces
 * Mujoco
 
 # Setup
-Follow the following steps to get set-up
+Follow the following steps to get set up
+
 0. Install necessary dependencies above.
+
 1. Clone this repo.
 ```sh
 git clone https://github.com/cbfinn/gps.git
 ```
+
 2. Set up paths
 ```
 export PYTHONPATH=$PYTHONPATH:/path/to/gps:/path/to/gps/python/gps:/path/to/gps/lib:/path/to/gps/python/gps/algorithm/policy_opt
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/gps/lib:/path/to/gps/build/lib
 ```
+
 3. Compile protobuffer
 ```sh
 cd /path/to/gps
@@ -35,15 +40,20 @@ cd /path/to/gps
 ```
 
 **Mujoco Setup**
+
 0. Install Mujoco
+
 1. Set up paths
 
 **ROS Setup**
+
 0. Install ROS
+
 2. Set up paths
 ```
 export ROS_PACKAGE_PATH:$ROS_PACKAGE_PATH:/path/to/gps:/path/to/gps/src/gps_agent_pkg
 ```
+
 3. Compilation
 ```
 cd src/gps_agent_pkg/
