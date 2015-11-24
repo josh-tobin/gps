@@ -48,6 +48,8 @@ class GPSMain():
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
             self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
+            for m in range(self._conditions):
+                self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
     def resume(self, itr):
         """

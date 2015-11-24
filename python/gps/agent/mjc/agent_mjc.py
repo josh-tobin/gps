@@ -81,7 +81,7 @@ class AgentMuJoCo(Agent):
         for x0 in self._hyperparams['x0']:
             self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
 
-    def sample(self, policy, condition, verbose=True):
+    def sample(self, policy, condition, verbose=True, save=True):
         """
         Runs a trial and constructs a new sample containing information about the trial.
 
@@ -120,7 +120,8 @@ class AgentMuJoCo(Agent):
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
         new_sample.set(ACTION, U)
-        self._samples[condition].append(new_sample)
+        if save:
+            self._samples[condition].append(new_sample)
 
     def _init_sample(self, condition):
         """
