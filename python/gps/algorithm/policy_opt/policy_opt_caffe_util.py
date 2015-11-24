@@ -26,29 +26,24 @@ def construct_fc_network(n_layers = 3,
     Returns:
         NetParameter specification of network
     """
-    data_layer_info = json.dumps({
-            'shape': [{'dim': (batch_size, dim_input)},
-                      {'dim': (batch_size, dim_output)},
-                      {'dim': (batch_size, dim_output, dim_output)}]})
-
     if phase == TRAIN:
+        data_layer_info = json.dumps({
+                'shape': [{'dim': (batch_size, dim_input)},
+                          {'dim': (batch_size, dim_output)},
+                          {'dim': (batch_size, dim_output, dim_output)}]})
+
         [input, action, precision] = L.Python(ntop=3,
-                                                   python_param=dict(
-                                                   module='policy_layers',
-                                                   param_str = data_layer_info,
-                                                   layer = 'PolicyDataLayer'))
-        #[input, action, precision] = L.DummyData(ntop=3,
-        #        shape=[dict(dim=[batch_size, dim_input]),
-        #        dict(dim=[batch_size, dim_output]),
-        #        dict(dim=[batch_size, dim_output, dim_output])])
+                                              python_param=dict(
+                                                  module='policy_layers',
+                                                  param_str = data_layer_info,
+                                                  layer = 'PolicyDataLayer'))
     else:
-        [input, action, precision] = L.Python(ntop=3,
-                                                   python_param=dict(
-                                                   module='policy_layers',
-                                                   param_str = data_layer_info,
-                                                   layer = 'PolicyDataLayer'))
-        input = L.DummyData(ntop=1,
-                shape=[dict(dim=[batch_size, dim_input])])
+        data_layer_info = json.dumps({'shape': [{'dim': (batch_size, dim_input)}]})
+        input = L.Python(ntop=1,
+                         python_param=dict(
+                             module='policy_layers',
+                             param_str=data_layer_info,
+                             layer='PolicyDataLayer'))
 
     cur_top = input
     dim_hidden.append(dim_output)
