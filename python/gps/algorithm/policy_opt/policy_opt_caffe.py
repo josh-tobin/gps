@@ -53,11 +53,12 @@ class PolicyOptCaffe(PolicyOpt):
             self.solver = caffe.get_solver(self._hyperparams['network_model'])
         else:
             network_arch_params = self._hyperparams['network_arch_params']
-            network_arch_params['batch_size'] = self.batch_size
             network_arch_params['dim_input'] = self._dObs
             network_arch_params['dim_output'] = self._dU
+
+            network_arch_params['batch_size'] = self.batch_size
             network_arch_params['phase'] = TRAIN
-            solver_param.net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
+            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
 
             network_arch_params['batch_size'] = 1
             network_arch_params['phase'] = TEST
@@ -87,7 +88,6 @@ class PolicyOptCaffe(PolicyOpt):
         Returns:
             a CaffePolicy with updated weights
         """
-        # TODO make sure that self.batch_size == solver.net.blobs['DummyDataX'].data.shape[0]?
         # TODO also make sure that obs.shape[0] == tgt_mu.shape[0] == ..., etc?
         # TODO - normalization?
         N, T = obs.shape[:2]
@@ -151,13 +151,18 @@ class PolicyOptCaffe(PolicyOpt):
         output = np.zeros([N, T, dU])
         blob_names = self.solver.test_nets[0].blobs.keys()
 
+        # TODO - do we need this? if so, we need to add it to caffe policy act
+        self.solver.test_nets[0].share_with(self.solver.net)
+
         for i in range(N):
             for t in range(T):
                 # Feed in data
                 self.solver.test_nets[0].blobs[blob_names[0]].data[:] = obs[i,t]
 
                 # Assume that the first output blob is what we want
-                output[i,t,:] = self.solver.test_nets[0].forward().values()[0]
+                output[i,t,:] = self.solver.test_nets[0].forward().values()[0][0]
+
+        import ipdb; ipdb.set_trace()
 
         pol_sigma = np.tile(np.diag(self.var), (N, T, 1, 1))
         pol_prec = np.tile(np.diag(1 / self.var), (N, T, 1, 1))
