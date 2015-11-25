@@ -71,6 +71,15 @@ algorithm = {
     'type': AlgorithmBADMM,
     'conditions': common['conditions'],
     'iterations': 10,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
+    'policy_dual_rate': 0.2,
+    'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
+    'fixed_lg_step': 3,
+    'kl_step': 5.0,
+    'min_step_mult': 0.01,
+    'max_step_mult': 1.0,
+    'sample_decrease_var': 0.05,
+    'sample_increase_var': 0.1,
 }
 
 algorithm['init_traj_distr'] = {
