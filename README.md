@@ -16,6 +16,7 @@ One of the following neural network libraries is required for the full guided po
 Optional agent interfaces
 * ROS
 * Mujoco
+* Box2D (coming soon)
 
 ## Setup
 Follow the following steps to get set up
@@ -72,3 +73,14 @@ Follow the following steps to get set up
     ```
 
 ## Intended Usage
+1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
+
+2. Copy hyperparams.py.example to your directory, renaming it hyperparams.py and modifying it for your experiment
+
+3. Run the following:
+    ```sh
+    cd GPS_PATH
+    python python/gps/gps_main.py ./experiments/my_experiment/
+    ```
+
+All of the output logs and data will be routed to your experiment directory.
