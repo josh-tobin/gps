@@ -19,7 +19,6 @@ from gps.proto.gps_pb2 import *
 
 from gps.gui.target_setup import load_from_npz
 
-#ee_points = np.array([[0.0,0.0,0.0],[0.1,0.2,0.3]])
 ee_points = np.array([[0.02,-0.025,0.05],[0.02,-0.025,0.05],[0.02,0.05,0.0]])
 
 SENSOR_DIMS = {
@@ -47,7 +46,7 @@ if not os.path.exists(common['target_files_dir']):
 if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
 
-# TODO - put this somewhere else?
+# TODO - put this somewhere else
 def get_ee_points(offsets, ee_pos, ee_rot):
     """ Helper method for computing the end effector points given a
     position, rotation matrix, and offsets for each of the ee points.
@@ -149,12 +148,12 @@ fk_cost1 = {
     'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
     'analytic_jacobian': False,
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
-    #'wp': np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 0.0001,
-    'ramp_option': RAMP_LINEAR,  # How target cost increases over time.
+    'ramp_option': RAMP_LINEAR,
 }
 
+# TODO - this isn't qutie right.
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
@@ -163,7 +162,7 @@ fk_cost2 = {
     'l1': 1.0,
     'l2': 0.0,
     'wp_final_multiplier': 10.0,  # Weight multiplier on final timestep
-    'ramp_option': RAMP_FINAL_ONLY,  # How target cost increases over time.
+    'ramp_option': RAMP_FINAL_ONLY,
 }
 
 algorithm['cost'] = {
