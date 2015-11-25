@@ -42,6 +42,7 @@ class PolicyOptCaffe(PolicyOpt):
 
         solver_param = SolverParameter()
         solver_param.display = 0  # Don't display anything.
+        solver_param.random_seed = 0 # debugging
         solver_param.base_lr = self._hyperparams['lr']
         solver_param.lr_policy = self._hyperparams['lr_policy']
         solver_param.momentum = self._hyperparams['momentum']
@@ -103,10 +104,11 @@ class PolicyOptCaffe(PolicyOpt):
         # Assuming that N*T >= self.batch_size
         batches_per_epoch = np.floor(N*T / self.batch_size)
         idx = range(N*T)
+        average_loss = 0
         np.random.shuffle(idx)
         for itr in range(self._hyperparams['iterations']):
             # Load in data for this batch
-            start_idx = int(itr % batches_per_epoch)
+            start_idx = int(itr*self.batch_size % (batches_per_epoch*self.batch_size))
             idx_i = idx[start_idx:start_idx+self.batch_size]
             self.solver.net.blobs[blob_names[0]].data[:] = obs[idx_i]
             self.solver.net.blobs[blob_names[1]].data[:] = tgt_mu[idx_i]
@@ -116,8 +118,10 @@ class PolicyOptCaffe(PolicyOpt):
 
             # To get the training loss:
             train_loss = self.solver.net.blobs[blob_names[-1]].data
-            if itr % 1000 == 0:
-                LOGGER.debug('Caffe iteration %d, loss %f', itr, train_loss)
+            average_loss += train_loss
+            if itr % 500 == 0 and itr != 0:
+                LOGGER.debug('Caffe iteration %d, average loss %f', itr, average_loss / 500)
+                average_loss = 0
 
             # To run a  test
             #if itr % test_interval:
@@ -161,6 +165,8 @@ class PolicyOptCaffe(PolicyOpt):
 
                 # Assume that the first output blob is what we want
                 output[i,t,:] = self.solver.test_nets[0].forward().values()[0][0]
+        print output[0,0]
+        print output[0,9]
 
         pol_sigma = np.tile(np.diag(self.var), (N, T, 1, 1))
         pol_prec = np.tile(np.diag(1 / self.var), (N, T, 1, 1))
