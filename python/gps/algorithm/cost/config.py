@@ -12,7 +12,6 @@ cost_fk = {
     'wp': None,  # State weights - must be set
     'wp_final_multiplier': 1.0,  # Weight multiplier on final timestep
     'env_target': True, # TODO - this isn't used
-    'analytic_jacobian': True,
     'l1': 0.0,
     'l2': 1.0,
     'alpha': 1e-5,

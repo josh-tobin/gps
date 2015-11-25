@@ -35,13 +35,8 @@ common = {
     'experiment_dir': BASE_DIR + '/experiments/default_mjc_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
-common['target_files_dir'] = common['experiment_dir'] + 'target_files/'
 common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
 
-if not os.path.exists(common['experiment_dir']):
-    os.makedirs(common['experiment_dir'])
-if not os.path.exists(common['target_files_dir']):
-    os.makedirs(common['target_files_dir'])
 if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
 
