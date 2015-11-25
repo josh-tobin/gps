@@ -1,6 +1,9 @@
 import logging
+import imp
+import os
+import sys
 
-from gps.hyperparam_defaults import defaults as config
+#from gps.hyperparam_defaults import defaults as config
 #from gps.hyperparam_pr2 import defaults as config
 #from gps.gui.gui import GUI
 
@@ -15,7 +18,7 @@ class GPSMain():
     hyperparams: nested dictionary of hyperparameters, indexed by the type
         of hyperparameter
     """
-    def __init__(self):
+    def __init__(self, config):
         self._hyperparams = config
         self._iterations = config['iterations']
         self._conditions = config['common']['conditions']
@@ -53,8 +56,22 @@ class GPSMain():
         raise NotImplementedError("TODO")
 
 if __name__ == "__main__":
+    if ('--help' in sys.argv) or ('-h' in sys.argv):
+        print("Runs an experiment.")
+        print("Usage: %s [HYPERPARAMS_PATH]" % sys.argv[0])
+        print()
+        print("HYPERPARAMS_PATH: the path where hyperparams.py is located")
+        print("       (default: './experiments/default_mjc_experiment/'")
+    else:
+        if len(sys.argv) > 1:
+            file_path = sys.argv[1]
+        else:
+            file_path = './experiments/default_mjc_experiment/'
+    param_file = os.path.join(file_path, 'hyperparams.py')
+    config_module = imp.load_source('hyperparams', param_file)
+
     import random; random.seed(0)
     import numpy as np; np.random.seed(0)
 
-    g = GPSMain()
+    g = GPSMain(config_module.config)
     g.run()
