@@ -134,6 +134,7 @@ class PolicyOptCaffe(PolicyOpt):
         # TODO - use dense covariance?
         self.var = 1 / np.diag(A)
 
+        self.policy.net.share_with(self.solver.net)
         return self.policy
 
     def prob(self, obs):
@@ -151,7 +152,6 @@ class PolicyOptCaffe(PolicyOpt):
         output = np.zeros([N, T, dU])
         blob_names = self.solver.test_nets[0].blobs.keys()
 
-        # TODO - do we need this? if so, we need to add it to caffe policy act
         self.solver.test_nets[0].share_with(self.solver.net)
 
         for i in range(N):
@@ -161,8 +161,6 @@ class PolicyOptCaffe(PolicyOpt):
 
                 # Assume that the first output blob is what we want
                 output[i,t,:] = self.solver.test_nets[0].forward().values()[0][0]
-
-        import ipdb; ipdb.set_trace()
 
         pol_sigma = np.tile(np.diag(self.var), (N, T, 1, 1))
         pol_prec = np.tile(np.diag(1 / self.var), (N, T, 1, 1))
