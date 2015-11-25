@@ -81,15 +81,14 @@ class PolicyOptCaffe(PolicyOpt):
         """ Update policy.
 
         Args:
-            obs: numpy array that is N x dObs
-            tgt_mu: numpy array that is N x dU
-            tgt_prc: numpy array that is N x dU x dU
+            obs: numpy array that is N x T x dObs
+            tgt_mu: numpy array that is N x T x dU
+            tgt_prc: numpy array that is N x T x dU x dU
             tgt_wt: numpy array that is N x T
 
         Returns:
             a CaffePolicy with updated weights
         """
-        # TODO also make sure that obs.shape[0] == tgt_mu.shape[0] == ..., etc?
         # TODO - normalization?
         N, T = obs.shape[:2]
         dU, dObs = self._dU, self._dObs
@@ -165,8 +164,6 @@ class PolicyOptCaffe(PolicyOpt):
 
                 # Assume that the first output blob is what we want
                 output[i,t,:] = self.solver.test_nets[0].forward().values()[0][0]
-        print output[0,0]
-        print output[0,9]
 
         pol_sigma = np.tile(np.diag(self.var), (N, T, 1, 1))
         pol_prec = np.tile(np.diag(1 / self.var), (N, T, 1, 1))
