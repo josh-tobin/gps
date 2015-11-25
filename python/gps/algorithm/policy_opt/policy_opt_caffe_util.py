@@ -1,6 +1,9 @@
 from caffe import layers as L, NetSpec
 from caffe.proto.caffe_pb2 import TRAIN, TEST
 import json
+import sys
+
+from gps.algorithm.policy_opt import __file__ as policy_opt_path
 
 def construct_fc_network(n_layers = 3,
                          dim_hidden = [40,40],
@@ -26,6 +29,9 @@ def construct_fc_network(n_layers = 3,
     Returns:
         NetParameter specification of network
     """
+    # Needed for Caffe to find defined python layers
+    sys.path.append('/'.join(str.split(policy_opt_path, '/')[:-1]))
+
     if phase == TRAIN:
         data_layer_info = json.dumps({
                 'shape': [{'dim': (batch_size, dim_input)},
