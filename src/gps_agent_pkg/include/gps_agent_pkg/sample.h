@@ -60,42 +60,41 @@ public:
     // Constructor.
     Sample(int T);
     // Construct state from message.
-    //Sample(gps_control::state_msg::ConstPtr& msg); // TODO: Replace with initialization from protobuf
     // Destructor.
     virtual ~Sample();
 
+    // Get sensor meta-data.
+    virtual void get_meta_data(gps::SampleType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const;
+    // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
+    virtual void set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_);
+    // Get datatypes which have metadata set
+    virtual void get_available_dtypes(std::vector<gps::SampleType> &types);
+
     // Get pointer to internal data for given time step.
     virtual void *get_data_pointer(int t, gps::SampleType type);
+    // Fill data arbitrary sensor information from a list of datatypes.
+    virtual void get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes);
+    // Get sensor data for given timestep.
+    virtual void get_data(int t, gps::SampleType type, void *data, int data_size, SampleDataFormat data_format) const;
+    // Get sensor data up to a given timestep, and for a particular datatype
+    virtual void get_data(int T, Eigen::VectorXd &data, gps::SampleType datatype);
+    // Fill data with data for all timesteps from a single datatype
+    virtual void get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype);
 
     // Add sensor data for given timestep.
     virtual void set_data(int t, gps::SampleType type, SampleVariant data, int data_size, SampleDataFormat data_format);
-    // Get sensor data for given timestep.
-    virtual void get_data(int t, gps::SampleType type, void *data, int data_size, SampleDataFormat data_format) const;
 
-    // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
-    virtual void set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_);
-    //Get datatypes which have metadata set
-    virtual void get_available_dtypes(std::vector<gps::SampleType> &types);
-    // Get sensor meta-data.
-    virtual void get_meta_data(gps::SampleType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const;
-
+    // Fill shape with dimensions of data
+    virtual void get_shape(gps::SampleType sample_type, std::vector<int> &shape);
     // Get the state representation.
     virtual void get_state(int t, Eigen::VectorXd &x) const;
     // Get the observation.
     virtual void get_obs(int t, Eigen::VectorXd &obs) const;
-    // Fill data with data for all timesteps from a single datatype
-    virtual void get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datatype);
-    // Get sensor data up to a given timestep, and for a particular datatype
-    virtual void get_data(int T, Eigen::VectorXd &data, gps::SampleType datatype);
-    // Fill shape with dimensions of data
-    virtual void get_shape(gps::SampleType sample_type, std::vector<int> &shape);
-    // Fill data arbitrary sensor information from a list of datatypes.
-    virtual void get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes);
+    // Get the action.
+    virtual void get_action(int, Eigen::VectorXd &u) const;
 
     // Get T
     virtual int get_T();
-    // Get the action.
-    virtual void get_action(int, Eigen::VectorXd &u) const;
 };
 
 }
