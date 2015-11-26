@@ -18,6 +18,7 @@ Sample::Sample(int T)
 		internal_data_[(gps::SampleType)i] = samples_list;
 		internal_data_size_[i] = -1; //initialize to -1
 	}
+  ROS_INFO("done sample constructor");
 }
 
 Sample::~Sample()
@@ -86,6 +87,22 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 
 	Eigen::VectorXd tmp_data;
 	for(int t=0; t<T_; t++){
+		get_data(t, tmp_data, dtype_vector);
+		//Fill in original data
+		for(int i=0; i<size; i++){
+			data[t*size+i] = tmp_data[i];
+		}
+	}
+}
+
+void Sample::get_data(int T, Eigen::VectorXd &data, gps::SampleType datatype){
+	int size = internal_data_size_[(int)datatype];
+	data.resize(size*T);
+	std::vector<gps::SampleType> dtype_vector;
+	dtype_vector.push_back(datatype);
+
+	Eigen::VectorXd tmp_data;
+	for(int t=0; t<T; t++){
 		get_data(t, tmp_data, dtype_vector);
 		//Fill in original data
 		for(int i=0; i<size; i++){

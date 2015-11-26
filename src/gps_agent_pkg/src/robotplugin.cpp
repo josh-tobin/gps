@@ -78,14 +78,15 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     }
 
     // Create current state sample and populate it using the sensors.
-    current_time_step_sample_.reset(new Sample(1));
+    current_time_step_sample_.reset(new Sample(MAX_TRIAL_LENGTH));
     initialize_sample(current_time_step_sample_);
 }
 
 
-//Helper method to configure all sensors
+// Helper method to configure all sensors
 void RobotPlugin::configure_sensors(OptionsMap &opts)
 {
+    ROS_INFO("configure sensors");
     for (int i = 0; i < 1; i++)
     // TODO: readd this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
@@ -116,6 +117,7 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
     {
         sensors_[i]->set_sample_data_format(sample);
     }
+    ROS_INFO("set sample data format");
 }
 
 // Update the sensors at each time step.
@@ -149,7 +151,6 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 // Update the controllers at each time step.
 void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_step)
 {
-
     // Update passive arm controller.
     // TODO - don't pass in wrong sample if used
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
@@ -158,18 +159,15 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     if(!is_controller_step && trial_init){
         return;
     }
-    //ROS_INFO_STREAM("beginning controller update");
     // If we have a trial controller, update that, otherwise update position controller.
     if (trial_init) trial_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
     else active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
-    //active_arm_controller_->update(this, current_time, current_time_step_sample_, active_arm_torques_);
-
 
     // Check if the trial controller finished and delete it.
     if (trial_init && trial_controller_->is_finished()) {
 
         // Publish sample after trial completion
-        publish_sample_report(current_time_step_sample_);
+        publish_sample_report(current_time_step_sample_, trial_controller_->get_trial_length());
         //Clear the trial controller.
         trial_controller_->reset(current_time);
         trial_controller_.reset(NULL);
@@ -200,7 +198,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     /* publish message when finished */
 }
 
-void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
+void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample, int T /*=1*/){
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
     sample->get_available_dtypes(dtypes);
@@ -209,13 +207,13 @@ void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample){
     for(int d=0; d<dtypes.size(); d++){ //Fill in each sample type
         report_publisher_->msg_.sensor_data[d].data_type = dtypes[d];
         Eigen::VectorXd tmp_data;
-        sample->get_data_all_timesteps(tmp_data, (gps::SampleType)dtypes[d]);
+        sample->get_data(T, tmp_data, (gps::SampleType)dtypes[d]);
         report_publisher_->msg_.sensor_data[d].data.resize(tmp_data.size());
 
 
         std::vector<int> shape;
         sample->get_shape((gps::SampleType)dtypes[d], shape);
-        shape.insert(shape.begin(), sample->get_T());
+        shape.insert(shape.begin(), T);
         report_publisher_->msg_.sensor_data[d].shape.resize(shape.size());
         int total_expected_shape = 1;
         for(int i=0; i< shape.size(); i++){
@@ -272,9 +270,14 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
-    current_time_step_sample_.reset(new Sample(T)); //make a new Sample object
-    initialize_sample(current_time_step_sample_);
+    if (T > MAX_TRIAL_LENGTH) {
+        ROS_FATAL("Trial length specified is longer than maximum trial length (%d vs %d)",
+                T, MAX_TRIAL_LENGTH);
+    }
 
+    // TODO - it seems like the below could cause a race condition seg fault,
+    // but I haven't seen one happen yet...
+    initialize_sample(current_time_step_sample_);
 
     float frequency = msg->frequency;  // Controller frequency
 
