@@ -53,7 +53,6 @@ class TargetSetup:
                          'actuator name = ' + str(self._actuator_name))
 
     def set_initial_position(self, event=None):
-        # TODO - this might not work if you've already started a trial (data might be 100xD)
         sample = self._agent.get_data(arm=self._actuator_type)
         filename = self._target_files_dir + self._actuator_name + '_initial.npz'
 
