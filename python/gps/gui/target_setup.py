@@ -5,7 +5,7 @@ import numpy as np
 
 from gps.gui.config import target_setup as target_setup_config
 
-from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
+from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
 
 class TargetSetup:
     def __init__(self, agent, hyperparams, gui=None):
@@ -28,19 +28,19 @@ class TargetSetup:
 
     def prev_target_number(self, event=None):
         self._target_number = (self._target_number - 1) % self._num_targets
-        self.output_text('prev_target_number:' + '\n' + 
+        self.output_text('prev_target_number:' + '\n' +
                          'target number = ' + str(self._target_number))
 
     def next_target_number(self, event=None):
         self._target_number = (self._target_number + 1) % self._num_targets
-        self.output_text('next_target_number:' + '\n' + 
+        self.output_text('next_target_number:' + '\n' +
                          'target number = ' + str(self._target_number))
 
     def prev_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number - 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self.output_text('prev_actuator_type:' + '\n' + 
+        self.output_text('prev_actuator_type:' + '\n' +
                          'actuator type = ' + str(self._actuator_type) + '\n' +
                          'actuator name = ' + str(self._actuator_name))
 
@@ -48,7 +48,7 @@ class TargetSetup:
         self._actuator_number = (self._actuator_number + 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self.output_text('next_actuator_type:' + '\n' + 
+        self.output_text('next_actuator_type:' + '\n' +
                          'actuator type = ' + str(self._actuator_type) + '\n' +
                          'actuator name = ' + str(self._actuator_name))
 
@@ -60,14 +60,19 @@ class TargetSetup:
         ja_value = sample.get(JOINT_ANGLES)
         add_to_npz(filename, ja_key, ja_value)
 
-        ee_key = 'ee' + str(self._target_number)
-        ee_value = sample.get(END_EFFECTOR_POINTS)
-        add_to_npz(filename, ee_key, ee_value)
+        ee_pos = sample.get(END_EFFECTOR_POSITIONS)
+        ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
+
+        pos_key = 'ee_pos' + str(self._target_number)
+        rot_key = 'ee_rot' + str(self._target_number)
+        add_to_npz(filename, pos_key, ee_pos)
+        add_to_npz(filename, rot_key, ee_rot)
 
         self.output_text('set_initial_position:' + '\n' +
                          'filename = ' + filename + '\n' +
                          ja_key + ' = ' + str(ja_value.T) + '\n' +
-                         ee_key + ' = ' + str(ee_value.T))
+                         pos_key + ' = ' + str(ee_pos) + '\n' +
+                         rot_key + ' = ' + str(ee_rot))
 
     def set_target_position(self, event=None):
         """
@@ -81,14 +86,19 @@ class TargetSetup:
         ja_value = sample.get(JOINT_ANGLES)
         add_to_npz(filename, ja_key, ja_value)
 
-        ee_key = 'ee' + str(self._target_number)
-        ee_value = sample.get(END_EFFECTOR_POINTS)
-        add_to_npz(filename, ee_key, ee_value)
+        ee_pos = sample.get(END_EFFECTOR_POSITIONS)
+        ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
+
+        pos_key = 'ee_pos' + str(self._target_number)
+        rot_key = 'ee_rot' + str(self._target_number)
+        add_to_npz(filename, pos_key, ee_pos)
+        add_to_npz(filename, rot_key, ee_rot)
 
         self.output_text('set_target_position:' + '\n' +
                          'filename = ' + filename + '\n' +
                          ja_key + ' = ' + str(ja_value.T) + '\n' +
-                         ee_key + ' = ' + str(ee_value.T))
+                         pos_key + ' = ' + str(ee_pos) + '\n' +
+                         rot_key + ' = ' + str(ee_rot))
 
     def set_initial_features(self, event=None):
         pass
@@ -143,7 +153,7 @@ class TargetSetup:
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self.output_text('relax_controller:' + '\n' + 
+        self.output_text('relax_controller:' + '\n' +
                          'actuator type = ' + str(self._actuator_type) + '\n' +
                          'actuator name = ' + str(self._actuator_name))
 
@@ -171,7 +181,7 @@ def add_to_npz(filename, key, value):
     tmp[key] = value
     np.savez(filename,**tmp)
 
-def load_from_npz(filename, key):
+def load_from_npz(filename, key, default_dim=14):
     """
     Helper function for loading a target setup value from a npz dictionary.
     """
@@ -180,5 +190,5 @@ def load_from_npz(filename, key):
             return f[key]
     except IOError as e:
         print('File not found: ' + filename + '\n' +
-              'Using default value instead: ' + key + ' = np.zeros(14).')
-    return np.zeros(14)
+              'Using default value instead: ' + key + ' = np.zeros('+str(default_dim)+').')
+    return np.zeros(default_dim)

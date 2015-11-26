@@ -137,7 +137,7 @@ class AgentMuJoCo(Agent):
         for site in range(eepts.shape[0] // 3):
             idx = site * 3
             jac[idx:(idx+3),:] = self._world.get_jac_site(site)
-        sample.set(END_EFFECTOR_JACOBIANS, jac, t=0)
+        sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=0)
         return sample
 
     def _set_sample(self, sample, mj_X, t, condition):
@@ -152,7 +152,7 @@ class AgentMuJoCo(Agent):
         for site in range(curr_eepts.shape[0] // 3):
             idx = site * 3
             jac[idx:(idx+3),:] = self._world.get_jac_site(site)
-        sample.set(END_EFFECTOR_JACOBIANS, jac, t=t+1)
+        sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=t+1)
 
     def reset(self, condition):
         pass

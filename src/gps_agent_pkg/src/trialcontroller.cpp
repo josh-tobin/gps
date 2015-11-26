@@ -39,7 +39,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
 
     // Update last update time.
     last_update_time_ = current_time;
-    step_counter_ ++;
+    step_counter_++;
     ROS_INFO("Step counter: %d", step_counter_);
 }
 
@@ -87,6 +87,10 @@ boost::scoped_ptr<Sample>* TrialController::get_sample() const
 
 int TrialController::get_step_counter(){
     return step_counter_;
+}
+
+int TrialController::get_trial_length(){
+    return trial_end_step_;
 }
 
 // Reset the controller -- this is typically called when the controller is turned on.
