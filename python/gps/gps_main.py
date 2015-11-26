@@ -59,19 +59,19 @@ if __name__ == "__main__":
     if ('--help' in sys.argv) or ('-h' in sys.argv):
         print("Runs an experiment.")
         print("Usage: %s [HYPERPARAMS_PATH]" % sys.argv[0])
-        print()
-        print("HYPERPARAMS_PATH: the path where hyperparams.py is located")
-        print("       (default: './experiments/default_mjc_experiment/'")
+        print("")
+        print("HYPERPARAMS_PATH: the experiment directory where hyperparams.py is located")
+        print("       (default: 'default_mjc_experiment')")
     else:
         if len(sys.argv) > 1:
-            file_path = sys.argv[1]
+            file_path = os.path.join('./experiments/',sys.argv[1])
         else:
             file_path = './experiments/default_mjc_experiment/'
-    param_file = os.path.join(file_path, 'hyperparams.py')
-    config_module = imp.load_source('hyperparams', param_file)
+        param_file = os.path.join(file_path, 'hyperparams.py')
+        config_module = imp.load_source('hyperparams', param_file)
 
-    import random; random.seed(0)
-    import numpy as np; np.random.seed(0)
+        import random; random.seed(0)
+        import numpy as np; np.random.seed(0)
 
-    g = GPSMain(config_module.config)
-    g.run()
+        g = GPSMain(config_module.config)
+        g.run()
