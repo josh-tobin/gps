@@ -31,6 +31,9 @@ class CaffePolicy(Policy):
             t: timestep
             noise: Action noise vector. This will be scaled by the variance.
         """
+        # Normalize obs.
+        obs = obs.dot(self.scale) + self.bias
+
         self.net.blobs[self.net.blobs.keys()[0]].data[:] = obs
         action_mean = self.net.forward().values()[0][0]
         u = action_mean + self.chol_pol_covar.T.dot(noise)

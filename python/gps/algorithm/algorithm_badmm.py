@@ -91,7 +91,7 @@ class AlgorithmBADMM(Algorithm):
         for inner_itr in range(self._hyperparams['inner_iterations']):
             #TODO: could start from init controller
             if self.iteration_count > 0 or inner_itr > 0:
-                self._update_policy()  # Update the policy.
+                self._update_policy(inner_itr)  # Update the policy.
             for m in range(self.M):
                 self._update_policy_fit(m)  # Update policy priors.
             if self.iteration_count > 0 or inner_itr > 0:
@@ -161,7 +161,7 @@ class AlgorithmBADMM(Algorithm):
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self._stepadjust(m)
 
-    def _update_policy(self):
+    def _update_policy(self, inner_itr):
         """
         Compute the new policy.
         """
@@ -192,7 +192,7 @@ class AlgorithmBADMM(Algorithm):
             tgt_prc = np.concatenate((tgt_prc, prc))
             tgt_wt = np.concatenate((tgt_wt, wt))
             obs_data = np.concatenate((obs_data, samples.get_obs()))
-        self.policy_opt.update(obs_data, tgt_mu, tgt_prc, tgt_wt)
+        self.policy_opt.update(obs_data, tgt_mu, tgt_prc, tgt_wt, inner_itr)
 
     def _update_policy_fit(self, m, init=False):
         """

@@ -77,7 +77,7 @@ class PolicyOptCaffe(PolicyOpt):
 
     # TODO - this assumes that the obs is a vector being passed into the
     # network in the same place (won't work with images or multimodal networks)
-    def update(self, obs, tgt_mu, tgt_prc, tgt_wt):
+    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, inner_itr):
         """ Update policy.
 
         Args:
@@ -89,14 +89,46 @@ class PolicyOptCaffe(PolicyOpt):
         Returns:
             a CaffePolicy with updated weights
         """
-        # TODO - normalization?
         N, T = obs.shape[:2]
         dU, dObs = self._dU, self._dObs
+
+        # TODO - make sure all weights are nonzero?
+
+        # Save original tgt_wt and tgt_prc.
+        tgt_wt_orig = np.reshape(tgt_wt, [N*T, 1, 1])
+        tgt_prc_orig = np.reshape(tgt_prc, [N*T, dU, dU])
+
+        # Renormalize weights.
+        tgt_wt *= (float(N * T) / np.sum(tgt_wt))
+        # Allow weights to be at most twice the robust median.
+        mn = np.median(tgt_wt[(tgt_wt > 1e-2).nonzero()])
+        for n in range(N):
+            for t in range(T):
+                tgt_wt[n, t] = min(tgt_wt[n, t], 2*mn)
+        # Robust median should be around one.
+        tgt_wt /= mn
+
+        # Reshape inputs.
         obs = np.reshape(obs, (N*T, dObs))
         tgt_mu = np.reshape(tgt_mu, (N*T, dU))
         tgt_prc = np.reshape(tgt_prc, (N*T, dU, dU))
         tgt_wt = np.reshape(tgt_wt, (N*T, 1, 1))
+
+        # Adjust weights to alter learning rate.
+        t = max(min(float(inner_itr - 1) / self._hyperparams['rate_schedule_end'], 1.0), 0.0)
+        sch = self._hyperparams['rate_schedule']
+        rate = np.exp(np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
+        tgt_wt *= rate
+
+        # Fold weights into tgt_prc.
         tgt_prc = tgt_wt * tgt_prc
+
+        #TODO: find entries with very low weights?
+
+        # Normalize obs.
+        self.policy.scale = np.diag(1. / np.std(obs, axis=0))
+        self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
+        obs = obs.dot(self.policy.scale) + self.policy.bias
 
         blob_names = self.solver.net.blobs.keys()
 
@@ -131,7 +163,7 @@ class PolicyOptCaffe(PolicyOpt):
         self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
 
         # Optimize variance
-        A = np.sum(tgt_prc,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
+        A = np.sum(tgt_prc_orig,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
         A = A / np.sum(tgt_wt)
 
         # TODO - use dense covariance?
@@ -151,6 +183,13 @@ class PolicyOptCaffe(PolicyOpt):
         """
         dU = self._dU
         N, T = obs.shape[:2]
+
+        # Normalize obs.
+        try:
+            for n in range(N):
+                obs[n,:,:] = obs[n,:,:].dot(self.policy.scale) + self.policy.bias
+        except AttributeError:
+            pass  #TODO: should prob be called before update?
 
         output = np.zeros([N, T, dU])
         blob_names = self.solver.test_nets[0].blobs.keys()

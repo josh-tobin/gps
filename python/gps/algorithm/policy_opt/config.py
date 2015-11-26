@@ -1,4 +1,6 @@
 import caffe
+import numpy as np
+
 from policy_opt_caffe_util import construct_fc_network
 
 policy_opt_caffe = {
@@ -19,4 +21,6 @@ policy_opt_caffe = {
     'network_model': construct_fc_network,  # Either a filename string or a function to call to create NetParameter
     'network_arch_params': {},  # Arguments to pass to network construction method above
     'weights_file_prefix': '',
+    'rate_schedule': np.array([1, 1]),
+    'rate_schedule_end': 9,
 }
