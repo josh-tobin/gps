@@ -11,6 +11,7 @@ from gps.algorithm.cost.cost_fk import CostFK
 from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
 from gps.algorithm.cost.cost_sum import CostSum
+from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
@@ -71,9 +72,9 @@ ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz',
 # TODO - construct this somewhere else?
 x0 = np.zeros(23)
 x0[0:7] = ja_x0
-x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0))
+x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0).T)
 
-ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt))
+ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt).T)
 
 agent = {
     'type': AgentROS,
@@ -142,7 +143,6 @@ state_cost = {
     },
 }
 
-from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 fk_cost1 = {
     'type': CostFK,
     'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
