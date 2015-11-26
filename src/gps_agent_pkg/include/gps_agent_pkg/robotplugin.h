@@ -28,6 +28,7 @@ with the robot.
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
+#define MAX_TRIAL_LENGTH 2000
 
 namespace gps_control
 {
@@ -107,8 +108,8 @@ public:
     virtual void configure_sensors(OptionsMap &opts);
 
     // Report publishers
-    // Publish a whole sample (data from all timesteps)
-    virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample);
+    // Publish a sample with data from up to T timesteps
+    virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample, int T=1);
 
     // Subscriber callbacks.
     // Position command callback.
