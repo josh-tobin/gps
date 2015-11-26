@@ -176,7 +176,6 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
 // Set data format and meta data on the provided sample.
 void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 {
-    ROS_INFO("setting sample data format");
     // Set joint angles size and format.
     OptionsMap joints_metadata;
     sample->set_meta_data(gps::JOINT_ANGLES,previous_angles_.size(),SampleDataFormatEigenVector,joints_metadata);

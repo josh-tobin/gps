@@ -63,11 +63,11 @@ def get_ee_points(offsets, ee_pos, ee_rot):
 
 ja_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0', default_dim=7)
 ee_pos_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_pos0', default_dim=3)
-ee_rot_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'rot_pos0', default_dim=9)[0]
+ee_rot_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_rot0', default_dim=9)[0]
 
 ja_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0', default_dim=7)
 ee_pos_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_pos0', default_dim=3)
-ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'rot_pos0', default_dim=9)[0]
+ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_rot0', default_dim=9)[0]
 
 # TODO - construct this somewhere else?
 x0 = np.zeros(23)
@@ -146,7 +146,6 @@ state_cost = {
 fk_cost1 = {
     'type': CostFK,
     'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
-    'analytic_jacobian': False,
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 0.0001,
@@ -157,7 +156,6 @@ fk_cost1 = {
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
-    'analytic_jacobian': False,
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 1.0,
     'l2': 0.0,

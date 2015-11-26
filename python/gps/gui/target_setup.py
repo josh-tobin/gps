@@ -65,7 +65,7 @@ class TargetSetup:
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
 
         pos_key = 'ee_pos' + str(self._target_number)
-        rot_key = 'rot_pos' + str(self._target_number)
+        rot_key = 'ee_rot' + str(self._target_number)
         add_to_npz(filename, pos_key, ee_pos)
         add_to_npz(filename, rot_key, ee_rot)
 
@@ -91,7 +91,7 @@ class TargetSetup:
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
 
         pos_key = 'ee_pos' + str(self._target_number)
-        rot_key = 'rot_pos' + str(self._target_number)
+        rot_key = 'ee_rot' + str(self._target_number)
         add_to_npz(filename, pos_key, ee_pos)
         add_to_npz(filename, rot_key, ee_rot)
 

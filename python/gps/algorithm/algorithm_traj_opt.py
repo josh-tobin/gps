@@ -164,10 +164,10 @@ class AlgorithmTrajOpt(Algorithm):
         actual_impr = np.sum(previous_laplace_obj) - np.sum(new_actual_laplace_obj)
 
         # Print improvement details.
-        print('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
-        logging.warning('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
-        logging.warning('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
-        logging.warning('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
+        LOGGER.debug('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
+        LOGGER.debug('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
+        LOGGER.debug('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
+        LOGGER.debug('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
 
         # model improvement as: I = predicted_dI * KL + penalty * KL^2
         # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)

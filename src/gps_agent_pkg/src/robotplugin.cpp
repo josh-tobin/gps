@@ -199,7 +199,6 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 }
 
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample, int T /*=1*/){
-    // Args: T is the number of timesteps of this sample to publish
     while(!report_publisher_->trylock());
     std::vector<gps::SampleType> dtypes;
     sample->get_available_dtypes(dtypes);
