@@ -63,7 +63,9 @@ def construct_fc_network(n_layers = 3,
             cur_top = L.ReLU(cur_top, in_place=True)
 
     if phase == TRAIN:
-        out = L.WeightedEuclideanLoss(cur_top, action, precision)
+        out = L.Python(cur_top, action, precision, loss_weight=1.0,
+                       python_param=dict(module='policy_layers',
+                                         layer='WeightedEuclideanLoss'))
     else:
         out = cur_top
 
