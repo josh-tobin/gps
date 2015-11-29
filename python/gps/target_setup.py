@@ -1,3 +1,4 @@
+import rospy
 import logging
 
 from gps.gui.target_setup import TargetSetup
@@ -15,15 +16,10 @@ class TargetSetup():
         of hyperparameter
     """
     def __init__(self):
-        self._hyperparams = config
-        self._iterations = config['iterations']
-        self._conditions = config['common']['conditions']
-
-        self.agent = config['agent']['type'](config['agent'])
-        self.ts = TargetSetup(self.agent, config['common'])
-        #self.gui = GUI(self.agent, config['gui'])
-
+        rospy.init_node('gui')
+        self.agent = config['agent']['type'](config['agent'], init_node=False)
+        self.gui = GUI(self.agent, config['common'])
 
 if __name__ == "__main__":
     g = TargetSetup()
-    # g.run()
+    rospy.spin()

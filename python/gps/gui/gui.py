@@ -44,7 +44,7 @@ from gps.gui.image_visualizer import ImageVisualizer
 #     - create movie from image visualizations
 
 class GUI:
-    def __init__(self, actionlib, hyperparams):
+    def __init__(self, agent, hyperparams):
         # Hyperparameters
         self._hyperparams = copy.deepcopy(gui_config)
         self._hyperparams.update(hyperparams)
@@ -52,9 +52,12 @@ class GUI:
         self._actions_log_filename = self._output_files_dir + self._hyperparams['actions_log_filename']
 
         # Action Lib
-        self._actions = actionlib._actions
-        actionlib._ts._gui = self
-        actionlib._th._gui = self
+        ts = TargetSetup(agent, hyperparams)
+        th = TrainingHandler(agent, hyperparams)
+        self._action_lib = ActionLib(ts, th)
+        self._actions =  self._action_lib._actions
+        self._action_lib._ts._gui = self
+        self._action_lib._th._gui = self
 
         # GUI Components
         self._fig = plt.figure(figsize=(10, 10))
@@ -137,6 +140,8 @@ class GUI:
         self._visualizer = ImageVisualizer(self._ax_vis, cropsize=(240,240))
         # TODO: self._visualizer.update(image)
 
+        plt.show()
+
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:
             self._actions[self._keyboard_bindings[event.key]]._func()
@@ -167,10 +172,5 @@ class GUI:
 
 if __name__ == "__main__":
     rospy.init_node('gui')
-    a = AgentROS(hyperparam_pr2['agent'], init_node=False)
-    ts = TargetSetup(a, hyperparam_pr2['common'])
-    th = TrainingHandler(a, hyperparam_pr2['common'])
-
-    actionlib = ActionLib(ts, th)
-    g = GUI(actionlib, hyperparam_pr2['common'])
-    plt.show()
+    agent = AgentROS(hyperparam_pr2['agent'], init_node=False)
+    g = GUI(agent, hyperparam_pr2['common'])
