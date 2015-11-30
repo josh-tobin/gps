@@ -2,9 +2,12 @@ import logging
 import imp
 import os
 import sys
+import copy
 
 #from gps.hyperparam_defaults import defaults as config
 #from gps.hyperparam_badmm_defaults import defaults as config
+from gps.utility.data_logger import DataLogger
+from gps.hyperparam_defaults import defaults as config
 #from gps.hyperparam_pr2 import defaults as config
 #from gps.gui.gui import GUI
 
@@ -25,8 +28,8 @@ class GPSMain():
         self._conditions = config['common']['conditions']
 
         self.agent = config['agent']['type'](config['agent'])
-        #if 'gui' in config:
-        #    self.gui = GUI(self.agent, config['gui'])
+        self.data_logger = DataLogger(config['common'])
+        self.gui = GUI(self.agent, config['common']) if 'gui' in config else None
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
@@ -38,26 +41,40 @@ class GPSMain():
 
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
-    def run(self):
+    def run(self, itr_start=0):
         """
         Run training by iteratively sampling and taking an iteration step.
         """
         n = self._hyperparams['num_samples']
-        for itr in range(self._iterations):
+        for itr in range(itr_start, self._iterations):
             for m in range(self._conditions):
                 for i in range(n):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
+            sample_list = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+            self.algorithm.iteration(sample_lists)
+
             # Take samples from the policy to see how it is doing.
             #for m in range(self._conditions):
             #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
+            self.data_logger.pickle(copy.deepcopy(self.algorithm), 'algorithm', itr)
+            self.data_logger.pickle(copy.deepcopy(sample_list), 'sample', itr)
+            # if self.gui:
+            #     gui.update(self.algorithm)
+
     def resume(self, itr):
         """
         Resume from iteration specified.
+
+        itr: the iteration to which the algorithm data will be reset to,
+             then training begins at iteration (itr + 1)
         """
-        raise NotImplementedError("TODO")
+        self.algorithm = self.data_logger.unpickle('algorithm', itr)
+        # if self.gui:
+        #     gui.update(self.algorithm)
+
+        self.run(itr_start=itr+1)
 
 if __name__ == "__main__":
     if ('--help' in sys.argv) or ('-h' in sys.argv):
