@@ -14,7 +14,7 @@ ITERATION_VARS = ['sample_list', 'traj_info', 'traj_distr', 'cs',
                   'step_change', 'mispred_std', 'polkl', 'step_mult']
 IterationData = bundletype('ItrData', ITERATION_VARS)
 
-# Note: last_kl_step isn't used in this alg, but is used in others.
+# Note: last_kl_step isn't used in this alg, but is used in others (alg_badmm)
 TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
 TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
 
@@ -56,16 +56,16 @@ class AlgorithmTrajOpt(Algorithm):
         # Update dynamics model using all sample.
         self._update_dynamics()
 
-        self.update_step_size()  # KL Divergence step size
+        self._update_step_size()  # KL Divergence step size
 
         # Run inner loop to compute new policies under new dynamics and step size
         for inner_itr in range(self._hyperparams['inner_iterations']):
             self._update_trajectories()
 
-        self.advance_iteration_variables()
+        self._advance_iteration_variables()
 
     # TODO - can this go in super class
-    def update_step_size(self):
+    def _update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function for all conditions and samples
         for m in range(self.M):
@@ -74,9 +74,9 @@ class AlgorithmTrajOpt(Algorithm):
         for m in range(self.M):  # m = condition
             if self.iteration_count >= 1 and self.prev[m].sample_list:
                 # Evaluate cost and adjust step size relative to the previous iteration.
-                self.stepadjust(m)
+                self._stepadjust(m)
 
-    def stepadjust(self, m):
+    def _stepadjust(self, m):
         """
         Calculate new step sizes.
 
@@ -145,7 +145,7 @@ class AlgorithmTrajOpt(Algorithm):
         self.cur[m].polkl = polkl
 
     # TODO - move to super class
-    def advance_iteration_variables(self):
+    def _advance_iteration_variables(self):
         """
         Move all 'cur' variables to 'prev'.
         Advance iteration counter
