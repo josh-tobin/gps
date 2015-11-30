@@ -21,27 +21,15 @@ TrialController::~TrialController()
 // Update the controller (take an action).
 void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
-    ROS_INFO_STREAM(">beginning trial controller update");
     if (is_finished()){
         ROS_ERROR("Updating when controller is finished. May seg fault.");
     }
     Eigen::VectorXd X, obs;
-    //TODO: Fill in X and obs from sample
-    //sample->get_state(step_counter_, X);
-    ROS_INFO_STREAM("Getting state");
     sample->get_data(step_counter_, X, state_datatypes_);
-    ROS_INFO("Printing X:");
-    for(int i=0; i<X.size(); i++){
-        ROS_INFO("X[%d]=%f", i, X[i]);
-    }
-    //sample->get_obs(step_counter_, obs);
+    //sample->get_obs(step_counter_, obs); //TODO: Fill obs
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
-    ROS_INFO_STREAM("Torques commanded:");
-    for(int i=0; i<torques.size(); i++){
-        ROS_INFO("%f", torques[i]);
-    }
 
     // Set the torques for the sample
     // TODO: This should be done by a "TorqueSensor"
@@ -51,7 +39,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
 
     // Update last update time.
     last_update_time_ = current_time;
-    step_counter_ ++;
+    step_counter_++;
     ROS_INFO("Step counter: %d", step_counter_);
 }
 
@@ -99,6 +87,10 @@ boost::scoped_ptr<Sample>* TrialController::get_sample() const
 
 int TrialController::get_step_counter(){
     return step_counter_;
+}
+
+int TrialController::get_trial_length(){
+    return trial_end_step_;
 }
 
 // Reset the controller -- this is typically called when the controller is turned on.

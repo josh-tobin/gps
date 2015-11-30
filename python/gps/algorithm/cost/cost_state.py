@@ -40,7 +40,7 @@ class CostState(Cost):
         for data_type_name in self._hyperparams['data_types']:
             config = self._hyperparams['data_types'][data_type_name]
             wp = config['wp']
-            tgt = config['desired_state']
+            tgt = config['target_state']
             x = sample.get(data_type_name)
             _, dim_sensor = x.shape
 

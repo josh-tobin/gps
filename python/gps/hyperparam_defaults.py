@@ -38,16 +38,10 @@ common = {
     'experiment_dir': BASE_DIR + '/experiments/default_mjc_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
+common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
 
-gui = {
-  'file_dir' : common['experiment_dir'] + 'target_files/',
-}
-
-if not os.path.exists(common['experiment_dir']):
-    os.makedirs(common['experiment_dir'])
-
-if not os.path.exists(gui['file_dir']):
-    os.makedirs(gui['file_dir'])
+if not os.path.exists(common['output_files_dir']):
+    os.makedirs(common['output_files_dir'])
 
 agent = {
     'type': AgentMuJoCo,
@@ -108,7 +102,7 @@ state_cost = {
     'data_types' : {
         JOINT_ANGLES: {
             'wp': np.ones(SENSOR_DIMS[ACTION]),
-            'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
+            'target_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
                 -1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
         },
     },
@@ -116,9 +110,11 @@ state_cost = {
 
 fk_cost = {
     'type': CostFK,
-    'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
-    'analytic_jacobian': False,
+    'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
     'wp': np.array([1, 1, 1, 1, 1, 1]),
+    'l1': 0.1,
+    'l2': 10.0,
+    'alpha': 1e-5,
 }
 
 algorithm['cost'] = {
@@ -150,6 +146,6 @@ defaults = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
-    'gui': gui,
+    # 'gui': gui,  # For sim, we probably don't want the gui right now.
     'algorithm': algorithm,
 }

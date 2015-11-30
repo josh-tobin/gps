@@ -15,7 +15,7 @@ agent = {
     'noisy_body_var': np.array([]),
     'pos_body_idx': np.array([]),
     'pos_body_offset': np.array([]),
-    'smooth_noise': False,
+    'smooth_noise': True,
     'smooth_noise_var': 2.0,
     'smooth_noise_renormalize': True,
 }
@@ -39,6 +39,7 @@ try:
         'smooth_noise': False,
         'smooth_noise_var': 2.0,
         'smooth_noise_renormalize': True,
+        'end_effector_points': np.array([]),
         # low gains
         #'pid_params': np.array([120, 60, 18, 4,
                                 #60, 30, 20, 4,

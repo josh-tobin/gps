@@ -142,12 +142,10 @@ class AgentROS(Agent):
         trial_command.controller = policy_to_msg(policy, noise)
         trial_command.T = self.T
         trial_command.frequency = self._hyperparams['frequency']
-        #TODO: Read this from hyperparams['state_include']
-        print 'TODO: Using JOINT_ANGLES, JOINT_VELOCITIES as state (see agent_ros.py)'
-
-        from proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES
-        trial_command.state_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
-        trial_command.obs_datatypes = [JOINT_ANGLES, JOINT_VELOCITIES]
+        ee_points = self._hyperparams['end_effector_points']
+        trial_command.ee_points = ee_points.reshape(ee_points.size).tolist()
+        trial_command.state_datatypes = self._hyperparams['state_include']
+        trial_command.obs_datatypes = self._hyperparams['state_include']
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
         sample = msg_to_sample(sample_msg, self)
