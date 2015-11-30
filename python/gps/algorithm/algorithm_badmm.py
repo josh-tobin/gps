@@ -37,7 +37,7 @@ class AlgorithmBADMM(Algorithm):
         self.cur = [IterationData() for _ in range(self.M)]
         self.prev = [IterationData() for _ in range(self.M)]
 
-        init_args = hyperparams['init_traj_distr']['args']
+        init_args = self._hyperparams['init_traj_distr']['args']
         self.dynamics = [None]*self.M
         for m in range(self.M):
             self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
