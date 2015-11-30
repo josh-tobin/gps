@@ -140,7 +140,8 @@ class GUI:
         self._visualizer = ImageVisualizer(self._ax_vis, cropsize=(240,240))
         # TODO: self._visualizer.update(image)
 
-        plt.show()
+        plt.ion()
+        self._fig.canvas.draw()
 
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:
