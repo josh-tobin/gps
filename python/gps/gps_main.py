@@ -60,8 +60,8 @@ class GPSMain():
 
             self.data_logger.pickle(copy.deepcopy(self.algorithm), 'algorithm', itr)
             self.data_logger.pickle(copy.deepcopy(sample_list), 'sample', itr)
-            # if self.gui:
-            #     gui.update(self.algorithm)
+            if self.gui:
+                gui.update(self.algorithm)
 
     def resume(self, itr):
         """
@@ -71,8 +71,8 @@ class GPSMain():
              then training begins at iteration (itr + 1)
         """
         self.algorithm = self.data_logger.unpickle('algorithm', itr)
-        # if self.gui:
-        #     gui.update(self.algorithm)
+        if self.gui:
+            gui.update(self.algorithm)
 
         self.run(itr_start=itr+1)
 

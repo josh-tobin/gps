@@ -170,6 +170,9 @@ class GUI:
         with open(self._actions_log_filename, "a") as f:
             f.write(text + '\n\n')
 
+    def update(algorithm):
+        self._plotter.update([algorithm.cur[m].traj_info.cc for m in algorithm.M])
+
 if __name__ == "__main__":
     rospy.init_node('gui')
     agent = AgentROS(hyperparam_pr2['agent'], init_node=False)
