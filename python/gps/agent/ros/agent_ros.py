@@ -109,7 +109,6 @@ class AgentROS(Agent):
         Args:
             condition (int): An index into hyperparams['reset_conditions']
         """
-        #TODO: Discuss reset + implement reset
         condition_data = self._hyperparams['reset_conditions'][condition]
         self.reset_arm(TRIAL_ARM,
                        condition_data[TRIAL_ARM]['mode'],
@@ -120,7 +119,7 @@ class AgentROS(Agent):
 
     def sample(self, policy, condition, verbose=True):
         """
-        Execute a policy and collect a sample
+        Reset and execute a policy and collect a sample
 
         Args:
             policy: A Policy object (ex. LinGauss, or CaffeNetwork)
@@ -129,6 +128,7 @@ class AgentROS(Agent):
         Returns:
             A Sample object
         """
+        self.reset(condition)
 
         #Generate noise
         noise = generate_noise(self.T, self.dU,
