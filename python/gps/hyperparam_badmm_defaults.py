@@ -7,6 +7,7 @@ import os.path
 from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_fk import CostFK
 from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
@@ -14,7 +15,9 @@ from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
+from gps.algorithm.policy.policy_prior import PolicyPrior
 from gps.proto.gps_pb2 import *
 
 
@@ -55,12 +58,22 @@ agent = {
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
-    'obs_include': [],
+    'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
 }
 
 algorithm = {
-    'type': AlgorithmTrajOpt,
+    'type': AlgorithmBADMM,
     'conditions': common['conditions'],
+    'iterations': 10,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
+    'policy_dual_rate': 0.2,
+    'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
+    'fixed_lg_step': 3,
+    'kl_step': 5.0,
+    'min_step_mult': 0.01,
+    'max_step_mult': 1.0,
+    'sample_decrease_var': 0.05,
+    'sample_increase_var': 0.1,
 }
 
 algorithm['init_traj_distr'] = {
@@ -119,10 +132,17 @@ algorithm['traj_opt'] = {
     'type': TrajOptLQRPython,
 }
 
-algorithm['policy_opt'] = {}
+algorithm['policy_opt'] = {
+    'type': PolicyOptCaffe,
+}
+
+algorithm['policy_prior'] = {
+    'type': PolicyPrior,
+    'strength': 1e-4,
+}
 
 defaults = {
-    'iterations': 10,
+    'iterations': algorithm['iterations'],
     'num_samples': 5,
     'common': common,
     'agent': agent,

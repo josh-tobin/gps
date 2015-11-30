@@ -32,8 +32,6 @@ class GPSMain():
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
         config['algorithm']['dO'] = self.agent.dO
 
-        config['algorithm']['dO'] = self.agent.dO
-
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
     def run(self):
@@ -47,8 +45,9 @@ class GPSMain():
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
             self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
-            for m in range(self._conditions):
-                self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
+            # Take samples from the policy to see how it is doing.
+            #for m in range(self._conditions):
+            #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
     def resume(self, itr):
         """
