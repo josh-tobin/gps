@@ -280,6 +280,7 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
 
     # Second order terms.
     psq = np.expand_dims((alpha + np.sum(dscl ** 2, axis=1, keepdims=True)), axis=1)
+    #TODO: need * 2.0 somewhere in following line, or * 0.0 which is wrong but better (convexified Hessian)
     d2 = l1 * ((np.expand_dims(np.eye(wp.shape[1]), axis=0) * (np.expand_dims(wp ** 2, axis=1) / psq)) -
                ((np.expand_dims(dscls, axis=1) * np.expand_dims(dscls, axis=2)) / psq ** 2))
     d2 += l2 * (np.expand_dims(wp, axis=2) * np.tile(np.eye(wp.shape[1]), [T, 1, 1]))
