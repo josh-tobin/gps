@@ -180,7 +180,7 @@ algorithm['traj_opt'] = {
 
 algorithm['policy_opt'] = {}
 
-defaults = {
+config = {
     'iterations': 20,
     'common': common,
     'agent': agent,

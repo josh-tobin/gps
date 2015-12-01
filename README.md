@@ -80,7 +80,7 @@ Follow the following steps to get set up
 3. Run the following:
     ```sh
     cd GPS_PATH
-    python python/gps/gps_main.py ./experiments/my_experiment/
+    python python/gps/gps_main.py my_experiment
     ```
 
 All of the output logs and data will be routed to your experiment directory.
