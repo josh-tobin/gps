@@ -71,11 +71,11 @@ if __name__ == "__main__":
             file_path = os.path.join('./experiments/',sys.argv[1])
         else:
             file_path = './experiments/default_mjc_experiment/'
-        param_file = os.path.join(file_path, 'hyperparams.py')
-        config_module = imp.load_source('hyperparams', param_file)
+        hyperparams = imp.load_source('hyperparams',
+                                      os.path.join(file_path, 'hyperparams.py'))
 
         import random; random.seed(0)
         import numpy as np; np.random.seed(0)
 
-        g = GPSMain(config_module.config)
+        g = GPSMain(hyperparams.config)
         g.run()

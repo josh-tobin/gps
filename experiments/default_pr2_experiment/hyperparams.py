@@ -97,7 +97,6 @@ agent = {
      },
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
-     #TODO: Controller will seg fault when passed in empty points. For now just use at least one point (0,0,0)
     'end_effector_points': ee_points,
     'obs_include': [],
 }
