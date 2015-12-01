@@ -4,6 +4,7 @@ import os
 import sys
 
 #from gps.hyperparam_defaults import defaults as config
+#from gps.hyperparam_badmm_defaults import defaults as config
 #from gps.hyperparam_pr2 import defaults as config
 #from gps.gui.gui import GUI
 
