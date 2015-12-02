@@ -114,12 +114,6 @@ class PolicyOptCaffe(PolicyOpt):
         tgt_prc = np.reshape(tgt_prc, (N*T, dU, dU))
         tgt_wt = np.reshape(tgt_wt, (N*T, 1, 1))
 
-        # Adjust weights to alter learning rate.
-        t = max(min(float(inner_itr - 1) / self._hyperparams['rate_schedule_end'], 1.0), 0.0)
-        sch = self._hyperparams['rate_schedule']
-        rate = np.exp(np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
-        tgt_wt *= rate
-
         # Fold weights into tgt_prc.
         tgt_prc = tgt_wt * tgt_prc
 
