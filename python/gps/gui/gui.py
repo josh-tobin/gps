@@ -11,7 +11,7 @@ from matplotlib.widgets import Button
 
 from gps.gui.config import gui as gui_config
 from gps.gui.config import ps3_button, inverted_ps3_button
-from gps.hyperparam_pr2 import defaults as hyperparam_pr2
+from gps.hyperparam_pr2 import config as hyperparam_pr2
 
 from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.action_lib import ActionLib
@@ -136,7 +136,7 @@ class GUI:
         # Visualizations Panel
         self._visualizer = ImageVisualizer(self._ax_vis, cropsize=(240,240))
         # TODO: self._visualizer.update(image)
-        
+
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:
             self._actions[self._keyboard_bindings[event.key]]._func()
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     a = AgentROS(hyperparam_pr2['agent'], init_node=False)
     ts = TargetSetup(a, hyperparam_pr2['common'])
     th = TrainingHandler(a, hyperparam_pr2['common'])
-    
+
     actionlib = ActionLib(ts, th)
     g = GUI(actionlib, hyperparam_pr2['common'])
     plt.show()
