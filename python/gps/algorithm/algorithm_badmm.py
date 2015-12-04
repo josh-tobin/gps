@@ -13,7 +13,7 @@ LOGGER = logging.getLogger(__name__)
 
 # Set up objects to bundle variables
 ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
-                  'step_change', 'mispred_std', 'pol_kl', 'step_mult']
+                  'step_change', 'pol_kl', 'step_mult']
 IterationData = bundletype('ItrData', ITERATION_VARS)
 
 TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
@@ -337,10 +337,6 @@ class AlgorithmBADMM(Algorithm):
         new_mc_kl_sum = np.sum(new_mc_kl * self.cur[m].pol_info.pol_wt)
         new_mc_lam_sum = np.sum(new_mc_lam * self.cur[m].pol_info.pol_wt)
 
-        # Compute misprediction vs Monte-Carlo score.
-        mispred_std = np.abs(np.sum(new_actual_laplace_obj) + new_actual_laplace_kl_sum - new_mc_obj - new_mc_lam_sum) / \
-                max(np.std(np.sum(self.cur[m].cs + new_mc_lam_samp * self.cur[m].pol_info.pol_wt, axis=1), axis=0), 1.0)
-
         LOGGER.debug('Trajectory step: ent: %f cost: %f -> %f KL: %f -> %f', ent, previous_mc_obj, new_mc_obj,
                 previous_mc_kl_sum, new_mc_kl_sum)
 
@@ -382,7 +378,6 @@ class AlgorithmBADMM(Algorithm):
             LOGGER.debug('Decreasing step size multiplier to %f', new_step)
 
         self.cur[m].step_change = step_change
-        self.cur[m].mispred_std = mispred_std
         self.cur[m].pol_kl = new_mc_kl
 
     def _policy_kl(self, m, prev=False):
