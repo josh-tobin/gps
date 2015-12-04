@@ -64,7 +64,7 @@ class Algorithm(object):
             pol_info = self.cur[m].pol_info if 'pol_info' in dir(self.cur[m]) else None
             self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
                     self.T, self.cur[m].step_mult, self.eta[m],
-                    self.cur[m].traj_info, self.new_traj_distr[m],
+                    self.cur[m].traj_info, self.cur[m].traj_distr,
                     pol_info)
 
     def _eval_cost(self, m):
