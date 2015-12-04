@@ -77,7 +77,7 @@ class PolicyOptCaffe(PolicyOpt):
 
     # TODO - this assumes that the obs is a vector being passed into the
     # network in the same place (won't work with images or multimodal networks)
-    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, inner_itr):
+    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, itr):
         """ Update policy.
 
         Args:
@@ -119,9 +119,10 @@ class PolicyOptCaffe(PolicyOpt):
 
         #TODO: find entries with very low weights?
 
-        # Normalize obs.
-        self.policy.scale = np.diag(1. / np.std(obs, axis=0))
-        self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
+        # Normalize obs on the first iteration.
+        if itr == 0:
+            self.policy.scale = np.diag(1. / np.std(obs, axis=0))
+            self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
         obs = obs.dot(self.policy.scale) + self.policy.bias
 
         blob_names = self.solver.net.blobs.keys()
