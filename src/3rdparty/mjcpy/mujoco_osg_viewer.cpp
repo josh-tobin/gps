@@ -287,18 +287,6 @@ MujocoOSGViewer::MujocoOSGViewer()
     man->setHomePosition(osg::Vec3(2, 3, 2), osg::Vec3(0, 0, 0), osg::Vec3(-1, -1.5, 2));
     m_viewer.setCameraManipulator(man);
 
-    /*
-    osg::ref_ptr<osgGA::NodeTrackerManipulator> nodeTracker = new osgGA::NodeTrackerManipulator;
-    nodeTracker->setHomePosition( osg::Vec3(0, -5.0, 0), osg::Vec3(), osg::Z_AXIS );
-    nodeTracker->setTrackerMode( osgGA::NodeTrackerManipulator::NODE_CENTER_AND_ROTATION );
-    nodeTracker->setRotationMode(osgGA::NodeTrackerManipulator::TRACKBALL );
-    nodeTracker->setTrackNode( m_robot );
-    osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keySwitch = new osgGA::KeySwitchMatrixManipulator;
-    keySwitch->addMatrixManipulator( '1', "Trackball", new osgGA::TrackballManipulator );
-    keySwitch->addMatrixManipulator( '2', "NodeTracker", nodeTracker.get() );
-    m_viewer.setCameraManipulator( keySwitch.get() );       
-    */
-
     m_handler = new EventHandler(this);
     m_viewer.addEventHandler(m_handler.get());
 }
