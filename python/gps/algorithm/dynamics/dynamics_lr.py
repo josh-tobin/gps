@@ -54,13 +54,3 @@ class DynamicsLR(Dynamics):
             dyn_covar = sigma[ip,ip] - Fm.dot(sigma[it,it]).dot(Fm.T)
             self.dyn_covar[t, :, :] = 0.5*(dyn_covar+dyn_covar.T)  # Make symmetric
 
-            """ Old Dynamics - Why doesn't this work?
-            result, _, _, _ = np.linalg.lstsq(np.c_[X[:, t, :], U[:, t, :], np.ones(N)], np.c_[X[:, t+1, :], np.ones(N)])
-            Fm = result[:-1, :-1].T
-            self.Fm[t, :, :] = Fm
-            self.fv[t, :] = result[-1,:-1]
-            x_next_covar = np.cov(X[:, t+1, :].T)
-            xu_covar = np.cov(np.c_[X[:, t, :], U[:, t, :]].T)
-            dyn_covar = x_next_covar - Fm.dot(xu_covar).dot(Fm.T)
-            self.dyn_covar[t, :, :] = 0.5*(dyn_covar+dyn_covar.T) # Make symmetric
-            """
