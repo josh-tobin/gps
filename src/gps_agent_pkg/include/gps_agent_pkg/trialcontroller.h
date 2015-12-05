@@ -9,7 +9,6 @@ a subclass.
 #include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
 
-#include "gps_agent_pkg/ArmType.h"
 #include "gps/proto/gps.pb.h"
 
 // Superclass.
@@ -35,6 +34,10 @@ private:
     // State and obs datatypes
     std::vector<gps::SampleType> state_datatypes_;
     std::vector<gps::SampleType> obs_datatypes_;
+
+protected:
+    bool is_configured_;
+
 public:
     // Constructor.
     TrialController();
@@ -50,10 +53,17 @@ public:
     virtual bool is_finished() const;
     // Return trial step index
     virtual int get_step_counter();
+    // Return length of trial.
+    virtual int get_trial_length();
     // Ask the controller to return the sample collected from its latest execution.
     virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Called when controller is turned on
     virtual void reset(ros::Time update_time);
+
+    bool is_configured(){
+        return is_configured_;
+    }
+
 };
 
 }

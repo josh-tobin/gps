@@ -20,13 +20,15 @@ with the robot.
 #include "gps_agent_pkg/TrialCommand.h"
 #include "gps_agent_pkg/RelaxCommand.h"
 #include "gps_agent_pkg/SampleResult.h"
+#include "gps_agent_pkg/DataRequest.h"
 #include "gps_agent_pkg/sensor.h"
-#include "gps_agent_pkg/ArmType.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
+#include "gps/proto/gps.pb.h"
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
+#define MAX_TRIAL_LENGTH 2000
 
 namespace gps_control
 {
@@ -80,10 +82,12 @@ protected:
     // Subscriber for relax commands.
     ros::Subscriber relax_subscriber_;
     // Subscriber for current state report request.
-    ros::Subscriber report_subscriber_;
+    ros::Subscriber data_request_subscriber_;
     // Publishers.
     // Publish result of a trial, completion of position command, or just a report.
     ros_publisher_ptr(gps_agent_pkg::SampleResult) report_publisher_;
+    // Is a data request pending?
+    bool data_request_waiting_;
 public:
     // Constructor (this should do nothing).
     RobotPlugin();
@@ -104,8 +108,8 @@ public:
     virtual void configure_sensors(OptionsMap &opts);
 
     // Report publishers
-    // Publish a whole sample (data from all timesteps)
-    virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample);
+    // Publish a sample with data from up to T timesteps
+    virtual void publish_sample_report(boost::scoped_ptr<Sample>& sample, int T=1);
 
     // Subscriber callbacks.
     // Position command callback.
@@ -115,8 +119,8 @@ public:
     virtual void test_callback(const std_msgs::Empty::ConstPtr& msg);
     // Relax command callback.
     virtual void relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::ConstPtr& msg);
-    // Report request callback.
-    //virtual void report_subscriber_callback(const std_msgs::Empty::ConstPtr& msg);
+    // Data request callback.
+    virtual void data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg);
 
     // Update functions.
     // Update the sensors at each time step.
@@ -129,9 +133,9 @@ public:
     // Get sensor
     virtual Sensor *get_sensor(SensorType sensor);
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const = 0;
+    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const = 0;
     // Get forward kinematics solver.
-    virtual void get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, ArmType arm);
+    virtual void get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm);
 };
 
 }

@@ -18,6 +18,7 @@ Sample::Sample(int T)
 		internal_data_[(gps::SampleType)i] = samples_list;
 		internal_data_size_[i] = -1; //initialize to -1
 	}
+  ROS_INFO("done sample constructor");
 }
 
 Sample::~Sample()
@@ -94,6 +95,22 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 	}
 }
 
+void Sample::get_data(int T, Eigen::VectorXd &data, gps::SampleType datatype){
+	int size = internal_data_size_[(int)datatype];
+	data.resize(size*T);
+	std::vector<gps::SampleType> dtype_vector;
+	dtype_vector.push_back(datatype);
+
+	Eigen::VectorXd tmp_data;
+	for(int t=0; t<T; t++){
+		get_data(t, tmp_data, dtype_vector);
+		//Fill in original data
+		for(int i=0; i<size; i++){
+			data[t*size+i] = tmp_data[i];
+		}
+	}
+}
+
 void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
 {
     int dtype = (int)sample_type;
@@ -104,6 +121,7 @@ void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
     }else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
         //TODO: Maybe specify shape in the metadata, instead of relying on the T=0 sample
         //Grab shape from first entry at T=0
+        SampleList sample_list = internal_data_[sample_type];
         SampleVariant sample_variant = sample_list[0];
         Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
         shape.push_back(sensor_data.rows());
@@ -114,7 +132,6 @@ void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
 void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes)
 {
 	if(t >= T_) ROS_ERROR("Out of bounds t: %d/%d", t, T_);
-	//ROS_INFO("Getting data");
     //Calculate size
     int total_size = 0;
 	for(int i=0; i<datatypes.size(); i++){
@@ -125,7 +142,6 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 		}
 		total_size += internal_data_size_[dtype];
 	}
-	ROS_INFO("Total get_data() size:%d", total_size);
 
 	data.resize(total_size);
 	data.fill(0.0);
@@ -148,8 +164,8 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 			data.segment(current_idx, size) = sensor_data;
 			current_idx += size;
 		}else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
-			Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant);
-			Eigen::VectorXd flattened_mat = sensor_data;
+			Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant).transpose();
+            Eigen::VectorXd flattened_mat(Eigen::Map<Eigen::VectorXd>(sensor_data.data(), sensor_data.size()));
 			flattened_mat.resize(sensor_data.cols()*sensor_data.rows(), 1);
 			data.segment(current_idx, size) = flattened_mat;
 			current_idx += size;

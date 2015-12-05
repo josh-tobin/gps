@@ -2,9 +2,12 @@ from __future__ import division
 
 from datetime import datetime
 import numpy as np
+import os.path
 
+from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_fk import CostFK
 from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
@@ -12,7 +15,9 @@ from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
+from gps.algorithm.policy.policy_prior import PolicyPrior
 from gps.proto.gps_pb2 import *
 
 
@@ -26,17 +31,22 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
     'conditions': 4,
-    'experiment_dir': 'experiments/default_experiment/',
+    'experiment_dir': BASE_DIR + '/experiments/default_mjc_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
+common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
+
+if not os.path.exists(common['output_files_dir']):
+    os.makedirs(common['output_files_dir'])
 
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
-    'init_pose': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
+    'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
@@ -48,12 +58,22 @@ agent = {
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
-    'obs_include': [],
+    'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
 }
 
 algorithm = {
-    'type': AlgorithmTrajOpt,
+    'type': AlgorithmBADMM,
     'conditions': common['conditions'],
+    'iterations': 10,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
+    'policy_dual_rate': 0.2,
+    'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
+    'fixed_lg_step': 3,
+    'kl_step': 5.0,
+    'min_step_mult': 0.01,
+    'max_step_mult': 1.0,
+    'sample_decrease_var': 0.05,
+    'sample_increase_var': 0.1,
 }
 
 algorithm['init_traj_distr'] = {
@@ -66,7 +86,7 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        'x0': agent['init_pose'][:SENSOR_DIMS[JOINT_ANGLES]]
+        #'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
         'dt': agent['dt'],
         'T': agent['T'],
     }
@@ -76,12 +96,13 @@ torque_cost = {
     'type': CostTorque,
     'wu': 5e-5/PR2_GAINS,
 }
+
 state_cost = {
     'type': CostState,
     'data_types' : {
         JOINT_ANGLES: {
             'wp': np.ones(SENSOR_DIMS[ACTION]),
-            'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
+            'target_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
                 -1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
         },
     },
@@ -89,9 +110,11 @@ state_cost = {
 
 fk_cost = {
     'type': CostFK,
-    'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
-    'analytic_jacobian': False,
+    'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
     'wp': np.array([1, 1, 1, 1, 1, 1]),
+    'l1': 0.1,
+    'l2': 10.0,
+    'alpha': 1e-5,
 }
 
 algorithm['cost'] = {
@@ -109,12 +132,20 @@ algorithm['traj_opt'] = {
     'type': TrajOptLQRPython,
 }
 
-algorithm['policy_opt'] = {}
+algorithm['policy_opt'] = {
+    'type': PolicyOptCaffe,
+}
+
+algorithm['policy_prior'] = {
+    'type': PolicyPrior,
+    'strength': 1e-4,
+}
 
 defaults = {
-    'iterations': 10,
+    'iterations': algorithm['iterations'],
     'num_samples': 5,
     'common': common,
     'agent': agent,
+    # 'gui': gui,  # For sim, we probably don't want the gui right now.
     'algorithm': algorithm,
 }
