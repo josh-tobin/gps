@@ -1,3 +1,4 @@
+
 def bundletype(name, vars):
     """
     Creates a class that bundles many fields.
@@ -39,3 +40,26 @@ def bundletype(name, vars):
         object.__setattr__(self, key, value)
     BundleType.__setattr__ = __setattr
     return BundleType
+
+def check_shape(value, expected_shape, name=''):
+    """
+    Throws a ValueError if value.shape != expected_shape
+
+    Args:
+        value: Matrix to shape check
+        expected_shape: A tuple or list of integers
+        name (optional): An optional name to add to the exception message.
+            Default empty string.
+    Returns: None
+    >>> import numpy as np
+    >>> a = np.zeros((4, 6))
+    >>> check_shape(a, (4,6))
+    >>> check_shape(a, (4,), name='a')
+    Traceback (most recent call last):
+    ...
+    ValueError: Shape mismatch a: Expected (4,), got (4, 6)
+    """
+    if value.shape != tuple(expected_shape):
+        raise ValueError('Shape mismatch %s: Expected %s, got %s' %
+            (name, str(expected_shape), str(value.shape)))
+
