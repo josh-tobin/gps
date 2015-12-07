@@ -39,6 +39,9 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
+
+    // Initialize and configure Kalman filter.
+    joint_filter_.reset(new EncoderFilter(n, previous_angles_));
 }
 
 // Destructor.
@@ -50,21 +53,24 @@ EncoderSensor::~EncoderSensor()
 // Update the sensor (called every tick).
 void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
 {
+    double update_time = current_time.toSec() - previous_angles_time_.toSec();
+
+    // Get new vector of joint angles from plugin.
+    plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
+    joint_filter_->update(update_time, temp_joint_angles_);
+
     //ROS_INFO_STREAM("EncoderSensor::update");
     if (is_controller_step)
     {
-        // Get new vector of joint angles from plugin.
-        plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
-
-        // TODO: use Kalman filter...
+        joint_filter_->get_state(previous_angles_, previous_velocities_);
 
         // Get FK solvers from plugin.
         plugin->get_fk_solver(fk_solver_,jac_solver_, gps::TRIAL_ARM);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.
-        for (unsigned i = 0; i < temp_joint_angles_.size(); i++)
-            temp_joint_array_(i) = temp_joint_angles_[i];
+        for (unsigned i = 0; i < previous_angles_.size(); i++)
+            temp_joint_array_(i) = previous_angles_[i];
         // Run the solvers.
         fk_solver_->JntToCart(temp_joint_array_, temp_tip_pose_);
         jac_solver_->JntToJac(temp_joint_array_, temp_jacobian_);
@@ -110,53 +116,38 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes...
-
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
         // If they are roughly from one step ago, assume the step is correct, otherwise use actual time.
 
-        double update_time = current_time.toSec() - previous_angles_time_.toSec();
         if (!previous_angles_time_.isZero())
         { // Only compute velocities if we have a previous sample.
             if (fabs(update_time)/sensor_step_length_ >= 0.5 &&
                 fabs(update_time)/sensor_step_length_ <= 2.0)
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/sensor_step_length_;
-                for (unsigned i = 0; i < previous_velocities_.size(); i++){
-                    previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
-                }
             }
             else
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/update_time;
-                for (unsigned i = 0; i < previous_velocities_.size(); i++){
-                    previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
-                }
             }
         }
 
-        // Move temporaries into the previous joint angles.
+        // Move temporaries into the previous.
         previous_end_effector_points_ = temp_end_effector_points_;
-        for (unsigned i = 0; i < previous_angles_.size(); i++){
-            previous_angles_[i] = temp_joint_angles_[i];
-        }
 
         // Update stored time.
         previous_angles_time_ = current_time;
     }
 }
 
-// The settings include the configuration for the Kalman filter.
 void EncoderSensor::configure_sensor(OptionsMap &options)
 {
-    // TODO: should set up Kalman filter here.
     /* TODO: note that this will get called every time there is a report, so
     we should not throw out the previous transform just because we are trying
     to set end-effector points. Instead, just use the stored transform to
     compute what the points should be! This will allow us to query positions
     and velocities each time. */
-    ROS_WARN("Kalman filter configuration not implemented!");
 
     end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]);
     n_points_ = end_effector_points_.rows();
@@ -170,7 +161,6 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     temp_end_effector_points_.resize(n_points_,3);
     point_jacobians_.resize(3*n_points_, previous_angles_.size());
     point_jacobians_rot_.resize(3*n_points_, previous_angles_.size());
-
 }
 
 // Set data format and meta data on the provided sample.

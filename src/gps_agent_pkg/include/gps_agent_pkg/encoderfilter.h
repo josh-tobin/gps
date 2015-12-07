@@ -4,25 +4,40 @@ a time.
 */
 #pragma once
 
+#include <Eigen/Dense>
+#include <string>
+#include <vector>
+#include <boost/shared_ptr.hpp>
+#include "gps_agent_pkg/sensor.h"
+#include "gps_agent_pkg/sample.h"
+
 namespace gps_control
 {
 
-class encoder_filter
+class EncoderFilter
 {
 private:
-    // This should contain Kalman filter settings (precomputed matrices).
-    // This should also contain the Kalman filter state information.
+    Eigen::MatrixXd time_matrix_;
+    Eigen::VectorXd observation_vector_;
+    Eigen::MatrixXd filtered_state_;
+
+    int num_joints_;
+    bool is_configured_;
 public:
     // Constructor.
-    encoder_filter(ros::NodeHandle& n, RobotPlugin *plugin);
+    EncoderFilter(ros::NodeHandle& n, const Eigen::VectorXd &initial_state);
     // Destructor.
-    virtual ~encoder_filter();
+    virtual ~EncoderFilter();
     // Update the Kalman filter.
-    virtual void update(double sec_elapsed, std::vector<double> state);
+    virtual void update(double sec_elapsed, Eigen::VectorXd &state);
     // Configure the Kalman filter.
-    virtual void configure(/* TODO: decide how to do this part */);
+    virtual void configure(const std::string &params);
+    //virtual void configure(const std::vector<double>& time_matrix,
+    //                       const std::vector<double>& observation_vector,
+    //                       const Eigen::VectorXd& initial_state);
+
     // Return filtered state and velocity.
-    virtual void get_state(double &state, double &velocity) const;
+    virtual void get_state(Eigen::VectorXd &state, Eigen::VectorXd &velocity) const;
 };
 
 }
