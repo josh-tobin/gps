@@ -140,7 +140,6 @@ class GUI:
         self._visualizer = ImageVisualizer(self._ax_vis, cropsize=(240,240))
         # TODO: self._visualizer.update(image)
 
-        plt.ion()
         self._fig.canvas.draw()
 
     def on_key_press(self, event):
@@ -176,8 +175,12 @@ class GUI:
             self._plotter.update([algorithm.prev[m].traj_info.cc[t] for m in range(algorithm.M)])
 
 if __name__ == "__main__":
-    from experiments.default_pr2_experiment.hyperparams import config
+    import imp
+    hyperparams = imp.load_source('hyperparams', 'experiments/default_pr2_experiment/hyperparams.py')
 
     rospy.init_node('gui')
-    agent = AgentROS(config['agent'], init_node=False)
-    g = GUI(agent, config['common'])
+    agent = AgentROS(hyperparams.config['agent'], init_node=False)
+    g = GUI(agent, hyperparams.config['common'])
+
+    plt.ioff()
+    plt.show()

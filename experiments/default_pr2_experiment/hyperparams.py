@@ -33,15 +33,16 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
+EXP_DIR = BASE_DIR + '/experiments/default_pr2_experiment/'
 
 common = {
     'conditions': 1,
-    'experiment_dir': BASE_DIR + '/experiments/default_pr2_experiment/',
+    'experiment_dir': EXP_DIR,
+    'target_files_dir': EXP_DIR + 'target_files/',
+    'output_files_dir': EXP_DIR + 'output_files/',
+    'data_files_dir': EXP_DIR + 'data_files/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
-common['target_files_dir'] = common['experiment_dir'] + 'target_files/'
-common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
-common['data_files_dir'] = common['experiment_dir'] + 'data_files/'
 
 if not os.path.exists(common['target_files_dir']):
     os.makedirs(common['target_files_dir'])
@@ -186,7 +187,7 @@ config = {
     'iterations': 20,
     'common': common,
     'agent': agent,
-    # 'gui': gui,
+    'gui': {},
     'algorithm': algorithm,
     'num_samples': 5,
 }
