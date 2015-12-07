@@ -140,6 +140,9 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 
         // Move temporaries into the previous.
         previous_end_effector_points_ = temp_end_effector_points_;
+        for (unsigned i = 0; i < previous_angles_.size(); i++){
+            previous_angles_[i] = temp_joint_angles_[i];
+        }
 
         // Update stored time.
         previous_angles_time_ = current_time;

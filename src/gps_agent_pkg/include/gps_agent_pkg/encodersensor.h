@@ -55,7 +55,6 @@ private:
     boost::shared_ptr<KDL::ChainFkSolverPos> fk_solver_;
     boost::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
 
-    // TODO - construct this filter in the constructor.
     boost::scoped_ptr<EncoderFilter> joint_filter_;
 
     // End-effector points in the space of the end-effector.
