@@ -9,7 +9,7 @@
     <param name="PR2Plugin/passive_tip_name" value="r_gripper_tool_frame" />
 
     <!-- kalman filter matrices -->
-    <param name="encoder_filter_params" textfile="$(find gps_agent_pkg)/encoder_filter_params.txt" />
+    <param name="PR2Plugin/encoder_filter_params" textfile="$(find gps_agent_pkg)/encoder_filter_params.txt" />
 
     <!-- Spawn Controller -->
     <node name="controller_spawner"

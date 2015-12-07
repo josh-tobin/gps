@@ -32,6 +32,7 @@ EncoderFilter::~EncoderFilter()
 
 void EncoderFilter::configure(const std::string& params)
 {
+    ROS_INFO("Configuring encoder Kalman filter.");
     std::vector<std::string> matrices;
     util::split(params, '\n', matrices);
 
@@ -43,6 +44,8 @@ void EncoderFilter::configure(const std::string& params)
     util::split(matrices[1], ' ', obs_values);
 
     int filter_order = obs_values.size();
+    time_matrix_.resize(filter_order, filter_order);
+    observation_vector_.resize(filter_order);
 
     for (int i = 0; i < filter_order; ++i) {
         for (int j = 0; j < filter_order; ++j) {
@@ -51,6 +54,7 @@ void EncoderFilter::configure(const std::string& params)
         observation_vector_(i) = (double) atof(obs_values[i].c_str());
     }
     is_configured_ = true;
+    ROS_INFO("Joint kalman filter configured.");
 }
 
 void EncoderFilter::update(double sec_elapsed, Eigen::VectorXd &state)
