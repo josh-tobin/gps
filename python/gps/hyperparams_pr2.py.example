@@ -67,11 +67,11 @@ def get_ee_points(offsets, ee_pos, ee_rot):
 
 ja_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0', default_dim=7)
 ee_pos_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_pos0', default_dim=3)
-ee_rot_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'rot_pos0', default_dim=9)[0]
+ee_rot_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_rot0', default_dim=9)[0]
 
 ja_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0', default_dim=7)
 ee_pos_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_pos0', default_dim=3)
-ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'rot_pos0', default_dim=9)[0]
+ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_rot0', default_dim=9)[0]
 
 # TODO - construct this somewhere else?
 x0 = np.zeros(23)
