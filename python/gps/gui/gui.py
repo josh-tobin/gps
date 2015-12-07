@@ -60,6 +60,7 @@ class GUI:
         self._action_lib._th._gui = self
 
         # GUI Components
+        plt.ion()
         self._fig = plt.figure(figsize=(10, 10))
         self._gs  = gridspec.GridSpec(2, 1)
 
@@ -102,20 +103,20 @@ class GUI:
             'start': self._axarr_th[3],
         }
 
-        # Mouse Input
-        self._buttons = {}
-        for key, ax in action_ax.iteritems():
-            action = self._actions[key]
-            action._ax = ax
-            self._buttons[key] = Button(action._ax, action._name)
-            self._buttons[key].on_clicked(action._func)
-
         # Keyboard Input
         self._keyboard_bindings = {}
         for key, keyboard_key in self._hyperparams['keyboard_bindings'].iteritems():
             self._actions[key]._kb = keyboard_key
             self._keyboard_bindings[keyboard_key] = key
         self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+
+        # Mouse Input
+        self._buttons = {}
+        for key, ax in action_ax.iteritems():
+            action = self._actions[key]
+            action._ax = ax
+            self._buttons[key] = Button(action._ax, action._name + '\n' + '(' + action._kb + ')')
+            self._buttons[key].on_clicked(action._func)
 
         # PS3 Controller Input
         self._ps3_controller_bindings = {}
@@ -171,8 +172,9 @@ class GUI:
         with open(self._actions_log_filename, "a") as f:
             f.write(text + '\n\n')
 
-    def update(algorithm):
-        self._plotter.update([algorithm.cur[m].traj_info.cc for m in algorithm.M])
+    def update(self, algorithm):
+        for t in range(algorithm.T):
+            self._plotter.update([algorithm.prev[m].traj_info.cc[t] for m in range(algorithm.M)])
 
 if __name__ == "__main__":
     rospy.init_node('gui')

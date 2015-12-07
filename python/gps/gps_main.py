@@ -51,17 +51,17 @@ class GPSMain():
                 for i in range(n):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            sample_list = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+            sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
             self.algorithm.iteration(sample_lists)
 
             # Take samples from the policy to see how it is doing.
             #for m in range(self._conditions):
             #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
-            self.data_logger.pickle(copy.deepcopy(self.algorithm), 'algorithm', itr)
-            self.data_logger.pickle(copy.deepcopy(sample_list), 'sample', itr)
+            # self.data_logger.pickle(copy.copy(self.algorithm), 'algorithm', itr)
+            # self.data_logger.pickle(copy.copy(sample_lists), 'sample', itr)
             if self.gui:
-                gui.update(self.algorithm)
+                self.gui.update(self.algorithm)
 
     def resume(self, itr):
         """
