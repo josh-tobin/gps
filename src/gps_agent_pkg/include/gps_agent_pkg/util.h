@@ -1,6 +1,10 @@
+#include <string>
+#include <vector>
 
-#include<sstream>
-#include<string>
+namespace util
+{
+void split(const std::string &s, char delim, std::vector<std::string> &elems);
+}
 
 template <typename T>
 std::string to_string(T value)
@@ -14,4 +18,3 @@ std::string to_string(T value)
     //convert the string stream into a string and return
     return os.str() ;
 }
-

@@ -6,7 +6,7 @@
 #include "gps_agent_pkg/trialcontroller.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
-#include "gps_agent_pkg/utils.h"
+#include "gps_agent_pkg/util.h"
 #include "gps/proto/gps.pb.h"
 #include <vector>
 

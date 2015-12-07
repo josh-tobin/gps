@@ -32,12 +32,11 @@ public:
     virtual void update(double sec_elapsed, Eigen::VectorXd &state);
     // Configure the Kalman filter.
     virtual void configure(const std::string &params);
-    //virtual void configure(const std::vector<double>& time_matrix,
-    //                       const std::vector<double>& observation_vector,
-    //                       const Eigen::VectorXd& initial_state);
 
-    // Return filtered state and velocity.
-    virtual void get_state(Eigen::VectorXd &state, Eigen::VectorXd &velocity) const;
+    // Return filtered state.
+    virtual void get_state(Eigen::VectorXd &state) const;
+    // Return filtered velocity.
+    virtual void get_velocity(Eigen::VectorXd &state) const;
 };
 
 }

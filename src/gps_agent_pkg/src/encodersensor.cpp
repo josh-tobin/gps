@@ -3,8 +3,6 @@
 
 using namespace gps_control;
 
-/* TODO: need to add Kalman filter, set up Kalman filter parameters, and configure everything correctly with filter */
-
 // Constructor.
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
 {
@@ -62,15 +60,16 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     //ROS_INFO_STREAM("EncoderSensor::update");
     if (is_controller_step)
     {
-        joint_filter_->get_state(previous_angles_, previous_velocities_);
+        // Get filtered joint angles.
+        joint_filter_->get_state(temp_joint_angles_);
 
         // Get FK solvers from plugin.
         plugin->get_fk_solver(fk_solver_,jac_solver_, gps::TRIAL_ARM);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.
-        for (unsigned i = 0; i < previous_angles_.size(); i++)
-            temp_joint_array_(i) = previous_angles_[i];
+        for (unsigned i = 0; i < temp_joint_angles_.size(); i++)
+            temp_joint_array_(i) = temp_joint_angles_[i];
         // Run the solvers.
         fk_solver_->JntToCart(temp_joint_array_, temp_tip_pose_);
         jac_solver_->JntToJac(temp_joint_array_, temp_jacobian_);
@@ -126,10 +125,16 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
                 fabs(update_time)/sensor_step_length_ <= 2.0)
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/sensor_step_length_;
+                for (unsigned i = 0; i < previous_velocities_.size(); i++){
+                    previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
+                }
             }
             else
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/update_time;
+                for (unsigned i = 0; i < previous_velocities_.size(); i++){
+                    previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
+                }
             }
         }
 

@@ -62,8 +62,12 @@ void EncoderFilter::update(double sec_elapsed, Eigen::VectorXd &state)
     }
 }
 
-void EncoderFilter::get_state(Eigen::VectorXd &state, Eigen::VectorXd &velocity) const
+void EncoderFilter::get_state(Eigen::VectorXd &state) const
 {
     state = filtered_state_.row(0);
+}
+
+void EncoderFilter::get_velocity(Eigen::VectorXd &velocity) const
+{
     velocity = filtered_state_.row(1);
 }
