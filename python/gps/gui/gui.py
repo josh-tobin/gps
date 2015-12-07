@@ -11,7 +11,6 @@ from matplotlib.widgets import Button
 
 from gps.gui.config import gui as gui_config
 from gps.gui.config import ps3_button, inverted_ps3_button
-from gps.hyperparam_pr2 import config as hyperparam_pr2
 
 from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.action_lib import ActionLib
@@ -177,6 +176,8 @@ class GUI:
             self._plotter.update([algorithm.prev[m].traj_info.cc[t] for m in range(algorithm.M)])
 
 if __name__ == "__main__":
+    from experiments.default_pr2_experiment.hyperparams import config
+
     rospy.init_node('gui')
-    agent = AgentROS(hyperparam_pr2['agent'], init_node=False)
-    g = GUI(agent, hyperparam_pr2['common'])
+    agent = AgentROS(config['agent'], init_node=False)
+    g = GUI(agent, config['common'])

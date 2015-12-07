@@ -41,11 +41,14 @@ common = {
 }
 common['target_files_dir'] = common['experiment_dir'] + 'target_files/'
 common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
+common['data_files_dir'] = common['experiment_dir'] + 'data_files/'
 
 if not os.path.exists(common['target_files_dir']):
     os.makedirs(common['target_files_dir'])
 if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
+if not os.path.exists(common['data_files_dir']):
+    os.makedirs(common['data_files_dir'])
 
 # TODO - put this somewhere else
 def get_ee_points(offsets, ee_pos, ee_rot):
