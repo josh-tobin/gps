@@ -99,10 +99,6 @@ class AlgorithmTrajOpt(Algorithm):
 
         LOGGER.debug('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)
 
-        # Compute misprediction vs Monte-Carlo score.
-        mispred_std = np.abs(np.sum(new_actual_laplace_obj) - new_mc_obj) / \
-            max(np.std(np.sum(self.cur[m].cs, axis=1), axis=0), 1.0)
-
         # Compute predicted and actual improvement.
         predicted_impr = np.sum(previous_laplace_obj) - np.sum(new_predicted_laplace_obj)
         actual_impr = np.sum(previous_laplace_obj) - np.sum(new_actual_laplace_obj)
@@ -130,7 +126,6 @@ class AlgorithmTrajOpt(Algorithm):
             LOGGER.debug('Decreasing step size multiplier to %f', new_step)
 
         self.cur[m].step_change = step_change
-        self.cur[m].mispred_std = mispred_std
         self.cur[m].pol_kl = pol_kl
 
     # TODO - move to super class

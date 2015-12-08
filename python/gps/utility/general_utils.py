@@ -41,7 +41,7 @@ def bundletype(name, vars):
     return BundleType
 
 ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
-                  'step_change', 'pol_kl', 'step_mult', 'mispred_std']
+                  'step_change', 'pol_kl', 'step_mult']
 IterationData = bundletype('IterationData', ITERATION_VARS)
 
 TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
