@@ -65,9 +65,9 @@ class GPSMain():
 
     def resume(self, itr):
         """
-        Resume from iteration specified.
+        Resume training from specified iteration.
 
-        itr: the iteration to which the algorithm data will be reset to,
+        itr: the iteration to which the algorithm state will be set,
              then training begins at iteration (itr + 1)
         """
         self.algorithm = self.data_logger.unpickle('algorithm', itr)
