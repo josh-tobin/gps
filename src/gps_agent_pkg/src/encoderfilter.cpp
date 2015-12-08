@@ -8,11 +8,6 @@ EncoderFilter::EncoderFilter(ros::NodeHandle& n, const Eigen::VectorXd &initial_
 {
     // Set initial state.
     num_joints_ = initial_state.size();
-    filtered_state_.resize(2, num_joints_);
-    filtered_state_.fill(0.0);
-    for (int i = 0; i < num_joints_; ++i) {
-        filtered_state_(0,i) = initial_state(i);
-    }
 
     is_configured_ = false;
     std::string params;
@@ -22,6 +17,10 @@ EncoderFilter::EncoderFilter(ros::NodeHandle& n, const Eigen::VectorXd &initial_
     }
 
     configure(params);
+
+    for (int i = 0; i < num_joints_; ++i) {
+        filtered_state_(0,i) = initial_state(i);
+    }
 }
 
 // Destructor.
@@ -46,6 +45,9 @@ void EncoderFilter::configure(const std::string& params)
     int filter_order = obs_values.size();
     time_matrix_.resize(filter_order, filter_order);
     observation_vector_.resize(filter_order);
+
+    filtered_state_.resize(filter_order, num_joints_);
+    filtered_state_.fill(0.0);
 
     for (int i = 0; i < filter_order; ++i) {
         for (int j = 0; j < filter_order; ++j) {
