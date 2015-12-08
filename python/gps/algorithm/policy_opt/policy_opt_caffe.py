@@ -77,7 +77,7 @@ class PolicyOptCaffe(PolicyOpt):
 
     # TODO - this assumes that the obs is a vector being passed into the
     # network in the same place (won't work with images or multimodal networks)
-    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, inner_itr):
+    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, itr, inner_itr):
         """ Update policy.
 
         Args:
@@ -114,20 +114,15 @@ class PolicyOptCaffe(PolicyOpt):
         tgt_prc = np.reshape(tgt_prc, (N*T, dU, dU))
         tgt_wt = np.reshape(tgt_wt, (N*T, 1, 1))
 
-        # Adjust weights to alter learning rate.
-        t = max(min(float(inner_itr - 1) / self._hyperparams['rate_schedule_end'], 1.0), 0.0)
-        sch = self._hyperparams['rate_schedule']
-        rate = np.exp(np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
-        tgt_wt *= rate
-
         # Fold weights into tgt_prc.
         tgt_prc = tgt_wt * tgt_prc
 
         #TODO: find entries with very low weights?
 
-        # Normalize obs.
-        self.policy.scale = np.diag(1. / np.std(obs, axis=0))
-        self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
+        # Normalize obs, but only compute normalzation at the beginning.
+        if itr == 0 and inner_itr == 0:
+            self.policy.scale = np.diag(1. / np.std(obs, axis=0))
+            self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
         obs = obs.dot(self.policy.scale) + self.policy.bias
 
         blob_names = self.solver.net.blobs.keys()
