@@ -5,6 +5,8 @@ from sensor_msgs.msg import Joy
 import copy
 import itertools
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.widgets import Button
@@ -172,7 +174,8 @@ class GUI:
 
     def update(self, algorithm):
         for t in range(algorithm.T):
-            self._plotter.update([algorithm.prev[m].traj_info.cc[t] for m in range(algorithm.M)])
+            # update with mean cost over all samples, for each condition m, for each time step t
+            self._plotter.update([np.mean(algorithm.prev[m].cs[:, t]) for m in range(algorithm.M)])
 
 if __name__ == "__main__":
     import imp

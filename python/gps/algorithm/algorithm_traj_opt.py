@@ -4,20 +4,9 @@ import logging
 
 from gps.algorithm.algorithm import Algorithm
 from gps.algorithm.config import alg_traj_opt
-from gps.utility.general_utils import bundletype
-
+from gps.utility.general_utils import IterationData, TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
-
-# Set up an object to bundle variables
-ITERATION_VARS = ['sample_list', 'traj_info', 'traj_distr', 'cs',
-                  'step_change', 'mispred_std', 'polkl', 'step_mult']
-IterationData = bundletype('ItrData', ITERATION_VARS)
-
-# Note: last_kl_step isn't used in this alg, but is used in others (alg_badmm)
-TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
-TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
-
 
 class AlgorithmTrajOpt(Algorithm):
     """Sample-based trajectory optimization.
@@ -84,7 +73,7 @@ class AlgorithmTrajOpt(Algorithm):
             m: Condition
         """
         # No policy by default.
-        polkl = np.zeros(self.T)
+        pol_kl = np.zeros(self.T)
 
         # Compute values under Laplace approximation.
         # This is the policy that the previous samples were actually drawn from
@@ -142,7 +131,7 @@ class AlgorithmTrajOpt(Algorithm):
 
         self.cur[m].step_change = step_change
         self.cur[m].mispred_std = mispred_std
-        self.cur[m].polkl = polkl
+        self.cur[m].pol_kl = pol_kl
 
     # TODO - move to super class
     def _advance_iteration_variables(self):

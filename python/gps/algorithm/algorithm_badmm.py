@@ -6,23 +6,9 @@ import logging
 from gps.algorithm.algorithm import Algorithm
 from gps.algorithm.algorithm_utils import estimate_moments, gauss_fit_joint_prior
 from gps.algorithm.config import alg_badmm
-from gps.utility.general_utils import bundletype
-
+from gps.utility.general_utils import IterationData, TrajectoryInfo, PolicyInfo
 
 LOGGER = logging.getLogger(__name__)
-
-# Set up objects to bundle variables
-ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
-                  'step_change', 'pol_kl', 'step_mult']
-IterationData = bundletype('ItrData', ITERATION_VARS)
-
-TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
-TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
-
-POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
-                'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl']
-PolicyInfo = bundletype('PolicyInfo', POLINFO_VARS)
-
 
 class AlgorithmBADMM(Algorithm):
     """

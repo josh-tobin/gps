@@ -50,6 +50,8 @@ class RealTimePlotter:
 
         y_min, y_max = np.amin(self._data[t0:tf,:]), np.amax(self._data[t0:tf,:])
         y_mid, y_dif = (y_min + y_max)/2.0, (y_max-y_min)/2.0
+        if y_dif == 0:
+            y_dif = 1   # make sure y_range does not have size 0
         y_range = y_mid - 1.25*y_dif, y_mid + 1.25*y_dif
         y_range_rounded = np.around(y_range, -int(np.floor(np.log10(np.amax(np.abs(y_range)+1e-100)))) + 1)
         self._ax.set_ylim(y_range_rounded)

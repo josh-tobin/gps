@@ -39,3 +39,14 @@ def bundletype(name, vars):
         object.__setattr__(self, key, value)
     BundleType.__setattr__ = __setattr
     return BundleType
+
+ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
+                  'step_change', 'pol_kl', 'step_mult', 'mispred_std']
+IterationData = bundletype('IterationData', ITERATION_VARS)
+
+TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
+TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
+
+POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
+                'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl']
+PolicyInfo = bundletype('PolicyInfo', POLINFO_VARS)

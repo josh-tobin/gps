@@ -58,8 +58,8 @@ class GPSMain():
             #for m in range(self._conditions):
             #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
-            # self.data_logger.pickle(copy.copy(self.algorithm), 'algorithm', itr)
-            # self.data_logger.pickle(copy.copy(sample_lists), 'sample', itr)
+            self.data_logger.pickle(copy.copy(self.algorithm), 'algorithm', itr)
+            self.data_logger.pickle(copy.copy(sample_lists), 'sample', itr)
             if self.gui:
                 self.gui.update(self.algorithm)
 
