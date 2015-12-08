@@ -21,18 +21,18 @@ class DataLogger:
         data: either sample data or algorithm object
         type: string either 'sample' or 'algorithm'
         itr: integer represent iteteration number
-        data_dir: the directory in which to look for the data 
+        data_dir: the directory in which to look for the data
         """
-        filename = self._data_files_dir + data_type + '_itr_' + str(itr) + '.p'
+        filename = self._data_files_dir + data_type + '_itr_' + str(itr) + '.pkl'
         pickle.dump(data, open(filename, 'wb'))
 
     def unpickle(self, data_type, itr):
         """
         type: string either 'sample' or 'algorithm'
         itr: integer represent iteteration number
-        data_dir: the directory in which to look for the data 
+        data_dir: the directory in which to look for the data
         """
-        filename = self._data_files_dir + data_type + '_itr_' + str(itr) + '.p'
+        filename = self._data_files_dir + data_type + '_itr_' + str(itr) + '.pkl'
         return pickle.load(open(filename, 'rb'))
 
     # def load(type, itr, dir=self._data_files_dir):
