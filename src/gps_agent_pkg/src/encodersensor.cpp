@@ -31,8 +31,8 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
     end_effector_points_.fill(0.0);
 
     // Resize point jacobians
-    point_jacobians_.resize(3, previous_angles_.size());
-    point_jacobians_rot_.resize(3, previous_angles_.size());
+    point_jacobians_.resize(3*n_points_, previous_angles_.size());
+    point_jacobians_rot_.resize(3*n_points_, previous_angles_.size());
 
 
     // Set time.
@@ -112,8 +112,8 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         }
 
         // Compute current end effector points and store in temporary storage.
-        temp_end_effector_points_ = previous_rotation_*end_effector_points_;
-        temp_end_effector_points_.colwise() += previous_position_;
+        temp_end_effector_points_ = end_effector_points_*previous_rotation_.transpose();
+        temp_end_effector_points_.rowwise() += previous_position_;
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
