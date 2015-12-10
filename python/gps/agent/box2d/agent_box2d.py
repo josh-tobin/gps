@@ -1,0 +1,93 @@
+from copy import deepcopy
+import numpy as np
+from scipy.ndimage.filters import gaussian_filter
+
+from gps.agent.agent import Agent
+from gps.agent.agent_utils import generate_noise
+from gps.agent.config import agent_box2d
+from gps.proto.gps_pb2 import *
+from gps.sample.sample import Sample
+
+from point_mass_world import PointMassWorld
+
+
+class AgentBox2D(Agent):
+    """
+    All communication between the algorithms and Box2D is done through this class.
+    """
+    def __init__(self, hyperparams):
+        Agent.__init__(self, hyperparams)
+
+        self._setup_conditions()
+        self._setup_world()
+
+    def _setup_conditions(self):
+        def setup(value, n):
+            if not isinstance(value, list):
+                try:
+                    return [value.copy() for _ in range(n)]
+                except AttributeError:
+                    return [value for _ in range(n)]
+            assert len(value) == n, 'number of elements must match number of conditions'
+            return value
+
+        #TODO: discuss a different way to organize some of this
+        conds = self._hyperparams['conditions']
+        # for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
+        #         'noisy_body_idx', 'noisy_body_var'):
+        self._hyperparams["x0"] = setup(self._hyperparams["x0"], conds)
+        print(self._hyperparams["smooth_noise"])
+    def _setup_world(self):
+        """
+        Helper method for handling setup of the Box2D world.
+        TODO: Add ability to specify in config which simulation with particular initialization
+
+        """
+        self._world = PointMassWorld()
+        self._world.run()
+
+        self.x0 = self._hyperparams["x0"]
+
+    def sample(self, policy, condition, verbose=True, save=True):
+        """
+        Runs a trial and constructs a new sample containing information about the trial.
+
+        Args:
+            policy: policy to to used in the trial
+            condition (int): Which condition setup to run.
+            verbose (boolean): whether or not to plot the trial
+        """
+        self._world.reset_world()
+        b2d_X = self._world.get_state()
+        new_sample = self._init_sample(b2d_X, condition) 
+        U = np.zeros([self.T, self.dU])
+        noise = np.zeros((self.T, self.dU))
+        for t in range(self.T):
+            X_t = new_sample.get_X(t=t)
+            obs_t = new_sample.get_obs(t=t)
+            b2d_U = policy.act(X_t, obs_t, t, noise[t,:])
+            U[t,:] = b2d_U
+            if (t+1) < self.T:
+                for step in range(self._hyperparams['substeps']):
+                     self._world.run_next(b2d_U[0])
+                b2d_X = self._world.get_state()
+                self._set_sample(new_sample, b2d_X, t, condition)
+        new_sample.set(ACTION, U)
+        if save:
+            self._samples[condition].append(new_sample)
+
+
+    def _init_sample(self, b2d_X, condition):
+        """
+        Construct a new sample and fill in the first time step.
+        """
+        sample = Sample(self)
+        self._set_sample(sample, b2d_X, -1, condition)
+        return sample
+
+    def _set_sample(self, sample, b2d_X, t, condition):
+        sample.set(ANGULAR_VELOCITY, np.array(b2d_X[ANGULAR_VELOCITY]),t=t+1) 
+        sample.set(LINEAR_VELOCITY, np.array(b2d_X[LINEAR_VELOCITY]),t=t+1) 
+        sample.set(ANGLE, np.array(b2d_X[ANGLE]),t=t+1) 
+        sample.set(POSITION, np.array(b2d_X[POSITION]),t=t+1)
+	
