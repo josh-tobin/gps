@@ -69,3 +69,9 @@ agent_mujoco = deepcopy(agent)
 agent_mujoco.update({
     'substeps': 1,
 })
+
+
+""" AgentBox2D """
+agent_box2d = deepcopy(agent)
+agent_box2d.update({
+})
