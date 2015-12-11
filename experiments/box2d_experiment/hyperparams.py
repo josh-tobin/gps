@@ -39,11 +39,11 @@ if not os.path.exists(common['output_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    # 'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
+    'target_state' : np.array([0, 2]),
     'x0': np.array([0, 2, 3.1415, 0, 0, 0]),
     'rk': 0,
     'dt': 0.05,
-    'substeps': 100,
+    'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
@@ -77,7 +77,7 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    # 'wu': 5e-5
+    'wu': np.array([0])
 }
 
 state_cost = {
@@ -85,25 +85,15 @@ state_cost = {
     'data_types' : {
         POSITION: {
             'wp': np.ones(SENSOR_DIMS[ACTION]),
-            'target_state': np.array([12.0, 24.0]),
+            'target_state': agent["target_state"],
         },
     },
 }
 
-# fk_cost = {
-#     'type': CostFK,
-#     'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
-#     'analytic_jacobian': False,
-#     'wp': np.array([1, 1, 1, 1, 1, 1]),
-#     'l1': 0.1,
-#     'l2': 10.0,
-#     'alpha': 1e-5,
-# }
-
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [state_cost],
-    'weights': [1.0],
+    'costs': [torque_cost, state_cost],
+    'weights': [1.0, 1.0],
 }
 
 algorithm['dynamics'] = {

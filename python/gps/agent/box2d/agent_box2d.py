@@ -16,10 +16,13 @@ class AgentBox2D(Agent):
     All communication between the algorithms and Box2D is done through this class.
     """
     def __init__(self, hyperparams):
-        Agent.__init__(self, hyperparams)
+        config = deepcopy(agent_box2d)
+        config.update(hyperparams)
+        Agent.__init__(self, config)
+
 
         self._setup_conditions()
-        self._setup_world()
+        self._setup_world(hyperparams["target_state"])
 
     def _setup_conditions(self):
         def setup(value, n):
@@ -33,20 +36,22 @@ class AgentBox2D(Agent):
 
         #TODO: discuss a different way to organize some of this
         conds = self._hyperparams['conditions']
-        # for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
-        #         'noisy_body_idx', 'noisy_body_var'):
-        self._hyperparams["x0"] = setup(self._hyperparams["x0"], conds)
-        print(self._hyperparams["smooth_noise"])
-    def _setup_world(self):
+        for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
+                'noisy_body_idx', 'noisy_body_var'):
+            self._hyperparams[field] = setup(self._hyperparams[field], conds)
+    def _setup_world(self, target):
         """
         Helper method for handling setup of the Box2D world.
         TODO: Add ability to specify in config which simulation with particular initialization
 
         """
-        self._world = PointMassWorld()
+        self.x0 = self._hyperparams["x0"]
+        x0 = self._hyperparams['x0'][0]
+        self._world = PointMassWorld(position=(x0[0], x0[1]), angle=x0[2], \
+            linearVelocity=(x0[3], x0[4]), angularVelocity=x0[5], target=(target[0], target[1]))
         self._world.run()
 
-        self.x0 = self._hyperparams["x0"]
+ 
 
     def sample(self, policy, condition, verbose=True, save=True):
         """
@@ -61,7 +66,9 @@ class AgentBox2D(Agent):
         b2d_X = self._world.get_state()
         new_sample = self._init_sample(b2d_X, condition) 
         U = np.zeros([self.T, self.dU])
-        noise = np.zeros((self.T, self.dU))
+        noise = generate_noise(self.T, self.dU, smooth=self._hyperparams['smooth_noise'], \
+                var=self._hyperparams['smooth_noise_var'], \
+                renorm=self._hyperparams['smooth_noise_renormalize'])
         for t in range(self.T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
