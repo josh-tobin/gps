@@ -318,8 +318,6 @@ class PygameFramework(FrameworkBase):
         # those changes on the GUI before running
         if GUIEnabled:
             self.gui_table.updateGUI(self.settings)
-
-        # running = True
         self.clock = pygame.time.Clock()
         running = self.checkEvents()
         self.screen.fill( (0,0,0) )
@@ -328,7 +326,7 @@ class PygameFramework(FrameworkBase):
         self.CheckKeys()
 
             # Run the simulation loop 
-        self.SimulationLoop(0)
+        self.SimulationLoop([0,0,0])
 
         if GUIEnabled and self.settings.drawMenu:
             self.gui_app.paint(self.screen)
@@ -341,7 +339,7 @@ class PygameFramework(FrameworkBase):
         # self.world.destructionListener=None
         # self.world.renderer=None
         #while running:
-    def run_next(self, action):
+    def run_next(self, action=[0,0,0]):
         self.screen.fill( (0,0,0) )
 
         # Check keys that should be checked every loop (not only on initial keydown)

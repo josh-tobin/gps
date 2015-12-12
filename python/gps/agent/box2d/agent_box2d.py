@@ -34,7 +34,6 @@ class AgentBox2D(Agent):
             assert len(value) == n, 'number of elements must match number of conditions'
             return value
 
-        #TODO: discuss a different way to organize some of this
         conds = self._hyperparams['conditions']
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
                 'noisy_body_idx', 'noisy_body_var'):
@@ -47,8 +46,9 @@ class AgentBox2D(Agent):
         """
         self.x0 = self._hyperparams["x0"]
         x0 = self._hyperparams['x0'][0]
-        self._world = PointMassWorld(position=(x0[0], x0[1]), angle=x0[2], \
-            linearVelocity=(x0[3], x0[4]), angularVelocity=x0[5], target=(target[0], target[1]))
+        # self._world = PointMassWorld(position=(x0[0], x0[1]), angle=x0[2], \
+        #     linearVelocity=(x0[3], x0[4]), angularVelocity=x0[5], target=(target[0], target[1]))
+        self._world = PointMassWorld(position=(x0[0], x0[1]), target=(target[0], target[1]))
         self._world.run()
 
  
@@ -76,7 +76,7 @@ class AgentBox2D(Agent):
             U[t,:] = b2d_U
             if (t+1) < self.T:
                 for step in range(self._hyperparams['substeps']):
-                     self._world.run_next(b2d_U[0])
+                     self._world.run_next(b2d_U)
                 b2d_X = self._world.get_state()
                 self._set_sample(new_sample, b2d_X, t, condition)
         new_sample.set(ACTION, U)
@@ -93,8 +93,8 @@ class AgentBox2D(Agent):
         return sample
 
     def _set_sample(self, sample, b2d_X, t, condition):
-        sample.set(ANGULAR_VELOCITY, np.array(b2d_X[ANGULAR_VELOCITY]),t=t+1) 
+        # sample.set(ANGULAR_VELOCITY, np.array(b2d_X[ANGULAR_VELOCITY]),t=t+1) 
         sample.set(LINEAR_VELOCITY, np.array(b2d_X[LINEAR_VELOCITY]),t=t+1) 
-        sample.set(ANGLE, np.array(b2d_X[ANGLE]),t=t+1) 
+        # sample.set(ANGLE, np.array(b2d_X[ANGLE]),t=t+1) 
         sample.set(POSITION, np.array(b2d_X[POSITION]),t=t+1)
 	

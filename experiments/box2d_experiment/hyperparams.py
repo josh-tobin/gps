@@ -19,10 +19,10 @@ from gps.proto.gps_pb2 import *
 
 SENSOR_DIMS = {
     POSITION: 2,
-    ANGLE: 1,
+    # ANGLE: 1,
     LINEAR_VELOCITY: 2,
-    ANGULAR_VELOCITY: 1,
-    ACTION: 1
+    # ANGULAR_VELOCITY: 1,
+    ACTION: 2
 }
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
@@ -40,7 +40,8 @@ if not os.path.exists(common['output_files_dir']):
 agent = {
     'type': AgentBox2D,
     'target_state' : np.array([0, 2]),
-    'x0': np.array([0, 2, 3.1415, 0, 0, 0]),
+    'x0': np.array([0, 2, 0, 0]),
+    # 'x0': np.array([0, 2, 3.1415, 0, 0, 0]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
@@ -51,7 +52,7 @@ agent = {
 
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [POSITION, ANGLE, LINEAR_VELOCITY, ANGULAR_VELOCITY],
+    'state_include': [POSITION, LINEAR_VELOCITY],
     'obs_include': [],
 }
 
@@ -77,14 +78,14 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': np.array([0])
+    'wu': np.array([5e-5,5e-5])
 }
 
 state_cost = {
     'type': CostState,
     'data_types' : {
         POSITION: {
-            'wp': np.ones(SENSOR_DIMS[ACTION]),
+            'wp': np.ones(SENSOR_DIMS[POSITION]),
             'target_state': agent["target_state"],
         },
     },

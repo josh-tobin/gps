@@ -67,11 +67,13 @@ class PointMassWorld (Framework):
         #             position = target,
         #             shapes = [b2PolygonShape(vertices=[xf1*(-1,0), xf1*(1,0), xf1*(0,.5)]),
         #                     b2PolygonShape(vertices=[xf2*(-1,0), xf2*(1,0), xf2*(0,.5)]) ],
-                # )
+        #         )
     def Step(self, settings, action):
         """Called upon every step. """
-        self.body.ApplyTorque(action, True)
+        # self.body.ApplyTorque(action, True)
+        self.body.linearVelocity = (action[0], action[1])
         print(action)
+        # self.body.angularVelocity = (action[2])
 
         super(PointMassWorld, self).Step(settings)
 
@@ -89,9 +91,8 @@ class PointMassWorld (Framework):
 
 
 if __name__=="__main__":
-    # main(PointMassWorld)
     world = PointMassWorld(position=(0,2), target=(0,2))
     world.run()
     i = 1
     while True:
-        print(world.get_state()[POSITION])
+        world.run_next(np.array([1, 0, 0]))
