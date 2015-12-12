@@ -86,8 +86,9 @@ class PointMassWorld (Framework):
         self.body.linearVelocity = self.initial_linearVelocity
 
     def get_state(self):
-        state = {POSITION : np.array(self.body.position), ANGLE : [self.body.angle], LINEAR_VELOCITY : np.array(self.body.linearVelocity), ANGULAR_VELOCITY : [self.body.angularVelocity]}
-	return state
+        state = {POSITION : np.array(self.body.position), LINEAR_VELOCITY : np.array(self.body.linearVelocity)}
+	
+        return state
 
 
 if __name__=="__main__":
