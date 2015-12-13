@@ -3,9 +3,9 @@
 #
 # C++ version Copyright (c) 2006-2007 Erin Catto http://www.box2d.org
 # Python version by Ken Lauer / sirkne at gmail dot com
-# 
+#
 # Implemented using the pybox2d SWIG interface for Box2D (pybox2d.googlecode.com)
-# 
+#
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
 # arising from the use of this software.
@@ -24,13 +24,13 @@ class fwSettings(object):
     backend='pygame'        # The default backend to use in (can be: pyglet, pygame, etc.)
 
     # Physics options
-    hz=60.0
+    hz=20.0 # What we use on the robot, TODO - should this be set by the agent?
     velocityIterations=8
     positionIterations=3
     enableWarmStarting=True   # Makes physics results more accurate (see Box2D wiki)
     enableContinuous=True     # Calculate time of impact
     enableSubStepping=False
-    
+
     # Drawing
     drawStats=True
     drawShapes=True
@@ -53,17 +53,17 @@ class fwSettings(object):
     onlyInit=False            # run the test's initialization without graphics, and then quit (for testing)
 
 #             text                  variable
-checkboxes =( ("Warm Starting"   , "enableWarmStarting"), 
-              ("Time of Impact"  , "enableContinuous"), 
+checkboxes =( ("Warm Starting"   , "enableWarmStarting"),
+              ("Time of Impact"  , "enableContinuous"),
               ("Sub-Stepping"    , "enableSubStepping"),
               ("Draw"            , None),
-              ("Shapes"          , "drawShapes"), 
-              ("Joints"          , "drawJoints"), 
-              ("AABBs"           , "drawAABBs"), 
-              ("Pairs"           , "drawPairs"), 
-              ("Contact Points"  , "drawContactPoints"), 
-              ("Contact Normals" , "drawContactNormals"), 
-              ("Center of Masses", "drawCOMs"), 
+              ("Shapes"          , "drawShapes"),
+              ("Joints"          , "drawJoints"),
+              ("AABBs"           , "drawAABBs"),
+              ("Pairs"           , "drawPairs"),
+              ("Contact Points"  , "drawContactPoints"),
+              ("Contact Normals" , "drawContactNormals"),
+              ("Center of Masses", "drawCOMs"),
               ("Statistics"      , "drawStats"),
               ("FPS"             , "drawFPS"),
               ("Control"         , None),
@@ -92,7 +92,7 @@ for opt_name in list_options:
             parser.add_option('','--'+opt_name, dest=opt_name, default=value,
                               action='store_'+str(not value).lower(),
                               help=opt_name)
-            
+
     else:
         if isinstance(value, int):
             opttype = 'int'

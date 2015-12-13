@@ -17,10 +17,10 @@ class DynamicsLRPrior(Dynamics):
         #TODO: Use hyperparams
         self.prior = DynamicsPriorGMM()
 
-    def update_prior(self, sample):
+    def update_prior(self, samples):
         """ Update dynamics prior. """
-        X = sample.get_X()
-        U = sample.get_U()
+        X = samples.get_X()
+        U = samples.get_U()
         self.prior.update(X, U)
 
     def get_prior(self):

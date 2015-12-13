@@ -28,7 +28,7 @@ SENSOR_DIMS = {
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
-    'conditions': 4,
+    'conditions': 1,
     'experiment_dir': BASE_DIR + '/experiments/box2d_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
@@ -39,17 +39,15 @@ if not os.path.exists(common['output_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    'target_state' : np.array([0, 2]),
-    'x0': np.array([0, 2, 0, 0]),
-    # 'x0': np.array([0, 2, 3.1415, 0, 0, 0]),
+    'target_state' : np.array([5, 20]),
+    'x0': np.array([0, 5, 0, 0]),
     'rk': 0,
     'dt': 0.05,
-    'substeps': 5,
+    'substeps': 1, #5,
     'conditions': common['conditions'],
-    'pos_body_idx': np.array([1]),
-    'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
-        np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
-
+    'pos_body_idx': np.array([]),
+    # TODO - incorporate pos_body_offset into box2d agent
+    'pos_body_offset': np.array([]), #[np.array([0, 0.2, 0]), np.array([0, 0.1, 0]), np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [POSITION, LINEAR_VELOCITY],
@@ -62,16 +60,13 @@ algorithm = {
 }
 
 algorithm['init_traj_distr'] = {
-    'type': init_lqr,
+    'type': init_pd,
     'args': {
         'hyperparams': {
-            'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
-            'init_var': 1.0,
-            'init_stiffness': 1.0,
-            'init_stiffness_vel': 0.5,
+            'init_var': 5.0,
+            'init_stiffness': 0.0,
         },
-        # 'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
-        'dt': agent['dt'],
+        'x0': agent['x0'][:SENSOR_DIMS[POSITION]],
         'T': agent['T'],
     }
 }
@@ -94,11 +89,11 @@ state_cost = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, state_cost],
-    'weights': [1.0, 1.0],
+    'weights': [0.0, 1.0],
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLRPrior,
+    'type': DynamicsLR,
     'regularization': 1e-6,
 }
 
@@ -110,7 +105,7 @@ algorithm['policy_opt'] = {}
 
 config = {
     'iterations': 10,
-    'num_samples': 5,
+    'num_samples': 20, # Lots of samples because we're not using a prior for dynamics fit.
     'common': common,
     'agent': agent,
     # 'gui': gui,  # For sim, we probably don't want the gui right now.

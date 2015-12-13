@@ -34,6 +34,7 @@ class GPSMain():
         config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
         config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
+        config['algorithm']['init_traj_distr']['args']['dQ'] = self.agent.dU
         config['algorithm']['dO'] = self.agent.dO
 
         self.algorithm = config['algorithm']['type'](config['algorithm'])
@@ -44,7 +45,9 @@ class GPSMain():
         """
         n = self._hyperparams['num_samples']
         for itr in range(self._iterations):
+            print 'Iteration ' + str(itr)
             for m in range(self._conditions):
+                print 'Condition ' + str(m)
                 for i in range(n):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)

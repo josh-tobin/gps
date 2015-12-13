@@ -13,7 +13,7 @@ class DynamicsLR(Dynamics):
         self.fv = None
         self.dyn_covar = None
 
-    def update_prior(self):
+    def update_prior(self, samples):
         """ Update dynamics prior. """
         # Nothing to do - constant prior.
         pass

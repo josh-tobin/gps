@@ -3,7 +3,7 @@
 #
 # C++ version Copyright (c) 2006-2007 Erin Catto http://www.box2d.org
 # Python version Copyright (c) 2010 kne / sirkne at gmail dot com
-# 
+#
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
 # arising from the use of this software.
@@ -53,15 +53,15 @@ class PointMassWorld (Framework):
         xf2.position = b2Mul(xf2.R, (-1.0, 0.0))
         vertices=[xf1*(-1,0), xf1*(1,0), xf1*(0,.5)]
         self.body = self.world.CreateDynamicBody(
-                    position=self.initial_position, 
+                    position=self.initial_position,
                     angle=self.initial_angle,
-		    linearVelocity=self.initial_linearVelocity,
-		    angularVelocity=self.initial_angularVelocity,
+		                linearVelocity=self.initial_linearVelocity,
+		                angularVelocity=self.initial_angularVelocity,
                     angularDamping=5,
                     linearDamping=0.1,
                     shapes=[b2PolygonShape(vertices=[xf1*(-1,0), xf1*(1,0), xf1*(0,.5)]),
                             b2PolygonShape(vertices=[xf2*(-1,0), xf2*(1,0), xf2*(0,.5)]) ],
-                    shapeFixture=b2FixtureDef(density=2.0),
+                    shapeFixture=b2FixtureDef(density=1.0),
                 )
         # self.target = self.world.CreateStaticBody(
         #             position = target,
@@ -72,7 +72,7 @@ class PointMassWorld (Framework):
         """Called upon every step. """
         # self.body.ApplyTorque(action, True)
         self.body.linearVelocity = (action[0], action[1])
-        print(action)
+        #print(action)
         # self.body.angularVelocity = (action[2])
 
         super(PointMassWorld, self).Step(settings)
@@ -87,7 +87,7 @@ class PointMassWorld (Framework):
 
     def get_state(self):
         state = {POSITION : np.array(self.body.position), LINEAR_VELOCITY : np.array(self.body.linearVelocity)}
-	
+
         return state
 
 

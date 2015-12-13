@@ -3,7 +3,7 @@
 #
 # C++ version Copyright (c) 2006-2007 Erin Catto http://www.box2d.org
 # Python version Copyright (c) 2010 kne / sirkne at gmail dot com
-# 
+#
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
 # arising from the use of this software.
@@ -57,11 +57,12 @@ class PygameDraw(b2DrawExtended):
     """
     surface = None
     axisScale = 10.0
-    def __init__(self, **kwargs): 
+    def __init__(self, test=None, **kwargs):
         b2DrawExtended.__init__(self, **kwargs)
         self.flipX = False
         self.flipY = True
         self.convertVertices = True
+        self.test = test
 
     def StartDraw(self):
         self.zoom=self.test.viewZoom
@@ -69,14 +70,15 @@ class PygameDraw(b2DrawExtended):
         self.offset=self.test.viewOffset
         self.screenSize=self.test.screenSize
 
-    def EndDraw(self): pass
+    def EndDraw(self):
+        pass
 
     def DrawPoint(self, p, size, color):
         """
         Draw a single point at point p given a pixel size and color.
         """
         self.DrawCircle(p, size/self.zoom, color, drawwidth=0)
-        
+
     def DrawAABB(self, aabb, color):
         """
         Draw a wireframe around the AABB with the given color.
@@ -85,7 +87,7 @@ class PygameDraw(b2DrawExtended):
                     (aabb.upperBound.x, aabb.lowerBound.y ),
                     (aabb.upperBound.x, aabb.upperBound.y ),
                     (aabb.lowerBound.x, aabb.upperBound.y ) ]
-        
+
         pygame.draw.aalines(self.surface, color, True, points)
 
     def DrawSegment(self, p1, p2, color):
@@ -126,7 +128,7 @@ class PygameDraw(b2DrawExtended):
 
         pygame.draw.circle(self.surface, (color/2).bytes+[127], center, radius, 0)
         pygame.draw.circle(self.surface, color.bytes, center, radius, 1)
-        pygame.draw.aaline(self.surface, (255,0,0), center, (center[0] - radius*axis[0], center[1] + radius*axis[1])) 
+        pygame.draw.aaline(self.surface, (255,0,0), center, (center[0] - radius*axis[0], center[1] + radius*axis[1]))
 
     def DrawPolygon(self, vertices, color):
         """
@@ -139,7 +141,7 @@ class PygameDraw(b2DrawExtended):
             pygame.draw.aaline(self.surface, color.bytes, vertices[0], vertices)
         else:
             pygame.draw.polygon(self.surface, color.bytes, vertices, 1)
-        
+
     def DrawSolidPolygon(self, vertices, color):
         """
         Draw a filled polygon given the screen vertices with the specified color.
@@ -153,7 +155,7 @@ class PygameDraw(b2DrawExtended):
             pygame.draw.polygon(self.surface, (color/2).bytes+[127], vertices, 0)
             pygame.draw.polygon(self.surface, color.bytes, vertices, 1)
 
-    # the to_screen conversions are done in C with b2DrawExtended, leading to 
+    # the to_screen conversions are done in C with b2DrawExtended, leading to
     # an increase in fps.
     # You can also use the base b2Draw and implement these yourself, as the
     # b2DrawExtended is implemented:
@@ -194,7 +196,7 @@ class PygameFramework(FrameworkBase):
         self.gui_app  =None
         self.gui_table=None
         self.setup_keys()
-        
+
     def __init__(self):
         super(PygameFramework, self).__init__()
 
@@ -214,7 +216,7 @@ class PygameFramework(FrameworkBase):
 
         self.renderer = PygameDraw(surface=self.screen, test=self)
         self.world.renderer=self.renderer
-        
+
         try:
             self.font = pygame.font.Font(None, 15)
         except IOError:
@@ -240,19 +242,19 @@ class PygameFramework(FrameworkBase):
     def setCenter(self, value):
         """
         Updates the view offset based on the center of the screen.
-        
+
         Tells the debug draw to update its values also.
         """
         self._viewCenter = b2Vec2( *value )
         self._viewCenter *= self._viewZoom
         self._viewOffset = self._viewCenter - self.screenSize/2
-    
+
     def setZoom(self, zoom):
         self._viewZoom = zoom
 
     viewZoom   = property(lambda self: self._viewZoom, setZoom,
                            doc='Zoom factor for the display')
-    viewCenter = property(lambda self: self._viewCenter/self._viewZoom, setCenter, 
+    viewCenter = property(lambda self: self._viewCenter/self._viewZoom, setCenter,
                            doc='Screen center in camera coordinates')
     viewOffset = property(lambda self: self._viewOffset,
                            doc='The offset of the top-left corner of the screen')
@@ -308,7 +310,7 @@ class PygameFramework(FrameworkBase):
         """
         Main loop.
 
-        Continues to run while checkEvents indicates the user has 
+        Continues to run while checkEvents indicates the user has
         requested to quit.
 
         Updates the screen and tells the GUI to paint itself.
@@ -325,7 +327,7 @@ class PygameFramework(FrameworkBase):
             # Check keys that should be checked every loop (not only on initial keydown)
         self.CheckKeys()
 
-            # Run the simulation loop 
+            # Run the simulation loop
         self.SimulationLoop([0,0,0])
 
         if GUIEnabled and self.settings.drawMenu:
@@ -334,7 +336,7 @@ class PygameFramework(FrameworkBase):
         pygame.display.flip()
         self.clock.tick(self.settings.hz)
         self.fps = self.clock.get_fps()
-    
+
         # self.world.contactListener = None
         # self.world.destructionListener=None
         # self.world.renderer=None
@@ -345,7 +347,7 @@ class PygameFramework(FrameworkBase):
         # Check keys that should be checked every loop (not only on initial keydown)
         self.CheckKeys()
 
-        # Run the simulation loop 
+        # Run the simulation loop
         self.SimulationLoop(action)
         if GUIEnabled and self.settings.drawMenu:
             self.gui_app.paint(self.screen)
@@ -353,7 +355,7 @@ class PygameFramework(FrameworkBase):
         pygame.display.flip()
         self.clock.tick(self.settings.hz)
         self.fps = self.clock.get_fps()
-        
+
         # self.world.contactListener = None
         # self.world.destructionListener=None
         # self.world.renderer=None
@@ -405,7 +407,7 @@ class PygameFramework(FrameworkBase):
             self.viewZoom = 1.0
             self.viewCenter = (0.0, 20.0)
 
-   
+
     def Step(self, settings):
         if GUIEnabled:
             # Update the settings based on the GUI
@@ -419,7 +421,7 @@ class PygameFramework(FrameworkBase):
             self.gui_table.updateGUI(self.settings)
 
     def ConvertScreenToWorld(self, x, y):
-        return b2Vec2((x + self.viewOffset.x) / self.viewZoom, 
+        return b2Vec2((x + self.viewOffset.x) / self.viewZoom,
                            ((self.screenSize.y - y + self.viewOffset.y) / self.viewZoom))
 
     def DrawStringAt(self, x, y, str, color=(229,153,153,255)):
