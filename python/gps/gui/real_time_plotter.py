@@ -3,10 +3,11 @@ import matplotlib.pylab as plt
 
 class RealTimePlotter:
 
-    def __init__(self, axis, time_window=500, labels=None):
+    def __init__(self, axis, time_window=500, labels=None, alphas=None):
         self._ax = axis
         self._time_window = time_window
         self._labels = labels
+        self._alphas = alphas
         self._init = False
 
         if self._labels:
@@ -21,8 +22,9 @@ class RealTimePlotter:
         self._plots = []
         for i in range(data_len):
             color = cm(1.0*i/data_len)
+            alpha = self._alphas[i] if self._alphas is not None else 1.0
             label = self._labels[i] if self._labels is not None else str(i)
-            self._plots.append(self._ax.plot([], [], color=color, label=label)[0])
+            self._plots.append(self._ax.plot([], [], color=color, alpha=alpha, label=label)[0])
         self._ax.set_xlim(0, self._time_window)
         self._ax.set_ylim(0, 1)
         self._ax.legend(loc='upper left', bbox_to_anchor=(0, 1.15))
@@ -64,11 +66,14 @@ if __name__ == "__main__":
 
     plt.ion()
     fig, ax = plt.subplots()
-    plotter = RealTimePlotter(ax, labels=['i', 'j', 'i+j', 'i-j'])
+    plotter = RealTimePlotter(ax, labels=['i', 'j', 'i+j', 'i-j', 'mean'],
+            alphas=[0.15, 0.15, 0.15, 0.15, 1.0])
 
     i, j = 0, 0
     while True:
         i += random.randint(-10, 10)
         j += random.randint(-10, 10)
-        plotter.update([i, j, i+j, i-j])
+        data = [i, j, i+j, i-j]
+        mean = np.mean(data)
+        plotter.update(data + [mean])
         time.sleep(5e-3)
