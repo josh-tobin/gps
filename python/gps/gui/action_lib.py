@@ -1,10 +1,11 @@
 from gps.gui.config import keyboard_bindings, ps3_bindings
 
 class Action:
-    def __init__(self, key, name, func, keyboard_binding=None, ps3_binding=None):
+    def __init__(self, key, name, func, axis_pos=None, keyboard_binding=None, ps3_binding=None):
         self._key = key
         self._name = name
         self._func = func
+        self._axis_pos = axis_pos
         self._kb = keyboard_binding
         self._pb = ps3_binding
 
@@ -28,7 +29,6 @@ target_setup_actions = {action._key: action for action in target_setup_actions}
 for key, action in target_setup_actions.iteritems():
     if key in keyboard_bindings:
         action._kb = keyboard_bindings[key]
-for key, action in target_setup_actions.iteritems():
     if key in ps3_bindings:
         action._pb = ps3_bindings[key]
 
@@ -42,6 +42,5 @@ gps_training_actions  = {action._key: action for action in gps_training_actions}
 for key, action in gps_training_actions.iteritems():
     if key in keyboard_bindings:
         action._kb = keyboard_bindings[key]
-for key, action in gps_training_actions.iteritems():
     if key in ps3_bindings:
         action._pb = ps3_bindings[key]

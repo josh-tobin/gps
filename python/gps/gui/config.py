@@ -104,20 +104,30 @@ ps3_bindings = {
 inverted_ps3_bindings = {value: key for key, value in ps3_bindings.iteritems()}
 
 common = {
+    'ps3_button': ps3_button,
+    'inverted_ps3_button': inverted_ps3_button,
+    'ps3_axis': ps3_axis,
+    'inverted_ps3_ax':, inverted_ps3_axis,
+
     'keyboard_bindings': keyboard_bindings,
-    'ps3_controller_bindings': ps3_controller_bindings,
-    'ps3_controller_topic': 'joy',
-    'ps3_controller_message_rate': 20,  # only process every 1 of 20 ps3 controller messages
-    'gui_log_filename': 'gui_log.txt',
+    'inverted_keyboard_bindings': inverted_keyboard_bindings,
+    'ps3_bindings': ps3_bindings,
+    'inverted_ps3_bindings': inverted_ps3_bindings,
+
+    'ps3_topic': 'joy',
+    'ps3_process_rate': 20,  # only process 1/20 of ps3 controller messages
+
+    'image_topic': '/camera/image/rgb_color',
 }
 
 target_setup = {
     'num_targets': 10,
     'actuator_types': [TRIAL_ARM, AUXILIARY_ARM],
     'actuator_names': ['trial_arm', 'auxiliary_arm'],
-    'num_actuators' : 2,
+
+    'target_setup_log_filename': 'target_setup_log.txt',
 }
 
 gps_training_config = {
-    
+    'gps_training_log_filename': 'gps_training_log.txt',
 }
