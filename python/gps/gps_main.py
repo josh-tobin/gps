@@ -9,7 +9,8 @@ import copy
 # from gps.hyperparam_defaults import defaults as config
 # from gps.hyperparam_pr2 import defaults as config
 
-from gps.gui.gui import GUI
+from gps.gui.target_setup_gui import TargetSetupGUI
+from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -29,7 +30,7 @@ class GPSMain():
 
         self.agent = config['agent']['type'](config['agent'])
         self.data_logger = DataLogger(config['common'])
-        self.gui = GUI(self.agent, config['common']) if 'gui' in config else None
+        self.gui = GPSTrainingGUI(self.agent, config['common'])
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
@@ -55,13 +56,12 @@ class GPSMain():
             self.algorithm.iteration(sample_lists)
 
             # Take samples from the policy to see how it is doing.
-            #for m in range(self._conditions):
+            # for m in range(self._conditions):
             #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
             self.data_logger.pickle(copy.copy(self.algorithm), 'algorithm', itr)
             self.data_logger.pickle(copy.copy(sample_lists), 'sample', itr)
-            if self.gui:
-                self.gui.update(self.algorithm)
+            self.gui.update(self.algorithm)
 
     def resume(self, itr):
         """
@@ -71,8 +71,7 @@ class GPSMain():
              then training begins at iteration (itr + 1)
         """
         self.algorithm = self.data_logger.unpickle('algorithm', itr)
-        if self.gui:
-            gui.update(self.algorithm)
+        gui.update(self.algorithm)
 
         self.run(itr_start=itr+1)
 
