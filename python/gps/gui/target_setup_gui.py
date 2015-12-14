@@ -6,7 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from gps.gui.config import common as gui_config_common
+from gps.gui.config import common as common_config
+from gps.gui.config import target_setup as target_setup_config
+from gps.gui.action import Action
 from gps.gui.action_axis import ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.image_visualizer import ImageVisualizer
@@ -35,7 +37,8 @@ class TargetSetupGUI:
     def __init__(self, agent, hyperparams):
         # Hyperparameters
         self._agent = agent
-        self._hyperparams = copy.deepcopy(gui_config)
+        self._hyperparams = copy.deepcopy(common_config)
+        self._hyperparams.update(copy.deepcopy(target_setup_config))
         self._hyperparams.update(hyperparams)
 
         # Output files
@@ -73,10 +76,10 @@ class TargetSetupGUI:
         ]
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
-            if key in keyboard_bindings:
-                action._kb = keyboard_bindings[key]
-            if key in ps3_bindings:
-                action._pb = ps3_bindings[key]
+            if key in self._hyperparams['keyboard_bindings']:
+                action._kb = self._hyperparams['keyboard_bindings'][key]
+            if key in self._hyperparams['ps3_bindings']:
+                action._pb = self._hyperparams['ps3_bindings'][key]
 
         # GUI Components
         plt.ion()
@@ -87,12 +90,12 @@ class TargetSetupGUI:
         self._gs_action = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs[0:2, 0:4])
         self._axarr_action = [plt.subplot(self._gs_action[i]) for i in range(3*4)]
         self._action_axis = ActionAxis(self._actions, self._axarr_action, 
-                self._hyperparams['ps3_message_rate'], self._hyperparams['ps3_topic'])
+                ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'])
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
         self._ax_output = plt.subplot(self._gs_output[0])
-        self._output_axis = OutputAxis(self._ax_output, self._log_filename)
+        self._output_axis = OutputAxis(self._ax_output, max_display_size=5, log_filename=self._log_filename)
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
@@ -283,7 +286,7 @@ if __name__ == "__main__":
 
     rospy.init_node('target_setup_gui')
     agent = AgentROS(hyperparams.config['agent'], init_node=False)
-    target_setup_gui = GUI(agent, hyperparams.config['common'])
+    target_setup_gui = TargetSetupGUI(agent, hyperparams.config['common'])
 
     plt.ioff()
     plt.show()

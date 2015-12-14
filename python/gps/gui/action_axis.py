@@ -5,14 +5,16 @@ from sensor_msgs.msg import Joy
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 
+import itertools
+
 class ActionAxis:
 
     def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy'):
-    """
-    Constructs an ActionAxis assuming actions is a dictionary of fully initialized actions:
-    each action must have: key, name, func
-    each action can  have: axis_pos, keyboard_binding, ps3_binding
-    """
+        """
+        Constructs an ActionAxis assuming actions is a dictionary of fully initialized actions:
+        each action must have: key, name, func
+        each action can  have: axis_pos, keyboard_binding, ps3_binding
+        """
         self._actions = actions
         self._axarr = axarr
 
@@ -28,7 +30,8 @@ class ActionAxis:
         for key, action in self._actions.iteritems():
             if action._kb is not None:
                 self._keyboard_bindings[action._kb] = key
-        self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        fig = self._axarr[0].get_figure()
+        self._cid = fig.canvas.mpl_connect('key_press_event', self.on_key_press)
 
         # PS3 Input
         self._ps3_bindings = {}
@@ -37,7 +40,7 @@ class ActionAxis:
                 self._ps3_bindings[action._pb] = key
         for key, value in list(self._ps3_bindings.iteritems()):
             for permuted_key in itertools.permutations(key, len(key)):
-                self._ps3_controller_bindings[permuted_key] = value
+                self._ps3_bindings[permuted_key] = value
         self._ps3_count = 0
         self._ps3_process_rate = ps3_process_rate
         rospy.Subscriber(ps3_topic, Joy, self.ps3_callback)
@@ -61,23 +64,21 @@ class ActionAxis:
                 print('unrecognized ps3 controller input: ' + '\n' + str([inverted_ps3_button[b] for b in buttons_pressed]))
 
 if __name__ == "__main__":
+    import matplotlib.gridspec as gridspec
+
     from gps.gui.config import common as gui_config_common
-    ps3_process_rate = gui_config_common['ps3_process_rate']
-    ps3_topic = gui_config_common['ps3_topic']
-
+    from gps.gui.action import Action
+    
     number = 0
-    def plus_1():
+    def plus_1(event=None):
+        global number
         number = number + 1
-    def plus_2():
+    def plus_2(event=None):
+        global number
         number = number + 2
-    def print_number():
+    def print_number(event=None):
+        global number
         print(number)
-
-    plt.ion()
-    fig = plt.figure(figsize=(10, 10))
-    gs  = gridspec.GridSpec(1, 1)
-    gs_action = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0])
-    axarr_action = [plt.subplot(gs_action[i]) for i in range(1*3)]
 
     actions_arr = [
         Action('print', 'print',    print_number,   axis_pos=0, keyboard_binding='p',   ps3_binding=None),
@@ -86,4 +87,16 @@ if __name__ == "__main__":
     ]
     actions = {action._key: action for action in actions_arr}
 
+    plt.ion()
+    fig = plt.figure(figsize=(10, 10))
+    gs  = gridspec.GridSpec(1, 1)
+    gs_action = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0])
+    axarr_action = [plt.subplot(gs_action[i]) for i in range(1*3)]
+
+    ps3_process_rate = gui_config_common['ps3_process_rate']
+    ps3_topic = gui_config_common['ps3_topic']
+
     action_axis = ActionAxis(actions, axarr_action, ps3_process_rate, ps3_topic)
+
+    plt.ioff()
+    plt.show()

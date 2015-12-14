@@ -107,7 +107,7 @@ common = {
     'ps3_button': ps3_button,
     'inverted_ps3_button': inverted_ps3_button,
     'ps3_axis': ps3_axis,
-    'inverted_ps3_ax':, inverted_ps3_axis,
+    'inverted_ps3_ax': inverted_ps3_axis,
 
     'keyboard_bindings': keyboard_bindings,
     'inverted_keyboard_bindings': inverted_keyboard_bindings,
@@ -128,6 +128,6 @@ target_setup = {
     'target_setup_log_filename': 'target_setup_log.txt',
 }
 
-gps_training_config = {
+gps_training = {
     'gps_training_log_filename': 'gps_training_log.txt',
 }
