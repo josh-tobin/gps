@@ -94,7 +94,8 @@ class TargetSetupGUI:
         self._gs_action = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs[0:2, 0:4])
         self._axarr_action = [plt.subplot(self._gs_action[i]) for i in range(3*4)]
         self._action_axis = ActionAxis(self._actions, self._axarr_action, 
-                ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'])
+                ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'],
+                inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])

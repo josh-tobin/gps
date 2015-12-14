@@ -9,7 +9,7 @@ import itertools
 
 class ActionAxis:
 
-    def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy'):
+    def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy', inverted_ps3_button=None):
         """
         Constructs an ActionAxis assuming actions is a dictionary of fully initialized actions:
         each action must have: key, name, func
@@ -23,7 +23,11 @@ class ActionAxis:
         self._buttons = {}
         for key, action in self._actions.iteritems():
             if action._axis_pos is not None:
-                self._buttons[key] = Button(self._axarr[action._axis_pos], '%s\n%s\n%s' % (action._name, action._kb, str(action._pb)))
+                if inverted_ps3_button is not None and action._pb is not None:
+                    ps3_bindings_str = '(' + ',\n'.join([inverted_ps3_button[i] for i in action._pb]) + ')'
+                else:
+                    ps3_bindings_str = str(action._pb)
+                self._buttons[key] = Button(self._axarr[action._axis_pos], '%s\n%s\n%s' % (action._name, action._kb, ps3_bindings_str))
                 self._buttons[key].on_clicked(action._func)
 
         # Keyboard Input
