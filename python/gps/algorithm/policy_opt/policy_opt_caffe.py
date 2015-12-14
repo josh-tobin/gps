@@ -120,7 +120,7 @@ class PolicyOptCaffe(PolicyOpt):
         #TODO: find entries with very low weights?
 
         # Normalize obs, but only compute normalzation at the beginning.
-        if itr == 0 and inner_itr == 0:
+        if itr == 0 and inner_itr == 1:
             self.policy.scale = np.diag(1. / np.std(obs, axis=0))
             self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
         obs = obs.dot(self.policy.scale) + self.policy.bias
