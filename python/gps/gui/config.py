@@ -75,9 +75,10 @@ keyboard_bindings = {
     'reset': 'f',
     'start': 'g',
 }
+inverted_keyboard_bindings = {value: key for key, value in keyboard_bindings.iteritems()}
 
 # Mappings from actions to their corresponding ps3 controller bindings
-ps3_controller_bindings = {
+ps3_bindings = {
     # Target Setup
     'ptn'  : (ps3_button['rear_right_1'], ps3_button['cross_left']),
     'ntn'  : (ps3_button['rear_right_1'], ps3_button['cross_right']),
@@ -100,22 +101,23 @@ ps3_controller_bindings = {
     'reset': (ps3_button['rear_right_2'], ps3_button['action_triangle']),
     'start': (ps3_button['rear_right_2'], ps3_button['action_circle']),
 }
+inverted_ps3_bindings = {value: key for key, value in ps3_bindings.iteritems()}
 
-gui = {
-    'keyboard_bindings' : keyboard_bindings,
+common = {
+    'keyboard_bindings': keyboard_bindings,
     'ps3_controller_bindings': ps3_controller_bindings,
     'ps3_controller_topic': 'joy',
     'ps3_controller_message_rate': 20,  # only process every 1 of 20 ps3 controller messages
-    'actions_log_filename': 'actions_log.txt',
+    'gui_log_filename': 'gui_log.txt',
 }
 
 target_setup = {
     'num_targets': 10,
     'actuator_types': [TRIAL_ARM, AUXILIARY_ARM],
     'actuator_names': ['trial_arm', 'auxiliary_arm'],
+    'num_actuators' : 2,
 }
-target_setup['num_actuators'] = len(target_setup['actuator_types'])
 
-training_handler = {
+gps_training_config = {
     
 }
