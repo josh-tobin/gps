@@ -14,12 +14,13 @@ from gps.gui.output_axis import OutputAxis
 from gps.gui.image_visualizer import ImageVisualizer
 
 # ~~~ GUI Specifications ~~~
-# Target Setup (responsive to mouse, keyboard, and PS3 controller)
-#     - set target number, set actuator type
+# Action Axis
+#     - previous target number, next target number
+#     - previous actuator type, next actuator type
+#     - set initial position, set target position
+#     - set initial features, set target features
+#     - move to initial position, move to target position
 #     - relax controller, mannequin mode
-#     - set initial position (joint angles, end effector points), move to initial position
-#     - set target  position (joint angles, end effector points), move to target  position
-#     - set initial feature points, set target feature points
 
 # Data Plotter
 #     - algorithm training costs
@@ -140,23 +141,23 @@ class TargetSetupGUI:
         filename = self._target_files_dir + self._actuator_name + '_initial.npz'
 
         ja_key = 'ja' + str(self._target_number)
-        ja_value = sample.get(JOINT_ANGLES)
-        add_to_npz(filename, ja_key, ja_value)
+        ja_val = sample.get(JOINT_ANGLES)
+        add_to_npz(filename, ja_key, ja_val)
 
-        ee_pos = sample.get(END_EFFECTOR_POSITIONS)
-        ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
+        ee_pos_key = 'ee_pos' + str(self._target_number)
+        ee_pos_val = sample.get(END_EFFECTOR_POSITIONS)
+        add_to_npz(filename, ee_pos_key, ee_pos_val)
 
-        pos_key = 'ee_pos' + str(self._target_number)
-        rot_key = 'ee_rot' + str(self._target_number)
-        add_to_npz(filename, pos_key, ee_pos)
-        add_to_npz(filename, rot_key, ee_rot)
+        ee_rot_key = 'ee_rot' + str(self._target_number)
+        ee_rot_val = sample.get(END_EFFECTOR_ROTATIONS)
+        add_to_npz(filename, ee_rot_key, ee_rot_val)
 
         self._output_axis.append_text(
                 'set_initial_position:' + '\n' +
                 'filename = ' + filename + '\n' +
                 ja_key + ' = ' + str(ja_value.T) + '\n' +
-                pos_key + ' = ' + str(ee_pos) + '\n' +
-                rot_key + ' = ' + str(ee_rot))
+                ee_pos_key + ' = ' + str(ee_pos_val) + '\n' +
+                ee_rot_key + ' = ' + str(ee_rot_val))
 
     def set_target_position(self, event=None):
         """
@@ -167,23 +168,23 @@ class TargetSetupGUI:
         filename = self._target_files_dir + self._actuator_name + '_target.npz'
 
         ja_key = 'ja' + str(self._target_number)
-        ja_value = sample.get(JOINT_ANGLES)
-        add_to_npz(filename, ja_key, ja_value)
+        ja_val = sample.get(JOINT_ANGLES)
+        add_to_npz(filename, ja_key, ja_val)
 
-        ee_pos = sample.get(END_EFFECTOR_POSITIONS)
-        ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
+        ee_pos_key = 'ee_pos' + str(self._target_number)
+        ee_pos_val = sample.get(END_EFFECTOR_POSITIONS)
+        add_to_npz(filename, ee_pos_key, ee_pos_val)
 
-        pos_key = 'ee_pos' + str(self._target_number)
-        rot_key = 'ee_rot' + str(self._target_number)
-        add_to_npz(filename, pos_key, ee_pos)
-        add_to_npz(filename, rot_key, ee_rot)
+        ee_rot_key = 'ee_rot' + str(self._target_number)
+        ee_rot_val = sample.get(END_EFFECTOR_ROTATIONS)
+        add_to_npz(filename, ee_rot_key, ee_rot_val)
 
         self._output_axis.append_text(
                 'set_target_position:' + '\n' +
                 'filename = ' + filename + '\n' +
                 ja_key + ' = ' + str(ja_value.T) + '\n' +
-                pos_key + ' = ' + str(ee_pos) + '\n' +
-                rot_key + ' = ' + str(ee_rot))
+                ee_pos_key + ' = ' + str(ee_pos_val) + '\n' +
+                ee_rot_key + ' = ' + str(ee_rot_val))
 
     def set_initial_features(self, event=None):
         pass
