@@ -46,8 +46,6 @@ class AgentBox2D(Agent):
         """
         self.x0 = self._hyperparams["x0"]
         x0 = self._hyperparams['x0'][0]
-        # self._world = PointMassWorld(position=(x0[0], x0[1]), angle=x0[2], \
-        #     linearVelocity=(x0[3], x0[4]), angularVelocity=x0[5], target=(target[0], target[1]))
         self._world = PointMassWorld(position=(x0[0], x0[1]), target=(target[0], target[1]))
         self._world.run()
 
@@ -93,8 +91,6 @@ class AgentBox2D(Agent):
         return sample
 
     def _set_sample(self, sample, b2d_X, t, condition):
-        # sample.set(ANGULAR_VELOCITY, np.array(b2d_X[ANGULAR_VELOCITY]),t=t+1)
         sample.set(LINEAR_VELOCITY, np.array(b2d_X[LINEAR_VELOCITY]),t=t+1)
-        # sample.set(ANGLE, np.array(b2d_X[ANGLE]),t=t+1)
         sample.set(POSITION, np.array(b2d_X[POSITION]),t=t+1)
 

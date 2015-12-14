@@ -337,10 +337,6 @@ class PygameFramework(FrameworkBase):
         self.clock.tick(self.settings.hz)
         self.fps = self.clock.get_fps()
 
-        # self.world.contactListener = None
-        # self.world.destructionListener=None
-        # self.world.renderer=None
-        #while running:
     def run_next(self, action=[0,0,0]):
         self.screen.fill( (0,0,0) )
 
@@ -355,10 +351,6 @@ class PygameFramework(FrameworkBase):
         pygame.display.flip()
         self.clock.tick(self.settings.hz)
         self.fps = self.clock.get_fps()
-
-        # self.world.contactListener = None
-        # self.world.destructionListener=None
-        # self.world.renderer=None
 
     def _Keyboard_Event(self, key, down=True):
         """

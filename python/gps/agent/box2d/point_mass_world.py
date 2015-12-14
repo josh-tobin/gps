@@ -63,11 +63,13 @@ class PointMassWorld (Framework):
                             b2PolygonShape(vertices=[xf2*(-1,0), xf2*(1,0), xf2*(0,.5)]) ],
                     shapeFixture=b2FixtureDef(density=1.0),
                 )
-        # self.target = self.world.CreateStaticBody(
-        #             position = target,
-        #             shapes = [b2PolygonShape(vertices=[xf1*(-1,0), xf1*(1,0), xf1*(0,.5)]),
-        #                     b2PolygonShape(vertices=[xf2*(-1,0), xf2*(1,0), xf2*(0,.5)]) ],
-        #         )
+        self.target = self.world.CreateStaticBody(
+                    position = target,
+                    angle=self.initial_angle,
+                    shapes = [b2PolygonShape(vertices=[xf1*(-1,0), xf1*(1,0), xf1*(0,.5)]),
+                            b2PolygonShape(vertices=[xf2*(-1,0), xf2*(1,0), xf2*(0,.5)]) ],
+                )
+        self.target.active = False
     def Step(self, settings, action):
         """Called upon every step. """
         # self.body.ApplyTorque(action, True)
