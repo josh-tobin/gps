@@ -17,6 +17,7 @@ class ActionAxis:
         """
         self._actions = actions
         self._axarr = axarr
+        self._fig = axarr[0].get_figure()
 
         # Mouse Input
         self._buttons = {}
@@ -30,8 +31,7 @@ class ActionAxis:
         for key, action in self._actions.iteritems():
             if action._kb is not None:
                 self._keyboard_bindings[action._kb] = key
-        fig = self._axarr[0].get_figure()
-        self._cid = fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
 
         # PS3 Input
         self._ps3_bindings = {}

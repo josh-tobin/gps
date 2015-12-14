@@ -4,14 +4,15 @@ class OutputAxis:
 
     def __init__(self, axis, max_display_size=5, log_filename=None):
         self._axis = axis
+        self._fig = axis.get_figure()
         self._text_arr = []
         self._max_display_size = max_display_size
         self._log_filename = log_filename
 
-        self.append_text('Logging output in: ' + self._log_filename)
+        self.set_text('Logging output in: ' + self._log_filename)
 
     def set_text(self, text):
-        self.text_arr = [text]
+        self._text_arr = [text]
         self.log_text(text)
         self.draw()
 
@@ -34,7 +35,14 @@ class OutputAxis:
         self._axis.set_axis_off()
         self._axis.text(0, 1, all_text, color='black', fontsize=12,
             va='top', ha='left', transform=self._axis.transAxes)
-        self._axis.get_figure().canvas.draw()
+        self._fig.canvas.draw()
+
+    def set_bgcolor(self, color):
+        self._axis.set_axis_on()
+        self._axis.set_xticks([])
+        self._axis.set_yticks([])
+        self._axis.set_axis_bgcolor(color)
+        self._fig.canvas.draw()
 
 if __name__ == "__main__":
     import time
