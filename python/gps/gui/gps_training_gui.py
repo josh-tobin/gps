@@ -114,6 +114,11 @@ class GPSTrainingGUI:
         self._output_axis.set_bgcolor('red')
         pass
 
+    def update(self, algorithm):
+        for t in range(algorithm.T):
+            # update with mean cost over all samples, for each condition m, for each time step t
+            self._plot_axis.update([np.mean(algorithm.prev[m].cs[:, t]) for m in range(algorithm.M)])
+
 if __name__ == "__main__":
     import rospy
     from gps.agent.ros.agent_ros import AgentROS

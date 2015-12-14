@@ -1,5 +1,6 @@
 import copy
 import itertools
+import os.path
 
 import numpy as np
 
@@ -12,6 +13,8 @@ from gps.gui.action import Action
 from gps.gui.action_axis import ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.image_visualizer import ImageVisualizer
+
+from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
 
 # ~~~ GUI Specifications ~~~
 # Action Axis
