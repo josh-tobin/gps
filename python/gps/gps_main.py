@@ -1,8 +1,9 @@
 import logging
 import imp
-import os
+import os, os.path
 import sys
 import copy
+import argparse
 
 #from gps.hyperparam_defaults import defaults as config
 #from gps.hyperparam_badmm_defaults import defaults as config
@@ -71,27 +72,41 @@ class GPSMain():
              then training begins at iteration (itr + 1)
         """
         self.algorithm = self.data_logger.unpickle('algorithm', itr)
-        gui.update(self.algorithm)
+        self.gui.update(self.algorithm)
 
         self.run(itr_start=itr+1)
 
 if __name__ == "__main__":
-    if ('--help' in sys.argv) or ('-h' in sys.argv):
-        print("Runs an experiment.")
-        print("Usage: %s [HYPERPARAMS_PATH]" % sys.argv[0])
-        print("")
-        print("HYPERPARAMS_PATH: the experiment directory where hyperparams.py is located")
-        print("       (default: 'default_mjc_experiment')")
-    else:
-        if len(sys.argv) > 1:
-            file_path = os.path.join('./experiments/',sys.argv[1])
-        else:
-            file_path = './experiments/default_mjc_experiment/'
-        hyperparams = imp.load_source('hyperparams',
-                                      os.path.join(file_path, 'hyperparams.py'))
+    parser = argparse.ArgumentParser(description='GPS Main ArgumentParser')
+    parser.add_argument('experiment', type=str, help='experiment name (and directory name)')
+    parser.add_argument('-t', '--targetsetup', action='store_true', help='run target setup')
+    parser.add_argument('-r', '--resume', metavar='N', type=int, help='resume training from iteration N')
+    args = parser.parse_args()
 
+    experiment_name = args.experiment
+    run_target_setup = args.targetsetup
+    resume_training_itr = args.resume
+
+    hyperparams_filepath = 'experiments/' + experiment_name + '/hyperparams.py'
+    if not os.path.exists(hyperparams_filepath):
+        sys.exit('Invalid experiment name: \'%s\'.\nDid you create \'%s\'?' % (experiment_name, hyperparams_filepath))
+    hyperparams = imp.load_source('hyperparams', hyperparams_filepath)
+
+    if run_target_setup:
+        import matplotlib.pyplot as plt
+        from gps.agent.ros.agent_ros import AgentROS
+
+        agent = AgentROS(hyperparams.config['agent'])
+        target_setup_gui = TargetSetupGUI(agent, hyperparams.config['common'])
+
+        plt.ioff()
+        plt.show()
+    else:
         import random; random.seed(0)
         import numpy as np; np.random.seed(0)
 
         g = GPSMain(hyperparams.config)
-        g.run()
+        if resume_training_itr is None:
+            g.run()
+        else:
+            g.resume(resume_training_itr)
