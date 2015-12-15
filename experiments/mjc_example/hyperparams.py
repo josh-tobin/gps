@@ -29,7 +29,7 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/default_mjc_experiment/'
+EXP_DIR = BASE_DIR + '/experiments/mjc_example/'
 
 common = {
     'conditions': 4,
@@ -103,6 +103,7 @@ state_cost = {
 fk_cost = {
     'type': CostFK,
     'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'analytic_jacobian': False,
     'wp': np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 10.0,

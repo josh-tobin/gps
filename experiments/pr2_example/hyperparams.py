@@ -33,7 +33,7 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/default_pr2_experiment/'
+EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 
 common = {
     'conditions': 1,
@@ -101,7 +101,6 @@ agent = {
      },
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
-     #TODO: Controller will seg fault when passed in empty points. For now just use at least one point (0,0,0)
     'end_effector_points': ee_points,
     'obs_include': [],
 }
@@ -188,7 +187,6 @@ config = {
     'iterations': 20,
     'common': common,
     'agent': agent,
-    'gui': {},
     'algorithm': algorithm,
     'num_samples': 5,
 }
