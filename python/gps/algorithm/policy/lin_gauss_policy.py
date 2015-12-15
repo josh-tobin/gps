@@ -1,7 +1,7 @@
 import numpy as np
 
 from gps.algorithm.policy.policy import Policy
-
+from gps.utility import check_shape
 
 class LinearGaussianPolicy(Policy):
     """
@@ -19,10 +19,16 @@ class LinearGaussianPolicy(Policy):
     """
     def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar):
         Policy.__init__(self)
-        #TODO: Pull dimensions from somewhere else
+
+        # Assume K has the correct shape, and make sure others match
         self.T = K.shape[0]
         self.dU = K.shape[1]
         self.dX = K.shape[2]
+
+        check_shape(k, (self.T, self.dU))
+        check_shape(pol_covar, (self.T, self.dU, self.dU))
+        check_shape(chol_pol_covar, (self.T, self.dU, self.dU))
+        check_shape(inv_pol_covar, (self.T, self.dU, self.dU))
 
         self.K = K
         self.k = k
@@ -67,7 +73,6 @@ class LinearGaussianPolicy(Policy):
             A new LinearGaussianPolicy object with the same dimensions but
         all values filled with nan.
         """
-        # TODO: Consider using deepcopy instead of this
         policy = LinearGaussianPolicy(
             np.zeros_like(self.K),
             np.zeros_like(self.k),
