@@ -74,4 +74,5 @@ class Sample(object):
         return state
 
     def __setstate__(self, dict):
-        self.__dict__.update(dict)
+        self.__dict__ = dict
+        self.__dict__['agent'] = None

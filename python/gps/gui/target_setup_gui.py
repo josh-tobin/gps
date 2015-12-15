@@ -112,13 +112,13 @@ class TargetSetupGUI:
     # Target Setup Functions
     def prev_target_number(self, event=None):
         self._target_number = (self._target_number - 1) % self._num_targets
-        self._output_axis.set_text(
+        self.set_text(
                 'prev_target_number:' + '\n' +
                 'target number = ' + str(self._target_number))
 
     def next_target_number(self, event=None):
         self._target_number = (self._target_number + 1) % self._num_targets
-        self._output_axis.set_text(
+        self.set_text(
                 'next_target_number:' + '\n' +
                 'target number = ' + str(self._target_number))
 
@@ -126,7 +126,7 @@ class TargetSetupGUI:
         self._actuator_number = (self._actuator_number - 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self._output_axis.set_text(
+        self.set_text(
                 'prev_actuator_type:' + '\n' +
                 'actuator type = ' + str(self._actuator_type) + '\n' +
                 'actuator name = ' + str(self._actuator_name))
@@ -135,7 +135,7 @@ class TargetSetupGUI:
         self._actuator_number = (self._actuator_number + 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self._output_axis.set_text(
+        self.set_text(
                 'next_actuator_type:' + '\n' +
                 'actuator type = ' + str(self._actuator_type) + '\n' +
                 'actuator name = ' + str(self._actuator_name))
@@ -156,7 +156,7 @@ class TargetSetupGUI:
         ee_rot_val = sample.get(END_EFFECTOR_ROTATIONS)
         add_to_npz(filename, ee_rot_key, ee_rot_val)
 
-        self._output_axis.set_text(
+        self.set_text(
                 'set_initial_position:' + '\n' +
                 'filename = ' + filename + '\n' +
                 ja_key + ' = ' + str(ja_value.T) + '\n' +
@@ -183,7 +183,7 @@ class TargetSetupGUI:
         ee_rot_val = sample.get(END_EFFECTOR_ROTATIONS)
         add_to_npz(filename, ee_rot_key, ee_rot_val)
 
-        self._output_axis.set_text(
+        self.set_text(
                 'set_target_position:' + '\n' +
                 'filename = ' + filename + '\n' +
                 ja_key + ' = ' + str(ja_value.T) + '\n' +
@@ -218,7 +218,7 @@ class TargetSetupGUI:
         fs_value = ft_stable
         add_to_npz(filename, fs_key, fs_value)
 
-        self._output_axis.set_text(
+        self.set_text(
                 'set_target_features' + '\n' +
                 'filename = ' + filename + '\n' +
                 fp_key + ' = ' + str(fp_value.T) + '\n' +
@@ -230,7 +230,7 @@ class TargetSetupGUI:
         with np.load(filename) as f:
             ja_value = f[ja_key]
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja_value)
-        self._output_axis.set_text(
+        self.set_text(
                 'move_to_initial:' + '\n' +
                 ja_key + ' = ' + str(ja_value.T))
 
@@ -240,22 +240,32 @@ class TargetSetupGUI:
         with np.load(filename) as f:
             ja_value = f[ja_key]
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja_value)
-        self._output_axis.set_text(
+        self.set_text(
                 'move_to_target:' + '\n' +
                 ja_key + ' = ' + str(ja_value.T))
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self._output_axis.set_text(
+        self.set_text(
                 'relax_controller:' + '\n' +
                 'actuator type = ' + str(self._actuator_type) + '\n' +
                 'actuator name = ' + str(self._actuator_name))
 
     def mannequin_mode(self, event=None):
         # TO-DO
-        self._output_axis.set_text(
+        self.set_text(
                 'mannequin_mode:' + '\n' +
                 'NOT YET IMPLEMENTED')
+
+    # GUI functions
+    def set_text(self, text):
+        self._output_axis.set_text(text)
+
+    def append_text(self, text):
+        self._output_axis.append_text(text)
+
+    def set_bgcolor(self, color):
+        self._output_axis.set_bgcolor(color)
 
 def add_to_npz(filename, key, value):
     """

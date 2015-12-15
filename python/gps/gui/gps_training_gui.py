@@ -91,29 +91,39 @@ class GPSTrainingGUI:
 
     # GPS Training Functions
     def stop(self, event=None):
-        self._output_axis.set_text('stop')
-        self._output_axis.set_bgcolor('red')
+        self.set_text('stop')
+        self.set_bgcolor('red')
         pass
 
     def reset(self, event=None):
-        self._output_axis.set_text('reset')
-        self._output_axis.set_bgcolor('yellow')
+        self.set_text('reset')
+        self.set_bgcolor('yellow')
         pass
 
     def start(self, event=None):
-        self._output_axis.set_text('start')
-        self._output_axis.set_bgcolor('green')
+        self.set_text('start')
+        self.set_bgcolor('green')
         pass
 
     def estop(self, event=None):
-        self._output_axis.set_text('estop')
+        self.set_text('estop')
         for i in range(10):
-            self._output_axis.set_bgcolor('red')
+            self.set_bgcolor('red')
             time.sleep(0.3)
-            self._output_axis.set_bgcolor('white')
+            self.set_bgcolor('white')
             time.sleep(0.3)
-        self._output_axis.set_bgcolor('red')
+        self.set_bgcolor('red')
         pass
+
+    # GUI functions
+    def set_text(self, text):
+        self._output_axis.set_text(text)
+
+    def set_bgcolor(self, color):
+        self._output_axis.set_bgcolor(color)
+
+    def append_text(self, text):
+        self._output_axis.append_text(text)
 
     def update(self, algorithm):
         for t in range(algorithm.T):

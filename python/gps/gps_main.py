@@ -28,9 +28,10 @@ class GPSMain():
         self._hyperparams = config
         self._iterations = config['iterations']
         self._conditions = config['common']['conditions']
+        self._data_files_dir = config['common']['data_files_dir']
 
         self.agent = config['agent']['type'](config['agent'])
-        self.data_logger = DataLogger(config['common'])
+        self.data_logger = DataLogger()
         self.gui = GPSTrainingGUI(self.agent, config['common'])
 
         # TODO: the following is a hack that doesn't even work some of the time
@@ -60,18 +61,19 @@ class GPSMain():
             # for m in range(self._conditions):
             #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
-            self.data_logger.pickle(copy.copy(self.algorithm), 'algorithm', itr)
-            self.data_logger.pickle(copy.copy(sample_lists), 'sample', itr)
+            self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
+            self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
             self.gui.update(self.algorithm)
 
     def resume(self, itr):
         """
-        Resume training from specified iteration.
+        Resume training from algorithm state at specified iteration.
 
         itr: the iteration to which the algorithm state will be set,
              then training begins at iteration (itr + 1)
         """
-        self.algorithm = self.data_logger.unpickle('algorithm', itr)
+        self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
+        self.gui.append_text('Resuming training from algorithm state at iteration %02d.' % itr)
         self.gui.update(self.algorithm)
 
         self.run(itr_start=itr+1)
