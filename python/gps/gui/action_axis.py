@@ -38,6 +38,7 @@ class ActionAxis:
         self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
 
         # PS3 Input
+        # TODO - only run this code if ros is installed
         self._ps3_bindings = {}
         for key, action in self._actions.iteritems():
             if action._pb is not None:
@@ -72,7 +73,7 @@ if __name__ == "__main__":
 
     from gps.gui.config import common as gui_config_common
     from gps.gui.action import Action
-    
+
     number = 0
     def plus_1(event=None):
         global number

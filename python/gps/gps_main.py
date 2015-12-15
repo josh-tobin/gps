@@ -5,13 +5,6 @@ import sys
 import copy
 import argparse
 
-#from gps.hyperparam_defaults import defaults as config
-#from gps.hyperparam_badmm_defaults import defaults as config
-# from gps.hyperparam_defaults import defaults as config
-# from gps.hyperparam_pr2 import defaults as config
-
-from gps.gui.target_setup_gui import TargetSetupGUI
-from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -32,7 +25,10 @@ class GPSMain():
 
         self.agent = config['agent']['type'](config['agent'])
         self.data_logger = DataLogger()
-        self.gui = GPSTrainingGUI(self.agent, config['common'])
+
+        # TODO - GPSTrainingGUI currently requires ros to import.
+        #from gps.gui.gps_training_gui import GPSTrainingGUI
+        #self.gui = GPSTrainingGUI(self.agent, config['common'])
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
@@ -63,7 +59,7 @@ class GPSMain():
 
             self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
             self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
-            self.gui.update(self.algorithm)
+            #self.gui.update(self.algorithm)
 
     def resume(self, itr):
         """
@@ -73,8 +69,8 @@ class GPSMain():
              then training begins at iteration (itr + 1)
         """
         self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
-        self.gui.append_text('Resuming training from algorithm state at iteration %02d.' % itr)
-        self.gui.update(self.algorithm)
+        #self.gui.append_text('Resuming training from algorithm state at iteration %02d.' % itr)
+        #self.gui.update(self.algorithm)
 
         self.run(itr_start=itr+1)
 
@@ -97,6 +93,7 @@ if __name__ == "__main__":
     if run_target_setup:
         import matplotlib.pyplot as plt
         from gps.agent.ros.agent_ros import AgentROS
+        from gps.gui.target_setup_gui import TargetSetupGUI
 
         agent = AgentROS(hyperparams.config['agent'])
         target_setup_gui = TargetSetupGUI(agent, hyperparams.config['common'])

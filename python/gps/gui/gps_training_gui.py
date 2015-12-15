@@ -68,7 +68,7 @@ class GPSTrainingGUI:
         # Action Axis
         self._gs_action = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=self._gs[0:1, 0:4])
         self._axarr_action = [plt.subplot(self._gs_action[i]) for i in range(1*4)]
-        self._action_axis = ActionAxis(self._actions, self._axarr_action, 
+        self._action_axis = ActionAxis(self._actions, self._axarr_action,
                 ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
@@ -129,17 +129,3 @@ class GPSTrainingGUI:
         for t in range(algorithm.T):
             # update with mean cost over all samples, for each condition m, for each time step t
             self._plot_axis.update([np.mean(algorithm.prev[m].cs[:, t]) for m in range(algorithm.M)])
-
-if __name__ == "__main__":
-    import rospy
-    from gps.agent.ros.agent_ros import AgentROS
-
-    import imp
-    hyperparams = imp.load_source('hyperparams', 'experiments/default_pr2_experiment/hyperparams.py')
-
-    rospy.init_node('gps_training_gui')
-    agent = AgentROS(hyperparams.config['agent'], init_node=False)
-    gps_training_gui = GPSTrainingGUI(agent, hyperparams.config['common'])
-
-    plt.ioff()
-    plt.show()
