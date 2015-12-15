@@ -1,13 +1,12 @@
 import logging
 import imp
-import os
+import os, os.path
 import sys
+import copy
+import argparse
 
-#from gps.hyperparam_defaults import defaults as config
-#from gps.hyperparam_badmm_defaults import defaults as config
-#from gps.hyperparam_pr2 import defaults as config
-#from gps.gui.gui import GUI
-
+from gps.gui.gps_training_gui import GPSTrainingGUI
+from gps.utility.data_logger import DataLogger
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -23,10 +22,12 @@ class GPSMain():
         self._hyperparams = config
         self._iterations = config['iterations']
         self._conditions = config['common']['conditions']
+        self._data_files_dir = config['common']['data_files_dir']
 
         self.agent = config['agent']['type'](config['agent'])
-        #if 'gui' in config:
-        #    self.gui = GUI(self.agent, config['gui'])
+        self.data_logger = DataLogger()
+
+        self.gui = GPSTrainingGUI(self.agent, config['common'])
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
@@ -38,44 +39,72 @@ class GPSMain():
 
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
-    def run(self):
+    def run(self, itr_start=0):
         """
         Run training by iteratively sampling and taking an iteration step.
         """
         n = self._hyperparams['num_samples']
-        for itr in range(self._iterations):
+        for itr in range(itr_start, self._iterations):
             for m in range(self._conditions):
                 for i in range(n):
                     pol = self.algorithm.cur[m].traj_distr
                     self.agent.sample(pol, m, verbose=True)
-            self.algorithm.iteration([self.agent.get_samples(m, -n) for m in range(self._conditions)])
+            sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+            self.algorithm.iteration(sample_lists)
+
             # Take samples from the policy to see how it is doing.
-            #for m in range(self._conditions):
+            # for m in range(self._conditions):
             #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
+
+            self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
+            self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
+            self.gui.update(self.algorithm)
 
     def resume(self, itr):
         """
-        Resume from iteration specified.
+        Resume training from algorithm state at specified iteration.
+
+        itr: the iteration to which the algorithm state will be set,
+             then training begins at iteration (itr + 1)
         """
-        raise NotImplementedError("TODO")
+        self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
+        self.gui.append_text('Resuming training from algorithm state at iteration %02d.' % itr)
+        self.gui.update(self.algorithm)
+
+        self.run(itr_start=itr+1)
 
 if __name__ == "__main__":
-    if ('--help' in sys.argv) or ('-h' in sys.argv):
-        print("Runs an experiment.")
-        print("Usage: %s [HYPERPARAMS_PATH]" % sys.argv[0])
-        print("")
-        print("HYPERPARAMS_PATH: the experiment directory where hyperparams.py is located")
-        print("       (default: 'default_mjc_experiment')")
-    else:
-        if len(sys.argv) > 1:
-            file_path = os.path.join('./experiments/',sys.argv[1])
-        else:
-            file_path = './experiments/default_mjc_experiment/'
-        hyperparams = imp.load_source('hyperparams',
-                                      os.path.join(file_path, 'hyperparams.py'))
+    parser = argparse.ArgumentParser(description='GPS Main ArgumentParser')
+    parser.add_argument('experiment', type=str, help='experiment name (and directory name)')
+    parser.add_argument('-t', '--targetsetup', action='store_true', help='run target setup')
+    parser.add_argument('-r', '--resume', metavar='N', type=int, help='resume training from iteration N')
+    args = parser.parse_args()
 
+    experiment_name = args.experiment
+    run_target_setup = args.targetsetup
+    resume_training_itr = args.resume
+
+    hyperparams_filepath = 'experiments/' + experiment_name + '/hyperparams.py'
+    if not os.path.exists(hyperparams_filepath):
+        sys.exit('Invalid experiment name: \'%s\'.\nDid you create \'%s\'?' % (experiment_name, hyperparams_filepath))
+    hyperparams = imp.load_source('hyperparams', hyperparams_filepath)
+
+    if run_target_setup:
+        import matplotlib.pyplot as plt
+        from gps.agent.ros.agent_ros import AgentROS
+        from gps.gui.target_setup_gui import TargetSetupGUI
+
+        agent = AgentROS(hyperparams.config['agent'])
+        target_setup_gui = TargetSetupGUI(agent, hyperparams.config['common'])
+
+        plt.ioff()
+        plt.show()
+    else:
         import random; random.seed(0)
         import numpy as np; np.random.seed(0)
 
         g = GPSMain(hyperparams.config)
-        g.run()
+        if resume_training_itr is None:
+            g.run()
+        else:
+            g.resume(resume_training_itr)
