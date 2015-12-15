@@ -67,3 +67,12 @@ class Sample(object):
                 data = self._data[data_type] if t is None else self._data[data_type][t,:]
                 self.agent.pack_data_obs(obs, data, data_types=[data_type])
         return obs
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop('agent')
+        return state
+
+    def __setstate__(self, dict):
+        self.__dict__ = dict
+        self.__dict__['agent'] = None

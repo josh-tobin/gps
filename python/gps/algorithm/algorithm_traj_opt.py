@@ -4,20 +4,9 @@ import logging
 
 from gps.algorithm.algorithm import Algorithm
 from gps.algorithm.config import alg_traj_opt
-from gps.utility.general_utils import bundletype
-
+from gps.utility.general_utils import IterationData, TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
-
-# Set up an object to bundle variables
-ITERATION_VARS = ['sample_list', 'traj_info', 'traj_distr', 'cs',
-                  'step_change', 'mispred_std', 'polkl', 'step_mult']
-IterationData = bundletype('ItrData', ITERATION_VARS)
-
-# Note: last_kl_step isn't used in this alg, but is used in others (alg_badmm)
-TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
-TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
-
 
 class AlgorithmTrajOpt(Algorithm):
     """Sample-based trajectory optimization.
@@ -84,7 +73,7 @@ class AlgorithmTrajOpt(Algorithm):
             m: Condition
         """
         # No policy by default.
-        polkl = np.zeros(self.T)
+        pol_kl = np.zeros(self.T)
 
         # Compute values under Laplace approximation.
         # This is the policy that the previous samples were actually drawn from
@@ -109,10 +98,6 @@ class AlgorithmTrajOpt(Algorithm):
         new_mc_obj = np.mean(np.sum(self.cur[m].cs, axis=1), axis=0)
 
         LOGGER.debug('Trajectory step: ent: %f cost: %f -> %f', ent, previous_mc_obj, new_mc_obj)
-
-        # Compute misprediction vs Monte-Carlo score.
-        mispred_std = np.abs(np.sum(new_actual_laplace_obj) - new_mc_obj) / \
-            max(np.std(np.sum(self.cur[m].cs, axis=1), axis=0), 1.0)
 
         # Compute predicted and actual improvement.
         predicted_impr = np.sum(previous_laplace_obj) - np.sum(new_predicted_laplace_obj)
@@ -141,8 +126,7 @@ class AlgorithmTrajOpt(Algorithm):
             LOGGER.debug('Decreasing step size multiplier to %f', new_step)
 
         self.cur[m].step_change = step_change
-        self.cur[m].mispred_std = mispred_std
-        self.cur[m].polkl = polkl
+        self.cur[m].pol_kl = pol_kl
 
     # TODO - move to super class
     def _advance_iteration_variables(self):

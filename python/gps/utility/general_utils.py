@@ -42,6 +42,17 @@ def bundletype(name, vars):
     BundleType.__setattr__ = __setattr
     return BundleType
 
+# TODO(marvin): make classes for these.
+ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
+                  'step_change', 'pol_kl', 'step_mult']
+IterationData = bundletype('IterationData', ITERATION_VARS)
+
+TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
+TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
+
+POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
+                'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl']
+PolicyInfo = bundletype('PolicyInfo', POLINFO_VARS)
 
 def check_shape(value, expected_shape, name=''):
     """
@@ -63,7 +74,6 @@ def check_shape(value, expected_shape, name=''):
     if value.shape != tuple(expected_shape):
         raise ValueError('Shape mismatch %s: Expected %s, got %s' %
             (name, str(expected_shape), str(value.shape)))
-
 
 def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
     """
@@ -116,7 +126,6 @@ def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
         gradient[idx] += diff
     return gradient
 
-
 def approx_equal(a, b, threshold=1e-5):
     """
     Return whether two numbers are equal within an absolute threshold
@@ -137,4 +146,3 @@ def approx_equal(a, b, threshold=1e-5):
     False
     """
     return np.all(np.abs(a - b) < threshold)
-
