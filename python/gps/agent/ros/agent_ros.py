@@ -10,7 +10,6 @@ from gps_agent_pkg.msg import TrialCommand, ControllerParams, SampleResult, Posi
 from std_msgs.msg import Empty
 from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
-#from gps.agent.ros.ros_utils import ServiceEmulator, construct_sample_from_ros_msg, policy_object_to_ros_msg
 
 
 class AgentROS(Agent):
@@ -64,6 +63,7 @@ class AgentROS(Agent):
         request = DataRequest()
         request.id = self._get_next_seq_id()
         request.arm = arm
+        request.stamp = rospy.get_rostime()
         result_msg = self._data_service.publish_and_wait(request)
         # TODO - make IDs match, assert that they match elsewhere here.
         #assert result_msg.id == request.id
@@ -80,6 +80,7 @@ class AgentROS(Agent):
         """
         relax_command = RelaxCommand()
         relax_command.id = self._get_next_seq_id()
+        relax_command.stamp = rospy.get_rostime()
         relax_command.arm = arm
         self._relax_service.publish_and_wait(relax_command)
 
@@ -125,7 +126,7 @@ class AgentROS(Agent):
             policy: A Policy object (ex. LinGauss, or CaffeNetwork)
             condition (int): Which condition setup to run.
 
-        Returns:
+        Returns: 
             A Sample object
         """
         self.reset(condition)
@@ -141,6 +142,7 @@ class AgentROS(Agent):
         trial_command.id = self._get_next_seq_id()
         trial_command.controller = policy_to_msg(policy, noise)
         trial_command.T = self.T
+        trial_command.id = self._get_next_seq_id()
         trial_command.frequency = self._hyperparams['frequency']
         ee_points = self._hyperparams['end_effector_points']
         trial_command.ee_points = ee_points.reshape(ee_points.size).tolist()
