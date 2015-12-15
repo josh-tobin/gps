@@ -1,11 +1,7 @@
-import rospy
-import roslib; roslib.load_manifest('gps_agent_pkg')
-from sensor_msgs.msg import Joy
-
+import itertools
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 
-import itertools
 
 class ActionAxis:
 
@@ -37,18 +33,24 @@ class ActionAxis:
                 self._keyboard_bindings[action._kb] = key
         self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
 
-        # PS3 Input
-        # TODO - only run this code if ros is installed
-        self._ps3_bindings = {}
-        for key, action in self._actions.iteritems():
-            if action._pb is not None:
-                self._ps3_bindings[action._pb] = key
-        for key, value in list(self._ps3_bindings.iteritems()):
-            for permuted_key in itertools.permutations(key, len(key)):
-                self._ps3_bindings[permuted_key] = value
-        self._ps3_count = 0
-        self._ps3_process_rate = ps3_process_rate
-        rospy.Subscriber(ps3_topic, Joy, self.ps3_callback)
+        # PS3 Input using ROS
+        try:
+            import rospy
+            import roslib; roslib.load_manifest('gps_agent_pkg')
+            from sensor_msgs.msg import Joy
+            self._ps3_bindings = {}
+            for key, action in self._actions.iteritems():
+                if action._pb is not None:
+                    self._ps3_bindings[action._pb] = key
+            for key, value in list(self._ps3_bindings.iteritems()):
+                for permuted_key in itertools.permutations(key, len(key)):
+                    self._ps3_bindings[permuted_key] = value
+            self._ps3_count = 0
+            self._ps3_process_rate = ps3_process_rate
+            rospy.Subscriber(ps3_topic, Joy, self.ps3_callback)
+        except ImportError as e:
+            print 'PS3 not enabled', e
+
 
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:
