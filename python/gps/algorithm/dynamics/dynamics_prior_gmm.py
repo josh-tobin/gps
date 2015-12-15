@@ -11,15 +11,15 @@ class DynamicsPriorGMM(object):
     A dynamics prior encoded as a GMM over [x_t, u_t, x_t+1] points
 
     See:
-    S. Levine, P. Abbeel, "Learning Neural Network Policies with Guided Policy Search 
-    under Unknown Dynamics", NIPS 2014
+    S. Levine*, C. Finn*, T. Darrell, P. Abbeel, "End-to-end training of Deep
+    Visuomotor Policies", arXiv:1504.00702, Appendix A.3.
     """
     def __init__(self, min_samples_per_cluster=40, max_clusters=40, max_samples=20, strength=1.0):
         """
         Args:
             min_samples_per_cluster: Default 40
             max_clusters: Maximum number of clusters to fit. Default 40
-            max_samples: Maximum number of trajectories to use for fitting the GMM at 
+            max_samples: Maximum number of trajectories to use for fitting the GMM at
                 any given time. Default 20
             strength: Adjust strength of prior. Default 1.0
         """
