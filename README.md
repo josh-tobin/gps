@@ -75,7 +75,7 @@ Follow the following steps to get set up
 ## Intended Usage
 1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
 
-2. Add a hyperparams.py file to your directory. See 'experiments/pr2_example/hyperparams.py' an example.
+2. Add a hyperparams.py file to your directory. See [pr2_example](https://github.com/cbfinn/gps/blob/master/experiments/pr2_example/hyperparams.py) and [mjc_example](https://github.com/cbfinn/gps/blob/master/experiments/mjc_example/hyperparams.py) for examples.
 
 3. Run the following:
     ```sh
