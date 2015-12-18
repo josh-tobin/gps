@@ -33,7 +33,7 @@ Follow the following steps to get set up
 
     ```sh
     export GPS_PATH=/path/to/gps
-    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/python/gps
+    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/python
     ```
 
 4. Compile protobuffer:
