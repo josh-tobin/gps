@@ -4,9 +4,9 @@ import os, os.path
 import sys
 import copy
 import argparse
-
-from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
+from gps.gui.gps_training_gui import GPSTrainingGUI
+
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 

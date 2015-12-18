@@ -33,13 +33,13 @@ Follow the following steps to get set up
 
     ```sh
     export GPS_PATH=/path/to/gps
-    export PYTHONPATH=$PYTHONPATH:GPS_PATH/python/gps
+    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/python
     ```
 
 4. Compile protobuffer:
 
     ```sh
-    cd GPS_PATH
+    cd $GPS_PATH
     ./compile_proto.sh
     ```
 
@@ -51,7 +51,7 @@ Follow the following steps to get set up
 
 3. Set up paths:
     ```sh
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:GPS_PATH/lib:GPS_PATH/build/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GPS_PATH/lib:$GPS_PATH/build/lib
     ```
 
 
@@ -62,7 +62,7 @@ Follow the following steps to get set up
 2. Set up paths:
 
     ```sh
-    export ROS_PACKAGE_PATH:$ROS_PACKAGE_PATH:GPS_PATH:GPS_PATH/src/gps_agent_pkg
+    export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$GPS_PATH:$GPS_PATH/src/gps_agent_pkg
     ```
 3. Compilation:
 
