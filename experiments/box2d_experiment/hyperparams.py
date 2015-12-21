@@ -16,12 +16,9 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
-
 SENSOR_DIMS = {
     POSITION: 2,
-    # ANGLE: 1,
     LINEAR_VELOCITY: 2,
-    # ANGULAR_VELOCITY: 1,
     ACTION: 2
 }
 

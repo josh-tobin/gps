@@ -41,7 +41,6 @@ class AgentBox2D(Agent):
     def _setup_world(self, target):
         """
         Helper method for handling setup of the Box2D world.
-        TODO: Add ability to specify in config which simulation with particular initialization
 
         """
         self.x0 = self._hyperparams["x0"]
@@ -91,6 +90,5 @@ class AgentBox2D(Agent):
         return sample
 
     def _set_sample(self, sample, b2d_X, t, condition):
-        sample.set(LINEAR_VELOCITY, np.array(b2d_X[LINEAR_VELOCITY]),t=t+1)
-        sample.set(POSITION, np.array(b2d_X[POSITION]),t=t+1)
-
+        for x in b2d_X.keys():
+            sample.set(x, np.array(b2d_X[x]),t=t+1)
