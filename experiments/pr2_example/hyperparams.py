@@ -187,6 +187,7 @@ config = {
     'iterations': 20,
     'common': common,
     'agent': agent,
+    'gui_on': True,
     'algorithm': algorithm,
     'num_samples': 5,
 }
