@@ -6,7 +6,6 @@ import copy
 import argparse
 import threading
 
-import matplotlib.pyplot as plt
 from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.gui.target_setup_gui import TargetSetupGUI
@@ -22,27 +21,15 @@ class GPSMain():
     hyperparams: nested dictionary of hyperparameters, indexed by the type
         of hyperparameter
     """
-    def __init__(self, config):
+    def __init__(self, config, agent, gui=None):
         self._hyperparams = config
         self._iterations = config['iterations']
         self._conditions = config['common']['conditions']
         self._data_files_dir = config['common']['data_files_dir']
 
-        self.agent = config['agent']['type'](config['agent'])
+        self.agent = agent
         self.data_logger = DataLogger()
-
-        if config['gui_on']:
-            self.gui = GPSTrainingGUI(self.agent, config['common'])
-
-            def blocking_matplotlib_event_loop():
-                plt.ioff()
-                plt.show()
-
-            t = threading.Thread(target=blocking_matplotlib_event_loop, args = ())
-            t.daemon = True
-            t.start()
-        else:
-            self.gui = None
+        self.gui = gui
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
@@ -107,6 +94,8 @@ if __name__ == "__main__":
     hyperparams = imp.load_source('hyperparams', hyperparams_filepath)
 
     if run_target_setup:
+        import matplotlib.pyplot as plt
+
         agent = AgentROS(hyperparams.config['agent'])
         target_setup_gui = TargetSetupGUI(agent, hyperparams.config['common'])
 
@@ -116,8 +105,27 @@ if __name__ == "__main__":
         import random; random.seed(0)
         import numpy as np; np.random.seed(0)
 
-        g = GPSMain(hyperparams.config)
-        if resume_training_itr is None:
-            g.run()
+        # workaround because gui must be run on main thread
+        # and AgentROS must be created on main thread
+        agent = hyperparams.config['agent']['type'](hyperparams.config['agent'])
+
+        def launch_gps(gui=None):
+            g = GPSMain(hyperparams.config, agent, gui=gui)
+            if resume_training_itr is None:
+                g.run()
+            else:
+                g.resume(resume_training_itr)
+
+        if hyperparams.config['gui_on']:
+                import matplotlib.pyplot as plt
+
+                gui = GPSTrainingGUI(agent, hyperparams.config['common'])
+
+                t = threading.Thread(target=lambda: launch_gps(gui=gui), args=())
+                t.daemon = True
+                t.start()
+
+                plt.ioff()
+                plt.show()
         else:
-            g.resume(resume_training_itr)
+            launch_gps(gui=None)
