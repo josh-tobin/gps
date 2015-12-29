@@ -26,8 +26,8 @@ class PolicyOptCaffe(PolicyOpt):
 
         self.batch_size = self._hyperparams['batch_size']
 
-        caffe.set_device(self._hyperparams['gpu_id'])
         if self._hyperparams['use_gpu']:
+            caffe.set_device(self._hyperparams['gpu_id'])
             caffe.set_mode_gpu()
         else:
             caffe.set_mode_cpu()
@@ -132,9 +132,9 @@ class PolicyOptCaffe(PolicyOpt):
         idx = range(N*T)
         average_loss = 0
         np.random.shuffle(idx)
-        for itr in range(self._hyperparams['iterations']):
+        for i in range(self._hyperparams['iterations']):
             # Load in data for this batch
-            start_idx = int(itr*self.batch_size % (batches_per_epoch*self.batch_size))
+            start_idx = int(i*self.batch_size % (batches_per_epoch*self.batch_size))
             idx_i = idx[start_idx:start_idx+self.batch_size]
             self.solver.net.blobs[blob_names[0]].data[:] = obs[idx_i]
             self.solver.net.blobs[blob_names[1]].data[:] = tgt_mu[idx_i]
@@ -145,17 +145,17 @@ class PolicyOptCaffe(PolicyOpt):
             # To get the training loss:
             train_loss = self.solver.net.blobs[blob_names[-1]].data
             average_loss += train_loss
-            if itr % 500 == 0 and itr != 0:
-                LOGGER.debug('Caffe iteration %d, average loss %f', itr, average_loss / 500)
+            if i % 500 == 0 and i != 0:
+                LOGGER.debug('Caffe iteration %d, average loss %f', i, average_loss / 500)
                 average_loss = 0
 
             # To run a  test
-            #if itr % test_interval:
-            #    print 'Iteration', itr, 'testing...'
+            #if i % test_interval:
+            #    print 'Iteration', i, 'testing...'
             #    solver.test_nets[0].forward()
 
-        # Save out the weights, TODO - figure out how to get itr number
-        self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
+        # Save out the weights
+        self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr'+str(itr)+'.caffemodel')
 
         # Optimize variance
         A = np.sum(tgt_prc_orig,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
