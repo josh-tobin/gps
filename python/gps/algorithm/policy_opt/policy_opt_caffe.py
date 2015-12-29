@@ -26,8 +26,8 @@ class PolicyOptCaffe(PolicyOpt):
 
         self.batch_size = self._hyperparams['batch_size']
 
-        caffe.set_device(self._hyperparams['gpu_id'])
         if self._hyperparams['use_gpu']:
+            caffe.set_device(self._hyperparams['gpu_id'])
             caffe.set_mode_gpu()
         else:
             caffe.set_mode_cpu()
