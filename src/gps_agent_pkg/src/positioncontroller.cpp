@@ -39,7 +39,7 @@ PositionController::PositionController(ros::NodeHandle& n, gps::ActuatorType arm
 
     // Initialize Jacobian temporary storage.
     temp_jacobian_.resize(6,size);
-    ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
+    //ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
 
     // Set initial mode.
     mode_ = gps::NO_CONTROL;
@@ -178,8 +178,8 @@ bool PositionController::is_finished() const
         double epsvel = 0.01;
         double error = (current_angles_ - target_angles_).norm();
         double vel = current_angle_velocities_.norm();
-        ROS_INFO("error: %f", error);
-        ROS_INFO("vel: %f", vel);
+        //ROS_INFO("error: %f", error);
+        //ROS_INFO("vel: %f", vel);
         return (error < epspos && vel < epsvel);
     }
     else if (mode_ == gps::NO_CONTROL){

@@ -36,7 +36,7 @@ BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
     'conditions': 1,
-    'experiment_dir': BASE_DIR + '/experiments/default_pr2_experiment/',
+    'experiment_dir': BASE_DIR + '/experiments/pr2_example/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 common['target_files_dir'] = common['experiment_dir'] + 'target_files/'

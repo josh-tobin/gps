@@ -88,6 +88,10 @@ protected:
     ros_publisher_ptr(gps_agent_pkg::SampleResult) report_publisher_;
     // Is a data request pending?
     bool data_request_waiting_;
+    // Are the sensors initialized?
+    bool sensors_initialized_;
+    // Is everything initialized for the trial controller?
+    bool controller_initialized_;
 public:
     // Constructor (this should do nothing).
     RobotPlugin();

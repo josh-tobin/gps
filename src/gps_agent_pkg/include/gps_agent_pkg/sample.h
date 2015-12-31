@@ -65,8 +65,10 @@ public:
 
     // Get sensor meta-data.
     virtual void get_meta_data(gps::SampleType type, int &data_size, SampleDataFormat &data_format, OptionsMap &meta_data_) const;
-    // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
+    // Set sensor meta-data. Simplified version for non-matrix types. Note that this resizes any fields that don't match the current format and deletes their data!
     virtual void set_meta_data(gps::SampleType type, int data_size, SampleDataFormat data_format, OptionsMap meta_data_);
+    // Set sensor meta-data. Note that this resizes any fields that don't match the current format and deletes their data!
+    virtual void set_meta_data(gps::SampleType type, int data_size_rows, int data_size_cols, SampleDataFormat data_format, OptionsMap meta_data_);
     // Get datatypes which have metadata set
     virtual void get_available_dtypes(std::vector<gps::SampleType> &types);
 
@@ -83,6 +85,11 @@ public:
 
     // Add sensor data for given timestep.
     virtual void set_data(int t, gps::SampleType type, SampleVariant data, int data_size, SampleDataFormat data_format);
+    // Add sensor data for given timestep. Specialized version for Eigen matrix and vector data types.
+    virtual void set_data_vector(int t, gps::SampleType type, double *data, int data_size, SampleDataFormat data_format);
+    // Add sensor data for given timestep. Specialized version for Eigen matrix and vector data types.
+    virtual void set_data_vector(int t, gps::SampleType type, double *data, int data_rows, int data_cols, SampleDataFormat data_format);
+
 
     // Fill shape with dimensions of data
     virtual void get_shape(gps::SampleType sample_type, std::vector<int> &shape);
