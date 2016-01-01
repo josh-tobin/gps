@@ -32,9 +32,6 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     get_action(step_counter_, X, obs, torques);
 
     // Set the torques for the sample
-    // TODO: This should be done by a "TorqueSensor"
-    OptionsMap sample_metadata;
-    sample->set_meta_data(gps::ACTION,torques.size(),SampleDataFormatEigenVector,sample_metadata);
     sample->set_data(step_counter_,gps::ACTION,torques,torques.size(),SampleDataFormatDouble);
 
     // Update last update time.
