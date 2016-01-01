@@ -5,88 +5,110 @@ from gps.utility.gmm import GMM
 
 LOGGER = logging.getLogger(__name__)
 
-#TODO: Add comments
+
 class DynamicsPriorGMM(object):
-	def __init__(self):
-		self.X = None
-		self.U = None
-		self.gmm = GMM()
-		self.min_samples_per_cluster = 40
-		self.max_samples = 20
-		self.max_clusters = 40
-		self.strength = 1.0
+    """
+    A dynamics prior encoded as a GMM over [x_t, u_t, x_t+1] points
 
-	def initial_state(self):
-		# Compute mean and covariance.
-		mu0 = np.mean(self.X[:,0,:],axis=0)
-		Phi = np.diag(np.var(self.X[:,0,:],axis=0))
+    See:
+    S. Levine*, C. Finn*, T. Darrell, P. Abbeel, "End-to-end training of Deep
+    Visuomotor Policies", arXiv:1504.00702, Appendix A.3.
+    """
+    def __init__(self, min_samples_per_cluster=40, max_clusters=40, max_samples=20, strength=1.0):
+        """
+        Args:
+            min_samples_per_cluster: Default 40
+            max_clusters: Maximum number of clusters to fit. Default 40
+            max_samples: Maximum number of trajectories to use for fitting the GMM at
+                any given time. Default 20
+            strength: Adjust strength of prior. Default 1.0
+        """
+        self.X = None
+        self.U = None
+        self.gmm = GMM()
+        self.min_samples_per_cluster = min_samples_per_cluster
+        self.max_samples = max_clusters
+        self.max_clusters = max_samples
+        self.strength = strength
 
-		# Factor in multiplier.
-		n0 = self.X.shape[2]*self.strength;
-		m = self.X.shape[2]*self.strength;
+    def initial_state(self):
+        """
+        Return dynamics prior for initial time step
+        """
+        # Compute mean and covariance.
+        mu0 = np.mean(self.X[:,0,:],axis=0)
+        Phi = np.diag(np.var(self.X[:,0,:],axis=0))
 
-		# Multiply Phi by m (since it was normalized before).
-		Phi = Phi*m;
-		return mu0, Phi, m, n0
+        # Factor in multiplier.
+        n0 = self.X.shape[2]*self.strength;
+        m = self.X.shape[2]*self.strength;
 
-	def update(self,X,U):
-		# Retrain GMM using additional data.
-		# Constants.
-		T = X.shape[1]-1; # Note that we subtract 1, since last step doesn't have dynamics.
+        # Multiply Phi by m (since it was normalized before).
+        Phi = Phi*m;
+        return mu0, Phi, m, n0
 
-		# Append data to dataset.
-		if self.X is None:
-			self.X = X
-		else:
-			self.X = np.concatenate([self.X, X], axis=0)
+    def update(self,X,U):
+        """
+        Update prior with additional data
+        Args:
+            X: A N x T x dX matrix of sequential state data
+            U: A N x T x dU matrix of sequential control data
 
-		if self.U is None:
-			self.U = U
-		else:
-			self.U = np.concatenate([self.U, U], axis=0)
+        Returns: None
+        """
+        # Retrain GMM using additional data.
+        # Constants.
+        T = X.shape[1]-1; # Note that we subtract 1, since last step doesn't have dynamics.
 
-		# Remove excess samples from dataset.
-		strt = max(0,self.X.shape[0]-self.max_samples+1)
-		self.X = self.X[strt:,:]
-		self.U = self.U[strt:,:]
+        # Append data to dataset.
+        if self.X is None:
+            self.X = X
+        else:
+            self.X = np.concatenate([self.X, X], axis=0)
 
-		# Get indices of fitted and known dimensions.
-		#Xtgt = self.getdynamicstarget(self.X);
+        if self.U is None:
+            self.U = U
+        else:
+            self.U = np.concatenate([self.U, U], axis=0)
 
-		# Compute cluster dimensionality.
-		Do = X.shape[2]+U.shape[2]+X.shape[2];  # TODO: Use Xtgt
+        # Remove excess samples from dataset.
+        strt = max(0,self.X.shape[0]-self.max_samples+1)
+        self.X = self.X[strt:,:]
+        self.U = self.U[strt:,:]
 
-		# Create dataset.
-		N = self.X.shape[0]
-		#xux = np.reshape(np.c_[self.X[:,:T,:], self.U[:,:T,:], Xtgt[:,:T,:]], [Do, T*N])
-		xux = np.reshape(np.c_[self.X[:,:T,:],self.U[:,:T,:],self.X[:,1:(T+1),:]], [T*N, Do])
+        # Compute cluster dimensionality.
+        Do = X.shape[2]+U.shape[2]+X.shape[2];  # TODO: Use Xtgt
 
-		# Choose number of clusters.
-		K = int(max(2,min(self.max_clusters, np.floor(float(N*T)/self.min_samples_per_cluster))))
-		LOGGER.debug('Generating %d clusters for dynamics GMM.', K)
+        # Create dataset.
+        N = self.X.shape[0]
+        xux = np.reshape(np.c_[self.X[:,:T,:],self.U[:,:T,:],self.X[:,1:(T+1),:]], [T*N, Do])
 
-		# Update GMM.
-		self.gmm.update(xux,K)
+        # Choose number of clusters.
+        K = int(max(2,min(self.max_clusters, np.floor(float(N*T)/self.min_samples_per_cluster))))
+        LOGGER.debug('Generating %d clusters for dynamics GMM.', K)
 
-	def eval(self, Dx, Du, pts):
-		"""
-		Args:
-			pts: A N x Dx+Du+Dx matrix
-		"""
-		# Evaluate the dynamics prior.
+        # Update GMM.
+        self.gmm.update(xux,K)
 
-		# Construct query data point by rearranging entries and adding in
-		# reference.
-		#pts = np.c_[Ts, Ps]
-		assert pts.shape[1] == Dx+Du+Dx
+    def eval(self, Dx, Du, pts):
+        """
+        Evaluate prior
+        Args:
+            pts: A N x Dx+Du+Dx matrix
+        """
+        # Evaluate the dynamics prior.
 
-		# Perform query and fix mean.
-		mu0,Phi,m,n0 = self.gmm.inference(pts)
+        # Construct query data point by rearranging entries and adding in
+        # reference.
+        assert pts.shape[1] == Dx+Du+Dx
 
-		# Factor in multiplier.
-		n0 = n0*self.strength
-		m = m*self.strength
+        # Perform query and fix mean.
+        mu0,Phi,m,n0 = self.gmm.inference(pts)
 
-		# Multiply Phi by m (since it was normalized before).
-		Phi = Phi*m
-		return mu0, Phi, m, n0
+        # Factor in multiplier.
+        n0 = n0*self.strength
+        m = m*self.strength
+
+        # Multiply Phi by m (since it was normalized before).
+        Phi = Phi*m
+        return mu0, Phi, m, n0

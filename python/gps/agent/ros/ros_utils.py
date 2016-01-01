@@ -52,9 +52,9 @@ class ServiceEmulator(object):
 
     Args:
         pub_topic (string): Publisher topic
-        pub_type (class): Publisher message type. Must have a header field (for seq id checking)
+        pub_type (class): Publisher message type.
         sub_topic (string): Subscriber topic
-        sub_type (class): Subscriber message type. Must have a header field (for seq id checking)
+        sub_type (class): Subscriber message type.
     """
     def __init__(self, pub_topic, pub_type, sub_topic, sub_type):
         self._pub = rospy.Publisher(pub_topic, pub_type)
@@ -72,23 +72,32 @@ class ServiceEmulator(object):
         """ Publish a message without waiting for response """
         self._pub.publish(pub_msg)
 
-    def publish_and_wait(self, pub_msg, timeout=5.0):
+    def publish_and_wait(self, pub_msg, timeout=5.0, poll_delay=0.01, check_id=False):
         """
         Publish a message and wait for the response.
 
         Args:
             pub_msg (pub_type): Message to publish
             timeout (float, optional): Timeout in seconds. Default 5.0
+            poll_delay (float, optional): Speed of 
+                polling for the subscriber message in seconds. Default 0.01
+            check_id (bool, optional): If enabled, will only return messages with
+                a matching id field. Currently not implemented.
         Returns:
             sub_msg (sub_type): Subscriber message
         """
+        if check_id:
+            # This is not yet implemented in C++
+            raise NotImplementedError()
+
         self._waiting = True
         self.publish(pub_msg)
 
         time_waited = 0
         while self._waiting:
-            rospy.sleep(0.01)
+            rospy.sleep(poll_delay)
             time_waited += 0.01
             if time_waited > timeout:
                 raise TimeoutException(time_waited)
         return self._subscriber_msg
+

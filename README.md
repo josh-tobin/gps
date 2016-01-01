@@ -33,13 +33,13 @@ Follow the following steps to get set up
 
     ```sh
     export GPS_PATH=/path/to/gps
-    export PYTHONPATH=$PYTHONPATH:GPS_PATH/python/gps
+    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/python
     ```
 
 4. Compile protobuffer:
 
     ```sh
-    cd GPS_PATH
+    cd $GPS_PATH
     ./compile_proto.sh
     ```
 
@@ -51,7 +51,7 @@ Follow the following steps to get set up
 
 3. Set up paths:
     ```sh
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:GPS_PATH/lib:GPS_PATH/build/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GPS_PATH/lib:$GPS_PATH/build/lib
     ```
 
 
@@ -62,7 +62,7 @@ Follow the following steps to get set up
 2. Set up paths:
 
     ```sh
-    export ROS_PACKAGE_PATH:$ROS_PACKAGE_PATH:GPS_PATH:GPS_PATH/src/gps_agent_pkg
+    export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$GPS_PATH:$GPS_PATH/src/gps_agent_pkg
     ```
 3. Compilation:
 
@@ -75,7 +75,7 @@ Follow the following steps to get set up
 ## Intended Usage
 1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
 
-2. Copy hyperparams.py.example to your directory, renaming it hyperparams.py and modifying it for your experiment
+2. Add a hyperparams.py file to your directory. See [pr2_example](https://github.com/cbfinn/gps/blob/master/experiments/pr2_example/hyperparams.py) and [mjc_example](https://github.com/cbfinn/gps/blob/master/experiments/mjc_example/hyperparams.py) for examples.
 
 3. Run the following:
     ```sh

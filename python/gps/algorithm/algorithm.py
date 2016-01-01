@@ -64,7 +64,7 @@ class Algorithm(object):
             pol_info = self.cur[m].pol_info if 'pol_info' in dir(self.cur[m]) else None
             self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
                     self.T, self.cur[m].step_mult, self.eta[m],
-                    self.cur[m].traj_info, self.new_traj_distr[m],
+                    self.cur[m].traj_info, self.cur[m].traj_distr,
                     pol_info)
 
     def _eval_cost(self, m):
@@ -91,6 +91,7 @@ class Algorithm(object):
             l, lx, lu, lxx, luu, lux = self.cost[m].eval(sample)
             cc[n, :] = l
             cs[n, :] = l
+
             # Assemble matrix and vector.
             cv[n, :, :] = np.c_[lx, lu]  # T x (X+U)
             Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
@@ -105,7 +106,8 @@ class Algorithm(object):
             cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
             cv[n, :, :] += cv_update
 
-        self.cur[m].traj_info.cc = np.mean(cc, 0)  # Costs. Average over samples
-        self.cur[m].traj_info.cv = np.mean(cv, 0)  # Cost, 1st deriv
-        self.cur[m].traj_info.Cm = np.mean(Cm, 0)  # Cost, 2nd deriv
-        self.cur[m].cs = cs
+        # Fill in cost estimate
+        self.cur[m].traj_info.cc = np.mean(cc, 0)  # constant term (scalar)
+        self.cur[m].traj_info.cv = np.mean(cv, 0)  # linear term (vector)
+        self.cur[m].traj_info.Cm = np.mean(Cm, 0)  # quadratic term (matrix)
+        self.cur[m].cs = cs # true value of cost

@@ -69,15 +69,16 @@ keyboard_bindings = {
     'rc':  'o',
     'mm':  'p',
 
-    # Training Handler
+    # GPS Training
     'stop':  's',
-    'st-re': 'd',
     'reset': 'f',
     'start': 'g',
+    'estop': None,
 }
+inverted_keyboard_bindings = {value: key for key, value in keyboard_bindings.iteritems()}
 
 # Mappings from actions to their corresponding ps3 controller bindings
-ps3_controller_bindings = {
+ps3_bindings = {
     # Target Setup
     'ptn'  : (ps3_button['rear_right_1'], ps3_button['cross_left']),
     'ntn'  : (ps3_button['rear_right_1'], ps3_button['cross_right']),
@@ -94,28 +95,39 @@ ps3_controller_bindings = {
     'rc'   : (ps3_button['rear_right_2'], ps3_button['cross_down']),
     'mm'   : (ps3_button['rear_right_2'], ps3_button['cross_up']),
 
-    # Training Handler
+    # GPS Training
     'stop' : (ps3_button['rear_right_2'], ps3_button['action_square']),
-    'st-re': (ps3_button['rear_right_2'], ps3_button['action_cross']),
     'reset': (ps3_button['rear_right_2'], ps3_button['action_triangle']),
     'start': (ps3_button['rear_right_2'], ps3_button['action_circle']),
+    'estop': None,
 }
+inverted_ps3_bindings = {value: key for key, value in ps3_bindings.iteritems()}
 
-gui = {
-    'keyboard_bindings' : keyboard_bindings,
-    'ps3_controller_bindings': ps3_controller_bindings,
-    'ps3_controller_topic': 'joy',
-    'ps3_controller_message_rate': 20,  # only process every 1 of 20 ps3 controller messages
-    'actions_log_filename': 'actions_log.txt',
+common = {
+    'ps3_button': ps3_button,
+    'inverted_ps3_button': inverted_ps3_button,
+    'ps3_axis': ps3_axis,
+    'inverted_ps3_ax': inverted_ps3_axis,
+
+    'keyboard_bindings': keyboard_bindings,
+    'inverted_keyboard_bindings': inverted_keyboard_bindings,
+    'ps3_bindings': ps3_bindings,
+    'inverted_ps3_bindings': inverted_ps3_bindings,
+
+    'ps3_topic': 'joy',
+    'ps3_process_rate': 20,  # only process 1/20 of ps3 controller messages
+
+    'image_topic': '/camera/image/rgb_color',
 }
 
 target_setup = {
     'num_targets': 10,
     'actuator_types': [TRIAL_ARM, AUXILIARY_ARM],
     'actuator_names': ['trial_arm', 'auxiliary_arm'],
-}
-target_setup['num_actuators'] = len(target_setup['actuator_types'])
 
-training_handler = {
-    
+    'target_setup_log_filename': 'target_setup_log.txt',
+}
+
+gps_training = {
+    'gps_training_log_filename': 'gps_training_log.txt',
 }

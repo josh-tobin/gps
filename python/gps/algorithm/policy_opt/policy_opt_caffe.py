@@ -26,8 +26,8 @@ class PolicyOptCaffe(PolicyOpt):
 
         self.batch_size = self._hyperparams['batch_size']
 
-        caffe.set_device(self._hyperparams['gpu_id'])
         if self._hyperparams['use_gpu']:
+            caffe.set_device(self._hyperparams['gpu_id'])
             caffe.set_mode_gpu()
         else:
             caffe.set_mode_cpu()
@@ -77,7 +77,7 @@ class PolicyOptCaffe(PolicyOpt):
 
     # TODO - this assumes that the obs is a vector being passed into the
     # network in the same place (won't work with images or multimodal networks)
-    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, inner_itr):
+    def update(self, obs, tgt_mu, tgt_prc, tgt_wt, itr, inner_itr):
         """ Update policy.
 
         Args:
@@ -114,20 +114,15 @@ class PolicyOptCaffe(PolicyOpt):
         tgt_prc = np.reshape(tgt_prc, (N*T, dU, dU))
         tgt_wt = np.reshape(tgt_wt, (N*T, 1, 1))
 
-        # Adjust weights to alter learning rate.
-        t = max(min(float(inner_itr - 1) / self._hyperparams['rate_schedule_end'], 1.0), 0.0)
-        sch = self._hyperparams['rate_schedule']
-        rate = np.exp(np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
-        tgt_wt *= rate
-
         # Fold weights into tgt_prc.
         tgt_prc = tgt_wt * tgt_prc
 
         #TODO: find entries with very low weights?
 
-        # Normalize obs.
-        self.policy.scale = np.diag(1. / np.std(obs, axis=0))
-        self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
+        # Normalize obs, but only compute normalzation at the beginning.
+        if itr == 0 and inner_itr == 1:
+            self.policy.scale = np.diag(1. / np.std(obs, axis=0))
+            self.policy.bias = -np.mean(obs.dot(self.policy.scale), axis=0)
         obs = obs.dot(self.policy.scale) + self.policy.bias
 
         blob_names = self.solver.net.blobs.keys()
@@ -137,9 +132,9 @@ class PolicyOptCaffe(PolicyOpt):
         idx = range(N*T)
         average_loss = 0
         np.random.shuffle(idx)
-        for itr in range(self._hyperparams['iterations']):
+        for i in range(self._hyperparams['iterations']):
             # Load in data for this batch
-            start_idx = int(itr*self.batch_size % (batches_per_epoch*self.batch_size))
+            start_idx = int(i*self.batch_size % (batches_per_epoch*self.batch_size))
             idx_i = idx[start_idx:start_idx+self.batch_size]
             self.solver.net.blobs[blob_names[0]].data[:] = obs[idx_i]
             self.solver.net.blobs[blob_names[1]].data[:] = tgt_mu[idx_i]
@@ -150,17 +145,17 @@ class PolicyOptCaffe(PolicyOpt):
             # To get the training loss:
             train_loss = self.solver.net.blobs[blob_names[-1]].data
             average_loss += train_loss
-            if itr % 500 == 0 and itr != 0:
-                LOGGER.debug('Caffe iteration %d, average loss %f', itr, average_loss / 500)
+            if i % 500 == 0 and i != 0:
+                LOGGER.debug('Caffe iteration %d, average loss %f', i, average_loss / 500)
                 average_loss = 0
 
             # To run a  test
-            #if itr % test_interval:
-            #    print 'Iteration', itr, 'testing...'
+            #if i % test_interval:
+            #    print 'Iteration', i, 'testing...'
             #    solver.test_nets[0].forward()
 
-        # Save out the weights, TODO - figure out how to get itr number
-        self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr1.caffemodel')
+        # Save out the weights
+        self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr'+str(itr)+'.caffemodel')
 
         # Optimize variance
         A = np.sum(tgt_prc_orig,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
