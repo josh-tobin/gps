@@ -351,7 +351,7 @@ class AlgorithmBADMM(Algorithm):
         # Print improvement details.
         LOGGER.debug('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
         LOGGER.debug('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
-        print('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
+        LOGGER.debug('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
         LOGGER.debug('Previous KL: Laplace: %f MC: %f', np.sum(previous_laplace_kl), np.sum(previous_mc_kl))
         LOGGER.debug('Predicted new KL: Laplace: %f MC: %f', np.sum(new_predicted_laplace_kl), np.sum(new_mc_kl))
         LOGGER.debug('Actual new KL: Laplace: %f MC: %f', np.sum(new_actual_laplace_kl), np.sum(new_mc_kl))
