@@ -161,8 +161,6 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]).transpose();
     n_points_ = end_effector_points_.cols();
 
-    ROS_INFO("Points are: %f %f %f",end_effector_points_(0,0),end_effector_points_(0,1),end_effector_points_(0,2));
-
     if( end_effector_points_.cols() != 3){
         ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", (int)n_points_,
                 (int)end_effector_points_.cols());
