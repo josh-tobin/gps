@@ -81,7 +81,6 @@ public:
     // Update the sensor (called every tick).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
-    // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(OptionsMap &options);
     // Set data format and meta data on the provided sample.
     virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);

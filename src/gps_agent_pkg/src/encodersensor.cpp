@@ -3,8 +3,6 @@
 
 using namespace gps_control;
 
-/* TODO: need to add Kalman filter, set up Kalman filter parameters, and configure everything correctly with filter */
-
 // Constructor.
 EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
 {
@@ -39,6 +37,9 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 
     // Set time.
     previous_angles_time_ = ros::Time(0.0); // This ignores the velocities on the first step.
+
+    // Initialize and configure Kalman filter
+    joint_filter_.reset(new EncoderFilter(n, previous_angles_));
 }
 
 // Destructor.
@@ -50,13 +51,17 @@ EncoderSensor::~EncoderSensor()
 // Update the sensor (called every tick).
 void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
 {
+    double update_time = current_time.toSec() - previous_angles_time_.toSec();
+
+    // Get new vector of joint angles from plugin.
+    plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
+    joint_filter_->update(update_time, temp_joint_angles_);
+
     //ROS_INFO_STREAM("EncoderSensor::update");
     if (is_controller_step)
     {
-        // Get new vector of joint angles from plugin.
-        plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
-
-        // TODO: use Kalman filter...
+        // Get filtered joint angles
+        joint_filter_->get_state(temp_joint_angles_);
 
         // Get FK solvers from plugin.
         plugin->get_fk_solver(fk_solver_,jac_solver_, gps::TRIAL_ARM);
@@ -147,16 +152,13 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     }
 }
 
-// The settings include the configuration for the Kalman filter.
 void EncoderSensor::configure_sensor(OptionsMap &options)
 {
-    // TODO: should set up Kalman filter here.
     /* TODO: note that this will get called every time there is a report, so
     we should not throw out the previous transform just because we are trying
     to set end-effector points. Instead, just use the stored transform to
     compute what the points should be! This will allow us to query positions
     and velocities each time. */
-    ROS_WARN("Kalman filter configuration not implemented!");
 
     end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]).transpose();
     n_points_ = end_effector_points_.cols();
