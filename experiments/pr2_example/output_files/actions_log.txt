@@ -28,3 +28,15 @@ ee_rot0 = [[[ 0.34926147  0.53282343 -0.77078896]
   [-0.92619876  0.07162302 -0.37017022]
   [-0.14202914  0.84318998  0.51851556]]]
 
+Waiting for response from agent...
+
+next_actuator_type:
+actuator type = 1
+actuator name = auxiliary_arm
+
+next_actuator_type:
+actuator type = 0
+actuator name = trial_arm
+
+Waiting for response from agent...
+

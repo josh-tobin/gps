@@ -26,10 +26,10 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
 
     // Allocate space for end effector points
     n_points_ = 1;
-    previous_end_effector_points_.resize(1,3);
-    previous_end_effector_point_velocities_.resize(1,3);
-    temp_end_effector_points_.resize(1,3);
-    end_effector_points_.resize(1,3);
+    previous_end_effector_points_.resize(3,1);
+    previous_end_effector_point_velocities_.resize(3,1);
+    temp_end_effector_points_.resize(3,1);
+    end_effector_points_.resize(3,1);
     end_effector_points_.fill(0.0);
 
     // Resize point jacobians
@@ -88,7 +88,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
 
         for(int i=0; i<n_points_; i++){
             unsigned site_start = i*3;
-            Eigen::VectorXd ovec = end_effector_points_.row(i);
+            Eigen::VectorXd ovec = end_effector_points_.col(i);
 
             for(unsigned j=0; j<3; j++){
                 for(unsigned k=0; k<n_actuator; k++){
@@ -107,8 +107,8 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         }
 
         // Compute current end effector points and store in temporary storage.
-        temp_end_effector_points_ = end_effector_points_*previous_rotation_.transpose();
-        temp_end_effector_points_.rowwise() += previous_position_;
+        temp_end_effector_points_ = previous_rotation_*end_effector_points_;
+        temp_end_effector_points_.colwise() += previous_position_;
 
         // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes...
 
@@ -158,16 +158,18 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     and velocities each time. */
     ROS_WARN("Kalman filter configuration not implemented!");
 
-    end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]);
-    n_points_ = end_effector_points_.rows();
+    end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]).transpose();
+    n_points_ = end_effector_points_.cols();
+
+    ROS_INFO("Points are: %f %f %f",end_effector_points_(0,0),end_effector_points_(0,1),end_effector_points_(0,2));
 
     if( end_effector_points_.cols() != 3){
         ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", (int)n_points_,
                 (int)end_effector_points_.cols());
     }
-    previous_end_effector_points_.resize(n_points_,3);
-    previous_end_effector_point_velocities_.resize(n_points_,3);
-    temp_end_effector_points_.resize(n_points_,3);
+    previous_end_effector_points_.resize(3, n_points_);
+    previous_end_effector_point_velocities_.resize(3, n_points_);
+    temp_end_effector_points_.resize(3, n_points_);
     point_jacobians_.resize(3*n_points_, previous_angles_.size());
     point_jacobians_rot_.resize(3*n_points_, previous_angles_.size());
 
