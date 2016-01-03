@@ -31,12 +31,12 @@ class ActionAxis:
             if action._axis_pos is not None:
                 if ros_enabled:
                     if inverted_ps3_button is not None and action._pb is not None:
-                        ps3_bindings_str = '(' + ',\n'.join([inverted_ps3_button[i] for i in action._pb]) + ')'
+                        ps3_bindings_str = ',\n'.join([inverted_ps3_button[i] for i in action._pb])
                     else:
                         ps3_bindings_str = str(action._pb)
-                    button_name = '%s\n%s\n%s' % (action._name, action._kb, ps3_bindings_str)
+                    button_name = '%s\n(%s)\n(%s)' % (action._name, action._kb, ps3_bindings_str)
                 else:
-                    button_name = '%s\n%s' % (action._name, action._kb)
+                    button_name = '%s\n(%s)' % (action._name, action._kb)
                 self._buttons[key] = Button(self._axarr[action._axis_pos], button_name)
                 self._buttons[key].on_clicked(action._func)
 

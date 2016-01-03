@@ -63,8 +63,11 @@ class GPSTrainingGUI:
         # GUI Components
         plt.ion()
         self._fig = plt.figure(figsize=(10, 10))
-        self._fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         self._gs  = gridspec.GridSpec(4, 4)
+
+        self._fig.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
+        self._fig.canvas.toolbar.pack_forget()
+        plt.rcParams['keymap.save'] = ''    # remove 's' keyboard shortcut for saving
 
         # Action Axis
         self._gs_action = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=self._gs[0:1, 0:4])
@@ -81,7 +84,7 @@ class GPSTrainingGUI:
         # Plot Axis
         self._gs_plot = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
         self._ax_plot = plt.subplot(self._gs_plot[0])
-        self._plot_axis = MeanPlotter(self._ax_plot, label=['cost'])
+        self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])

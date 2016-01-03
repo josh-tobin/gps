@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 
 class MeanPlotter:
 
-    def __init__(self, axis, label='mean', color='black', alpha=0.15, min_itr=10):
+    def __init__(self, axis, label='mean', color='black', alpha=1.0, min_itr=10):
         self._ax = axis
         self._label = label
         self._color = color
@@ -19,11 +19,11 @@ class MeanPlotter:
         self._data_mean = np.empty((1, 0))
 
         self._plots = [self._ax.plot([], [], '.', color=self._color, alpha=self._alpha)[0] for _ in range(data_len)]
-        self._plots_mean = self._ax.plot([], [], '-', color=self._color, alpha=1.0, label=self._label)[0]
+        self._plots_mean = self._ax.plot([], [], '-o', color=self._color, alpha=1.0, label=self._label)[0]
         
         self._ax.set_xlim(0, self._min_itr)
         self._ax.set_ylim(0, 1)
-        self._ax.legend(loc='upper left', bbox_to_anchor=(0, 1.15))
+        self._ax.legend(loc='upper left', bbox_to_anchor=(0, 1))
 
         self._init = True
 

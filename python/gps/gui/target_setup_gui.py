@@ -88,8 +88,11 @@ class TargetSetupGUI:
         # GUI Components
         plt.ion()
         self._fig = plt.figure(figsize=(10, 10))
-        self._fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         self._gs  = gridspec.GridSpec(4, 4)
+
+        self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
+        self._fig.canvas.toolbar.pack_forget()
+        plt.rcParams['keymap.save'] = ''    # remove 's' keyboard shortcut for saving
 
         # Action Axis
         self._gs_action = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs[0:2, 0:4])
