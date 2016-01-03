@@ -24,8 +24,7 @@ class ImageVisualizer:
                 import roslib; roslib.load_manifest('gps_agent_pkg')
                 from sensor_msgs.msg import Image
 
-                rospy.init_node('img_visualizer', anonymous=True)
-                rospy.Subscriber(rostopic, Image, update_ros, queue_size=1, buff_size=2**24)
+                rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1, buff_size=2**24)
             except ImportError as e:
                 print 'rostopic image visualization not enabled', e
 

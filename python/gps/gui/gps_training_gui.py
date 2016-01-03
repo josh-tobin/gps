@@ -63,6 +63,7 @@ class GPSTrainingGUI:
         # GUI Components
         plt.ion()
         self._fig = plt.figure(figsize=(10, 10))
+        self._fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         self._gs  = gridspec.GridSpec(4, 4)
 
         # Action Axis
