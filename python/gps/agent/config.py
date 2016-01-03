@@ -36,7 +36,7 @@ try:
         'trial_timeout': 20,  # Give this many seconds to execute a trial.
         'reset_conditions': [],  # Defines reset modes + positions for trial and auxiliary arms
         'frequency': 20,
-        'smooth_noise': False,
+        'smooth_noise': True,
         'smooth_noise_var': 2.0,
         'smooth_noise_renormalize': True,
         'end_effector_points': np.array([]),
@@ -50,7 +50,7 @@ try:
                                 #15, 10, 2, 4,
                                #]),
         # high gains
-        'pid_params': np.array([120, 0.0, 30, 4,
+        'pid_params': np.array([1200, 0.0, 30, 4,
                                 1200, 0.0, 10, 4,
                                 1000, 0.0, 6, 4,
                                 700, 0.0, 4, 4,

@@ -17,10 +17,7 @@ Joint encoder sensor: returns joint angles and, optionally, their velocities.
 // Superclass.
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/sample.h"
-
-/*
-TODO: this thing needs a Kalman filter.
-*/
+#include "gps_agent_pkg/encoderfilter.h"
 
 // This sensor writes to the following data types:
 // JointAngle
@@ -58,6 +55,8 @@ private:
     boost::shared_ptr<KDL::ChainFkSolverPos> fk_solver_;
     boost::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
 
+    boost::scoped_ptr<EncoderFilter> joint_filter_;
+
     // End-effector points in the space of the end-effector.
     Eigen::MatrixXd end_effector_points_;
     // Previous end-effector points.
@@ -82,7 +81,6 @@ public:
     // Update the sensor (called every tick).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
-    // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(OptionsMap &options);
     // Set data format and meta data on the provided sample.
     virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);

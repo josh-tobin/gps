@@ -10,6 +10,8 @@ from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.gui.target_setup_gui import TargetSetupGUI
 from gps.utility.data_logger import DataLogger
+from gps.gui.gps_training_gui import GPSTrainingGUI
+
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 

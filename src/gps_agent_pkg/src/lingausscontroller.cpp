@@ -1,6 +1,6 @@
 #include "gps_agent_pkg/robotplugin.h"
 #include "gps_agent_pkg/lingausscontroller.h"
-#include "gps_agent_pkg/utils.h"
+#include "gps_agent_pkg/util.h"
 
 using namespace gps_control;
 

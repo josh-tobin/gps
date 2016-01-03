@@ -18,7 +18,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
-from gps.gui.target_setup import load_from_npz
+from gps.gui.target_setup_gui import load_from_npz
 
 ee_points = np.array([[0.02,-0.025,0.05],[0.02,-0.025,0.05],[0.02,0.05,0.0]])
 

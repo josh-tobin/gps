@@ -6,7 +6,7 @@
 #include "gps_agent_pkg/trialcontroller.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
-#include "gps_agent_pkg/utils.h"
+#include "gps_agent_pkg/util.h"
 #include "gps/proto/gps.pb.h"
 #include <vector>
 
@@ -29,6 +29,8 @@ void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     ROS_INFO_STREAM("Initializing RobotPlugin");
     data_request_waiting_ = false;
+    sensors_initialized_ = false;
+    controller_initialized_ = false;
 
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
@@ -80,6 +82,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     // Create current state sample and populate it using the sensors.
     current_time_step_sample_.reset(new Sample(MAX_TRIAL_LENGTH));
     initialize_sample(current_time_step_sample_);
+    sensors_initialized_ = true;
 }
 
 
@@ -87,6 +90,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 void RobotPlugin::configure_sensors(OptionsMap &opts)
 {
     ROS_INFO("configure sensors");
+    sensors_initialized_ = false;
     for (int i = 0; i < 1; i++)
     // TODO: readd this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
@@ -94,6 +98,11 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
         sensors_[i]->configure_sensor(opts);
         sensors_[i]->set_sample_data_format(current_time_step_sample_);
     }
+    // Set sample data format on the actions, which are not handled by any sensor.
+    OptionsMap sample_metadata;
+    current_time_step_sample_->set_meta_data(
+        gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
+    sensors_initialized_ = true;
 }
 
 // Initialize position controllers.
@@ -117,12 +126,16 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
     {
         sensors_[i]->set_sample_data_format(sample);
     }
+    // Set sample data format on the actions, which are not handled by any sensor.
+    OptionsMap sample_metadata;
+    sample->set_meta_data(gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
     ROS_INFO("set sample data format");
 }
 
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
+    if (!sensors_initialized_) return; // Don't try to use sensors until initialization finishes.
     //if(!is_controller_step){ //TODO: Remove this
         //return;
     //}
@@ -155,7 +168,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     // TODO - don't pass in wrong sample if used
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
-    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
+    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured() && controller_initialized_;
     if(!is_controller_step && trial_init){
         return;
     }
@@ -268,6 +281,8 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     OptionsMap controller_params;
     ROS_INFO_STREAM("received trial command");
 
+    controller_initialized_ = false;
+
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
     if (T > MAX_TRIAL_LENGTH) {
@@ -277,6 +292,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
     // TODO - it seems like the below could cause a race condition seg fault,
     // but I haven't seen one happen yet...
+    // Sergey: I have...
     initialize_sample(current_time_step_sample_);
 
     float frequency = msg->frequency;  // Controller frequency
@@ -348,6 +364,8 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }
     sensor_params["ee_sites"] = ee_points;
     configure_sensors(sensor_params);
+
+    controller_initialized_ = true;
 }
 
 void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
