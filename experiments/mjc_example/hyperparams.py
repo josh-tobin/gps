@@ -40,6 +40,8 @@ common = {
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
 
+if not os.path.exists(common['target_files_dir']):
+    os.makedirs(common['target_files_dir'])
 if not os.path.exists(common['output_files_dir']):
     os.makedirs(common['output_files_dir'])
 if not os.path.exists(common['data_files_dir']):
@@ -132,6 +134,6 @@ config = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
-    # 'gui': gui,  # For sim, we probably don't want the gui right now.
+    'gui_on': True,
     'algorithm': algorithm,
 }
