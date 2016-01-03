@@ -105,7 +105,7 @@ class TargetSetupGUI:
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
         self._ax_image = plt.subplot(self._gs_image[0])
-        self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240,240))
+        self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
 
         self._fig.canvas.draw()
 
