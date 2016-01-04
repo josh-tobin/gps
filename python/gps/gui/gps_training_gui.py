@@ -74,12 +74,11 @@ class GPSTrainingGUI:
                 ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
-        self._ax_action_output = plt.subplot(self._gs_output[1, 2:4])
+        self._ax_action_output = plt.subplot(self._gs_action[1, 2:4])
         self._action_output_axis = OutputAxis(self._ax_action_output, max_display_size=5, log_filename=self._log_filename)
 
-        self._ax_status_output = plt.subplot(self._gs_output[1, 0:2])
+        self._ax_status_output = plt.subplot(self._gs_action[1, 0:2])
         self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
-        self.update_status_text()
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2, 0:4])
@@ -93,7 +92,6 @@ class GPSTrainingGUI:
         self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
         self._ax_vis = plt.subplot(self._gs_vis[0])
         self._vis_axis = ImageVisualizer(self._ax_vis, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
-
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
@@ -115,11 +113,20 @@ class GPSTrainingGUI:
     def request_fail(self, event=None):
         self.request_action('fail', 'orange')
 
-    def request_action(self, request, color):
+    def request_action(self, request, request_color):
         self.request = request
-        self.request_color = color
+        self.request_color = request_color
         self.set_action_text(request + ' requested')
-        self.set_action_bgcolor(color, alpha=0.5)
+        self.set_action_bgcolor(request_color, alpha=0.5)
+
+    def receive(self):
+        self.receive_action(self.request, self.request_color)
+
+    def receive_action(self, request, request_color):
+        self.set_action_text(request + 'received')
+        self.set_action_bgcolor(request_color, alpha=1.0)
+        self.request = None
+        self.request_color = None
 
     def wait(self):
         self.request = 'wait'
@@ -127,20 +134,11 @@ class GPSTrainingGUI:
         self.set_action_text('waiting')
         self.set_action_bgcolor(self.request_color, alpha=1.0)
 
-    def receive(self):
-        receive_action(self.request, self.request_color)
-
-    def receive_action(self, request, color):
-        self.set_action_text(request + 'received')
-        self.set_action_bgcolor(request_color, alpha=1.0)
-        self.request = None
-        self.request_color = None
-
-    def clear_request():
+    def clear_request(self):
         self.request = None
         self.request_color = None
         self.set_action_text('')
-        self.set_action_bg_color(None)
+        self.set_action_bgcolor('gray')
 
     def estop(self, event=None):
         self.set_action_text('estop: NOT IMPLEMENTED')

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import matplotlib.colors.ColorConverter as cc
+from matplotlib.colors import ColorConverter
 
 class OutputAxis:
 
@@ -9,6 +9,8 @@ class OutputAxis:
         self._text_arr = []
         self._max_display_size = max_display_size
         self._log_filename = log_filename
+
+        self.cc = ColorConverter()
         self.draw()
 
     def set_text(self, text):
@@ -41,7 +43,7 @@ class OutputAxis:
         self._axis.set_axis_on()
         self._axis.set_xticks([])
         self._axis.set_yticks([])
-        self._axis.set_axis_bgcolor(cc.to_rgba(color, alpha))
+        self._axis.set_axis_bgcolor(self.cc.to_rgba(color, alpha))
         self._fig.canvas.draw()
 
 if __name__ == "__main__":

@@ -91,7 +91,8 @@ class GPSMain():
                                 elif self.gui.request == 'go':
                                     self.gui.receive()
                                     wait = False
-
+                            self.gui.clear_request()
+                            
                             self.agent.sample(pol, m, verbose=True)
 
                             if self.gui.request == 'fail':
