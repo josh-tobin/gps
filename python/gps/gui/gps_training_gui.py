@@ -39,11 +39,10 @@ class GPSTrainingGUI:
         self._hyperparams.update(copy.deepcopy(gps_training_config))
         self._hyperparams.update(hyperparams)
 
-        # Output files
+        self._log_filename = self._hyperparams['log_filename']
         self._output_files_dir = self._hyperparams['output_files_dir']
-        self._log_filename = self._output_files_dir + self._hyperparams['gps_training_log_filename']
 
-        # GPS Training
+        # GPS Training Status
         pass
 
         # Actions

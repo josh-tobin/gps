@@ -32,21 +32,21 @@ BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/mjc_example/'
 
 common = {
-    'conditions': 4,
-    'experiment_dir': EXP_DIR,
-    'target_files_dir': EXP_DIR + 'target_files/',
-    'output_files_dir': EXP_DIR + 'output_files/',
-    'data_files_dir': EXP_DIR + 'data_files/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_dir': EXP_DIR,
+    'data_files_dir': EXP_DIR + 'data_files/',
+    'target_filename': EXP_DIR + 'target.npz',
+    'log_filename': EXP_DIR + 'log.txt',
 }
 
-if not os.path.exists(common['target_files_dir']):
-    os.makedirs(common['target_files_dir'])
-if not os.path.exists(common['output_files_dir']):
-    os.makedirs(common['output_files_dir'])
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
+if not os.path.exists(common['target_filename'])
+    open(common['target_filename'], 'w')
+if not os.path.exists(common['log_filename'])
+    open(common['log_filename'], 'w')
 
+conditions = 4
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
@@ -54,7 +54,7 @@ agent = {
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
-    'conditions': common['conditions'],
+    'conditions': conditions,
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
         np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
@@ -67,7 +67,7 @@ agent = {
 
 algorithm = {
     'type': AlgorithmTrajOpt,
-    'conditions': common['conditions'],
+    'conditions': conditions,
 }
 
 algorithm['init_traj_distr'] = {

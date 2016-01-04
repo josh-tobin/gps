@@ -45,21 +45,22 @@ class TargetSetupGUI:
         self._hyperparams.update(copy.deepcopy(target_setup_config))
         self._hyperparams.update(hyperparams)
 
-        # Output files
-        self._output_files_dir = self._hyperparams['output_files_dir']
-        self._target_files_dir = self._hyperparams['target_files_dir']
-        self._log_filename = self._output_files_dir + self._hyperparams['target_setup_log_filename']
+        self._log_filename = self._hyperparams['log_filename']
+        self._target_filename = self._hyperparams['target_filename']
 
-        # Target Setup
         self._num_targets = self._hyperparams['num_targets']
         self._actuator_types = self._hyperparams['actuator_types']
         self._actuator_names = self._hyperparams['actuator_names']
         self._num_actuators = len(self._actuator_types)
 
+        # Target Setup Status
         self._target_number = 0
         self._actuator_number = 0
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
+        self._initial_position = ('unknown', 'unknown', 'unknown')  # (ja, eepos, eerot)
+        self._target_position  = ('unknown', 'unknown', 'unknown')  # (ja, eepos, eerot)
+        self.update_positions()
 
         # Actions
         actions_arr = [
@@ -116,166 +117,135 @@ class TargetSetupGUI:
     # Target Setup Functions
     def prev_target_number(self, event=None):
         self._target_number = (self._target_number - 1) % self._num_targets
-        self.set_text(
-                'prev_target_number:' + '\n' +
-                'target number = ' + str(self._target_number))
+        self.update_positions()
+        self.update_text()
 
     def next_target_number(self, event=None):
         self._target_number = (self._target_number + 1) % self._num_targets
-        self.set_text(
-                'next_target_number:' + '\n' +
-                'target number = ' + str(self._target_number))
+        self.update_positions()
+        self.update_text()
 
     def prev_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number - 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self.set_text(
-                'prev_actuator_type:' + '\n' +
-                'actuator type = ' + str(self._actuator_type) + '\n' +
-                'actuator name = ' + str(self._actuator_name))
+        self.update_positions()
+        self.update_text()
 
     def next_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number + 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self.set_text(
-                'next_actuator_type:' + '\n' +
-                'actuator type = ' + str(self._actuator_type) + '\n' +
-                'actuator name = ' + str(self._actuator_name))
+        self.update_positions()
+        self.update_text()
 
     def set_initial_position(self, event=None):
         sample = self._agent.get_data(arm=self._actuator_type)
-        filename = self._target_files_dir + self._actuator_name + '_initial.npz'
-
-        ja_key = 'ja' + str(self._target_number)
-        ja_val = sample.get(JOINT_ANGLES)
-        add_to_npz(filename, ja_key, ja_val)
-
-        ee_pos_key = 'ee_pos' + str(self._target_number)
-        ee_pos_val = sample.get(END_EFFECTOR_POSITIONS)
-        add_to_npz(filename, ee_pos_key, ee_pos_val)
-
-        ee_rot_key = 'ee_rot' + str(self._target_number)
-        ee_rot_val = sample.get(END_EFFECTOR_ROTATIONS)
-        add_to_npz(filename, ee_rot_key, ee_rot_val)
-
-        self.set_text(
-                'set_initial_position:' + '\n' +
-                'filename = ' + filename + '\n' +
-                ja_key + ' = ' + str(ja_value.T) + '\n' +
-                ee_pos_key + ' = ' + str(ee_pos_val) + '\n' +
-                ee_rot_key + ' = ' + str(ee_rot_val))
+        ja = sample.get(JOINT_ANGLES)
+        ee_pos = sample.get(END_EFFECTOR_POSITIONS)
+        ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
+        self._initial_position = (ja, ee_pos, ee_rot)
+        save_position_to_npz(self._target_filename, self._actuator_name, self._target_number, 'initial', self._initial_position)
+        self.update_text()
 
     def set_target_position(self, event=None):
-        """
-        Grabs the current end effector points and joint angles of the trial
-        arm and saves to target file.
-        """
         sample = self._agent.get_data(arm=self._actuator_type)
-        filename = self._target_files_dir + self._actuator_name + '_target.npz'
-
-        ja_key = 'ja' + str(self._target_number)
-        ja_val = sample.get(JOINT_ANGLES)
-        add_to_npz(filename, ja_key, ja_val)
-
-        ee_pos_key = 'ee_pos' + str(self._target_number)
-        ee_pos_val = sample.get(END_EFFECTOR_POSITIONS)
-        add_to_npz(filename, ee_pos_key, ee_pos_val)
-
-        ee_rot_key = 'ee_rot' + str(self._target_number)
-        ee_rot_val = sample.get(END_EFFECTOR_ROTATIONS)
-        add_to_npz(filename, ee_rot_key, ee_rot_val)
-
-        self.set_text(
-                'set_target_position:' + '\n' +
-                'filename = ' + filename + '\n' +
-                ja_key + ' = ' + str(ja_value.T) + '\n' +
-                ee_pos_key + ' = ' + str(ee_pos_val) + '\n' +
-                ee_rot_key + ' = ' + str(ee_rot_val))
+        ja = sample.get(JOINT_ANGLES)
+        ee_pos = sample.get(END_EFFECTOR_POSITIONS)
+        ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
+        self._target_position = (ja, ee_pos, ee_rot))
+        save_position_to_npz(self._target_filename, self._actuator_name, self._target_number, 'target', self._target_position)
+        self.update_text()
 
     def set_initial_features(self, event=None):
-        pass
+        self.update_text(status='set_initial_features: NOT IMPLEMENTED')
 
     def set_target_features(self, event=None):
-        num_samples = 50
-        threshold = 0.8
+        self.update_text(status='set_target_features: NOT IMPLEMENTED')
+        # num_samples = 50
+        # threshold = 0.8
 
-        ft_points_samples = np.empty()
-        ft_prsnce_samples = np.empty()
-        for i in range(num_samples):
-            ft_points_samples.append(self._agent.get_data(self._actuator_type, VISUAL_FEATURE_POINTS))        # currently not implemented
-            ft_prsnce_samples.append(self._agent.get_data(self._actuator_type, VISUAL_FEATURE_PRESENCE))    # currently not implemented
-        ft_points_mean = np.mean(ft_points)
-        ft_prsnce_mean = np.mean(ft_pres)
+        # ft_points_samples = np.empty()
+        # ft_prsnce_samples = np.empty()
+        # for i in range(num_samples):
+        #     ft_points_samples.append(self._agent.get_data(self._actuator_type, VISUAL_FEATURE_POINTS))        # currently not implemented
+        #     ft_prsnce_samples.append(self._agent.get_data(self._actuator_type, VISUAL_FEATURE_PRESENCE))    # currently not implemented
+        # ft_points_mean = np.mean(ft_points)
+        # ft_prsnce_mean = np.mean(ft_pres)
 
-        ft_stable = np.array(ft_prsnce_mean >= threshold, dtype=int)
-        ft_points = ft_stable * ft_points_mean
+        # ft_stable = np.array(ft_prsnce_mean >= threshold, dtype=int)
+        # ft_points = ft_stable * ft_points_mean
 
-        filename = self._target_files_dir + self._actuator_name + '_target.npz'
+        # filename = self._target_files_dir + self._actuator_name + '_target.npz'
 
-        fp_key = 'fp' + str(self._target_number)
-        fp_value = ft_points
-        add_to_npz(filename, fp_key, fp_value)
+        # fp_key = 'fp' + str(self._target_number)
+        # fp_value = ft_points
+        # add_to_npz(filename, fp_key, fp_value)
 
-        fs_key = 'fs' + str(self._target_number)
-        fs_value = ft_stable
-        add_to_npz(filename, fs_key, fs_value)
+        # fs_key = 'fs' + str(self._target_number)
+        # fs_value = ft_stable
+        # add_to_npz(filename, fs_key, fs_value)
 
-        self.set_text(
-                'set_target_features' + '\n' +
-                'filename = ' + filename + '\n' +
-                fp_key + ' = ' + str(fp_value.T) + '\n' +
-                fs_key + ' = ' + str(fs_value.T))
+        # self.set_text(
+        #         'set_target_features' + '\n' +
+        #         'filename = ' + filename + '\n' +
+        #         fp_key + ' = ' + str(fp_value.T) + '\n' +
+        #         fs_key + ' = ' + str(fs_value.T))
 
     def move_to_initial(self, event=None):
-        filename = self._target_files_dir + self._actuator_name + '_initial.npz'
-        ja_key = 'ja' + str(self._target_number)
-        with np.load(filename) as f:
-            ja_value = f[ja_key]
-        self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja_value)
-        self.set_text(
-                'move_to_initial:' + '\n' +
-                ja_key + ' = ' + str(ja_value.T))
+        ja = self._initial_position[0]
+        self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja)
+        self.update_text(status='move_to_initial: %s' % (str(ja.T)))
 
     def move_to_target(self, event=None):
-        filename = self._target_files_dir + self._actuator_name + '_target.npz'
-        ja_key = 'ja' + str(self._target_number)
-        with np.load(filename) as f:
-            ja_value = f[ja_key]
-        self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja_value)
-        self.set_text(
-                'move_to_target:' + '\n' +
-                ja_key + ' = ' + str(ja_value.T))
+        ja = self._target_position[0]
+        self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja)
+        self.update_text(status='move_to_target: %s' % (str(ja.T)))
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self.set_text(
-                'relax_controller:' + '\n' +
-                'actuator type = ' + str(self._actuator_type) + '\n' +
-                'actuator name = ' + str(self._actuator_name))
+        self.update_text(status='relax_controller: %s' % (str(ja.T)))
 
     def mannequin_mode(self, event=None):
-        # TO-DO
-        self.set_text(
-                'mannequin_mode:' + '\n' +
-                'NOT YET IMPLEMENTED')
+        self.update_text(status='mannequin_mode: NOT IMPLEMENTED')
 
     # GUI functions
-    def set_text(self, text):
+    def update_text(self, status=None):
+        text =  'target number = %s\n' % (str(self._target_number)) +
+                'actuator name = %s\n' % (str(self._actuator_name)) +
+                'initial position\n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._initial_position +
+                'target position \n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._target_position
+        if status:
+            text += '\nstatus: %s\n' % (status)
         self._output_axis.set_text(text)
-
-    def append_text(self, text):
-        self._output_axis.append_text(text)
 
     def set_bgcolor(self, color):
         self._output_axis.set_bgcolor(color)
 
-def add_to_npz(filename, key, value):
-    """
-    Helper function for adding a new (key,value) pair to a npz dictionary.
+    def update_positions(self):
+        self._initial_position = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial')
+        self._target_position  = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target')
 
-    Note: key must be a string and value must be a numpy array.
+def save_position_to_npz(filename, actuator_name, target_number, data_time, values):
+    ja, ee_pos, ee_rot = values
+    save_data_to_npz(filename, actuator_name, target_number, data_time, 'ja',     ja)
+    save_data_to_npz(filename, actuator_name, target_number, data_time, 'ee_pos', ee_pos)
+    save_data_to_npz(filename, actuator_name, target_number, data_time, 'ee_rot', ee_rot)
+
+def save_data_to_npz(filename, actuator_name, target_number, data_time, data_name, value):
+    """
+    Save data to the specified file with key (actuator_name, target_number, data_time, data_name)
+    """
+    key = '_'.join((actuator_name, target_number, data_time, data_name))
+    save_to_npz(filename, key, value)
+
+def save_to_npz(filename, key, value):
+    """
+    Save a (key,value) pair to a npz dictionary.
+
+    filename    - the file containing the npz dictionary
+    key         - the key (string)
+    value       - the value (numpy array)
     """
     tmp = {}
     if os.path.exists(filename):
@@ -284,17 +254,36 @@ def add_to_npz(filename, key, value):
     tmp[key] = value
     np.savez(filename,**tmp)
 
-def load_from_npz(filename, key, default_dim=14):
+def load_position_from_npz(filename, actuator_name, target_number, data_time):
+    ja     = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ja',     default=np.zeros(7))
+    ee_pos = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_pos', default=np.zeros(3))
+    ee_rot = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_rot', default=np.zeros(9))[0]
+    return (ja, ee_pos, ee_rot)
+
+def load_data_from_npz(filename, actuator_name, target_number, data_time, data_name, default=None):
     """
-    Helper function for loading a target setup value from a npz dictionary.
+    Load data from the specified file with key (actuator_name, target_number, data_time, data_name)
+    """
+    key = '_'.join((actuator_name, target_number, data_time, data_name))
+    load_from_npz(filename, key, default_dim)
+
+def load_from_npz(filename, key, default=None):
+    """
+    Load a (key,value) pair from a npz dictionary.
+
+    filename    - the file containing the npz dictionary
+    key         - the key (string)
+    default_dim - the default dimension of the numpy array to return, if key or file not found
     """
     try:
         with np.load(filename) as f:
             return f[key]
     except IOError as e:
-        print('File not found: ' + filename + '\n' +
-              'Using default value instead: ' + key + ' = np.zeros('+str(default_dim)+').')
-    return np.zeros(default_dim)
+        print('File not found: %s\n' % (filename))
+    except KeyError as e:
+        print('Key not found: %s\n' % (key))
+    print('Using default value: %s = %s' % (key, str(default))
+    return default
 
 if __name__ == "__main__":
     import rospy
