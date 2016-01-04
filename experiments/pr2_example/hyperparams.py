@@ -36,7 +36,7 @@ BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 
 common = {
-    'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
@@ -182,3 +182,12 @@ config = {
     'algorithm': algorithm,
     'num_samples': 5,
 }
+
+info = ('experiment_name: '     + str(common['experiment_name'])        + '\n'
+        'algorithm_type: '      + str(algorithm['type'])                + '\n'
+        'algorithm_dynamics: '  + str(algorithm['dynamics']['type'])    + '\n'
+        'algorithm_cost: '      + str(algorithm['cost']['type'])        + '\n'
+        'iterations: '          + str(config['experiment_name'])        + '\n'
+        'conditions: '          + str(algorithm['conditions'])          + '\n'
+        'samples: '             + str(config['num_samples'])            + '\n')
+common['info'] = info

@@ -86,18 +86,20 @@ class GPSTrainingGUI:
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         self._ax_action_output = plt.subplot(self._gs_action[1, 2:4])
-        self._action_output_axis = OutputAxis(self._ax_action_output, log_filename=self._log_filename, border_on=True)
+        self._action_output_axis = OutputAxis(self._ax_action_output, border_on=True)
 
         self._ax_status_output = plt.subplot(self._gs_action[1, 0:2])
-        self._status_output_axis = OutputAxis(self._ax_status_output, log_filename=self._log_filename)
+        self._status_output_axis = OutputAxis(self._ax_status_output)
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2, 0:4])
-        self._ax_plot = plt.subplot(self._gs_output[0])
+        self._ax_plot = plt.subplot(self._gs_output[1])
         self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
 
-        self._ax_output = plt.subplot(self._gs_output[1])
+        self._ax_output = plt.subplot(self._gs_output[0])
         self._output_axis = OutputAxis(self._ax_output, max_display_size=10, log_filename=self._log_filename)
+        for line in self._hyperparams['info'].split('\n'):
+            self.append_output_text(line)
 
         # Visualization Axis
         self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
@@ -176,16 +178,22 @@ class GPSTrainingGUI:
     def set_status_text(self, text):
         self._status_output_axis.set_text(text)
 
+    def append_output_text(self, text):
+        self._output_axis.append_text(text)
+
     def set_action_text(self, text):
         self._action_output_axis.set_text(text)
 
     def set_action_bgcolor(self, color, alpha=1.0):
         self._action_output_axis.set_bgcolor(color, alpha)
 
-    def update(self, algorithm):
+    def update(self, algorithm, itr):
         if algorithm.M == 1:
-            # update with each sample's cost (summed over time)
-            self._plot_axis.update(np.sum(algorithm.prev[0].cs, axis=1))
+            # update plot with each sample's cost (summed over time)
+            costs = np.sum(algorithm.prev[0].cs, axis=1)
         else:
-            # update with each condition's mean sample cost (summed over time)
-            self._plot_axis.update([np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)])
+            # update plot with each condition's mean sample cost (summed over time)
+            costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
+        self._plot_axis.update(costs)
+
+        self.append_output_text('%02d | %f' % (itr, np.mean(costs)))

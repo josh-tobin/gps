@@ -104,7 +104,7 @@ class GPSMain():
                 self.gui.set_status_text('Logging data and updating gui.')
                 self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
-                self.gui.update(self.algorithm)
+                self.gui.update(self.algorithm, itr)
             self.gui.set_status_text('Training complete.')
             self.gui.end_mode()
         else:

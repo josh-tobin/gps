@@ -106,7 +106,7 @@ class TargetSetupGUI:
         self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs[2:4, 0:2])
 
         self._ax_action_output = plt.subplot(self._gs_output[3])
-        self._action_output_axis = OutputAxis(self._ax_action_output, log_filename=self._log_filename)
+        self._action_output_axis = OutputAxis(self._ax_action_output)
 
         self._ax_status_output = plt.subplot(self._gs_output[0:3])
         self._status_output_axis = OutputAxis(self._ax_status_output, log_filename=self._log_filename)
@@ -124,13 +124,13 @@ class TargetSetupGUI:
         self._target_number = (self._target_number - 1) % self._num_targets      
         self.reload_positions()
         self.update_status_text()
-        self.set_status_text()
+        self.set_action_text()
 
     def next_target_number(self, event=None):
         self._target_number = (self._target_number + 1) % self._num_targets        
         self.reload_positions()
         self.update_status_text()
-        self.set_status_text()
+        self.set_action_text()
 
     def prev_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number - 1) % self._num_actuators
@@ -138,7 +138,7 @@ class TargetSetupGUI:
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
         self.update_status_text()
-        self.set_status_text()
+        self.set_action_text()
 
     def next_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number + 1) % self._num_actuators
@@ -146,7 +146,7 @@ class TargetSetupGUI:
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
         self.update_status_text()
-        self.set_status_text()
+        self.set_action_text()
 
     def set_initial_position(self, event=None):
         sample = self._agent.get_data(arm=self._actuator_type)
@@ -156,7 +156,7 @@ class TargetSetupGUI:
         self._initial_position = (ja, ee_pos, ee_rot)
         save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial', self._initial_position)
         self.update_status_text()
-        self.set_status_text('set_initial_position: success')
+        self.set_action_text('set_initial_position: success')
 
     def set_target_position(self, event=None):
         sample = self._agent.get_data(arm=self._actuator_type)
@@ -167,13 +167,13 @@ class TargetSetupGUI:
         save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target', self._target_position)
         
         self.update_status_text()
-        self.set_status_text('set_target_position: success')
+        self.set_action_text('set_target_position: success')
 
     def set_initial_features(self, event=None):
-        self.set_status_text('set_initial_features: NOT IMPLEMENTED')
+        self.set_action_text('set_initial_features: NOT IMPLEMENTED')
 
     def set_target_features(self, event=None):
-        self.set_status_text('set_target_features: NOT IMPLEMENTED')
+        self.set_action_text('set_target_features: NOT IMPLEMENTED')
         # num_samples = 50
         # threshold = 0.8
 
@@ -207,19 +207,19 @@ class TargetSetupGUI:
     def move_to_initial(self, event=None):
         ja = self._initial_position[0]
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja)
-        self.set_status_text('move_to_initial: %s' % (str(ja.T)))
+        self.set_action_text('move_to_initial: %s' % (str(ja.T)))
 
     def move_to_target(self, event=None):
         ja = self._target_position[0]
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja)
-        self.set_status_text('move_to_target: %s' % (str(ja.T)))
+        self.set_action_text('move_to_target: %s' % (str(ja.T)))
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self.set_status_text('relax_controller: %s' % (self._actuator_name))
+        self.set_action_text('relax_controller: %s' % (self._actuator_name))
 
     def mannequin_mode(self, event=None):
-        self.set_status_text('mannequin_mode: NOT IMPLEMENTED')
+        self.set_action_text('mannequin_mode: NOT IMPLEMENTED')
 
     # GUI functions
     def update_status_text(self):
@@ -229,7 +229,7 @@ class TargetSetupGUI:
                 'target position \n    ja = %s\n    ee_pos = %s\n    ee_rot = %s\n' % self._target_position)
         self._status_output_axis.set_text(text)
 
-    def set_status_text(self, text=''):
+    def set_action_text(self, text=''):
         self._action_output_axis.set_text(text)
 
     def reload_positions(self):
