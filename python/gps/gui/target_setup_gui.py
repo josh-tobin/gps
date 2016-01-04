@@ -60,7 +60,7 @@ class TargetSetupGUI:
         self._actuator_name = self._actuator_names[self._actuator_number]
         self._initial_position = ('unknown', 'unknown', 'unknown')  # (ja, eepos, eerot)
         self._target_position  = ('unknown', 'unknown', 'unknown')  # (ja, eepos, eerot)
-        self.update_positions()
+        self.reload_positions()
 
         # Actions
         actions_arr = [
@@ -103,42 +103,49 @@ class TargetSetupGUI:
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         # Output Axis
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
-        self._ax_output = plt.subplot(self._gs_output[0])
-        self._output_axis = OutputAxis(self._ax_output, max_display_size=5, log_filename=self._log_filename)
+        self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs[2:4, 0:2])
+        self._ax_target_output = plt.subplot(self._gs_output[0:3])
+        self._target_output_axis = OutputAxis(self._ax_target_output, max_display_size=5, log_filename=self._log_filename)
+        self.update_target_text()
+
+        self._ax_status_output = plt.subplot(self._gs_output[3])
+        self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
         self._ax_image = plt.subplot(self._gs_image[0])
         self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
 
-        self.update_text()
         self._fig.canvas.draw()
 
     # Target Setup Functions
     def prev_target_number(self, event=None):
-        self._target_number = (self._target_number - 1) % self._num_targets
-        self.update_positions()
-        self.update_text()
+        self._target_number = (self._target_number - 1) % self._num_targets      
+        self.reload_positions()
+        self.update_target_text()
+        self.set_status_text()
 
     def next_target_number(self, event=None):
-        self._target_number = (self._target_number + 1) % self._num_targets
-        self.update_positions()
-        self.update_text()
+        self._target_number = (self._target_number + 1) % self._num_targets        
+        self.reload_positions()
+        self.update_target_text()
+        self.set_status_text()
 
     def prev_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number - 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self.update_positions()
-        self.update_text()
+        self.reload_positions()
+        self.update_target_text()
+        self.set_status_text()
 
     def next_actuator_type(self, event=None):
         self._actuator_number = (self._actuator_number + 1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
-        self.update_positions()
-        self.update_text()
+        self.reload_positions()
+        self.update_target_text()
+        self.set_status_text()
 
     def set_initial_position(self, event=None):
         sample = self._agent.get_data(arm=self._actuator_type)
@@ -147,7 +154,8 @@ class TargetSetupGUI:
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._initial_position = (ja, ee_pos, ee_rot)
         save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial', self._initial_position)
-        self.update_text()
+        self.update_target_text()
+        self.set_status_text('set_initial_position: success')
 
     def set_target_position(self, event=None):
         sample = self._agent.get_data(arm=self._actuator_type)
@@ -156,13 +164,15 @@ class TargetSetupGUI:
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._target_position = (ja, ee_pos, ee_rot)
         save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target', self._target_position)
-        self.update_text()
+        
+        self.update_target_text()
+        self.set_status_text('set_target_position: success')
 
     def set_initial_features(self, event=None):
-        self.update_text(status='set_initial_features: NOT IMPLEMENTED')
+        self.set_status_text('set_initial_features: NOT IMPLEMENTED')
 
     def set_target_features(self, event=None):
-        self.update_text(status='set_target_features: NOT IMPLEMENTED')
+        self.set_status_text('set_target_features: NOT IMPLEMENTED')
         # num_samples = 50
         # threshold = 0.8
 
@@ -196,34 +206,32 @@ class TargetSetupGUI:
     def move_to_initial(self, event=None):
         ja = self._initial_position[0]
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja)
-        self.update_text(status='move_to_initial: %s' % (str(ja.T)))
+        self.set_status_text('move_to_initial: %s' % (str(ja.T)))
 
     def move_to_target(self, event=None):
         ja = self._target_position[0]
         self._agent.reset_arm(arm=self._actuator_type, mode=JOINT_SPACE, data=ja)
-        self.update_text(status='move_to_target: %s' % (str(ja.T)))
+        self.set_status_text('move_to_target: %s' % (str(ja.T)))
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self.update_text(status='relax_controller: %s' % (str(ja.T)))
+        self.set_status_text('relax_controller: success')
 
     def mannequin_mode(self, event=None):
-        self.update_text(status='mannequin_mode: NOT IMPLEMENTED')
+        self.set_status_text('mannequin_mode: NOT IMPLEMENTED')
 
     # GUI functions
-    def update_text(self, status=None):
+    def update_target_text(self):
         text = ('target number = %s\n' % (str(self._target_number)) +
                 'actuator name = %s\n' % (str(self._actuator_name)) +
-                'initial position\n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._initial_position +
-                'target position \n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._target_position)
-        if status:
-            text += '\nstatus: %s\n' % (status)
-        self._output_axis.set_text(text)
+                'initial position\n    ja = %s\n    ee_pos = %s\n    ee_rot = %s\n' % self._initial_position +
+                'target position \n    ja = %s\n    ee_pos = %s\n    ee_rot = %s\n' % self._target_position)
+        self._target_output_axis.set_text(text)
 
-    def set_bgcolor(self, color):
-        self._output_axis.set_bgcolor(color)
+    def set_status_text(self, text=''):
+        self._status_output_axis.set_text(text)
 
-    def update_positions(self):
+    def reload_positions(self):
         self._initial_position = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial')
         self._target_position  = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target')
 
