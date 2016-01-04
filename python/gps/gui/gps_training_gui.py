@@ -41,8 +41,9 @@ class GPSTrainingGUI:
         self._log_filename = self._hyperparams['log_filename']
         
         # GPS Training Status
-        self._mode = 'run'       # valid modes: run, wait, end, request, process
-        self._request = None     # valid requests: stop, reset, go, fail, None
+        self.mode = 'run'       # valid modes: run, wait, end, request, process
+        self.request = None     # valid requests: stop, reset, go, fail, None
+        self.err_msg = None
         self._colors = {
             'run': 'cyan',
             'wait': 'orange',
@@ -56,10 +57,10 @@ class GPSTrainingGUI:
 
         # Actions
         actions_arr = [
-            Action('stop',  'stop',  self._request_stop,  axis_pos=0),
-            Action('reset', 'reset', self._request_reset, axis_pos=1),
-            Action('go',    'go',    self._request_go,    axis_pos=2),
-            Action('fail',  'fail',  self._request_fail,  axis_pos=3),
+            Action('stop',  'stop',  self.request_stop,  axis_pos=0),
+            Action('reset', 'reset', self.request_reset, axis_pos=1),
+            Action('go',    'go',    self.request_go,    axis_pos=2),
+            Action('fail',  'fail',  self.request_fail,  axis_pos=3),
         ]
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
@@ -108,53 +109,58 @@ class GPSTrainingGUI:
         self._ax_image = plt.subplot(self._gs_image[0])
         self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
 
+        self.run_mode()
         self._fig.canvas.draw()
 
     # GPS Training Functions
     def request_stop(self, event=None):
-        self._request_mode('stop')
+        self.request_mode('stop')
 
     def request_reset(self, event=None):
-        self._request_mode('reset')
+        self.request_mode('reset')
 
     def request_go(self, event=None):
-        self._request_mode('go')
+        self.request_mode('go')
 
     def request_fail(self, event=None):
-        self._request_mode('fail')
+        self.request_mode('fail')
 
     def request_mode(self, request):
-        self._mode = 'request'
-        self._request = request
-        self.set_action_text(self._request + ' requested')
-        self.set_action_bgcolor(self._colors[self._request], alpha=0.2)
+        self.mode = 'request'
+        self.request = request
+        self.set_action_text(self.request + ' requested')
+        self.set_action_bgcolor(self._colors[self.request], alpha=0.2)
 
     def process_mode(self):
-        self._mode = 'process'
-        if self._request:    
-            self.set_action_text(self._request + ' processed')
-            self.set_action_bgcolor(self._colors[self._request], alpha=1.0)
-            time.sleep(0.25)
-        if self._request in ('stop', 'reset', 'fail'):
-            self.waiting_mode()
-        elif self._request in ('go', None):
-            self.running_mode()
-        self._request = None
+        self.mode = 'process'
+        self.set_action_text(self.request + ' processed')
+        self.set_action_bgcolor(self._colors[self.request], alpha=1.0)
+        if self.err_msg:
+            self.set_action_text(self.request + ' processed' + '\nERROR: ' + self.err_msg)
+            self.err_msg = None
+            time.sleep(1.0)
+        else:
+            time.sleep(0.5)
+        if self.request in ('stop', 'reset', 'fail'):
+            self.wait_mode()
+        elif self.request == 'go':
+            self.run_mode()
+        self.request = None
 
     def wait_mode(self):
-        self._mode = 'wait'
+        self.mode = 'wait'
         self.set_action_text('waiting')
-        self.set_action_bgcolor(self._colors[self._mode], alpha=1.0)
+        self.set_action_bgcolor(self._colors[self.mode], alpha=1.0)
 
     def run_mode(self):
-        self._mode = 'run'
+        self.mode = 'run'
         self.set_action_text('running')
-        self.set_action_bgcolor(self._colors[self._mode], alpha=1.0)
+        self.set_action_bgcolor(self._colors[self.mode], alpha=1.0)
 
     def end_mode(self):
-        self._mode = 'end'
+        self.mode = 'end'
         self.set_action_text('ended')
-        self.set_action_bgcolor(self._colors[self._mode], alpha=1.0)
+        self.set_action_bgcolor(self._colors[self.mode], alpha=1.0)
 
     def estop(self, event=None):
         self.set_action_text('estop: NOT IMPLEMENTED')

@@ -80,9 +80,9 @@ class GPSMain():
                                         if type(self.agent) == AgentROS:
                                             self.agent.reset(condition)
                                         else:
-                                            print('ERROR: Only AgentROS can reset.')
+                                            self.gui.err_msg = 'Only AgentROS can reset.'
                                     elif self.gui.request == 'fail':
-                                        print('ERROR: Cannot fail before sampling.')
+                                        self.gui.err_msg = 'Cannot fail before sampling.'
                                     self.gui.process_mode() # complete request
                             
                             self.agent.sample(pol, m, verbose=True)
