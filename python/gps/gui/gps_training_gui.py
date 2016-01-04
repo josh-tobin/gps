@@ -41,15 +41,25 @@ class GPSTrainingGUI:
         self._log_filename = self._hyperparams['log_filename']
         
         # GPS Training Status
-        self.request = None
-        self.request_color = None
+        self._mode = 'run'       # valid modes: run, wait, end, request, process
+        self._request = None     # valid requests: stop, reset, go, fail, None
+        self._colors = {
+            'run': 'cyan',
+            'wait': 'orange',
+            'end': 'red',
+
+            'stop': 'red',
+            'reset': 'yellow',
+            'go': 'green',
+            'fail': 'magenta',
+        }
 
         # Actions
         actions_arr = [
-            Action('stop',  'stop',  self.request_stop,  axis_pos=0),
-            Action('reset', 'reset', self.request_reset, axis_pos=1),
-            Action('go',    'go',    self.request_go,    axis_pos=2),
-            Action('fail',  'fail',  self.request_fail,  axis_pos=3),
+            Action('stop',  'stop',  self._request_stop,  axis_pos=0),
+            Action('reset', 'reset', self._request_reset, axis_pos=1),
+            Action('go',    'go',    self._request_go,    axis_pos=2),
+            Action('fail',  'fail',  self._request_fail,  axis_pos=3),
         ]
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
@@ -102,44 +112,49 @@ class GPSTrainingGUI:
 
     # GPS Training Functions
     def request_stop(self, event=None):
-        self.request_action('stop', 'red')
+        self._request_mode('stop')
 
     def request_reset(self, event=None):
-        self.request_action('reset', 'yellow')
+        self._request_mode('reset')
 
     def request_go(self, event=None):
-        self.request_action('go', 'green')
+        self._request_mode('go')
 
     def request_fail(self, event=None):
-        self.request_action('fail', 'orange')
+        self._request_mode('fail')
 
-    def request_action(self, request, request_color):
-        self.request = request
-        self.request_color = request_color
-        self.set_action_text(request + ' requested')
-        self.set_action_bgcolor(request_color, alpha=0.2)
+    def request_mode(self, request):
+        self._mode = 'request'
+        self._request = request
+        self.set_action_text(self._request + ' requested')
+        self.set_action_bgcolor(self._colors[self._request], alpha=0.2)
 
-    def receive(self):
-        self.receive_action(self.request, self.request_color)
+    def process_mode(self):
+        self._mode = 'process'
+        if self._request:    
+            self.set_action_text(self._request + ' processed')
+            self.set_action_bgcolor(self._colors[self._request], alpha=1.0)
+            time.sleep(0.25)
+        if self._request in ('stop', 'reset', 'fail'):
+            self.waiting_mode()
+        elif self._request in ('go', None):
+            self.running_mode()
+        self._request = None
 
-    def receive_action(self, request, request_color):
-        self.set_action_text(request + 'received')
-        self.set_action_bgcolor(request_color, alpha=1.0)
-        self.request = None
-        self.request_color = None
-        time.sleep(0.25)
-
-    def waiting_mode(self):
-        self.request = 'wait'
-        self.request_color = 'orange'
+    def wait_mode(self):
+        self._mode = 'wait'
         self.set_action_text('waiting')
-        self.set_action_bgcolor(self.request_color, alpha=1.0)
+        self.set_action_bgcolor(self._colors[self._mode], alpha=1.0)
 
-    def running_mode(self):
-        self.request = None
-        self.request_color = None
+    def run_mode(self):
+        self._mode = 'run'
         self.set_action_text('running')
-        self.set_action_bgcolor('cyan', alpha=1.0)
+        self.set_action_bgcolor(self._colors[self._mode], alpha=1.0)
+
+    def end_mode(self):
+        self._mode = 'end'
+        self.set_action_text('ended')
+        self.set_action_bgcolor(self._colors[self._mode], alpha=1.0)
 
     def estop(self, event=None):
         self.set_action_text('estop: NOT IMPLEMENTED')
