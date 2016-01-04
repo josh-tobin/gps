@@ -78,25 +78,30 @@ class GPSMain():
                                     wait = False
                                 elif self.gui.request == 'stop':
                                     self.gui.receive()
-                                    self.gui.wait()
+                                    self.gui.waiting_mode()
                                 elif self.gui.request == 'reset':
                                     self.gui.receive()
                                     if type(self.agent) == AgentROS:
                                         self.agent.reset(condition)
                                     else:
                                         print('ERROR: only AgentROS can reset.')
-                                    self.gui.wait()
+                                    self.gui.waiting_mode()
                                 elif self.gui.request == 'wait':
                                     time.sleep(0.01)
                                 elif self.gui.request == 'go':
                                     self.gui.receive()
                                     wait = False
-                            self.gui.clear_request()
+                                elif self.gui.request == 'fail':
+                                    self.gui.receive()
+                                    self.gui.waiting_mode()
+                                    print('ERROR: cannot fail before sampling.')
                             
+                            self.gui.running_mode()
                             self.agent.sample(pol, m, verbose=True)
 
                             if self.gui.request == 'fail':
                                 self.gui.receive()
+                                self.gui.waiting_mode()
                                 redo = True
                             else:
                                 redo = False
@@ -113,6 +118,7 @@ class GPSMain():
                 self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
                 self.gui.update(self.algorithm)
+            self.gui.set_status_text('Training complete.')
         else:
             if itr_load is not None:
                 self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))

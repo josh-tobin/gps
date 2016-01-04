@@ -75,10 +75,10 @@ class GPSTrainingGUI:
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         self._ax_action_output = plt.subplot(self._gs_action[1, 2:4])
-        self._action_output_axis = OutputAxis(self._ax_action_output, max_display_size=5, log_filename=self._log_filename)
+        self._action_output_axis = OutputAxis(self._ax_action_output, log_filename=self._log_filename, border_on=True)
 
         self._ax_status_output = plt.subplot(self._gs_action[1, 0:2])
-        self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
+        self._status_output_axis = OutputAxis(self._ax_status_output, log_filename=self._log_filename)
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2, 0:4])
@@ -86,7 +86,7 @@ class GPSTrainingGUI:
         self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
 
         self._ax_output = plt.subplot(self._gs_output[1])
-        self._output_axis = OutputAxis(self._ax_output, max_display_size=5, log_filename=self._log_filename)
+        self._output_axis = OutputAxis(self._ax_output, max_display_size=10, log_filename=self._log_filename)
 
         # Visualization Axis
         self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
@@ -117,7 +117,7 @@ class GPSTrainingGUI:
         self.request = request
         self.request_color = request_color
         self.set_action_text(request + ' requested')
-        self.set_action_bgcolor(request_color, alpha=0.5)
+        self.set_action_bgcolor(request_color, alpha=0.2)
 
     def receive(self):
         self.receive_action(self.request, self.request_color)
@@ -127,18 +127,19 @@ class GPSTrainingGUI:
         self.set_action_bgcolor(request_color, alpha=1.0)
         self.request = None
         self.request_color = None
+        time.sleep(0.25)
 
-    def wait(self):
+    def waiting_mode(self):
         self.request = 'wait'
         self.request_color = 'orange'
         self.set_action_text('waiting')
         self.set_action_bgcolor(self.request_color, alpha=1.0)
 
-    def clear_request(self):
+    def running_mode(self):
         self.request = None
         self.request_color = None
-        self.set_action_text('')
-        self.set_action_bgcolor('gray')
+        self.set_action_text('running')
+        self.set_action_bgcolor('cyan', alpha=1.0)
 
     def estop(self, event=None):
         self.set_action_text('estop: NOT IMPLEMENTED')

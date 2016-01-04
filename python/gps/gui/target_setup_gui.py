@@ -105,11 +105,11 @@ class TargetSetupGUI:
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs[2:4, 0:2])
 
-        self._ax_action_output = plt.subplot(self._gs_output[0])
-        self._action_output_axis = OutputAxis(self._ax_action_output, max_display_size=5, log_filename=self._log_filename)
+        self._ax_action_output = plt.subplot(self._gs_output[3])
+        self._action_output_axis = OutputAxis(self._ax_action_output, log_filename=self._log_filename)
 
-        self._ax_status_output = plt.subplot(self._gs_output[1:4])
-        self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
+        self._ax_status_output = plt.subplot(self._gs_output[0:3])
+        self._status_output_axis = OutputAxis(self._ax_status_output, log_filename=self._log_filename)
         self.update_status_text()
 
         # Image Axis

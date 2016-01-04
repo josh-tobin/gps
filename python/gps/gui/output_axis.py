@@ -3,14 +3,27 @@ from matplotlib.colors import ColorConverter
 
 class OutputAxis:
 
-    def __init__(self, axis, max_display_size=5, log_filename=None):
+    def __init__(self, axis, log_filename=None, max_display_size=10, border_on=False, bgcolor='white', bgalpha=0.0):
         self._axis = axis
         self._fig = axis.get_figure()
-        self._text_arr = []
-        self._max_display_size = max_display_size
         self._log_filename = log_filename
 
+        self._text_box = self._axis.text(0.02, 0.95, '', color='black', fontsize=12,
+            va='top', ha='left', transform=self._axis.transAxes)
+        self._text_arr = []
+        self._max_display_size = max_display_size
+        self._bgcolor = bgcolor
+        self._bgalpha = bgalpha
+        
         self.cc = ColorConverter()
+        self._axis.set_xticks([])
+        self._axis.set_yticks([])
+        if not border_on:
+            self._axis.spines['top'].set_visible(False)
+            self._axis.spines['right'].set_visible(False)
+            self._axis.spines['bottom'].set_visible(False)
+            self._axis.spines['left'].set_visible(False)
+
         self.draw()
 
     def set_text(self, text):
@@ -30,20 +43,14 @@ class OutputAxis:
             with open(self._log_filename, 'a') as f:
                 f.write(text + '\n')
 
-    def draw(self):
-        all_text = '\n'.join(self._text_arr)
-
-        self._axis.clear()
-        self._axis.set_axis_off()
-        self._axis.text(0, 1, all_text, color='black', fontsize=12,
-            va='top', ha='left', transform=self._axis.transAxes)
-        self._fig.canvas.draw()
-
     def set_bgcolor(self, color, alpha=1.0):
-        self._axis.set_axis_on()
-        self._axis.set_xticks([])
-        self._axis.set_yticks([])
-        self._axis.set_axis_bgcolor(self.cc.to_rgba(color, alpha))
+        self._bgcolor = color
+        self._bgalpha = alpha
+        self.draw()
+
+    def draw(self):
+        self._text_box.set_text('\n'.join(self._text_arr))
+        self._axis.set_axis_bgcolor(self.cc.to_rgba(self._bgcolor, self._bgalpha))
         self._fig.canvas.draw()
 
 if __name__ == "__main__":
