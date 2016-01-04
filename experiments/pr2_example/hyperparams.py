@@ -41,14 +41,11 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
+    'conditions': 1,
 }
 
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
-if not os.path.exists(common['target_filename'])
-    open(common['target_filename'], 'w')
-if not os.path.exists(common['log_filename'])
-    open(common['log_filename'], 'w')
 
 # TODO - put this somewhere else
 def get_ee_points(offsets, ee_pos, ee_rot):
@@ -74,12 +71,11 @@ x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0).T)
 
 ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt).T)
 
-conditions = 1
 agent = {
     'type': AgentROS,
     'dt': 0.05,
     'x0': x0,
-    'conditions': conditions,
+    'conditions': common['conditions'],
     'T': 100,
     'reset_conditions': {
         0: {
@@ -102,7 +98,7 @@ agent = {
 
 algorithm = {
     'type': AlgorithmTrajOpt,
-    'conditions': conditions,
+    'conditions': common['conditions'],
 }
 
 algorithm['init_traj_distr'] = {

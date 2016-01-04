@@ -37,16 +37,12 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
+    'conditions': 4,
 }
 
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
-if not os.path.exists(common['target_filename'])
-    open(common['target_filename'], 'w')
-if not os.path.exists(common['log_filename'])
-    open(common['log_filename'], 'w')
 
-conditions = 4
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
@@ -54,7 +50,7 @@ agent = {
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
-    'conditions': conditions,
+    'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
         np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
@@ -67,7 +63,7 @@ agent = {
 
 algorithm = {
     'type': AlgorithmTrajOpt,
-    'conditions': conditions,
+    'conditions': common['conditions'],
 }
 
 algorithm['init_traj_distr'] = {

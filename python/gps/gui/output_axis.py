@@ -8,6 +8,7 @@ class OutputAxis:
         self._text_arr = []
         self._max_display_size = max_display_size
         self._log_filename = log_filename
+        self.draw()
 
     def set_text(self, text):
         self._text_arr = [text]

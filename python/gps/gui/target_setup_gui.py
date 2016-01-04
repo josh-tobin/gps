@@ -112,6 +112,7 @@ class TargetSetupGUI:
         self._ax_image = plt.subplot(self._gs_image[0])
         self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
 
+        self.update_text()
         self._fig.canvas.draw()
 
     # Target Setup Functions
@@ -145,7 +146,7 @@ class TargetSetupGUI:
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._initial_position = (ja, ee_pos, ee_rot)
-        save_position_to_npz(self._target_filename, self._actuator_name, self._target_number, 'initial', self._initial_position)
+        save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial', self._initial_position)
         self.update_text()
 
     def set_target_position(self, event=None):
@@ -153,8 +154,8 @@ class TargetSetupGUI:
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
-        self._target_position = (ja, ee_pos, ee_rot))
-        save_position_to_npz(self._target_filename, self._actuator_name, self._target_number, 'target', self._target_position)
+        self._target_position = (ja, ee_pos, ee_rot)
+        save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target', self._target_position)
         self.update_text()
 
     def set_initial_features(self, event=None):
@@ -211,10 +212,10 @@ class TargetSetupGUI:
 
     # GUI functions
     def update_text(self, status=None):
-        text =  'target number = %s\n' % (str(self._target_number)) +
+        text = ('target number = %s\n' % (str(self._target_number)) +
                 'actuator name = %s\n' % (str(self._actuator_name)) +
                 'initial position\n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._initial_position +
-                'target position \n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._target_position
+                'target position \n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._target_position)
         if status:
             text += '\nstatus: %s\n' % (status)
         self._output_axis.set_text(text)
@@ -257,7 +258,7 @@ def save_to_npz(filename, key, value):
 def load_position_from_npz(filename, actuator_name, target_number, data_time):
     ja     = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ja',     default=np.zeros(7))
     ee_pos = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_pos', default=np.zeros(3))
-    ee_rot = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_rot', default=np.zeros(9))[0]
+    ee_rot = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_rot', default=np.zeros(9))
     return (ja, ee_pos, ee_rot)
 
 def load_data_from_npz(filename, actuator_name, target_number, data_time, data_name, default=None):
@@ -265,7 +266,7 @@ def load_data_from_npz(filename, actuator_name, target_number, data_time, data_n
     Load data from the specified file with key (actuator_name, target_number, data_time, data_name)
     """
     key = '_'.join((actuator_name, target_number, data_time, data_name))
-    load_from_npz(filename, key, default_dim)
+    return load_from_npz(filename, key, default)
 
 def load_from_npz(filename, key, default=None):
     """
@@ -273,16 +274,13 @@ def load_from_npz(filename, key, default=None):
 
     filename    - the file containing the npz dictionary
     key         - the key (string)
-    default_dim - the default dimension of the numpy array to return, if key or file not found
+    default     - the default value to return, if key or file not found
     """
     try:
         with np.load(filename) as f:
             return f[key]
-    except IOError as e:
-        print('File not found: %s\n' % (filename))
-    except KeyError as e:
-        print('Key not found: %s\n' % (key))
-    print('Using default value: %s = %s' % (key, str(default))
+    except (IOError, KeyError) as e:
+        pass
     return default
 
 if __name__ == "__main__":

@@ -40,8 +40,7 @@ class GPSTrainingGUI:
         self._hyperparams.update(hyperparams)
 
         self._log_filename = self._hyperparams['log_filename']
-        self._output_files_dir = self._hyperparams['output_files_dir']
-
+        
         # GPS Training Status
         pass
 
