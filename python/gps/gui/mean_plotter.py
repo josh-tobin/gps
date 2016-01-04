@@ -10,21 +10,22 @@ class MeanPlotter:
         self._alpha = alpha
         self._min_itr = min_itr
 
+        self._data_mean = np.empty((1, 0))
+        self._plots_mean = self._ax.plot([], [], '-', color=self._color, alpha=1.0, label=self._label)[0]
+        
+        self._ax.set_xlim(0, self._min_itr)
+        self._ax.set_ylim(0, 1)
+        self._ax.minorticks_on()
+        self._ax.legend(loc='upper left', bbox_to_anchor=(0, 1))
+
         self._init = False
 
     def init(self, data_len):
         self._t = 0
         self._data_len = data_len
         self._data = np.empty((data_len, 0))
-        self._data_mean = np.empty((1, 0))
-
         self._plots = [self._ax.plot([], [], '.', color=self._color, alpha=self._alpha)[0] for _ in range(data_len)]
-        self._plots_mean = self._ax.plot([], [], '-o', color=self._color, alpha=1.0, label=self._label)[0]
         
-        self._ax.set_xlim(0, self._min_itr)
-        self._ax.set_ylim(0, 1)
-        self._ax.legend(loc='upper left', bbox_to_anchor=(0, 1))
-
         self._init = True
 
     def update(self, x):
