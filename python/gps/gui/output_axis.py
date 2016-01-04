@@ -3,13 +3,13 @@ from matplotlib.colors import ColorConverter
 
 class OutputAxis:
 
-    def __init__(self, axis, log_filename=None, max_display_size=10, border_on=False, bgcolor='white', bgalpha=0.0):
+    def __init__(self, axis, log_filename=None, max_display_size=10, border_on=False, bgcolor='white', bgalpha=0.0, font_family='sans-serif'):
         self._axis = axis
         self._fig = axis.get_figure()
         self._log_filename = log_filename
 
         self._text_box = self._axis.text(0.02, 0.95, '', color='black', fontsize=12,
-            va='top', ha='left', transform=self._axis.transAxes)
+            va='top', ha='left', transform=self._axis.transAxes, family=font_family)
         self._text_arr = []
         self._max_display_size = max_display_size
         self._bgcolor = bgcolor

@@ -54,6 +54,7 @@ class GPSTrainingGUI:
             'go': 'green',
             'fail': 'magenta',
         }
+        self._first_update = True
 
         # Actions
         actions_arr = [
@@ -97,7 +98,7 @@ class GPSTrainingGUI:
         self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
 
         self._ax_output = plt.subplot(self._gs_output[0])
-        self._output_axis = OutputAxis(self._ax_output, max_display_size=10, log_filename=self._log_filename)
+        self._output_axis = OutputAxis(self._ax_output, max_display_size=10, log_filename=self._log_filename, font_family='monospace')
         for line in self._hyperparams['info'].split('\n'):
             self.append_output_text(line)
 
@@ -178,6 +179,9 @@ class GPSTrainingGUI:
     def set_status_text(self, text):
         self._status_output_axis.set_text(text)
 
+    def set_output_text(self, text):
+        self._output_axis.set_text(text)
+
     def append_output_text(self, text):
         self._output_axis.append_text(text)
 
@@ -196,4 +200,8 @@ class GPSTrainingGUI:
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
         self._plot_axis.update(costs)
 
-        self.append_output_text('%02d | %f' % (itr, np.mean(costs)))
+        if self._first_update:
+            self.set_output_text(self._hyperparams['experiment_name'])
+            self.append_output_text('itr | cost')
+            self._first_update = False
+        self.append_output_text('%02d  | %f' % (itr, np.mean(costs)))

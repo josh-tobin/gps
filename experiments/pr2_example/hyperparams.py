@@ -183,11 +183,11 @@ config = {
     'num_samples': 5,
 }
 
-info = ('experiment_name: '     + str(common['experiment_name'])        + '\n'
-        'algorithm_type: '      + str(algorithm['type'])                + '\n'
-        'algorithm_dynamics: '  + str(algorithm['dynamics']['type'])    + '\n'
-        'algorithm_cost: '      + str(algorithm['cost']['type'])        + '\n'
-        'iterations: '          + str(config['experiment_name'])        + '\n'
-        'conditions: '          + str(algorithm['conditions'])          + '\n'
-        'samples: '             + str(config['num_samples'])            + '\n')
+info = ('exp_name: '      + str(common['experiment_name'])                + '\n'
+        'alg_type: '      + str(algorithm['type'].__name__)               + '\n'
+        'alg_dyn:  '      + str(algorithm['dynamics']['type'].__name__)   + '\n'
+        'alg_cost: '      + str(algorithm['cost']['type'].__name__)       + '\n'
+        'iterations: '    + str(config['iterations'])                     + '\n'
+        'conditions: '    + str(algorithm['conditions'])                  + '\n'
+        'samples:    '    + str(config['num_samples'])                    + '\n')
 common['info'] = info
