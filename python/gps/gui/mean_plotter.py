@@ -16,7 +16,7 @@ class MeanPlotter:
         self._ax.set_xlim(0, self._min_itr)
         self._ax.set_ylim(0, 1)
         self._ax.minorticks_on()
-        self._ax.legend(loc='upper left', bbox_to_anchor=(0, 1))
+        self._ax.legend(loc='upper right', bbox_to_anchor=(1, 1))
 
         self._init = False
 

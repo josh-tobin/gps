@@ -68,26 +68,33 @@ class GPSTrainingGUI:
         plt.rcParams['keymap.save'] = ''    # remove 's' keyboard shortcut for saving
 
         # Action Axis
-        self._gs_action = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=self._gs[0:1, 0:4])
-        self._axarr_action = [plt.subplot(self._gs_action[i]) for i in range(1*4)]
+        self._gs_action = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec=self._gs[0:1, 0:4])
+        self._axarr_action = [plt.subplot(self._gs_action[0, i]) for i in range(1*4)]
         self._action_axis = ActionAxis(self._actions, self._axarr_action,
                 ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
+        self._ax_status_output = plt.subplot(self._gs_action[1, :])
+        self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
+
         # Output Axis
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[1:2, 0:4])
-        self._ax_output = plt.subplot(self._gs_output[0])
+        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2, 0:4])
+        self._ax_plot = plt.subplot(self._gs_output[0])
+        self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
+
+        self._ax_output = plt.subplot(self._gs_output[1])
         self._output_axis = OutputAxis(self._ax_output, max_display_size=5, log_filename=self._log_filename)
 
-        # Plot Axis
-        self._gs_plot = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
-        self._ax_plot = plt.subplot(self._gs_plot[0])
-        self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
+        # Visualization Axis
+        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
+        self._ax_vis = plt.subplot(self._gs_vis[0])
+        self._vis_axis = ImageVisualizer(self._ax_vis, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
+
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
         self._ax_image = plt.subplot(self._gs_image[0])
-        self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
+        self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
 
         self._fig.canvas.draw()
 
@@ -119,13 +126,13 @@ class GPSTrainingGUI:
 
     # GUI functions
     def set_text(self, text):
-        self._output_axis.set_text(text)
+        self._status_output_axis.set_text(text)
 
     def set_bgcolor(self, color):
-        self._output_axis.set_bgcolor(color)
+        self._status_output_axis.set_bgcolor(color)
 
     def append_text(self, text):
-        self._output_axis.append_text(text)
+        self._status_output_axis.append_text(text)
 
     def update(self, algorithm):
         if algorithm.M == 1:
