@@ -132,19 +132,30 @@ class GPSMain():
                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='GPS Main ArgumentParser')
+    parser = argparse.ArgumentParser(description='GPS_Main ArgumentParser')
     parser.add_argument('experiment', type=str, help='experiment name (and directory name)')
+    parser.add_argument('-n', '--new', action='store_true', help='create new experiment')
     parser.add_argument('-t', '--targetsetup', action='store_true', help='run target setup')
     parser.add_argument('-r', '--resume', metavar='N', type=int, help='resume training from iteration N')
     args = parser.parse_args()
 
     experiment_name = args.experiment
     run_target_setup = args.targetsetup
+    new_experiment = args.new
     resume_training_itr = args.resume
 
-    hyperparams_filepath = 'experiments/' + experiment_name + '/hyperparams.py'
+    experiment_folder = 'experiments/' + experiment_name
+    hyperparams_filepath =  experiment_folder + '/hyperparams.py'
+
+    if new_experiment:
+        if os.path.exists(experiment_folder):
+            sys.exit('Experiment \'%s\' already exists.\nPlease remove \'%s\'.' % (experiment_name, experiment_folder))
+        os.makedirs(experiment_folder)
+        open(hyperparams_filepath, 'w')
+        sys.exit('Experiment \'%s\' created.\nhyperparams file: \'%s\'.' % (experiment_name, hyperparams_filepath))
+
     if not os.path.exists(hyperparams_filepath):
-        sys.exit('Invalid experiment name: \'%s\'.\nDid you create \'%s\'?' % (experiment_name, hyperparams_filepath))
+        sys.exit('Experiment \'%s\' does not exist.\nDid you create \'%s\'?' % (experiment_name, hyperparams_filepath))
     hyperparams = imp.load_source('hyperparams', hyperparams_filepath)
 
     if run_target_setup:
