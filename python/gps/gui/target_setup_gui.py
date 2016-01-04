@@ -38,12 +38,12 @@ from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, JO
 #     - create movie from image visualizations
 
 class TargetSetupGUI:
-    def __init__(self, agent, hyperparams):
+    def __init__(self, hyperparams, agent):
         # Hyperparameters
-        self._agent = agent
         self._hyperparams = copy.deepcopy(common_config)
         self._hyperparams.update(copy.deepcopy(target_setup_config))
         self._hyperparams.update(hyperparams)
+        self._agent = agent
 
         self._log_filename = self._hyperparams['log_filename']
         self._target_filename = self._hyperparams['target_filename']
@@ -104,12 +104,13 @@ class TargetSetupGUI:
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs[2:4, 0:2])
-        self._ax_target_output = plt.subplot(self._gs_output[0:3])
-        self._target_output_axis = OutputAxis(self._ax_target_output, max_display_size=5, log_filename=self._log_filename)
-        self.update_target_text()
 
-        self._ax_status_output = plt.subplot(self._gs_output[3])
+        self._ax_action_output = plt.subplot(self._gs_output[0])
+        self._action_output_axis = OutputAxis(self._ax_action_output, max_display_size=5, log_filename=self._log_filename)
+
+        self._ax_status_output = plt.subplot(self._gs_output[1:4])
         self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
+        self.update_status_text()
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
@@ -122,13 +123,13 @@ class TargetSetupGUI:
     def prev_target_number(self, event=None):
         self._target_number = (self._target_number - 1) % self._num_targets      
         self.reload_positions()
-        self.update_target_text()
+        self.update_status_text()
         self.set_status_text()
 
     def next_target_number(self, event=None):
         self._target_number = (self._target_number + 1) % self._num_targets        
         self.reload_positions()
-        self.update_target_text()
+        self.update_status_text()
         self.set_status_text()
 
     def prev_actuator_type(self, event=None):
@@ -136,7 +137,7 @@ class TargetSetupGUI:
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
-        self.update_target_text()
+        self.update_status_text()
         self.set_status_text()
 
     def next_actuator_type(self, event=None):
@@ -144,7 +145,7 @@ class TargetSetupGUI:
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
-        self.update_target_text()
+        self.update_status_text()
         self.set_status_text()
 
     def set_initial_position(self, event=None):
@@ -154,7 +155,7 @@ class TargetSetupGUI:
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._initial_position = (ja, ee_pos, ee_rot)
         save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial', self._initial_position)
-        self.update_target_text()
+        self.update_status_text()
         self.set_status_text('set_initial_position: success')
 
     def set_target_position(self, event=None):
@@ -165,7 +166,7 @@ class TargetSetupGUI:
         self._target_position = (ja, ee_pos, ee_rot)
         save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target', self._target_position)
         
-        self.update_target_text()
+        self.update_status_text()
         self.set_status_text('set_target_position: success')
 
     def set_initial_features(self, event=None):
@@ -215,21 +216,21 @@ class TargetSetupGUI:
 
     def relax_controller(self, event=None):
         self._agent.relax_arm(arm=self._actuator_type)
-        self.set_status_text('relax_controller: success')
+        self.set_status_text('relax_controller: %s' % (self._actuator_name))
 
     def mannequin_mode(self, event=None):
         self.set_status_text('mannequin_mode: NOT IMPLEMENTED')
 
     # GUI functions
-    def update_target_text(self):
+    def update_status_text(self):
         text = ('target number = %s\n' % (str(self._target_number)) +
                 'actuator name = %s\n' % (str(self._actuator_name)) +
                 'initial position\n    ja = %s\n    ee_pos = %s\n    ee_rot = %s\n' % self._initial_position +
                 'target position \n    ja = %s\n    ee_pos = %s\n    ee_rot = %s\n' % self._target_position)
-        self._target_output_axis.set_text(text)
+        self._status_output_axis.set_text(text)
 
     def set_status_text(self, text=''):
-        self._status_output_axis.set_text(text)
+        self._action_output_axis.set_text(text)
 
     def reload_positions(self):
         self._initial_position = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial')

@@ -32,9 +32,8 @@ from gps.gui.image_visualizer import ImageVisualizer
 #     - create movie from image visualizations
 
 class GPSTrainingGUI:
-    def __init__(self, agent, hyperparams):
+    def __init__(self, hyperparams):
         # Hyperparameters
-        self._agent = agent
         self._hyperparams = copy.deepcopy(common_config)
         self._hyperparams.update(copy.deepcopy(gps_training_config))
         self._hyperparams.update(hyperparams)
@@ -42,14 +41,15 @@ class GPSTrainingGUI:
         self._log_filename = self._hyperparams['log_filename']
         
         # GPS Training Status
-        pass
+        self.request = None
+        self.request_color = None
 
         # Actions
         actions_arr = [
-            Action('stop',  'stop',     self.stop,  axis_pos=0),
-            Action('reset', 'reset',    self.reset, axis_pos=1),
-            Action('start', 'start',    self.start, axis_pos=2),
-            Action('estop', 'estop',    self.estop, axis_pos=3),
+            Action('stop',  'stop',  self.request_stop,  axis_pos=0),
+            Action('reset', 'reset', self.request_reset, axis_pos=1),
+            Action('go',    'go',    self.request_go,    axis_pos=2),
+            Action('fail',  'fail',  self.request_fail,  axis_pos=3),
         ]
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
@@ -74,8 +74,12 @@ class GPSTrainingGUI:
                 ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
-        self._ax_status_output = plt.subplot(self._gs_action[1, :])
+        self._ax_action_output = plt.subplot(self._gs_output[1, 2:4])
+        self._action_output_axis = OutputAxis(self._ax_action_output, max_display_size=5, log_filename=self._log_filename)
+
+        self._ax_status_output = plt.subplot(self._gs_output[1, 0:2])
         self._status_output_axis = OutputAxis(self._ax_status_output, max_display_size=5, log_filename=self._log_filename)
+        self.update_status_text()
 
         # Output Axis
         self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2, 0:4])
@@ -99,40 +103,64 @@ class GPSTrainingGUI:
         self._fig.canvas.draw()
 
     # GPS Training Functions
-    def stop(self, event=None):
-        self.set_text('stop')
-        self.set_bgcolor('red')
-        pass
+    def request_stop(self, event=None):
+        self.request_action('stop', 'red')
 
-    def reset(self, event=None):
-        self.set_text('reset')
-        self.set_bgcolor('yellow')
-        pass
+    def request_reset(self, event=None):
+        self.request_action('reset', 'yellow')
 
-    def start(self, event=None):
-        self.set_text('start')
-        self.set_bgcolor('green')
-        pass
+    def request_go(self, event=None):
+        self.request_action('go', 'green')
+
+    def request_fail(self, event=None):
+        self.request_action('fail', 'orange')
+
+    def request_action(self, request, color):
+        self.request = request
+        self.request_color = color
+        self.set_action_text(request + ' requested')
+        self.set_action_bgcolor(color, alpha=0.5)
+
+    def wait(self):
+        self.request = 'wait'
+        self.request_color = 'orange'
+        self.set_action_text('waiting')
+        self.set_action_bgcolor(self.request_color, alpha=1.0)
+
+    def receive(self):
+        receive_action(self.request, self.request_color)
+
+    def receive_action(self, request, color):
+        self.set_action_text(request + 'received')
+        self.set_action_bgcolor(request_color, alpha=1.0)
+        self.request = None
+        self.request_color = None
+
+    def clear_request():
+        self.request = None
+        self.request_color = None
+        self.set_action_text('')
+        self.set_action_bg_color(None)
 
     def estop(self, event=None):
-        self.set_text('estop')
-        for i in range(10):
-            self.set_bgcolor('red')
-            time.sleep(0.3)
-            self.set_bgcolor('white')
-            time.sleep(0.3)
-        self.set_bgcolor('red')
-        pass
+        self.set_action_text('estop: NOT IMPLEMENTED')
+        # self.set_action_text('estop')
+        # for i in range(10):
+        #     self.set_action_bgcolor('red')
+        #     time.sleep(0.3)
+        #     self.set_action_bgcolor('white')
+        #     time.sleep(0.3)
+        # self.set_action_bgcolor('red')
 
     # GUI functions
-    def set_text(self, text):
+    def set_status_text(self, text):
         self._status_output_axis.set_text(text)
 
-    def set_bgcolor(self, color):
-        self._status_output_axis.set_bgcolor(color)
+    def set_action_text(self, text):
+        self._action_output_axis.set_text(text)
 
-    def append_text(self, text):
-        self._status_output_axis.append_text(text)
+    def set_action_bgcolor(self, color, alpha=1.0):
+        self._action_output_axis.set_bgcolor(color, alpha)
 
     def update(self, algorithm):
         if algorithm.M == 1:

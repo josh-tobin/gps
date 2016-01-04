@@ -5,12 +5,12 @@ import sys
 import copy
 import argparse
 import threading
+import time
 
 from gps.agent.ros.agent_ros import AgentROS
-from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.gui.target_setup_gui import TargetSetupGUI
-from gps.utility.data_logger import DataLogger
 from gps.gui.gps_training_gui import GPSTrainingGUI
+from gps.utility.data_logger import DataLogger
 
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -23,15 +23,19 @@ class GPSMain():
     hyperparams: nested dictionary of hyperparameters, indexed by the type
         of hyperparameter
     """
-    def __init__(self, config, agent, gui=None):
+    def __init__(self, config):
         self._hyperparams = config
         self._iterations = config['iterations']
         self._conditions = config['common']['conditions']
         self._data_files_dir = config['common']['data_files_dir']
 
-        self.agent = agent
+        self.agent = config['agent']['type'](config['agent'])
         self.data_logger = DataLogger()
-        self.gui = gui
+
+        if config['gui_on']:
+            self.gui = GPSTrainingGUI(config['common'])
+        else:
+            self.gui = None
 
         # TODO: the following is a hack that doesn't even work some of the time
         #       let's think a bit about how we want to really do this
@@ -43,41 +47,94 @@ class GPSMain():
 
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
-    def run(self, itr_start=0):
+    def run(self, itr_load=None):
         """
         Run training by iteratively sampling and taking an iteration step.
+
+        If itr_load is specified, loads algorithm state from that iteration,
+        and resumes training at the next iteration.
         """
-        n = self._hyperparams['num_samples']
-        for itr in range(itr_start, self._iterations):
-            for m in range(self._conditions):
-                for i in range(n):
-                    pol = self.algorithm.cur[m].traj_distr
-                    self.agent.sample(pol, m, verbose=True)
-            sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
-            self.algorithm.iteration(sample_lists)
-
-            # Take samples from the policy to see how it is doing.
-            # for m in range(self._conditions):
-            #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
-
-            self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
-            self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
-            if self.gui:
-                self.gui.update(self.algorithm)
-
-    def resume(self, itr):
-        """
-        Resume training from algorithm state at specified iteration.
-
-        itr: the iteration to which the algorithm state will be set,
-             then training begins at iteration (itr + 1)
-        """
-        self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
         if self.gui:
-            self.gui.append_text('Resuming training from algorithm state at iteration %02d.' % itr)
-            self.gui.update(self.algorithm)
+            if itr_load is not None:
+                self.gui.set_status_text('Resuming training from algorithm state at iteration %02d.' % itr)
+                self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
+                self.gui.update(self.algorithm)
+                itr_start = itr_load + 1
+            else:
+                itr_start = 0
 
-        self.run(itr_start=itr+1)
+            n = self._hyperparams['num_samples']
+            for itr in range(itr_start, self._iterations):
+                for m in range(self._conditions):
+                    for i in range(n):
+                        self.gui.set_status_text('Sampling: iteration %d, condition %d, sample %d.' % (itr, m, i))
+                        pol = self.algorithm.cur[m].traj_distr
+
+                        redo = True
+                        while redo:
+                            wait = True
+                            while wait:
+                                if self.gui.request == None:
+                                    wait = False
+                                elif self.gui.request == 'stop':
+                                    self.gui.receive()
+                                    self.gui.wait()
+                                elif self.gui.request == 'reset':
+                                    self.gui.receive()
+                                    if type(self.agent) == AgentROS:
+                                        self.agent.reset(condition)
+                                    else:
+                                        print('ERROR: only AgentROS can reset.')
+                                    self.gui.wait()
+                                elif self.gui.request == 'wait':
+                                    time.sleep(0.01)
+                                elif self.gui.request == 'go':
+                                    self.gui.receive()
+                                    wait = False
+
+                            self.agent.sample(pol, m, verbose=True)
+
+                            if self.gui.request == 'fail':
+                                self.gui.receive()
+                                redo = True
+                            else:
+                                redo = False
+
+                self.gui.set_status_text('Calculating.')
+                sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+                self.algorithm.iteration(sample_lists)
+
+                # Take samples from the policy to see how it is doing.
+                # for m in range(self._conditions):
+                #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
+
+                self.gui.set_status_text('Logging data and updating gui.')
+                self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
+                self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
+                self.gui.update(self.algorithm)
+        else:
+            if itr_load is not None:
+                self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
+                itr_start = itr_load + 1
+            else:
+                itr_start = 0
+
+            n = self._hyperparams['num_samples']
+            for itr in range(itr_start, self._iterations):
+                for m in range(self._conditions):
+                    for i in range(n):
+                        pol = self.algorithm.cur[m].traj_distr
+                        self.agent.sample(pol, m, verbose=True)
+
+                sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+                self.algorithm.iteration(sample_lists)
+
+                # Take samples from the policy to see how it is doing.
+                # for m in range(self._conditions):
+                #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
+
+                self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
+                self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='GPS Main ArgumentParser')
@@ -99,7 +156,7 @@ if __name__ == "__main__":
         import matplotlib.pyplot as plt
 
         agent = AgentROS(hyperparams.config['agent'])
-        target_setup_gui = TargetSetupGUI(agent, hyperparams.config['common'])
+        target_setup_gui = TargetSetupGUI(hyperparams.config['common'], agent)
 
         plt.ioff()
         plt.show()
@@ -107,27 +164,14 @@ if __name__ == "__main__":
         import random; random.seed(0)
         import numpy as np; np.random.seed(0)
 
-        # workaround because gui must be run on main thread
-        # and AgentROS must be created on main thread
-        agent = hyperparams.config['agent']['type'](hyperparams.config['agent'])
-
-        def launch_gps(gui=None):
-            g = GPSMain(hyperparams.config, agent, gui=gui)
-            if resume_training_itr is None:
-                g.run()
-            else:
-                g.resume(resume_training_itr)
-
+        g = GPSMain(hyperparams.config)
         if hyperparams.config['gui_on']:
-                import matplotlib.pyplot as plt
+            t = threading.Thread(target=lambda: g.run(itr_load=resume_training_itr), args=())
+            t.daemon = True
+            t.start()
 
-                gui = GPSTrainingGUI(agent, hyperparams.config['common'])
-
-                t = threading.Thread(target=lambda: launch_gps(gui=gui), args=())
-                t.daemon = True
-                t.start()
-
-                plt.ioff()
-                plt.show()
+            import matplotlib.pyplot as plt
+            plt.ioff()
+            plt.show()
         else:
-            launch_gps(gui=None)
+            g.run(itr_load=resume_training_itr)

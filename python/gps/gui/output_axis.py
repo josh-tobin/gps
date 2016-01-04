@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.colors.ColorConverter as cc
 
 class OutputAxis:
 
@@ -36,11 +37,11 @@ class OutputAxis:
             va='top', ha='left', transform=self._axis.transAxes)
         self._fig.canvas.draw()
 
-    def set_bgcolor(self, color):
+    def set_bgcolor(self, color, alpha=1.0):
         self._axis.set_axis_on()
         self._axis.set_xticks([])
         self._axis.set_yticks([])
-        self._axis.set_axis_bgcolor(color)
+        self._axis.set_axis_bgcolor(cc.to_rgba(color, alpha))
         self._fig.canvas.draw()
 
 if __name__ == "__main__":
