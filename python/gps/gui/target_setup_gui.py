@@ -154,7 +154,7 @@ class TargetSetupGUI:
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._initial_position = (ja, ee_pos, ee_rot)
-        save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial', self._initial_position)
+        save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial', self._initial_position)
         self.update_status_text()
         self.set_action_text('set_initial_position: success')
 
@@ -164,7 +164,7 @@ class TargetSetupGUI:
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._target_position = (ja, ee_pos, ee_rot)
-        save_position_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target', self._target_position)
+        save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target', self._target_position)
         
         self.update_status_text()
         self.set_action_text('set_target_position: success')
@@ -233,10 +233,10 @@ class TargetSetupGUI:
         self._action_output_axis.set_text(text)
 
     def reload_positions(self):
-        self._initial_position = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial')
-        self._target_position  = load_position_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target')
+        self._initial_position = load_pose_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'initial')
+        self._target_position  = load_pose_from_npz(self._target_filename, self._actuator_name, str(self._target_number), 'target')
 
-def save_position_to_npz(filename, actuator_name, target_number, data_time, values):
+def save_pose_to_npz(filename, actuator_name, target_number, data_time, values):
     ja, ee_pos, ee_rot = values
     save_data_to_npz(filename, actuator_name, target_number, data_time, 'ja',     ja)
     save_data_to_npz(filename, actuator_name, target_number, data_time, 'ee_pos', ee_pos)
@@ -264,7 +264,7 @@ def save_to_npz(filename, key, value):
     tmp[key] = value
     np.savez(filename,**tmp)
 
-def load_position_from_npz(filename, actuator_name, target_number, data_time):
+def load_pose_from_npz(filename, actuator_name, target_number, data_time):
     ja     = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ja',     default=np.zeros(7))
     ee_pos = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_pos', default=np.zeros(3))
     ee_rot = load_data_from_npz(filename, actuator_name, target_number, data_time, 'ee_rot', default=np.zeros((3,3)))

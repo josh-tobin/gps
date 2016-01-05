@@ -18,7 +18,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
-from gps.gui.target_setup_gui import load_position_from_npz
+from gps.gui.target_setup_gui import load_pose_from_npz
 
 ee_points = np.array([[0.02,-0.025,0.05],[0.02,-0.025,0.05],[0.02,0.05,0.0]])
 
@@ -61,8 +61,8 @@ def get_ee_points(offsets, ee_pos, ee_rot):
     """
     return ee_rot.dot(offsets.T) + ee_pos.T
 
-ja_x0, ee_pos_x0, ee_rot_x0 = load_position_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
-ja_tgt, ee_pos_tgt, ee_rot_tgt = load_position_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
+ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
+ja_tgt, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
 
 # TODO - construct this somewhere else?
 x0 = np.zeros(23)

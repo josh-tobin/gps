@@ -7,11 +7,9 @@ import argparse
 import threading
 import time
 
-from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.target_setup_gui import TargetSetupGUI
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
-
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -77,10 +75,10 @@ class GPSMain():
                                     time.sleep(0.01)
                                 else:   # 'request' mode
                                     if self.gui.request == 'reset':
-                                        if type(self.agent) == AgentROS:
+                                        try:
                                             self.agent.reset(condition)
-                                        else:
-                                            self.gui.err_msg = 'Only AgentROS can reset.'
+                                        except NotImplementedError as e:
+                                            self.gui.err_msg = 'Agent reset not implemented.'
                                     elif self.gui.request == 'fail':
                                         self.gui.err_msg = 'Cannot fail before sampling.'
                                     self.gui.process_mode() # complete request
@@ -159,16 +157,21 @@ if __name__ == "__main__":
     hyperparams = imp.load_source('hyperparams', hyperparams_filepath)
 
     if run_target_setup:
-        import matplotlib.pyplot as plt
+        try:
+            import matplotlib.pyplot as plt
+            from gps.agent.ros.agent_ros import AgentROS
 
-        agent = AgentROS(hyperparams.config['agent'])
-        target_setup_gui = TargetSetupGUI(hyperparams.config['common'], agent)
+            agent = AgentROS(hyperparams.config['agent'])
+            target_setup_gui = TargetSetupGUI(hyperparams.config['common'], agent)
 
-        plt.ioff()
-        plt.show()
+            plt.ioff()
+            plt.show()
+        except ImportError as e:
+            sys.exit('ROS required for target setup.')
     else:
         import random; random.seed(0)
         import numpy as np; np.random.seed(0)
+        import matplotlib.pyplot as plt
 
         g = GPSMain(hyperparams.config)
         if hyperparams.config['gui_on']:
@@ -176,7 +179,6 @@ if __name__ == "__main__":
             t.daemon = True
             t.start()
 
-            import matplotlib.pyplot as plt
             plt.ioff()
             plt.show()
         else:
