@@ -58,4 +58,7 @@ alg_badmm = {
     'lg_step_schedule': 10.0,
     'ent_reg_schedule': 0.0,
     'init_pol_wt': 0.01,
+
+    'policy_sample_mode': 'add',
+    'max_policy_samples': 20,
 }

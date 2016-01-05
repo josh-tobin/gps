@@ -34,7 +34,7 @@ PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 
 common = {
-    'conditions': 4,
+    'conditions': 1,
     'experiment_dir': BASE_DIR + '/experiments/default_mjc_experiment/',
     'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
@@ -45,15 +45,14 @@ if not os.path.exists(common['output_files_dir']):
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
+    'filename': './mjc_models/pr2_arm3dtwoholes.xml',
     'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
-    'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
-        np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
+    'pos_body_offset': np.array([-0.1, 0.2, 0]),
 
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
@@ -144,6 +143,8 @@ algorithm['policy_prior'] = {
 defaults = {
     'iterations': algorithm['iterations'],
     'num_samples': 5,
+    'verbose_trials': 1,
+    'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
     # 'gui': gui,  # For sim, we probably don't want the gui right now.
