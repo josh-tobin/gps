@@ -76,7 +76,7 @@ class GPSMain():
                                 else:   # 'request' mode
                                     if self.gui.request == 'reset':
                                         try:
-                                            self.agent.reset(condition)
+                                            self.agent.reset(m)
                                         except NotImplementedError as e:
                                             self.gui.err_msg = 'Agent reset not implemented.'
                                     elif self.gui.request == 'fail':
