@@ -66,14 +66,14 @@ keyboard_bindings = {
 
     'mti': 'u',
     'mtt': 'i',
-    'rc':  'o',
-    'mm':  'p',
+    'rc' : 'o',
+    'mm' : 'p',
 
     # GPS Training
-    'stop':  's',
-    'reset': 'f',
-    'start': 'g',
-    'estop': None,
+    'stop' : 's',
+    'reset': 'r',
+    'go'   : 'g',
+    'fail' : 'f',
 }
 inverted_keyboard_bindings = {value: key for key, value in keyboard_bindings.iteritems()}
 
@@ -98,8 +98,8 @@ ps3_bindings = {
     # GPS Training
     'stop' : (ps3_button['rear_right_2'], ps3_button['action_square']),
     'reset': (ps3_button['rear_right_2'], ps3_button['action_triangle']),
-    'start': (ps3_button['rear_right_2'], ps3_button['action_circle']),
-    'estop': None,
+    'go'   : (ps3_button['rear_right_2'], ps3_button['action_circle']),
+    'fail' : (ps3_button['rear_right_2'], ps3_button['action_cross']),
 }
 inverted_ps3_bindings = {value: key for key, value in ps3_bindings.iteritems()}
 

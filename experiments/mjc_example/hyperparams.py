@@ -32,16 +32,14 @@ BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/mjc_example/'
 
 common = {
-    'conditions': 4,
+    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
-    'target_files_dir': EXP_DIR + 'target_files/',
-    'output_files_dir': EXP_DIR + 'output_files/',
     'data_files_dir': EXP_DIR + 'data_files/',
-    'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'target_filename': EXP_DIR + 'target.npz',
+    'log_filename': EXP_DIR + 'log.txt',
+    'conditions': 4,
 }
 
-if not os.path.exists(common['output_files_dir']):
-    os.makedirs(common['output_files_dir'])
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
 
@@ -132,6 +130,15 @@ config = {
     'num_samples': 5,
     'common': common,
     'agent': agent,
-    # 'gui': gui,  # For sim, we probably don't want the gui right now.
+    'gui_on': True,
     'algorithm': algorithm,
 }
+
+info = ('exp_name: '      + str(common['experiment_name'])                + '\n'
+        'alg_type: '      + str(algorithm['type'].__name__)               + '\n'
+        'alg_dyn:  '      + str(algorithm['dynamics']['type'].__name__)   + '\n'
+        'alg_cost: '      + str(algorithm['cost']['type'].__name__)       + '\n'
+        'iterations: '    + str(config['iterations'])                     + '\n'
+        'conditions: '    + str(algorithm['conditions'])                  + '\n'
+        'samples:    '    + str(config['num_samples'])                    + '\n')
+common['info'] = info
