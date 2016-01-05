@@ -39,7 +39,7 @@ class GPSTrainingGUI:
         self._hyperparams.update(hyperparams)
 
         self._log_filename = self._hyperparams['log_filename']
-        
+
         # GPS Training Status
         self.mode = 'run'       # valid modes: run, wait, end, request, process
         self.request = None     # valid requests: stop, reset, go, fail, None
@@ -76,7 +76,7 @@ class GPSTrainingGUI:
         self._gs  = gridspec.GridSpec(4, 4)
 
         self._fig.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95, wspace=0, hspace=0)
-        self._fig.canvas.toolbar.pack_forget()
+        #self._fig.canvas.toolbar.pack_forget()
         plt.rcParams['keymap.save'] = ''    # remove 's' keyboard shortcut for saving
 
         # Action Axis
