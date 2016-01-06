@@ -1,5 +1,7 @@
+import copy
 import numpy as np
 
+from gps.algorithm.dynamics.config import dyn_lr_prior
 from gps.algorithm.dynamics.dynamics import Dynamics
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 
@@ -9,7 +11,9 @@ class DynamicsLRPrior(Dynamics):
 
     """
     def __init__(self, hyperparams):
-        Dynamics.__init__(self, hyperparams)
+        config = copy.deepcopy(dyn_lr_prior)
+        config.update(hyperparams)
+        Dynamics.__init__(self, config)
         self.Fm = None
         self.fv = None
         self.dyn_covar = None
