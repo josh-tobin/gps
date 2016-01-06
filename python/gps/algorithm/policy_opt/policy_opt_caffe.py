@@ -33,6 +33,7 @@ class PolicyOptCaffe(PolicyOpt):
             caffe.set_mode_cpu()
 
         self.init_solver()
+        self.caffe_iter = 0
         self.var = self._hyperparams['init_var'] * np.ones(dU)
 
         self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
@@ -41,6 +42,7 @@ class PolicyOptCaffe(PolicyOpt):
         """ Helper method to initialize the solver from hyperparameters. """
 
         solver_param = SolverParameter()
+        solver_param.snapshot_prefix = self._hyperparams['weights_file_prefix']
         solver_param.display = 0  # Don't display anything.
         solver_param.random_seed = 0 # debugging
         solver_param.base_lr = self._hyperparams['lr']
@@ -154,8 +156,8 @@ class PolicyOptCaffe(PolicyOpt):
             #    print 'Iteration', i, 'testing...'
             #    solver.test_nets[0].forward()
 
-        # Save out the weights
-        self.solver.net.save(self._hyperparams['weights_file_prefix']+'_itr'+str(itr)+'.caffemodel')
+        # Keep track of caffe iterations for loading solver states.
+        self.caffe_iter += self._hyperparams['iterations']
 
         # Optimize variance
         A = np.sum(tgt_prc_orig,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
@@ -204,3 +206,25 @@ class PolicyOptCaffe(PolicyOpt):
         pol_det_sigma = np.tile(np.prod(self.var), (N, T))
 
         return output, pol_sigma, pol_prec, pol_det_sigma
+
+    # For pickling
+    def __getstate__(self):
+        self.solver.snapshot()
+        return {'hyperparams': self._hyperparams,
+                'dObs': self._dObs,
+                'dU': self._dU,
+                'scale': self.policy.scale,
+                'bias': self.policy.bias,
+                'caffe_iter': self.caffe_iter,
+                }
+
+    # For unpickling
+    def __setstate__(self, state):
+        self.__init__(state['hyperparams'], state['dObs'], state['dU'])
+        self.policy.scale = state['scale']
+        self.policy.bias = state['bias']
+        self.caffe_iter = state['caffe_iter']
+        self.solver.restore(self._hyperparams['weights_file_prefix'] +
+                '_iter_' + str(self.caffe_iter) + '.solverstate')
+        self.policy.net.copy_from(self._hyperparams['weights_file_prefix'] +
+                '_iter_' + str(self.caffe_iter) + '.caffemodel')
