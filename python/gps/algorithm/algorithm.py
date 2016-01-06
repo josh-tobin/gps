@@ -1,5 +1,8 @@
 import abc
+import copy
 import numpy as np
+
+from gps.algorithm.config import alg
 
 
 class Algorithm(object):
@@ -9,12 +12,15 @@ class Algorithm(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, hyperparams):
-        self._hyperparams = hyperparams
-        self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'])
-        self.cost = [hyperparams['cost']['type'](hyperparams['cost'])]*hyperparams['conditions']
+        config = copy.deepcopy(alg)
+        config.update(hyperparams)
+        self._hyperparams = config
 
         self.M = hyperparams['conditions']
         self.iteration_count = 0  # Keep track of what iteration this is currently on
+
+        self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'])
+        self.cost = [hyperparams['cost']['type'](hyperparams['cost'])] * self.M
 
         # Set initial values
         init_args = hyperparams['init_traj_distr']['args']
@@ -65,7 +71,7 @@ class Algorithm(object):
             self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
                     self.T, self.cur[m].step_mult, self.eta[m],
                     self.cur[m].traj_info, self.cur[m].traj_distr,
-                    pol_info)
+                    self._hyperparams['kl_step'], pol_info=pol_info)
 
     def _eval_cost(self, m):
         """
