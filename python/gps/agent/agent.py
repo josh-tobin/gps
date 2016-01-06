@@ -41,6 +41,9 @@ class Agent(object):
     def sample(self, policy, condition):
         raise NotImplementedError("Must be implemented in subclass")
 
+    def reset(self, condition):
+        raise NotImplementedError("Implement in subclass if needed")
+
     def get_samples(self, condition, start=0, end=None):
         """
         Return the requested samples based on the start and end indices.

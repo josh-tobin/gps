@@ -6,14 +6,16 @@ import os.path
 
 from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
-from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
+from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_fk import CostFK
 from gps.algorithm.cost.cost_torque import CostTorque
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
+from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr
+from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
 from gps.proto.gps_pb2 import *
 
 
@@ -28,7 +30,7 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/mjc_example/'
+EXP_DIR = BASE_DIR + '/experiments/mjc_badmm_example/'
 
 common = {
     'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
@@ -56,13 +58,22 @@ agent = {
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
-    'obs_include': [],
+    'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
 }
 
 algorithm = {
-    'type': AlgorithmTrajOpt,
+    'type': AlgorithmBADMM,
     'conditions': common['conditions'],
     'iterations': 10,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
+    'policy_dual_rate': 0.2,
+    'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
+    'fixed_lg_step': 3,
+    'kl_step': 5.0,
+    'min_step_mult': 0.01,
+    'max_step_mult': 1.0,
+    'sample_decrease_var': 0.05,
+    'sample_increase_var': 0.1,
 }
 
 algorithm['init_traj_distr'] = {
@@ -115,24 +126,24 @@ algorithm['traj_opt'] = {
     'type': TrajOptLQRPython,
 }
 
-algorithm['policy_opt'] = {}
+algorithm['policy_opt'] = {
+    'type': PolicyOptCaffe,
+}
+
+algorithm['policy_prior'] = {
+    'type': PolicyPriorGMM,
+    'max_clusters': 20,
+    'min_samples_per_cluster': 40,
+    'max_samples': 20,
+}
 
 config = {
     'iterations': algorithm['iterations'],
     'num_samples': 5,
     'verbose_trials': 1,
+    'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui_on': True,
+    'gui_on': False,  # Currently doesn't work for BADMM.
     'algorithm': algorithm,
 }
-
-common['info'] = (
-    'exp_name: '   + str(common['experiment_name'])              + '\n'
-    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
-    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
-    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
-    'iterations: ' + str(config['iterations'])                   + '\n'
-    'conditions: ' + str(algorithm['conditions'])                + '\n'
-    'samples:    ' + str(config['num_samples'])                  + '\n'
-)

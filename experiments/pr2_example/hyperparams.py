@@ -18,7 +18,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
-from gps.gui.target_setup_gui import load_from_npz
+from gps.gui.target_setup_gui import load_pose_from_npz
 
 ee_points = np.array([[0.02,-0.025,0.05],[0.02,-0.025,0.05],[0.02,0.05,0.0]])
 
@@ -36,18 +36,14 @@ BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 
 common = {
-    'conditions': 1,
+    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
-    'target_files_dir': EXP_DIR + 'target_files/',
-    'output_files_dir': EXP_DIR + 'output_files/',
     'data_files_dir': EXP_DIR + 'data_files/',
-    'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'target_filename': EXP_DIR + 'target.npz',
+    'log_filename': EXP_DIR + 'log.txt',
+    'conditions': 1,
 }
 
-if not os.path.exists(common['target_files_dir']):
-    os.makedirs(common['target_files_dir'])
-if not os.path.exists(common['output_files_dir']):
-    os.makedirs(common['output_files_dir'])
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
 
@@ -65,13 +61,8 @@ def get_ee_points(offsets, ee_pos, ee_rot):
     """
     return ee_rot.dot(offsets.T) + ee_pos.T
 
-ja_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ja0', default_dim=7)
-ee_pos_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_pos0', default_dim=3)
-ee_rot_x0  = load_from_npz(common['target_files_dir'] + 'trial_arm_initial.npz', 'ee_rot0', default_dim=9)[0]
-
-ja_tgt = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ja0', default_dim=7)
-ee_pos_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_pos0', default_dim=3)
-ee_rot_tgt  = load_from_npz(common['target_files_dir'] + 'trial_arm_target.npz', 'ee_rot0', default_dim=9)[0]
+ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
+ja_tgt, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
 
 # TODO - construct this somewhere else?
 x0 = np.zeros(23)
@@ -187,6 +178,16 @@ config = {
     'iterations': 20,
     'common': common,
     'agent': agent,
+    'gui_on': True,
     'algorithm': algorithm,
     'num_samples': 5,
 }
+
+info = ('exp_name: '      + str(common['experiment_name'])                + '\n'
+        'alg_type: '      + str(algorithm['type'].__name__)               + '\n'
+        'alg_dyn:  '      + str(algorithm['dynamics']['type'].__name__)   + '\n'
+        'alg_cost: '      + str(algorithm['cost']['type'].__name__)       + '\n'
+        'iterations: '    + str(config['iterations'])                     + '\n'
+        'conditions: '    + str(algorithm['conditions'])                  + '\n'
+        'samples:    '    + str(config['num_samples'])                    + '\n')
+common['info'] = info

@@ -15,15 +15,29 @@ class ActionAxis:
         self._axarr = axarr
         self._fig = axarr[0].get_figure()
 
+        # try to import ros
+        ros_enabled = False
+        try:
+            import rospy
+            import roslib; roslib.load_manifest('gps_agent_pkg')
+            from sensor_msgs.msg import Joy
+            ros_enabled = True
+        except ImportError as e:
+            print 'PS3 not enabled', e
+
         # Mouse Input
         self._buttons = {}
         for key, action in self._actions.iteritems():
             if action._axis_pos is not None:
-                if inverted_ps3_button is not None and action._pb is not None:
-                    ps3_bindings_str = '(' + ',\n'.join([inverted_ps3_button[i] for i in action._pb]) + ')'
+                if ros_enabled:
+                    if inverted_ps3_button is not None and action._pb is not None:
+                        ps3_bindings_str = ',\n'.join([inverted_ps3_button[i] for i in action._pb])
+                    else:
+                        ps3_bindings_str = str(action._pb)
+                    button_name = '%s\n(%s)\n(%s)' % (action._name, action._kb, ps3_bindings_str)
                 else:
-                    ps3_bindings_str = str(action._pb)
-                self._buttons[key] = Button(self._axarr[action._axis_pos], '%s\n%s\n%s' % (action._name, action._kb, ps3_bindings_str))
+                    button_name = '%s\n(%s)' % (action._name, action._kb)
+                self._buttons[key] = Button(self._axarr[action._axis_pos], button_name)
                 self._buttons[key].on_clicked(action._func)
 
         # Keyboard Input
@@ -34,10 +48,7 @@ class ActionAxis:
         self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
 
         # PS3 Input using ROS
-        try:
-            import rospy
-            import roslib; roslib.load_manifest('gps_agent_pkg')
-            from sensor_msgs.msg import Joy
+        if ros_enabled:
             self._ps3_bindings = {}
             for key, action in self._actions.iteritems():
                 if action._pb is not None:
@@ -48,9 +59,6 @@ class ActionAxis:
             self._ps3_count = 0
             self._ps3_process_rate = ps3_process_rate
             rospy.Subscriber(ps3_topic, Joy, self.ps3_callback)
-        except ImportError as e:
-            print 'PS3 not enabled', e
-
 
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:

@@ -11,7 +11,12 @@ LOGGER = logging.getLogger(__name__)
 
 class PolicyPriorGMM(object):
     """
-    GMM policy prior.
+    A policy prior encoded as a GMM over [x_t, u_t] points, where u_t is the output of the policy
+    for the given state x_t. This prior is used when computing the linearization of the policy.
+
+    See the method AlgorithmBADMM._update_policy_fit, in python/gps/algorithm.algorithm_badmm.py.
+    Also see the GMM dynamics prior, in python/gps/algorithm/dynamics/dynamics_prior_gmm.py. This is
+    a similar GMM prior that is used for the dynamics estimate.
     """
     def __init__(self, hyperparams):
         """

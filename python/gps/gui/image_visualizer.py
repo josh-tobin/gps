@@ -1,9 +1,12 @@
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 class ImageVisualizer:
-
-    def __init__(self, axis, imagesize=None, cropsize=None, rgb_channels=3):
+    """
+    If rostopic is given to constructor, then this will automatically update with rostopic image.
+    Else, the update method must be manually called.
+    """
+    def __init__(self, axis, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None):
         self._ax = axis
         self._image_size = imagesize
         self._crop_size = cropsize
@@ -14,6 +17,16 @@ class ImageVisualizer:
             self.init(self._crop_size)
         elif self._image_size:
             self.init(self._image_size)
+
+        if rostopic is not None:
+            try:
+                import rospy
+                import roslib; roslib.load_manifest('gps_agent_pkg')
+                from sensor_msgs.msg import Image
+
+                rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1, buff_size=2**24)
+            except ImportError as e:
+                print 'rostopic image visualization not enabled', e
 
     def init(self, display_size):
         self._t = 0
@@ -46,6 +59,14 @@ class ImageVisualizer:
         self._plot.set_array(self._data[self._t-1])
 
         self._ax.figure.canvas.draw()
+
+    def update_ros(image_msg):
+        # extract image
+        image = np.fromstring(image_msg.data, np.uint8)
+        # convert from ros image format to matplotlib image format
+        image = image.reshape(curr_im.height, curr_im.width, 3)[::-1, :, ::-1]
+        # update visualizer
+        self.update(image)
 
 if __name__ == "__main__":
     import time
