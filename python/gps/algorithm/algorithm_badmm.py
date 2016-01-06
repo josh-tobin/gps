@@ -44,7 +44,7 @@ class AlgorithmBADMM(Algorithm):
             self.cur[m].step_mult = 1.0
             self.dynamics[m] = self._hyperparams['dynamics']['type'](self._hyperparams['dynamics'])
             self.policy_prior[m] = self._hyperparams['policy_prior']['type'](self._hyperparams['policy_prior'])
-        self.eta = [1.0]*self.M
+        self.eta = [1.0] * self.M
 
         self.policy_opt = self._hyperparams['policy_opt']['type'](self._hyperparams['policy_opt'], self.dO, self.dU)
 

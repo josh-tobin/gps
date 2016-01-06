@@ -1,9 +1,7 @@
-import copy
 import numpy as np
 import logging
 
 from gps.algorithm.algorithm import Algorithm
-from gps.algorithm.config import alg_traj_opt
 from gps.utility.general_utils import IterationData, TrajectoryInfo
 
 LOGGER = logging.getLogger(__name__)
@@ -14,9 +12,7 @@ class AlgorithmTrajOpt(Algorithm):
     """
 
     def __init__(self, hyperparams):
-        config = copy.deepcopy(alg_traj_opt)
-        config.update(hyperparams)
-        Algorithm.__init__(self, config)
+        Algorithm.__init__(self, hyperparams)
 
         # Keep 1 iteration data for each condition
         self.cur = [IterationData() for _ in range(self.M)]

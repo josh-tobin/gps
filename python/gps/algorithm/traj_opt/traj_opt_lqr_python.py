@@ -25,11 +25,11 @@ class TrajOptLQRPython(TrajOpt):
     # TODO - traj_distr and prev_traj_distr shouldn't be arguments - should exist in self?
     # If so, how to deal with multiple conditions? (multiple traj_distr)
     # - TODO add arg and return spec on this function
-    def update(self, T, step_mult, prev_eta, traj_info, prev_traj_distr, pol_info=None):
+    def update(self, T, step_mult, prev_eta, traj_info, prev_traj_distr, base_kl_step, pol_info=None):
         """Run dual gradient decent to optimize trajectories."""
 
         # Set KL-divergence step size (epsilon)
-        kl_step = self._hyperparams['kl_step'] * step_mult
+        kl_step = base_kl_step * step_mult
 
         line_search = LineSearch(self._hyperparams['min_eta'])
         min_eta = -np.Inf
