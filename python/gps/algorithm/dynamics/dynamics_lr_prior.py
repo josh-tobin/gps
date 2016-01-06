@@ -8,14 +8,12 @@ class DynamicsLRPrior(Dynamics):
     """Dynamics with linear regression, with arbitrary prior.
 
     """
-    def __init__(self,hyperparams):
+    def __init__(self, hyperparams):
         Dynamics.__init__(self, hyperparams)
         self.Fm = None
         self.fv = None
         self.dyn_covar = None
-
-        #TODO: Use hyperparams
-        self.prior = DynamicsPriorGMM()
+        self.prior = self._hyperparams['prior']['type'](self._hyperparams['prior'])
 
     def update_prior(self, sample):
         """ Update dynamics prior. """

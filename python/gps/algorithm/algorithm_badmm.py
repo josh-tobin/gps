@@ -6,6 +6,7 @@ import logging
 from gps.algorithm.algorithm import Algorithm
 from gps.algorithm.algorithm_utils import estimate_moments, gauss_fit_joint_prior
 from gps.algorithm.config import alg_badmm
+from gps.sample.sample_list import SampleList
 from gps.utility.general_utils import IterationData, TrajectoryInfo, PolicyInfo
 
 LOGGER = logging.getLogger(__name__)
@@ -24,7 +25,8 @@ class AlgorithmBADMM(Algorithm):
         self.prev = [IterationData() for _ in range(self.M)]
 
         init_args = self._hyperparams['init_traj_distr']['args']
-        self.dynamics = [None]*self.M
+        self.dynamics = [None] * self.M
+        self.policy_prior = [None] * self.M
         for m in range(self.M):
             self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
             self.cur[m].traj_info = TrajectoryInfo()
@@ -37,14 +39,14 @@ class AlgorithmBADMM(Algorithm):
             pol_info.pol_k = np.zeros((self.T, self.dU))
             pol_info.pol_S = np.zeros((self.T, self.dU, self.dU))
             pol_info.chol_pol_S = np.zeros((self.T, self.dU, self.dU))
+            pol_info.policy_samples = []
             self.cur[m].pol_info = pol_info
             self.cur[m].step_mult = 1.0
             self.dynamics[m] = self._hyperparams['dynamics']['type'](self._hyperparams['dynamics'])
+            self.policy_prior[m] = self._hyperparams['policy_prior']['type'](self._hyperparams['policy_prior'])
         self.eta = [1.0]*self.M
 
         self.policy_opt = self._hyperparams['policy_opt']['type'](self._hyperparams['policy_opt'], self.dO, self.dU)
-        #TODO: policy prior GMM, for now just constant prior
-        self.policy_prior = self._hyperparams['policy_prior']['type'](self._hyperparams['policy_prior'])
 
     def iteration(self, sample_lists):
         """
@@ -59,6 +61,8 @@ class AlgorithmBADMM(Algorithm):
 
         # Update dynamics model using all sample.
         self._update_dynamics()
+
+        self._update_policy_samples()  # Choose the samples to use with the policy.
 
         self._update_step_size()  # KL Divergence step size
 
@@ -98,14 +102,25 @@ class AlgorithmBADMM(Algorithm):
             self._hyperparams['lg_step'] = np.exp(
                     np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
 
+    def _update_policy_samples(self):
+        #TODO: handle synthetic samples
+        if self._hyperparams['policy_sample_mode'] == 'add':
+            for m in range(self.M):
+                samples = self.cur[m].pol_info.policy_samples
+                samples.extend(self.cur[m].sample_list)
+                if len(samples) > self._hyperparams['max_policy_samples']:
+                    start = len(samples) - self._hyperparams['max_policy_samples']
+                    self.cur[m].pol_info.policy_samples = samples[start:]
+        else:
+            for m in range(self.M):
+                self.cur[m].pol_info.policy_samples = self.cur[m].sample_list
+
     def _update_step_size(self):
         """ Evaluate costs on samples, adjusts step size """
         # Evaluate cost function for all conditions and samples
         for m in range(self.M):
             self._update_policy_fit(m, init=True)
             self._eval_cost(m)
-
-        for m in range(self.M):  # m = condition
             if self.iteration_count >= 1 and self.prev[m].sample_list:
                 # Evaluate cost and adjust step size relative to the previous iteration.
                 self._stepadjust(m)
@@ -119,8 +134,6 @@ class AlgorithmBADMM(Algorithm):
         tgt_mu, tgt_prc, tgt_wt = np.zeros((0, T, dU)), np.zeros((0, T, dU, dU)), np.zeros((0, T))
         obs_data = np.zeros((0, T, dO))
         for m in range(self.M):
-            #TODO: handle synthetic samples, for now just assuming no
-            #      synthetic samples and using all samples
             samples = self.cur[m].sample_list
             X, U = samples.get_X(), samples.get_U()
             N = len(samples)
@@ -156,15 +169,14 @@ class AlgorithmBADMM(Algorithm):
         samples = self.cur[m].sample_list
         N = len(samples)
         traj_info, pol_info = self.cur[m].traj_info, self.cur[m].pol_info
-        X, obs = samples.get_X(), samples.get_obs()
-        pol_mu, pol_sig = self.policy_opt.prob(samples.get_obs())[:2]
+        X = samples.get_X()
+        pol_mu, pol_sig = self.policy_opt.prob(samples.get_obs().copy())[:2]
         pol_info.pol_mu, pol_info.pol_sig = pol_mu, pol_sig
         # Update policy prior.
         if init:
-            #TODO: what arguments need to be passed in here?
-            self.policy_prior.update()
+            self.policy_prior[m].update(samples, self.policy_opt, SampleList(self.cur[m].pol_info.policy_samples))
         else:
-            self.policy_prior.update()
+            self.policy_prior[m].update(SampleList([]), self.policy_opt, SampleList(self.cur[m].pol_info.policy_samples))
         # Collapse policy covariances.
         # This is not really correct, but it works fine so long as the policy covariance doesn't depend on state.
         pol_sig = np.mean(pol_sig, axis=0)
@@ -176,13 +188,13 @@ class AlgorithmBADMM(Algorithm):
             Ps = pol_mu[:,t,:]
             Ys = np.concatenate((Ts, Ps), axis=1)
             # Obtain Normal-inverse-Wishart prior.
-            mu0, Phi, m, n0 = self.policy_prior.eval(Ts, Ps)
+            mu0, Phi, mm, n0 = self.policy_prior[m].eval(Ts, Ps)
             sig_reg = np.zeros((dX+dU, dX+dU))
             # On the first time step, always slightly regularize covariance.
             if t == 0:
                 sig_reg[:dX,:dX] = 1e-8 * np.eye(dX)
             # Perform computation.
-            pol_K, pol_k, pol_S = gauss_fit_joint_prior(Ys, mu0, Phi, m, n0, dwts, dX, dU, sig_reg)
+            pol_K, pol_k, pol_S = gauss_fit_joint_prior(Ys, mu0, Phi, mm, n0, dwts, dX, dU, sig_reg)
             pol_S += pol_sig[t,:,:]
             pol_info.pol_K[t,:,:], pol_info.pol_k[t,:] = pol_K, pol_k
             pol_info.pol_S[t,:,:], pol_info.chol_pol_S[t,:,:] = pol_S, sp.linalg.cholesky(pol_S)
@@ -273,6 +285,7 @@ class AlgorithmBADMM(Algorithm):
             pol_info.pol_k = np.copy(prev_pol_info.pol_k)
             pol_info.pol_S = np.copy(prev_pol_info.pol_S)
             pol_info.chol_pol_S = np.copy(prev_pol_info.chol_pol_S)
+            pol_info.policy_samples = prev_pol_info.policy_samples
             self.cur[m].pol_info = pol_info
             self.cur[m].step_mult = self.prev[m].step_mult
             self.cur[m].traj_distr = self.new_traj_distr[m]
@@ -385,7 +398,7 @@ class AlgorithmBADMM(Algorithm):
         kl, kl_m = np.zeros((N,T)), np.zeros(T)
         kl_l, kl_lm = np.zeros((N,T)), np.zeros(T)
         # Compute policy mean and covariance at each sample.
-        pol_mu, _, pol_prec, pol_det_sigma = self.policy_opt.prob(samples.get_obs())
+        pol_mu, _, pol_prec, pol_det_sigma = self.policy_opt.prob(samples.get_obs().copy())
         # Compute KL divergence.
         for t in range(T):
             # Compute trajectory action at sample.

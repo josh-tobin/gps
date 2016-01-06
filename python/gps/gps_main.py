@@ -35,9 +35,6 @@ class GPSMain():
         else:
             self.gui = None
 
-        # TODO: the following is a hack that doesn't even work some of the time
-        #       let's think a bit about how we want to really do this
-        # TODO - the following line of code is needed for agent_mjc, but not agent_ros
         config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
         config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
         config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
@@ -83,7 +80,7 @@ class GPSMain():
                                         self.gui.err_msg = 'Cannot fail before sampling.'
                                     self.gui.process_mode() # complete request
                             
-                            self.agent.sample(pol, m, verbose=True)
+                            self.agent.sample(pol, m, verbose=(i < self._hyperparams['verbose_trials']))
 
                             if self.gui.mode == 'request' and self.gui.request == 'fail':
                                 redo = True
@@ -96,12 +93,14 @@ class GPSMain():
                 self.algorithm.iteration(sample_lists)
 
                 # Take samples from the policy to see how it is doing.
-                # for m in range(self._conditions):
-                #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
+                if 'policy_opt' in self._hyperparams and self._hyperparams['policy_opt']:
+                    for m in range(self._conditions):
+                        for _ in range(self._hyperparams['verbose_policy_trials']):
+                            self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
                 self.gui.set_status_text('Logging data and updating gui.')
-                self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
-                self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
+#                 self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
+#                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
                 self.gui.update(self.algorithm, itr)
             self.gui.set_status_text('Training complete.')
             self.gui.end_mode()
@@ -117,17 +116,19 @@ class GPSMain():
                 for m in range(self._conditions):
                     for i in range(n):
                         pol = self.algorithm.cur[m].traj_distr
-                        self.agent.sample(pol, m, verbose=True)
+                        self.agent.sample(pol, m, verbose=(i < self._hyperparams['verbose_trials']))
 
                 sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
                 self.algorithm.iteration(sample_lists)
 
                 # Take samples from the policy to see how it is doing.
-                # for m in range(self._conditions):
-                #    self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
+                if 'policy_opt' in self._hyperparams and self._hyperparams['policy_opt']:
+                    for m in range(self._conditions):
+                        for _ in range(self._hyperparams['verbose_policy_trials']):
+                            self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
-                self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
-                self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
+#                 self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
+#                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='GPS_Main ArgumentParser')

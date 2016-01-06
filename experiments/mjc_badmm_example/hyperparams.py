@@ -6,18 +6,16 @@ import os.path
 
 from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
-from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_fk import CostFK
-from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
 from gps.algorithm.cost.cost_sum import CostSum
-from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
-from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
-from gps.algorithm.policy.policy_prior import PolicyPrior
+from gps.algorithm.policy.lin_gauss_init import init_lqr
+from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
 from gps.proto.gps_pb2 import *
 
 
@@ -32,28 +30,31 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
+EXP_DIR = BASE_DIR + '/experiments/mjc_badmm_example/'
 
 common = {
-    'conditions': 1,
-    'experiment_dir': BASE_DIR + '/experiments/default_mjc_experiment/',
-    'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_dir': EXP_DIR,
+    'data_files_dir': EXP_DIR + 'data_files/',
+    'target_filename': EXP_DIR + 'target.npz',
+    'log_filename': EXP_DIR + 'log.txt',
+    'conditions': 4,
 }
-common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
 
-if not os.path.exists(common['output_files_dir']):
-    os.makedirs(common['output_files_dir'])
+if not os.path.exists(common['data_files_dir']):
+    os.makedirs(common['data_files_dir'])
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': './mjc_models/pr2_arm3dtwoholes.xml',
+    'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
     'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
-    'pos_body_offset': np.array([-0.1, 0.2, 0]),
-
+    'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
+        np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
@@ -85,7 +86,6 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        #'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
         'dt': agent['dt'],
         'T': agent['T'],
     }
@@ -94,17 +94,6 @@ algorithm['init_traj_distr'] = {
 torque_cost = {
     'type': CostTorque,
     'wu': 5e-5/PR2_GAINS,
-}
-
-state_cost = {
-    'type': CostState,
-    'data_types' : {
-        JOINT_ANGLES: {
-            'wp': np.ones(SENSOR_DIMS[ACTION]),
-            'target_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
-                -1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
-        },
-    },
 }
 
 fk_cost = {
@@ -125,6 +114,12 @@ algorithm['cost'] = {
 algorithm['dynamics'] = {
     'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 20,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    },
 }
 
 algorithm['traj_opt'] = {
@@ -136,17 +131,19 @@ algorithm['policy_opt'] = {
 }
 
 algorithm['policy_prior'] = {
-    'type': PolicyPrior,
-    'strength': 1e-4,
+    'type': PolicyPriorGMM,
+    'max_clusters': 20,
+    'min_samples_per_cluster': 40,
+    'max_samples': 20,
 }
 
-defaults = {
+config = {
     'iterations': algorithm['iterations'],
     'num_samples': 5,
     'verbose_trials': 1,
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    # 'gui': gui,  # For sim, we probably don't want the gui right now.
+    'gui_on': False,  # Currently doesn't work for BADMM.
     'algorithm': algorithm,
 }

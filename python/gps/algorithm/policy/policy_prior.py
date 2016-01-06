@@ -1,4 +1,7 @@
+import copy
 import numpy as np
+
+from gps.algorithm.policy.config import policy_prior
 
 
 class PolicyPrior(object):
@@ -6,9 +9,11 @@ class PolicyPrior(object):
     Constant policy prior.
     """
     def __init__(self, hyperparams):
-        self._hyperparams = hyperparams
+        config = copy.deepcopy(policy_prior)
+        config.update(hyperparams)
+        self._hyperparams = config
 
-    def update(self):
+    def update(self, samples, policy_opt, all_samples, retrain=True):
         """
         Update dynamics prior.
         """

@@ -8,13 +8,12 @@ from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_fk import CostFK
-from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
 from gps.algorithm.cost.cost_sum import CostSum
-from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
+from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.proto.gps_pb2 import *
 
 
@@ -54,7 +53,6 @@ agent = {
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
         np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
-
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
@@ -64,6 +62,7 @@ agent = {
 algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
+    'iterations': 10,
 }
 
 algorithm['init_traj_distr'] = {
@@ -76,7 +75,6 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        #'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
         'dt': agent['dt'],
         'T': agent['T'],
     }
@@ -87,21 +85,9 @@ torque_cost = {
     'wu': 5e-5/PR2_GAINS,
 }
 
-state_cost = {
-    'type': CostState,
-    'data_types' : {
-        JOINT_ANGLES: {
-            'wp': np.ones(SENSOR_DIMS[ACTION]),
-            'target_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
-                -1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
-        },
-    },
-}
-
 fk_cost = {
     'type': CostFK,
     'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
-    'analytic_jacobian': False,
     'wp': np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 10.0,
@@ -117,6 +103,12 @@ algorithm['cost'] = {
 algorithm['dynamics'] = {
     'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 20,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    },
 }
 
 algorithm['traj_opt'] = {
@@ -126,19 +118,21 @@ algorithm['traj_opt'] = {
 algorithm['policy_opt'] = {}
 
 config = {
-    'iterations': 10,
+    'iterations': algorithm['iterations'],
     'num_samples': 5,
+    'verbose_trials': 1,
     'common': common,
     'agent': agent,
     'gui_on': True,
     'algorithm': algorithm,
 }
 
-info = ('exp_name: '      + str(common['experiment_name'])                + '\n'
-        'alg_type: '      + str(algorithm['type'].__name__)               + '\n'
-        'alg_dyn:  '      + str(algorithm['dynamics']['type'].__name__)   + '\n'
-        'alg_cost: '      + str(algorithm['cost']['type'].__name__)       + '\n'
-        'iterations: '    + str(config['iterations'])                     + '\n'
-        'conditions: '    + str(algorithm['conditions'])                  + '\n'
-        'samples:    '    + str(config['num_samples'])                    + '\n')
-common['info'] = info
+common['info'] = (
+    'exp_name: '   + str(common['experiment_name'])              + '\n'
+    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)

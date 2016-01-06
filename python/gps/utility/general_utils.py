@@ -51,7 +51,7 @@ TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step'
 TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
 
 POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
-                'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl']
+                'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl', 'policy_samples']
 PolicyInfo = bundletype('PolicyInfo', POLINFO_VARS)
 
 def check_shape(value, expected_shape, name=''):
