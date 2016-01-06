@@ -38,26 +38,6 @@ class PolicyOptCaffe(PolicyOpt):
 
         self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
 
-    def __getstate__(self):
-        self.solver.snapshot()
-        return {'hyperparams': self._hyperparams,
-                'dObs': self._dObs,
-                'dU': self._dU,
-                'scale': self.policy.scale,
-                'bias': self.policy.bias,
-                'caffe_iter': self.caffe_iter,
-                }
-
-    def __setstate__(self, state):
-        self.__init__(state['hyperparams'], state['dObs'], state['dU'])
-        self.policy.scale = state['scale']
-        self.policy.bias = state['bias']
-        self.caffe_iter = state['caffe_iter']
-        self.solver.restore(self._hyperparams['weights_file_prefix'] +
-                '_iter_' + str(self.caffe_iter) + '.solverstate')
-        self.policy.net.copy_from(self._hyperparams['weights_file_prefix'] +
-                '_iter_' + str(self.caffe_iter) + '.caffemodel')
-
     def init_solver(self):
         """ Helper method to initialize the solver from hyperparameters. """
 
@@ -226,3 +206,25 @@ class PolicyOptCaffe(PolicyOpt):
         pol_det_sigma = np.tile(np.prod(self.var), (N, T))
 
         return output, pol_sigma, pol_prec, pol_det_sigma
+
+    # For pickling
+    def __getstate__(self):
+        self.solver.snapshot()
+        return {'hyperparams': self._hyperparams,
+                'dObs': self._dObs,
+                'dU': self._dU,
+                'scale': self.policy.scale,
+                'bias': self.policy.bias,
+                'caffe_iter': self.caffe_iter,
+                }
+
+    # For unpickling
+    def __setstate__(self, state):
+        self.__init__(state['hyperparams'], state['dObs'], state['dU'])
+        self.policy.scale = state['scale']
+        self.policy.bias = state['bias']
+        self.caffe_iter = state['caffe_iter']
+        self.solver.restore(self._hyperparams['weights_file_prefix'] +
+                '_iter_' + str(self.caffe_iter) + '.solverstate')
+        self.policy.net.copy_from(self._hyperparams['weights_file_prefix'] +
+                '_iter_' + str(self.caffe_iter) + '.caffemodel')
