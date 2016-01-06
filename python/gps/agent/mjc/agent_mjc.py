@@ -79,7 +79,10 @@ class AgentMuJoCo(Agent):
 
         self.x0 = []
         for x0 in self._hyperparams['x0']:
-            self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
+            if END_EFFECTOR_POINTS in self.x_data_types:
+                self.x0.append(np.concatenate([x0, eepts, np.zeros_like(eepts)]))
+            else:
+                self.x0.append(x0)
 
     def sample(self, policy, condition, verbose=True, save=True):
         """

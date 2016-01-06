@@ -39,7 +39,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     idx_u = slice(dX, dX + dU)  # Slices out actions
 
     if len(config['init_acc']) == 0:
-        config['init_acc'] = np.ones(dU)
+        config['init_acc'] = np.zeros(dU)
 
     if len(config['init_gains']) == 0:
         config['init_gains'] = np.ones(dU)
