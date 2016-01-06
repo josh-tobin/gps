@@ -51,8 +51,8 @@ class GPSMain():
         """
         if self.gui:
             if itr_load is not None:
-                self.gui.set_status_text('Resuming training from algorithm state at iteration %02d.' % itr)
-                self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
+                self.gui.set_status_text('Resuming training from algorithm state at iteration %02d.' % itr_load)
+                self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr_load))
                 self.gui.update(self.algorithm)
                 itr_start = itr_load + 1
             else:
@@ -79,7 +79,7 @@ class GPSMain():
                                     elif self.gui.request == 'fail':
                                         self.gui.err_msg = 'Cannot fail before sampling.'
                                     self.gui.process_mode() # complete request
-                            
+
                             self.agent.sample(pol, m, verbose=(i < self._hyperparams['verbose_trials']))
 
                             if self.gui.mode == 'request' and self.gui.request == 'fail':
@@ -90,6 +90,7 @@ class GPSMain():
 
                 self.gui.set_status_text('Calculating.')
                 sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+                self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr), copy.copy(sample_lists))
                 self.algorithm.iteration(sample_lists)
 
                 # Take samples from the policy to see how it is doing.
@@ -99,14 +100,13 @@ class GPSMain():
                             self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
                 self.gui.set_status_text('Logging data and updating gui.')
-#                 self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
-#                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
+                self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
                 self.gui.update(self.algorithm, itr)
             self.gui.set_status_text('Training complete.')
             self.gui.end_mode()
         else:
             if itr_load is not None:
-                self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr))
+                self.algorithm = self.data_logger.unpickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr_load))
                 itr_start = itr_load + 1
             else:
                 itr_start = 0
@@ -119,6 +119,7 @@ class GPSMain():
                         self.agent.sample(pol, m, verbose=(i < self._hyperparams['verbose_trials']))
 
                 sample_lists = [self.agent.get_samples(m, -n) for m in range(self._conditions)]
+                self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr), copy.copy(sample_lists))
                 self.algorithm.iteration(sample_lists)
 
                 # Take samples from the policy to see how it is doing.
@@ -127,8 +128,7 @@ class GPSMain():
                         for _ in range(self._hyperparams['verbose_policy_trials']):
                             self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
 
-#                 self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
-#                 self.data_logger.pickle(self._data_files_dir + ('sample_itr_%02d.pkl' % itr),    copy.copy(sample_lists))
+                self.data_logger.pickle(self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr), copy.copy(self.algorithm))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='GPS_Main ArgumentParser')
