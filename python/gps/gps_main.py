@@ -143,19 +143,19 @@ if __name__ == "__main__":
     new_experiment = args.new
     resume_training_itr = args.resume
 
-    experiment_folder = 'experiments/' + experiment_name
-    hyperparams_filepath =  experiment_folder + '/hyperparams.py'
+    experiment_dir = 'experiments/' + experiment_name + '/'
+    hyperparams_file =  experiment_dir + 'hyperparams.py'
 
     if new_experiment:
-        if os.path.exists(experiment_folder):
-            sys.exit('Experiment \'%s\' already exists.\nPlease remove \'%s\'.' % (experiment_name, experiment_folder))
-        os.makedirs(experiment_folder)
-        open(hyperparams_filepath, 'w')
-        sys.exit('Experiment \'%s\' created.\nhyperparams file: \'%s\'.' % (experiment_name, hyperparams_filepath))
+        if os.path.exists(experiment_dir):
+            sys.exit('Experiment \'%s\' already exists.\nPlease remove \'%s\'.' % (experiment_name, experiment_dir))
+        os.makedirs(experiment_dir)
+        open(hyperparams_file, 'w')
+        sys.exit('Experiment \'%s\' created.\nhyperparams file: \'%s\'.' % (experiment_name, hyperparams_file))
 
-    if not os.path.exists(hyperparams_filepath):
-        sys.exit('Experiment \'%s\' does not exist.\nDid you create \'%s\'?' % (experiment_name, hyperparams_filepath))
-    hyperparams = imp.load_source('hyperparams', hyperparams_filepath)
+    if not os.path.exists(hyperparams_file):
+        sys.exit('Experiment \'%s\' does not exist.\nDid you create \'%s\'?' % (experiment_name, hyperparams_file))
+    hyperparams = imp.load_source('hyperparams', hyperparams_file)
 
     if run_target_setup:
         try:
