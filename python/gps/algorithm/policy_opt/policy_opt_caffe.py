@@ -39,7 +39,7 @@ class PolicyOptCaffe(PolicyOpt):
         self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
 
     def __getstate__(self):
-        self.solver.snapshot() # Set prefix first...
+        self.solver.snapshot()
         return {'hyperparams': self._hyperparams,
                 'dObs': self._dObs,
                 'dU': self._dU,
