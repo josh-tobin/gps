@@ -22,12 +22,17 @@ class Algorithm(object):
         self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'])
         self.cost = [hyperparams['cost']['type'](hyperparams['cost'])] * self.M
 
-        # Set initial values
-        init_args = hyperparams['init_traj_distr']['args']
-        self.T = init_args['T']
-        self.dX = init_args['dX']
-        self.dU = init_args['dU']
-        self.dO = self._hyperparams['dO']
+        # Grab a few values from the agent.
+        agent = self._hyperparams['agent']
+        self.T = self._hyperparams['T'] = agent.T
+        self.dU = self._hyperparams['dU'] = agent.dU
+        self.dX = self._hyperparams['dX'] = agent.dX
+        init_traj_distr = config['init_traj_distr']
+        if init_traj_distr['from_agent']:
+            init_traj_distr['x0'] = agent.x0
+            init_traj_distr['dX'] = agent.dX
+            init_traj_distr['dU'] = agent.dU
+
 
     @abc.abstractmethod
     def iteration(self, sample_list):
@@ -41,8 +46,7 @@ class Algorithm(object):
         """
         for m in range(self.M):
             if self.iteration_count >= 1:
-                self.prev[m].traj_info.dynamics = self.dynamics[m].copy()
-            self.cur[m].traj_info.dynamics = self.dynamics[m]
+                self.prev[m].traj_info.dynamics = self.cur[m].traj_info.dynamics.copy()
             cur_data = self.cur[m].sample_list
             self.cur[m].traj_info.dynamics.update_prior(cur_data)
 
@@ -58,7 +62,8 @@ class Algorithm(object):
             if prior:
                 mu0, Phi, priorm, n0 = prior.initial_state()
                 N = len(cur_data)
-                self.cur[m].traj_info.x0sigma += Phi + ((N*priorm)/(N+priorm))*np.outer(x0mu-mu0,x0mu-mu0)/(N+n0)
+                self.cur[m].traj_info.x0sigma += Phi + \
+                        ((N*priorm)/(N+priorm)) * np.outer(x0mu-mu0, x0mu-mu0) / (N+n0)
 
     def _update_trajectories(self):
         """
@@ -68,8 +73,8 @@ class Algorithm(object):
             self.new_traj_distr = [self.cur[m].traj_distr for m in range(self.M)]
         for m in range(self.M):
             pol_info = self.cur[m].pol_info if 'pol_info' in dir(self.cur[m]) else None
-            self.new_traj_distr[m], self.eta[m] = self.traj_opt.update(
-                    self.T, self.cur[m].step_mult, self.eta[m],
+            self.new_traj_distr[m], self.cur[m].eta = self.traj_opt.update(
+                    self.T, self.cur[m].step_mult, self.cur[m].eta,
                     self.cur[m].traj_info, self.cur[m].traj_distr,
                     self._hyperparams['kl_step'], pol_info=pol_info)
 

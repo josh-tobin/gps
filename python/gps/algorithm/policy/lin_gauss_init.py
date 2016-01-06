@@ -9,22 +9,17 @@ import scipy.linalg
 from gps.algorithm.dynamics.dynamics_util import guess_dynamics
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps.algorithm.policy.config import init_lg
-# TODO - put other arguments into a dictionary? include in hyperparams?
 
 
-def init_lqr(hyperparams, x0, dX, dU, dt, T):
+def init_lqr(hyperparams):
     """
     Return initial gains for a time-varying linear gaussian controller
     that tries to hold the initial position.
-
-    Some sanity checks
-    >>> x0 = np.zeros(8)
-    >>> traj = init_lqr({}, x0, 8, 3, 0.1, 5)
-    >>> traj.K.shape
-    (5, 3, 8)
     """
     config = deepcopy(init_lg)
     config.update(hyperparams)
+
+    x0, dX, dU, dt, T = config['x0'], config['dX'], config['dU'], config['dt'], config['T']
     # TODO: Use packing instead of assuming which indices are the joint angles.
 
     # Notation notes:
@@ -95,7 +90,7 @@ def init_lqr(hyperparams, x0, dX, dU, dt, T):
     return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)
 
 
-def init_pd(hyperparams, x0, dU, dQ, dX, T):
+def init_pd(hyperparams):
     """
     Return initial gains for a time-varying linear gaussian controller that
     tries to hold the initial position.
@@ -115,6 +110,8 @@ def init_pd(hyperparams, x0, dU, dQ, dX, T):
     """
     config = deepcopy(init_lg)
     config.update(hyperparams)
+
+    x0, dU, dQ, dX, T = config['x0'], config['dU'], config['dQ'], config['dX'], config['T']
 
     # Choose initialization mode.
     Kp = 1.0

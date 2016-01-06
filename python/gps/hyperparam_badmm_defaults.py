@@ -53,7 +53,6 @@ agent = {
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
     'pos_body_offset': np.array([-0.1, 0.2, 0]),
-
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
@@ -77,18 +76,13 @@ algorithm = {
 
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
-    'args': {
-        'hyperparams': {
-            'init_gains':  1.0 / PR2_GAINS,
-            'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
-            'init_var': 1.0,
-            'init_stiffness': 1.0,
-            'init_stiffness_vel': 0.5,
-        },
-        #'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
-        'dt': agent['dt'],
-        'T': agent['T'],
-    }
+    'init_gains':  1.0 / PR2_GAINS,
+    'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
+    'init_var': 1.0,
+    'init_stiffness': 1.0,
+    'init_stiffness_vel': 0.5,
+    'dt': agent['dt'],
+    'T': agent['T'],
 }
 
 torque_cost = {

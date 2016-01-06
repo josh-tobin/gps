@@ -4,10 +4,11 @@ import scipy as sp
 import logging
 
 from gps.algorithm.algorithm import Algorithm
-from gps.algorithm.algorithm_utils import estimate_moments, gauss_fit_joint_prior
+from gps.algorithm.algorithm_utils import estimate_moments, gauss_fit_joint_prior, \
+        IterationData, TrajectoryInfo, PolicyInfo
 from gps.algorithm.config import alg_badmm
 from gps.sample.sample_list import SampleList
-from gps.utility.general_utils import IterationData, TrajectoryInfo, PolicyInfo
+from gps.utility.general_utils import extract_condition
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,31 +21,22 @@ class AlgorithmBADMM(Algorithm):
         config.update(hyperparams)
         Algorithm.__init__(self, config)
 
-        # Keep current and previous iteration data for each condition
+        # Grab one additional value from the agent.
+        self.dO = self._hyperparams['dO'] = self._hyperparams['agent'].dO
+
+        # IterationData objects for each condition.
         self.cur = [IterationData() for _ in range(self.M)]
         self.prev = [IterationData() for _ in range(self.M)]
 
-        init_args = self._hyperparams['init_traj_distr']['args']
-        self.dynamics = [None] * self.M
-        self.policy_prior = [None] * self.M
         for m in range(self.M):
-            self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
             self.cur[m].traj_info = TrajectoryInfo()
-            self.cur[m].traj_info.last_kl_step = float('inf')
-            pol_info = PolicyInfo()
-            pol_info.lambda_k = np.zeros((self.T, self.dU))
-            pol_info.lambda_K = np.zeros((self.T, self.dU, self.dX))
-            pol_info.pol_wt = self._hyperparams['init_pol_wt'] * np.ones(self.T)
-            pol_info.pol_K = np.zeros((self.T, self.dU, self.dX))
-            pol_info.pol_k = np.zeros((self.T, self.dU))
-            pol_info.pol_S = np.zeros((self.T, self.dU, self.dU))
-            pol_info.chol_pol_S = np.zeros((self.T, self.dU, self.dU))
-            pol_info.policy_samples = []
-            self.cur[m].pol_info = pol_info
-            self.cur[m].step_mult = 1.0
-            self.dynamics[m] = self._hyperparams['dynamics']['type'](self._hyperparams['dynamics'])
-            self.policy_prior[m] = self._hyperparams['policy_prior']['type'](self._hyperparams['policy_prior'])
-        self.eta = [1.0] * self.M
+            dynamics = self._hyperparams['dynamics']
+            self.cur[m].traj_info.dynamics = dynamics['type'](dynamics)
+            init_traj_distr = extract_condition(self._hyperparams['init_traj_distr'], m)
+            self.cur[m].traj_distr = init_traj_distr['type'](init_traj_distr)
+            self.cur[m].pol_info = PolicyInfo(self._hyperparams)
+            policy_prior = self._hyperparams['policy_prior']
+            self.cur[m].pol_info.policy_prior = policy_prior['type'](policy_prior)
 
         self.policy_opt = self._hyperparams['policy_opt']['type'](self._hyperparams['policy_opt'], self.dO, self.dU)
 
@@ -58,12 +50,8 @@ class AlgorithmBADMM(Algorithm):
             self.cur[m].sample_list = sample_lists[m]
 
         self._set_interp_values()
-
-        # Update dynamics model using all sample.
-        self._update_dynamics()
-
+        self._update_dynamics()  # Update dynamics model using all sample.
         self._update_policy_samples()  # Choose the samples to use with the policy.
-
         self._update_step_size()  # KL Divergence step size
 
         # Run inner loop to compute new policies under new dynamics and step size
@@ -174,9 +162,11 @@ class AlgorithmBADMM(Algorithm):
         pol_info.pol_mu, pol_info.pol_sig = pol_mu, pol_sig
         # Update policy prior.
         if init:
-            self.policy_prior[m].update(samples, self.policy_opt, SampleList(self.cur[m].pol_info.policy_samples))
+            self.cur[m].pol_info.policy_prior.update(samples, self.policy_opt,
+                    SampleList(self.cur[m].pol_info.policy_samples))
         else:
-            self.policy_prior[m].update(SampleList([]), self.policy_opt, SampleList(self.cur[m].pol_info.policy_samples))
+            self.cur[m].pol_info.policy_prior.update(SampleList([]), self.policy_opt,
+                    SampleList(self.cur[m].pol_info.policy_samples))
         # Collapse policy covariances.
         # This is not really correct, but it works fine so long as the policy covariance doesn't depend on state.
         pol_sig = np.mean(pol_sig, axis=0)
@@ -188,7 +178,7 @@ class AlgorithmBADMM(Algorithm):
             Ps = pol_mu[:,t,:]
             Ys = np.concatenate((Ts, Ps), axis=1)
             # Obtain Normal-inverse-Wishart prior.
-            mu0, Phi, mm, n0 = self.policy_prior[m].eval(Ts, Ps)
+            mu0, Phi, mm, n0 = self.cur[m].pol_info.policy_prior.eval(Ts, Ps)
             sig_reg = np.zeros((dX+dU, dX+dU))
             # On the first time step, always slightly regularize covariance.
             if t == 0:
@@ -242,7 +232,7 @@ class AlgorithmBADMM(Algorithm):
                                              for wt in pol_info.pol_wt])
             elif self._hyperparams['fixed_lg_step'] == 2:
                 # Increase/decrease based on change in constraint satisfaction.
-                if hasattr(traj_info, 'prev_kl'):
+                if hasattr(pol_info, 'prev_kl'):
                     kl_change = kl_m / pol_info.prev_kl
                     for i in range(len(pol_info.pol_wt)):
                         if kl_change[i] < 0.8:
@@ -251,7 +241,7 @@ class AlgorithmBADMM(Algorithm):
                             pol_info.pol_wt[i] *= 2.0
             elif self._hyperparams['fixed_lg_step'] == 3:
                 # Increase/decrease based on difference from average.
-                if hasattr(traj_info, 'prev_kl'):
+                if hasattr(pol_info, 'prev_kl'):
                     lower = np.mean(kl_m) - self._hyperparams['exp_step_lower'] * np.std(kl_m)
                     upper = np.mean(kl_m) + self._hyperparams['exp_step_upper'] * np.std(kl_m)
                     for i in range(len(pol_info.pol_wt)):
@@ -264,7 +254,6 @@ class AlgorithmBADMM(Algorithm):
                 pol_info.pol_wt = np.array([max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
                                              for i in range(T)])
             pol_info.prev_kl = kl_m
-        self.cur[m].pol_kl = kl_m
 
     def _advance_iteration_variables(self):
         """
@@ -277,18 +266,11 @@ class AlgorithmBADMM(Algorithm):
         for m in range(self.M):
             self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].traj_info.last_kl_step = self.prev[m].traj_info.last_kl_step
-            pol_info, prev_pol_info = PolicyInfo(), self.prev[m].pol_info
-            pol_info.lambda_k = np.copy(prev_pol_info.lambda_k)
-            pol_info.lambda_K = np.copy(prev_pol_info.lambda_K)
-            pol_info.pol_wt = np.copy(prev_pol_info.pol_wt)
-            pol_info.pol_K = np.copy(prev_pol_info.pol_K)
-            pol_info.pol_k = np.copy(prev_pol_info.pol_k)
-            pol_info.pol_S = np.copy(prev_pol_info.pol_S)
-            pol_info.chol_pol_S = np.copy(prev_pol_info.chol_pol_S)
-            pol_info.policy_samples = prev_pol_info.policy_samples
-            self.cur[m].pol_info = pol_info
+            self.cur[m].traj_info.dynamics = self.prev[m].traj_info.dynamics
             self.cur[m].step_mult = self.prev[m].step_mult
+            self.cur[m].eta = self.prev[m].eta
             self.cur[m].traj_distr = self.new_traj_distr[m]
+            self.cur[m].pol_info = self.prev[m].pol_info
         delattr(self, 'new_traj_distr')
 
     def _stepadjust(self, m):
@@ -368,16 +350,12 @@ class AlgorithmBADMM(Algorithm):
         new_mult = max(0.1, min(5.0, new_mult))
         new_step = max(min(new_mult * self.cur[m].step_mult, self._hyperparams['max_step_mult']),
                 self._hyperparams['min_step_mult'])
-        step_change = new_step / self.cur[m].step_mult
         self.cur[m].step_mult = new_step
 
         if new_mult > 1:
             LOGGER.debug('Increasing step size multiplier to %f', new_step)
         else:
             LOGGER.debug('Decreasing step size multiplier to %f', new_step)
-
-        self.cur[m].step_change = step_change
-        self.cur[m].pol_kl = new_mc_kl
 
     def _policy_kl(self, m, prev=False):
         """

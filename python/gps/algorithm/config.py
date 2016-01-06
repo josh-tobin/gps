@@ -38,4 +38,8 @@ alg_badmm = {
     'init_pol_wt': 0.01,
     'policy_sample_mode': 'add',
     'max_policy_samples': 20,
+    'exp_step_increase': 2.0,
+    'exp_step_decrease': 0.5,
+    'exp_step_upper': 0.0,
+    'exp_step_lower': 2.0,
 }

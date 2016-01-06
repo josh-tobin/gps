@@ -8,12 +8,12 @@ from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_state import CostState
-from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior import PolicyPrior
-from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
 from gps.proto.gps_pb2 import *
 
 
@@ -58,29 +58,25 @@ agent = {
 algorithm = {
     'type': AlgorithmBADMM,
     'conditions': common['conditions'],
-    'iterations': 5,
-    'lg_step_schedule': 0,
-    'policy_dual_rate': 0,
+    'iterations': 10,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
+    'policy_dual_rate': 0.2,
     'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
-    'fixed_lg_step': 1,
-    'kl_step': 0.1,
+    'fixed_lg_step': 3,
     'min_step_mult': 0.01,
-    'max_step_mult': 10.0,
+    'max_step_mult': 1.0,
     'sample_decrease_var': 0.05,
     'sample_increase_var': 0.1,
 }
 
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
-    'args': {
-        'hyperparams': {
-            'init_var': 1.0,
-            'init_stiffness': 10.0,
-            'init_stiffness_vel': 10.0,
-        },
-        'dt': agent['dt'],
-        'T': agent['T'],
-    }
+    'init_var': 1.0,
+    'init_stiffness': 10.0,
+    'init_stiffness_vel': 10.0,
+    'dt': agent['dt'],
+    'T': agent['T'],
+    'from_agent': True,  # Whether or not to grab values from the agent.
 }
 
 algorithm['cost'] = {
@@ -94,8 +90,14 @@ algorithm['cost'] = {
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLR,
+    'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 2,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    }
 }
 
 algorithm['traj_opt'] = {
@@ -104,18 +106,20 @@ algorithm['traj_opt'] = {
 
 algorithm['policy_opt'] = {
     'type': PolicyOptCaffe,
+    'iterations': 10000,
+    'network_arch_params': {
+        'n_layers': 2,
+        'dim_hidden': [20],
+    },
 }
 
 algorithm['policy_prior'] = {
-    'type': PolicyPriorGMM,
-    'max_clusters': 2,
-    'min_samples_per_cluster': 40,
-    'max_samples': 20,
+    'type': PolicyPrior,
 }
 
 config = {
     'iterations': algorithm['iterations'],
-    'num_samples': 20,
+    'num_samples': 5,
     'verbose_trials': 1,
     'verbose_policy_trials': 1,
     'common': common,

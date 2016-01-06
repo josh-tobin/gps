@@ -1,58 +1,20 @@
 import numpy as np
 
-def bundletype(name, vars):
+
+class BundleType(object):
     """
-    Creates a class that bundles many fields.
-    This is similar to a record or mutable namedtuple
-
-    Args:
-        name: Name of class to create
-        vars: A list of string representing field names.
-            A field with the name _frozen cannot be used (it is used internally).
-    Returns:
-        A class object. All fields default to None
-
-    >>> bundle_class = bundletype('MyBundle', ['a', 'b', 'c'])
-    >>> bundle1 = bundle_class()
-    >>> bundle1.a = 5
-    >>> bundle1.d = 4
-    Traceback (most recent call last):
-    ...
-    AttributeError: MyBundle{'a': 5, 'c': None, 'b': None} has no attribute d
+    This class bundles many fields, similar to a record or a mutable namedtuple.
     """
-    if '_frozen' in vars:
-        raise ValueError('Invalid field name _frozen')
-
-    class BundleType(object):
-        def __init__(self):
-            for var in vars:
-                setattr(self, var, None)
-            self._frozen = True  # Freeze fields
-
-        def __repr__(self):
-            return name+str({var: getattr(self, var) for var in vars})
-
-    BundleType.__name__ = name
+    def __init__(self, vars):
+        for var, val in vars.items():
+            object.__setattr__(self, var, val)
 
     # Freeze fields so new ones cannot be set.
-    def __setattr(self, key, value):
-        if hasattr(self, '_frozen') and not hasattr(self, key):
+    def __setattr__(self, key, value):
+        if not hasattr(self, key):
             raise AttributeError("%r has no attribute %s" % (self, key))
         object.__setattr__(self, key, value)
-    BundleType.__setattr__ = __setattr
-    return BundleType
 
-# TODO(marvin): make classes for these.
-ITERATION_VARS = ['sample_list', 'traj_info', 'pol_info', 'traj_distr', 'cs',
-                  'step_change', 'pol_kl', 'step_mult']
-IterationData = bundletype('IterationData', ITERATION_VARS)
-
-TRAJINFO_VARS = ['dynamics', 'x0mu', 'x0sigma', 'cc', 'cv', 'Cm', 'last_kl_step']
-TrajectoryInfo = bundletype('TrajectoryInfo', TRAJINFO_VARS)
-
-POLINFO_VARS = ['lambda_k', 'lambda_K', 'pol_wt', 'pol_mu', 'pol_sig',
-                'pol_K', 'pol_k', 'pol_S', 'chol_pol_S', 'prev_kl', 'policy_samples']
-PolicyInfo = bundletype('PolicyInfo', POLINFO_VARS)
 
 def check_shape(value, expected_shape, name=''):
     """
@@ -74,6 +36,7 @@ def check_shape(value, expected_shape, name=''):
     if value.shape != tuple(expected_shape):
         raise ValueError('Shape mismatch %s: Expected %s, got %s' %
             (name, str(expected_shape), str(value.shape)))
+
 
 def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
     """
@@ -126,6 +89,7 @@ def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
         gradient[idx] += diff
     return gradient
 
+
 def approx_equal(a, b, threshold=1e-5):
     """
     Return whether two numbers are equal within an absolute threshold
@@ -146,3 +110,12 @@ def approx_equal(a, b, threshold=1e-5):
     False
     """
     return np.all(np.abs(a - b) < threshold)
+
+
+def extract_condition(hyperparams, m):
+    """
+    Pull the relevant hyperparameters corresponding to the specified condition,
+    and return a new hyperparameter dictionary.
+    """
+    return {var: val[m] if isinstance(val, list) else val \
+            for var, val in hyperparams.items()}

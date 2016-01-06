@@ -35,11 +35,7 @@ class GPSMain():
         else:
             self.gui = None
 
-        config['algorithm']['init_traj_distr']['args']['x0'] = self.agent.x0[0]
-        config['algorithm']['init_traj_distr']['args']['dX'] = self.agent.dX
-        config['algorithm']['init_traj_distr']['args']['dU'] = self.agent.dU
-        config['algorithm']['dO'] = self.agent.dO
-
+        config['algorithm']['agent'] = self.agent
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 
     def run(self, itr_load=None):
@@ -94,7 +90,7 @@ class GPSMain():
                 self.algorithm.iteration(sample_lists)
 
                 # Take samples from the policy to see how it is doing.
-                if 'policy_opt' in self._hyperparams and self._hyperparams['policy_opt']:
+                if 'verbose_policy_trials' in self._hyperparams:
                     for m in range(self._conditions):
                         for _ in range(self._hyperparams['verbose_policy_trials']):
                             self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)
@@ -123,7 +119,7 @@ class GPSMain():
                 self.algorithm.iteration(sample_lists)
 
                 # Take samples from the policy to see how it is doing.
-                if 'policy_opt' in self._hyperparams and self._hyperparams['policy_opt']:
+                if 'verbose_policy_trials' in self._hyperparams:
                     for m in range(self._conditions):
                         for _ in range(self._hyperparams['verbose_policy_trials']):
                             self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True, save=False)

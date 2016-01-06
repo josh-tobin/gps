@@ -103,20 +103,17 @@ algorithm = {
 
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
-    'args': {
-        'hyperparams': {
-            'init_gains':  1.0 / PR2_GAINS,
-            'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
-            'init_var': 1.0,
-            'init_stiffness': 1.0,
-            'init_stiffness_vel': 0.5,
-        },
-        'dX': sum([SENSOR_DIMS[state_include] for state_include in agent['state_include']]),
-        'dU': 7,
-        'dt': agent['dt'],
-        'T': agent['T'],
-        'x0': agent['x0'],
-    }
+    'init_gains':  1.0 / PR2_GAINS,
+    'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
+    'init_var': 1.0,
+    'init_stiffness': 1.0,
+    'init_stiffness_vel': 0.5,
+    'dX': sum([SENSOR_DIMS[state_include] for state_include in agent['state_include']]),
+    'dU': 7,
+    'dt': agent['dt'],
+    'T': agent['T'],
+    'x0': agent['x0'],
+    'from_agent': False,  # Whether or not to grab values from the agent.
 }
 
 torque_cost = {
@@ -183,11 +180,12 @@ config = {
     'num_samples': 5,
 }
 
-info = ('exp_name: '      + str(common['experiment_name'])                + '\n'
-        'alg_type: '      + str(algorithm['type'].__name__)               + '\n'
-        'alg_dyn:  '      + str(algorithm['dynamics']['type'].__name__)   + '\n'
-        'alg_cost: '      + str(algorithm['cost']['type'].__name__)       + '\n'
-        'iterations: '    + str(config['iterations'])                     + '\n'
-        'conditions: '    + str(algorithm['conditions'])                  + '\n'
-        'samples:    '    + str(config['num_samples'])                    + '\n')
-common['info'] = info
+common['info'] = (
+    'exp_name: '   + str(common['experiment_name'])              + '\n'
+    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)
