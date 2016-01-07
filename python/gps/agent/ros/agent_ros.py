@@ -126,7 +126,7 @@ class AgentROS(Agent):
             policy: A Policy object (ex. LinGauss, or CaffeNetwork)
             condition (int): Which condition setup to run.
 
-        Returns: 
+        Returns:
             A Sample object
         """
         self.reset(condition)
