@@ -32,8 +32,22 @@ class AgentROS(Agent):
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands
 
+        conditions = self._hyperparams['conditions']
+
+        def setup(value, n):
+            if not isinstance(value, list):
+                try:
+                    return [value.copy() for _ in range(n)]
+                except AttributeError:
+                    return [value for _ in range(n)]
+            assert len(value) == n, 'number of elements must match number of conditions or be 1'
+            return value
+
         self.x0 = []
-        self.x0.append(self._hyperparams['x0'])
+        for field in ('x0', 'ee_points_tgt', 'reset_conditions'):
+            self._hyperparams[field] = setup(self._hyperparams[field], conditions)
+        self.x0 = self._hyperparams['x0']
+
         r = rospy.Rate(1)
         r.sleep()
 
@@ -111,6 +125,7 @@ class AgentROS(Agent):
             condition (int): An index into hyperparams['reset_conditions']
         """
         condition_data = self._hyperparams['reset_conditions'][condition]
+        print 'resetting condition %d: ' % condition, condition_data[TRIAL_ARM]['data']
         self.reset_arm(TRIAL_ARM,
                        condition_data[TRIAL_ARM]['mode'],
                        condition_data[TRIAL_ARM]['data'])
@@ -146,6 +161,8 @@ class AgentROS(Agent):
         trial_command.frequency = self._hyperparams['frequency']
         ee_points = self._hyperparams['end_effector_points']
         trial_command.ee_points = ee_points.reshape(ee_points.size).tolist()
+        ee_points_tgt = self._hyperparams['ee_points_tgt'][condition]
+        trial_command.ee_points_tgt = ee_points_tgt.reshape(ee_points_tgt.size).tolist()
         trial_command.state_datatypes = self._hyperparams['state_include']
         trial_command.obs_datatypes = self._hyperparams['state_include']
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])

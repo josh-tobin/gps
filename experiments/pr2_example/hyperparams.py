@@ -42,7 +42,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 1,
+    'conditions': 2,
 }
 
 if not os.path.exists(common['data_files_dir']):
@@ -62,19 +62,43 @@ def get_ee_points(offsets, ee_pos, ee_rot):
     """
     return ee_rot.dot(offsets.T) + ee_pos.T
 
-ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
-ja_tgt, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
+#cond 0
+
+ja_x0_0, ee_pos_x0_0, ee_rot_x0_0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
+ja_tgt_0, ee_pos_tgt_0, ee_rot_tgt_0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
 
 # TODO - construct this somewhere else?
-x0 = np.zeros(23)
-x0[0:7] = ja_x0
-x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0).T)
+x0_0 = np.zeros(23)
+x0_0[0:7] = ja_x0_0
+x0_0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0_0, ee_rot_x0_0).T)
 
-ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt).T)
+ee_tgt_0 = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt_0, ee_rot_tgt_0).T)
 
-reset_condition = { TRIAL_ARM: {
+reset_condition_0 = { TRIAL_ARM: {
                         'mode': JOINT_SPACE,
-                        'data': x0[0:7],
+                        'data': x0_0[0:7],
+                        },
+                    AUXILIARY_ARM: {
+                        'mode': JOINT_SPACE,
+                        'data': np.zeros(7),
+                    },
+                };
+
+#cond 1
+
+ja_x0_1, ee_pos_x0_1, ee_rot_x0_1 = load_pose_from_npz(common['target_filename'], 'trial_arm', '1', 'initial')
+ja_tgt_1, ee_pos_tgt_1, ee_rot_tgt_1 = load_pose_from_npz(common['target_filename'], 'trial_arm', '1', 'target')
+
+# TODO - construct this somewhere else?
+x0_1 = np.zeros(23)
+x0_1[0:7] = ja_x0_1
+x0_1[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0_1, ee_rot_x0_1).T)
+
+ee_tgt_1 = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt_1, ee_rot_tgt_1).T)
+
+reset_condition_1 = { TRIAL_ARM: {
+                        'mode': JOINT_SPACE,
+                        'data': x0_1[0:7],
                         },
                     AUXILIARY_ARM: {
                         'mode': JOINT_SPACE,
@@ -87,11 +111,9 @@ agent = {
     'dt': 0.05,
     'conditions': common['conditions'],
     'T': 100,
-    'x0': x0,
-    'reset_conditions': {
-        0: reset_condition,
-        #1: reset_condition,
-     },
+    'x0': [x0_0, x0_1],
+    'ee_points_tgt': [ee_tgt_0, ee_tgt_1],
+    'reset_conditions': [ reset_condition_0, reset_condition_1 ],
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
     'end_effector_points': ee_points,
@@ -124,22 +146,22 @@ torque_cost = {
     'wu': 5e-3/PR2_GAINS,
 }
 
-state_cost = {
-    'type': CostState,
-    'data_types' : {
-        JOINT_ANGLES: {
-            'wp': np.ones(SENSOR_DIMS[ACTION]),
-            #'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
-                #-1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
-            #'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
-            'target_state': ja_tgt,
-        },
-    },
-}
+#state_cost = {
+    #'type': CostState,
+    #'data_types' : {
+        #JOINT_ANGLES: {
+            #'wp': np.ones(SENSOR_DIMS[ACTION]),
+            ##'desired_state': np.array([0.617830101225870, 0.298009357128493, -2.26613599619067,
+                ##-1.83180464491005, 1.44102734751961, -0.488554457910043, -0.311987910094871]),
+            ##'desired_state': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5]),
+            #'target_state': ja_tgt,
+        #},
+    #},
+#}
 
 fk_cost1 = {
     'type': CostFK,
-    'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'target_end_effector': np.zeros(3*3), #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 0.0001,
@@ -149,7 +171,7 @@ fk_cost1 = {
 # TODO - this isn't qutie right.
 fk_cost2 = {
     'type': CostFK,
-    'target_end_effector': ee_tgt, #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'target_end_effector': np.zeros(3*3), #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 1.0,
     'l2': 0.0,
