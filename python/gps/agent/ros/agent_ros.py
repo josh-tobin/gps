@@ -125,7 +125,6 @@ class AgentROS(Agent):
             condition (int): An index into hyperparams['reset_conditions']
         """
         condition_data = self._hyperparams['reset_conditions'][condition]
-        print 'resetting condition %d: ' % condition, condition_data[TRIAL_ARM]['data']
         self.reset_arm(TRIAL_ARM,
                        condition_data[TRIAL_ARM]['mode'],
                        condition_data[TRIAL_ARM]['data'])

@@ -80,7 +80,7 @@ reset_condition_0 = { TRIAL_ARM: {
                         },
                     AUXILIARY_ARM: {
                         'mode': JOINT_SPACE,
-                        'data': np.zeros(7),
+                        'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
                     },
                 };
 
@@ -102,7 +102,7 @@ reset_condition_1 = { TRIAL_ARM: {
                         },
                     AUXILIARY_ARM: {
                         'mode': JOINT_SPACE,
-                        'data': np.zeros(7),
+                        'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
                     },
                 };
 
