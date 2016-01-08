@@ -62,58 +62,45 @@ def get_ee_points(offsets, ee_pos, ee_rot):
     """
     return ee_rot.dot(offsets.T) + ee_pos.T
 
-#cond 0
+x0s = []
+ee_tgts = []
+reset_conditions = []
 
-ja_x0_0, ee_pos_x0_0, ee_rot_x0_0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
-ja_tgt_0, ee_pos_tgt_0, ee_rot_tgt_0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
+# set up each condition
+for i in xrange(common['conditions']):
 
-# TODO - construct this somewhere else?
-x0_0 = np.zeros(23)
-x0_0[0:7] = ja_x0_0
-x0_0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0_0, ee_rot_x0_0).T)
-
-ee_tgt_0 = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt_0, ee_rot_tgt_0).T)
-
-reset_condition_0 = { TRIAL_ARM: {
-                        'mode': JOINT_SPACE,
-                        'data': x0_0[0:7],
-                        },
-                    AUXILIARY_ARM: {
-                        'mode': JOINT_SPACE,
-                        'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
-                    },
-                };
-
-#cond 1
-
-ja_x0_1, ee_pos_x0_1, ee_rot_x0_1 = load_pose_from_npz(common['target_filename'], 'trial_arm', '1', 'initial')
-ja_tgt_1, ee_pos_tgt_1, ee_rot_tgt_1 = load_pose_from_npz(common['target_filename'], 'trial_arm', '1', 'target')
+    ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', str(i), 'initial')
+    ja_tgt, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', str(i), 'target')
 
 # TODO - construct this somewhere else?
-x0_1 = np.zeros(23)
-x0_1[0:7] = ja_x0_1
-x0_1[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0_1, ee_rot_x0_1).T)
+    x0 = np.zeros(23)
+    x0[0:7] = ja_x0
+    x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0).T)
 
-ee_tgt_1 = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt_1, ee_rot_tgt_1).T)
+    ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt).T)
 
-reset_condition_1 = { TRIAL_ARM: {
-                        'mode': JOINT_SPACE,
-                        'data': x0_1[0:7],
+    reset_condition = { TRIAL_ARM: {
+                            'mode': JOINT_SPACE,
+                            'data': x0[0:7],
+                            },
+                        AUXILIARY_ARM: {
+                            'mode': JOINT_SPACE,
+                            'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
                         },
-                    AUXILIARY_ARM: {
-                        'mode': JOINT_SPACE,
-                        'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
-                    },
-                };
+                    };
+
+    x0s.append(x0)
+    ee_tgts.append(ee_tgt)
+    reset_conditions.append(reset_condition)
 
 agent = {
     'type': AgentROS,
     'dt': 0.05,
     'conditions': common['conditions'],
     'T': 100,
-    'x0': [x0_0, x0_1],
-    'ee_points_tgt': [ee_tgt_0, ee_tgt_1],
-    'reset_conditions': [ reset_condition_0, reset_condition_1 ],
+    'x0': x0s,
+    'ee_points_tgt': ee_tgts,
+    'reset_conditions': reset_conditions,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
     'end_effector_points': ee_points,
@@ -161,7 +148,7 @@ torque_cost = {
 
 fk_cost1 = {
     'type': CostFK,
-    'target_end_effector': np.zeros(3*3), #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'target_end_effector': np.zeros(3*3), # target end effector is subtracted out of ee_points in ros so goal is 0
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 0.0001,
@@ -171,7 +158,7 @@ fk_cost1 = {
 # TODO - this isn't qutie right.
 fk_cost2 = {
     'type': CostFK,
-    'target_end_effector': np.zeros(3*3), #np.array([0.0, 0.0, 0.0,  0.1, 0.2, 0.3]),
+    'target_end_effector': np.zeros(3*3), # target end effector is subtracted out of ee_points in ros so goal is 0
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 1.0,
     'l2': 0.0,
