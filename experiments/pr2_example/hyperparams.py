@@ -148,7 +148,7 @@ torque_cost = {
 
 fk_cost1 = {
     'type': CostFK,
-    'target_end_effector': np.zeros(3 * SENSOR_DIMS[END_EFFECTOR_POINTS]), # target end effector is subtracted out of ee_points in ros so goal is 0
+    'target_end_effector': np.zeros(3 * ee_points.shape[0]), # target end effector is subtracted out of ee_points in ros so goal is 0
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 0.0001,
@@ -158,7 +158,7 @@ fk_cost1 = {
 # TODO - this isn't qutie right.
 fk_cost2 = {
     'type': CostFK,
-    'target_end_effector': np.zeros(3 * SENSOR_DIMS[END_EFFECTOR_POINTS]), # target end effector is subtracted out of ee_points in ros so goal is 0
+    'target_end_effector': np.zeros(3 * ee_points.shape[0]), # target end effector is subtracted out of ee_points in ros so goal is 0
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]), #np.array([1, 1, 1, 1, 1, 1]),
     'l1': 1.0,
     'l2': 0.0,
