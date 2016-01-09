@@ -160,8 +160,7 @@ class AgentROS(Agent):
         trial_command.frequency = self._hyperparams['frequency']
         ee_points = self._hyperparams['end_effector_points']
         trial_command.ee_points = ee_points.reshape(ee_points.size).tolist()
-        ee_points_tgt = self._hyperparams['ee_points_tgt'][condition]
-        trial_command.ee_points_tgt = ee_points_tgt.reshape(ee_points_tgt.size).tolist()
+        trial_command.ee_points_tgt = self._hyperparams['ee_points_tgt'][condition].tolist()
         trial_command.state_datatypes = self._hyperparams['state_include']
         trial_command.obs_datatypes = self._hyperparams['state_include']
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])

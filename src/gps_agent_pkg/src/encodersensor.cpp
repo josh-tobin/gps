@@ -117,9 +117,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        // adjust for ee points: ZDM: TODO says probably best to do this *after* velocity computation in case config changes...,
-        // but I think that we would have to add back targets into the previous in order to actually compute velocity
-        // and I don't think that config can change mid trial...
+        // Subtract the target end effector points so that the goal is always zero
         temp_end_effector_points_ -= end_effector_points_target_;
 
         // Compute velocities.
@@ -168,17 +166,17 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     end_effector_points_ = boost::get<Eigen::MatrixXd>(options["ee_sites"]).transpose();
     n_points_ = end_effector_points_.cols();
 
-    // TODO: ZDM seems like a potential bug for != 3x3 ee points. shouldn't one of these
-    // be a row?  also replicated just below for ee target
     if( end_effector_points_.cols() != 3){
-        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", (int)n_points_,
+        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", 
+                (int)end_effector_points_.rows(),
                 (int)end_effector_points_.cols());
     }
 
     end_effector_points_target_ = boost::get<Eigen::MatrixXd>(options["ee_points_tgt"]).transpose();
     int n_points_target_ = end_effector_points_target_.cols();
     if( end_effector_points_target_.cols() != 3){
-        ROS_ERROR("EE tgt has more than 3 coordinates: Shape=(%d,%d)", n_points_target_,
+        ROS_ERROR("EE tgt has more than 3 coordinates: Shape=(%d,%d)", 
+                (int)end_effector_points__target_.rows(),
                 (int)end_effector_points_target_.cols());
     }
     if(n_points_ != n_points_target_){
