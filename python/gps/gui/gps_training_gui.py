@@ -17,6 +17,8 @@ from gps.gui.mean_plotter import MeanPlotter
 from gps.gui.plotter_3d import Plotter3D
 from gps.gui.image_visualizer import ImageVisualizer
 
+from gps.proto.gps_pb2 import END_EFFECTOR_POINTS
+
 # ~~~ GUI Specifications ~~~
 # Action Axis
 #     - stop, reset, start, emergency stop
@@ -194,7 +196,7 @@ class GPSTrainingGUI:
     def set_action_bgcolor(self, color, alpha=1.0):
         self._action_output_axis.set_bgcolor(color, alpha)
 
-    def update(self, algorithm, itr):
+    def update(self, algorithm, sample_lists, itr):
         if algorithm.M == 1:
             # update plot with each sample's cost (summed over time)
             costs = np.sum(algorithm.prev[0].cs, axis=1)
@@ -209,5 +211,16 @@ class GPSTrainingGUI:
             self._first_update = False
         self.append_output_text('%02d  | %f' % (itr, np.mean(costs)))
 
-        self._vis_traj_axis.update(xs=[1,2], ys=[1,2], zs=[1,2])
-        self._vis_pol_axis.update(xs=[0,3], ys=[2,5], zs=[4,7])
+        if algorithm.M == 1:
+            # update plot with each sample
+            samples = sample_lists[0].get_samples()
+            sample0 = samples[0]
+            ee_pos = sample0.get(END_EFFECTOR_POINTS)
+            self._vis_traj_axis.update(xs=ee_points[:,0], ys=ee_points[:,2], zs=ee_points[:,1])
+        else:
+            # update plot with first sample of each condition
+            samples = sample_lists[0].get_samples()
+            sample0 = samples[0]
+            ee_points = sample0.get(END_EFFECTOR_POINTS)
+            self._vis_traj_axis.update(xs=ee_points[:,0], ys=ee_points[:,2], zs=ee_points[:,1])
+        # self._vis_pol_axis.update(xs=[0,3], ys=[2,5], zs=[4,7])

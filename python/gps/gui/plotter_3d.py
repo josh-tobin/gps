@@ -12,6 +12,7 @@ class Plotter3D:
         self._ax.legend()
 
     def update(self, xs, ys, zs):
+        self._plot.remove()
         self._plot = self._ax.plot(xs, ys, zs=zs, color=self._color, label=self._label)[0]
         self._ax.figure.canvas.draw()
         self._ax.figure.canvas.flush_events()   # Fixes bug with Qt4Agg backend
