@@ -62,8 +62,8 @@ def estimate_moments(X, mu, covar):
     Xmu = np.concatenate([X, mu], axis=2)
     ev = np.mean(Xmu, axis=0)
     em = np.zeros((N, T, dX+dU, dX+dU))
-    pad1 = np.zeros((dX,dX+dU))
-    pad2 = np.zeros((dU,dX))
+    pad1 = np.zeros((dX, dX+dU))
+    pad2 = np.zeros((dU, dX))
     for n in range(N):
         for t in range(T):
             covar_pad = np.vstack([pad1, np.hstack([pad2, covar[n,t,:,:]])])
@@ -85,7 +85,7 @@ def gauss_fit_joint_prior(pts, mu0, Phi, m, n0, dwts, dX, dU, sig_reg):
     # MAP estimate of joint distribution.
     N = dwts.shape[0]
     mu = mun
-    sigma = (N * empsig + Phi + ((N*m)/(N+m)) * np.outer(mun-mu0, mun-mu0)) / (N + n0)
+    sigma = (N * empsig + Phi + (N*m) / (N+m) * np.outer(mun-mu0, mun-mu0)) / (N + n0)
     sigma = 0.5 * (sigma + sigma.T)
     # Add sigma regularization.
     sigma += sig_reg

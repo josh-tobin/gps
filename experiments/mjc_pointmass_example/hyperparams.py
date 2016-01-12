@@ -26,6 +26,7 @@ SENSOR_DIMS = {
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/mjc_pointmass_example/'
 
+
 common = {
     'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
@@ -76,7 +77,6 @@ algorithm['init_traj_distr'] = {
     'init_stiffness_vel': 10.0,
     'dt': agent['dt'],
     'T': agent['T'],
-    'from_agent': True,  # Whether or not to grab values from the agent.
 }
 
 algorithm['cost'] = {
@@ -124,6 +124,6 @@ config = {
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui_on': False,  # Currently doesn't work for BADMM.
+    'gui_on': True,
     'algorithm': algorithm,
 }

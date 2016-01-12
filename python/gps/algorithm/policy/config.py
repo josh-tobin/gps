@@ -1,19 +1,20 @@
-"""Default configuration and hyperparameter values for algorithm objects
-
+"""
+Default configuration and hyperparameter values for policy objects.
 """
 
+
 # TODO - make sure this is exposed at a higher level, also pd is default type.
-""" Intial Linear Gaussian Traj Distributions """
+""" Initial Linear Gaussian Trajectory Distributions """
 init_lg = {
-    # Used for both pd and lqr initialization
+    # Used for both PD and LQR initialization.
     'init_var': 10.0,
     'init_stiffness': 10.0,
     'init_stiffness_vel': 0.01,
-    # Used for lqr initialization only
-    'init_acc': [],  # numpy vector of dU accelerations, ones if not specified
-    'init_gains': [],  # numpy vector of dU gains, ones if not specified
+    # Used for LQR initialization only.
+    'init_acc': [],  # dU vector of accelerations, zeros if not specified.
+    'init_gains': [],  # dU vector of gains, ones if not specified.
     'init_final_weight': 1.0,
-    # Used for pd initialization only, optional
+    # Used for PD initialization only, optional.
     'init_action_offset': None,
 }
 

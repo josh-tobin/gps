@@ -25,10 +25,11 @@ SENSOR_DIMS = {
     ACTION: 7,
 }
 
-PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/mjc_example/'
+
 
 common = {
     'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
@@ -74,7 +75,6 @@ algorithm['init_traj_distr'] = {
     'init_stiffness_vel': 0.5,
     'dt': agent['dt'],
     'T': agent['T'],
-    'from_agent': True,  # Whether or not to grab values from the agent.
 }
 
 torque_cost = {
@@ -84,7 +84,7 @@ torque_cost = {
 
 fk_cost = {
     'type': CostFK,
-    'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'target_end_effector': np.array([0.0, 0.3, -0.5, 0.0, 0.3, -0.2]),
     'wp': np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 10.0,

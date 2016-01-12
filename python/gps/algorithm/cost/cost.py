@@ -2,8 +2,8 @@ import abc
 
 
 class Cost(object):
-    """Cost superclass
-
+    """
+    Cost superclass
     """
     __metaclass__ = abc.ABCMeta
 
@@ -13,13 +13,8 @@ class Cost(object):
     @abc.abstractmethod
     def eval(self, sample):
         """
-        Evaluate cost function and derivatives
-
+        Evaluate cost function and derivatives.
         Args:
-            sample:  A single sample
-
-        Return:
-            l, lx, lu, lxx, luu, lux:
-                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
+            sample:  A single sample.
         """
-        raise NotImplementedError("Must be implemented in subclass")
+        raise NotImplementedError("Must be implemented in subclass.")

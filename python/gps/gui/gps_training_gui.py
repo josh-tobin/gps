@@ -31,18 +31,18 @@ from gps.gui.image_visualizer import ImageVisualizer
 #     - visualize hidden states?
 #     - create movie from image visualizations
 
+
 class GPSTrainingGUI:
     def __init__(self, hyperparams):
-        # Hyperparameters
         self._hyperparams = copy.deepcopy(common_config)
         self._hyperparams.update(copy.deepcopy(gps_training_config))
         self._hyperparams.update(hyperparams)
 
         self._log_filename = self._hyperparams['log_filename']
 
-        # GPS Training Status
-        self.mode = 'run'       # valid modes: run, wait, end, request, process
-        self.request = None     # valid requests: stop, reset, go, fail, None
+        # GPS Training Status.
+        self.mode = 'run'       # Valid modes: run, wait, end, request, process.
+        self.request = None     # Valid requests: stop, reset, go, fail, None.
         self.err_msg = None
         self._colors = {
             'run': 'cyan',
@@ -56,7 +56,7 @@ class GPSTrainingGUI:
         }
         self._first_update = True
 
-        # Actions
+        # Actions.
         actions_arr = [
             Action('stop',  'stop',  self.request_stop,  axis_pos=0),
             Action('reset', 'reset', self.request_reset, axis_pos=1),
@@ -70,52 +70,56 @@ class GPSTrainingGUI:
             if key in self._hyperparams['ps3_bindings']:
                 action._pb = self._hyperparams['ps3_bindings'][key]
 
-        # GUI Components
+        # GUI Components.
         plt.ion()
         plt.rcParams['toolbar'] = 'None'
-        plt.rcParams['keymap.save'] = ''    # remove 's' keyboard shortcut for saving
+        plt.rcParams['keymap.save'] = ''  # Remove 's' keyboard shortcut for saving.
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
         self._gs  = gridspec.GridSpec(4, 4)
 
-        # Action Axis
-        self._gs_action = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec=self._gs[0:1, 0:4])
-        self._axarr_action = [plt.subplot(self._gs_action[0, i]) for i in range(1*4)]
+        # Action Axis.
+        self._gs_action = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec=self._gs[0:1,0:4])
+        self._axarr_action = [plt.subplot(self._gs_action[0,i]) for i in range(4)]
         self._action_axis = ActionAxis(self._actions, self._axarr_action,
-                ps3_process_rate=self._hyperparams['ps3_process_rate'], ps3_topic=self._hyperparams['ps3_topic'],
+                ps3_process_rate=self._hyperparams['ps3_process_rate'],
+                ps3_topic=self._hyperparams['ps3_topic'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
-        self._ax_action_output = plt.subplot(self._gs_action[1, 2:4])
+        self._ax_action_output = plt.subplot(self._gs_action[1,2:4])
         self._action_output_axis = OutputAxis(self._ax_action_output, border_on=True)
 
-        self._ax_status_output = plt.subplot(self._gs_action[1, 0:2])
+        self._ax_status_output = plt.subplot(self._gs_action[1,0:2])
         self._status_output_axis = OutputAxis(self._ax_status_output)
 
-        # Output Axis
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2, 0:4])
+        # Output Axis.
+        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2,0:4])
         self._ax_plot = plt.subplot(self._gs_output[1])
         self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
 
         self._ax_output = plt.subplot(self._gs_output[0])
-        self._output_axis = OutputAxis(self._ax_output, max_display_size=10, log_filename=self._log_filename, font_family='monospace')
+        self._output_axis = OutputAxis(self._ax_output, max_display_size=10,
+                log_filename=self._log_filename, font_family='monospace')
         for line in self._hyperparams['info'].split('\n'):
             self.append_output_text(line)
 
-        # Visualization Axis
-        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
+        # Visualization Axis.
+        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4,0:2])
         self._ax_vis = plt.subplot(self._gs_vis[0])
-        self._vis_axis = ImageVisualizer(self._ax_vis, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
+        self._vis_axis = ImageVisualizer(self._ax_vis, cropsize=(240, 240),
+                rostopic=self._hyperparams['image_topic'])
 
-        # Image Axis
-        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
+        # Image Axis.
+        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4,2:4])
         self._ax_image = plt.subplot(self._gs_image[0])
-        self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
+        self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240, 240),
+                rostopic=self._hyperparams['image_topic'])
 
         self.run_mode()
         self._fig.canvas.draw()
 
-    # GPS Training Functions
+    # GPS Training Functions.
     def request_stop(self, event=None):
         self.request_mode('stop')
 
@@ -167,15 +171,8 @@ class GPSTrainingGUI:
 
     def estop(self, event=None):
         self.set_action_text('estop: NOT IMPLEMENTED')
-        # self.set_action_text('estop')
-        # for i in range(10):
-        #     self.set_action_bgcolor('red')
-        #     time.sleep(0.3)
-        #     self.set_action_bgcolor('white')
-        #     time.sleep(0.3)
-        # self.set_action_bgcolor('red')
 
-    # GUI functions
+    # GUI functions.
     def set_status_text(self, text):
         self._status_output_axis.set_text(text)
 
@@ -193,10 +190,10 @@ class GPSTrainingGUI:
 
     def update(self, algorithm, itr):
         if algorithm.M == 1:
-            # update plot with each sample's cost (summed over time)
+            # Update plot with each sample's cost (summed over time).
             costs = np.sum(algorithm.prev[0].cs, axis=1)
         else:
-            # update plot with each condition's mean sample cost (summed over time)
+            # Update plot with each condition's mean sample cost (summed over time).
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
         self._plot_axis.update(costs)
 

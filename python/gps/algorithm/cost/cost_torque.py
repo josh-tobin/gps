@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 import numpy as np
 
 from gps.algorithm.cost.config import cost_torque
@@ -7,23 +7,18 @@ from gps.algorithm.cost.cost import Cost
 
 class CostTorque(Cost):
     """
-    Computes torque penalties
+    Computes torque penalties.
     """
-
     def __init__(self, hyperparams):
-        config = deepcopy(cost_torque)
+        config = copy.deepcopy(cost_torque)
         config.update(hyperparams)
         Cost.__init__(self, config)
 
     def eval(self, sample):
         """
-        Evaluate cost function and derivatives on a sample
-
+        Evaluate cost function and derivatives on a sample.
         Args:
             sample: A single sample
-        Return:
-            l, lx, lu, lxx, luu, lux:
-                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         sample_u = sample.get_U()
         T = sample.T

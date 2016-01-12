@@ -13,11 +13,11 @@ from gps.algorithm.policy_opt.config import policy_opt_caffe
 
 LOGGER = logging.getLogger(__name__)
 
+
 class PolicyOptCaffe(PolicyOpt):
-    """Policy optimization using caffe neural network library
-
     """
-
+    Policy optimization using Caffe neural network library.
+    """
     def __init__(self, hyperparams, dObs, dU):
         config = copy.deepcopy(policy_opt_caffe)
         config.update(hyperparams)
@@ -39,19 +39,19 @@ class PolicyOptCaffe(PolicyOpt):
         self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
 
     def init_solver(self):
-        """ Helper method to initialize the solver from hyperparameters. """
-
+        """
+        Helper method to initialize the solver from hyperparameters.
+        """
         solver_param = SolverParameter()
         solver_param.snapshot_prefix = self._hyperparams['weights_file_prefix']
         solver_param.display = 0  # Don't display anything.
-        solver_param.random_seed = 0 # debugging
         solver_param.base_lr = self._hyperparams['lr']
         solver_param.lr_policy = self._hyperparams['lr_policy']
         solver_param.momentum = self._hyperparams['momentum']
         solver_param.weight_decay = self._hyperparams['weight_decay']
         solver_param.type = self._hyperparams['solver_type']
 
-        # Pass in net parameter either by filename or protostring
+        # Pass in net parameter either by filename or protostring.
         if isinstance(self._hyperparams['network_model'], basestring):
             self.solver = caffe.get_solver(self._hyperparams['network_model'])
         else:
@@ -61,13 +61,15 @@ class PolicyOptCaffe(PolicyOpt):
 
             network_arch_params['batch_size'] = self.batch_size
             network_arch_params['phase'] = TRAIN
-            solver_param.train_net_param.CopyFrom(self._hyperparams['network_model'](**network_arch_params))
+            solver_param.train_net_param.CopyFrom(
+                    self._hyperparams['network_model'](**network_arch_params))
 
             network_arch_params['batch_size'] = 1
             network_arch_params['phase'] = TEST
-            solver_param.test_net_param.add().CopyFrom(self._hyperparams['network_model'](**network_arch_params))
+            solver_param.test_net_param.add().CopyFrom(
+                    self._hyperparams['network_model'](**network_arch_params))
 
-            # These are required by caffe to be set, but not used.
+            # These are required by Caffe to be set, but not used.
             solver_param.test_iter.append(1)
             solver_param.test_interval = 1000000
 
@@ -77,19 +79,16 @@ class PolicyOptCaffe(PolicyOpt):
 
             self.solver = caffe.get_solver(f.name)
 
-    # TODO - this assumes that the obs is a vector being passed into the
-    # network in the same place (won't work with images or multimodal networks)
+    # TODO - this assumes that the obs is a vector being passed into the network in the same place
+    # (won't work with images or multimodal networks).
     def update(self, obs, tgt_mu, tgt_prc, tgt_wt, itr, inner_itr):
-        """ Update policy.
-
+        """
+        Update policy.
         Args:
-            obs: numpy array that is N x T x dObs
-            tgt_mu: numpy array that is N x T x dU
-            tgt_prc: numpy array that is N x T x dU x dU
-            tgt_wt: numpy array that is N x T
-
-        Returns:
-            a CaffePolicy with updated weights
+            obs: Numpy array of observations that is N x T x dObs.
+            tgt_mu: numpy array of mean controller outputs that is N x T x dU.
+            tgt_prc: Numpy array of precision matrices that is N x T x dU x dU.
+            tgt_wt: Numpy array of weights that is N x T.
         """
         N, T = obs.shape[:2]
         dU, dObs = self._dU, self._dObs
@@ -106,7 +105,7 @@ class PolicyOptCaffe(PolicyOpt):
         mn = np.median(tgt_wt[(tgt_wt > 1e-2).nonzero()])
         for n in range(N):
             for t in range(T):
-                tgt_wt[n, t] = min(tgt_wt[n, t], 2*mn)
+                tgt_wt[n,t] = min(tgt_wt[n, t], 2*mn)
         # Robust median should be around one.
         tgt_wt /= mn
 
@@ -129,13 +128,13 @@ class PolicyOptCaffe(PolicyOpt):
 
         blob_names = self.solver.net.blobs.keys()
 
-        # Assuming that N*T >= self.batch_size
+        # Assuming that N*T >= self.batch_size.
         batches_per_epoch = np.floor(N*T / self.batch_size)
         idx = range(N*T)
         average_loss = 0
         np.random.shuffle(idx)
         for i in range(self._hyperparams['iterations']):
-            # Load in data for this batch
+            # Load in data for this batch.
             start_idx = int(i*self.batch_size % (batches_per_epoch*self.batch_size))
             idx_i = idx[start_idx:start_idx+self.batch_size]
             self.solver.net.blobs[blob_names[0]].data[:] = obs[idx_i]
@@ -151,16 +150,16 @@ class PolicyOptCaffe(PolicyOpt):
                 LOGGER.debug('Caffe iteration %d, average loss %f', i, average_loss / 500)
                 average_loss = 0
 
-            # To run a  test
-            #if i % test_interval:
-            #    print 'Iteration', i, 'testing...'
-            #    solver.test_nets[0].forward()
+            # To run a test:
+            # if i % test_interval:
+            #     print 'Iteration', i, 'testing...'
+            #     solver.test_nets[0].forward()
 
-        # Keep track of caffe iterations for loading solver states.
+        # Keep track of Caffe iterations for loading solver states.
         self.caffe_iter += self._hyperparams['iterations']
 
-        # Optimize variance
-        A = np.sum(tgt_prc_orig,0) + 2*N*T*self._hyperparams['ent_reg']*np.ones((dU,dU))
+        # Optimize variance.
+        A = np.sum(tgt_prc_orig,0) + 2 * N * T * self._hyperparams['ent_reg'] * np.ones((dU,dU))
         A = A / np.sum(tgt_wt)
 
         # TODO - use dense covariance?
@@ -170,13 +169,10 @@ class PolicyOptCaffe(PolicyOpt):
         return self.policy
 
     def prob(self, obs):
-        """ Run policy forward.
-
+        """
+        Run policy forward.
         Args:
-            obs: numpy array that is N x T x Dobs
-
-        Returns:
-            pol mu, pol var, pol prec, pol det sigma
+            obs: Numpy array of observations that is N x T x dObs.
         """
         dU = self._dU
         N, T = obs.shape[:2]
@@ -188,37 +184,38 @@ class PolicyOptCaffe(PolicyOpt):
         except AttributeError:
             pass  #TODO: should prob be called before update?
 
-        output = np.zeros([N, T, dU])
+        output = np.zeros((N, T, dU))
         blob_names = self.solver.test_nets[0].blobs.keys()
 
         self.solver.test_nets[0].share_with(self.solver.net)
 
         for i in range(N):
             for t in range(T):
-                # Feed in data
+                # Feed in data.
                 self.solver.test_nets[0].blobs[blob_names[0]].data[:] = obs[i,t]
 
-                # Assume that the first output blob is what we want
+                # Assume that the first output blob is what we want.
                 output[i,t,:] = self.solver.test_nets[0].forward().values()[0][0]
 
-        pol_sigma = np.tile(np.diag(self.var), (N, T, 1, 1))
-        pol_prec = np.tile(np.diag(1 / self.var), (N, T, 1, 1))
-        pol_det_sigma = np.tile(np.prod(self.var), (N, T))
+        pol_sigma = np.tile(np.diag(self.var), [N, T, 1, 1])
+        pol_prec = np.tile(np.diag(1. / self.var), [N, T, 1, 1])
+        pol_det_sigma = np.tile(np.prod(self.var), [N, T])
 
         return output, pol_sigma, pol_prec, pol_det_sigma
 
-    # For pickling
+    # For pickling.
     def __getstate__(self):
         self.solver.snapshot()
-        return {'hyperparams': self._hyperparams,
-                'dObs': self._dObs,
-                'dU': self._dU,
-                'scale': self.policy.scale,
-                'bias': self.policy.bias,
-                'caffe_iter': self.caffe_iter,
-                }
+        return {
+            'hyperparams': self._hyperparams,
+            'dObs': self._dObs,
+            'dU': self._dU,
+            'scale': self.policy.scale,
+            'bias': self.policy.bias,
+            'caffe_iter': self.caffe_iter,
+        }
 
-    # For unpickling
+    # For unpickling.
     def __setstate__(self, state):
         self.__init__(state['hyperparams'], state['dObs'], state['dU'])
         self.policy.scale = state['scale']
