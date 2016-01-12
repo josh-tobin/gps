@@ -127,3 +127,13 @@ config = {
     'gui_on': True,
     'algorithm': algorithm,
 }
+
+common['info'] = (
+    'exp_name: '   + str(common['experiment_name'])              + '\n'
+    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)
