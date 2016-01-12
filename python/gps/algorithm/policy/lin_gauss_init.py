@@ -21,7 +21,7 @@ def init_lqr(hyperparams):
 
     x0, dX, dU, dt, T = config['x0'], config['dX'], config['dU'], config['dt'], config['T']
 
-    # TODO: Use packing instead of assuming which indices are the joint angles.
+    #TODO: Use packing instead of assuming which indices are the joint angles.
 
     # Notation notes:
     # L = loss, Q = q-function (dX+dU dimensional), V = value function (dX dimensional), F = dynamics

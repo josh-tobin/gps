@@ -11,7 +11,7 @@ cost_fk = {
     'ramp_option': RAMP_CONSTANT,  # How target cost increases over time.
     'wp': None,  # State weights - must be set.
     'wp_final_multiplier': 1.0,  # Weight multiplier on final time step.
-    'env_target': True, # TODO - this isn't used.
+    'env_target': True, # TODO - This isn't used.
     'l1': 0.0,
     'l2': 1.0,
     'alpha': 1e-5,

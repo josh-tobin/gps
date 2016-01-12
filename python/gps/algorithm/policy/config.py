@@ -3,7 +3,7 @@ Default configuration and hyperparameter values for policy objects.
 """
 
 
-# TODO - make sure this is exposed at a higher level, also pd is default type.
+# TODO - Make sure this is exposed at a higher level, also PD is default type.
 """ Initial Linear Gaussian Trajectory Distributions """
 init_lg = {
     # Used for both PD and LQR initialization.

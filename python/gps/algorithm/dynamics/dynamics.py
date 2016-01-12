@@ -12,7 +12,7 @@ class Dynamics(object):
         self._hyperparams = hyperparams
 
         # TODO - Currently assuming that dynamics will always be linear with X.
-        # TODO - allocate arrays using hyperparams dU, dX, T.
+        # TODO - Allocate arrays using hyperparams dU, dX, T.
 
         # Fitted dynamics: x_t+1 = Fm * [x_t;u_t] + fv.
         self.Fm = np.array(np.nan)

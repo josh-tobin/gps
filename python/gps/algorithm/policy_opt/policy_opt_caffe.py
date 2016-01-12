@@ -79,7 +79,7 @@ class PolicyOptCaffe(PolicyOpt):
 
             self.solver = caffe.get_solver(f.name)
 
-    # TODO - this assumes that the obs is a vector being passed into the network in the same place
+    # TODO - This assumes that the obs is a vector being passed into the network in the same place.
     # (won't work with images or multimodal networks).
     def update(self, obs, tgt_mu, tgt_prc, tgt_wt, itr, inner_itr):
         """
@@ -93,7 +93,7 @@ class PolicyOptCaffe(PolicyOpt):
         N, T = obs.shape[:2]
         dU, dObs = self._dU, self._dObs
 
-        # TODO - make sure all weights are nonzero?
+        # TODO - Make sure all weights are nonzero?
 
         # Save original tgt_wt and tgt_prc.
         tgt_wt_orig = np.reshape(tgt_wt, [N*T, 1, 1])
@@ -118,7 +118,7 @@ class PolicyOptCaffe(PolicyOpt):
         # Fold weights into tgt_prc.
         tgt_prc = tgt_wt * tgt_prc
 
-        #TODO: find entries with very low weights?
+        #TODO: Find entries with very low weights?
 
         # Normalize obs, but only compute normalzation at the beginning.
         if itr == 0 and inner_itr == 1:
@@ -162,7 +162,7 @@ class PolicyOptCaffe(PolicyOpt):
         A = np.sum(tgt_prc_orig,0) + 2 * N * T * self._hyperparams['ent_reg'] * np.ones((dU,dU))
         A = A / np.sum(tgt_wt)
 
-        # TODO - use dense covariance?
+        # TODO - Use dense covariance?
         self.var = 1 / np.diag(A)
 
         self.policy.net.share_with(self.solver.net)
@@ -182,7 +182,7 @@ class PolicyOptCaffe(PolicyOpt):
             for n in range(N):
                 obs[n,:,:] = obs[n,:,:].dot(self.policy.scale) + self.policy.bias
         except AttributeError:
-            pass  #TODO: should prob be called before update?
+            pass  #TODO: Should prob be called before update?
 
         output = np.zeros((N, T, dU))
         blob_names = self.solver.test_nets[0].blobs.keys()

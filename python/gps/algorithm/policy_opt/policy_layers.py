@@ -16,7 +16,7 @@ class PolicyDataLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         # Nothing to do - data will already be set externally.
-        # TODO - maybe later include way to pass data to this layer and handle batching here.
+        # TODO - Maybe later include way to pass data to this layer and handle batching here.
         pass
 
     def backward(self, top, propagate_down, bottom):

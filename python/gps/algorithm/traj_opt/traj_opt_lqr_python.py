@@ -23,7 +23,7 @@ class TrajOptLQRPython(TrajOpt):
 
         TrajOpt.__init__(self, config)
 
-    # TODO - add arg and return spec on this function.
+    # TODO - Add arg and return spec on this function.
     def update(self, m, algorithm):
         """
         Run dual gradient decent to optimize trajectories.
@@ -53,7 +53,7 @@ class TrajOptLQRPython(TrajOpt):
             # Main convergence check - constraint satisfaction.
             if (abs(kl_div - kl_step*T) < 0.1*kl_step*T or (itr >= 20 and kl_div < kl_step*T)):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged", itr, kl_div, kl_step * T)
-                eta = prev_eta  # TODO - should this actually be new_eta? (Matlab code does this)
+                eta = prev_eta  # TODO - Should this actually be new_eta? (Matlab code does this)
                 break
 
             # Adjust eta using bracketing line search.
@@ -191,7 +191,7 @@ class TrajOptLQRPython(TrajOpt):
 
                 # Add in the value function from the next time step.
                 if t < T - 1:
-                    #TODO: should multiply by (pol_wt[t+1] + eta)/(pol_wt[t] + eta) here.
+                    #TODO: Should multiply by (pol_wt[t+1] + eta)/(pol_wt[t] + eta) here.
                     Qtt = Qtt + Fm[t,:,:].T.dot(Vxx[t+1,:,:]).dot(Fm[t,:,:])
                     Qt = Qt + Fm[t,:,:].T.dot(Vx[t+1,:] + Vxx[t+1,:,:].dot(fv[t,:]))
 

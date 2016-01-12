@@ -56,7 +56,7 @@ class AlgorithmBADMM(Algorithm):
 
         # Run inner loop to compute new policies under new dynamics and step size.
         for inner_itr in range(self._hyperparams['inner_iterations']):
-            #TODO: could start from init controller.
+            #TODO: Could start from init controller.
             if self.iteration_count > 0 or inner_itr > 0:
                 self._update_policy(self.iteration_count, inner_itr)  # Update the policy.
             for m in range(self.M):
@@ -91,7 +91,7 @@ class AlgorithmBADMM(Algorithm):
                     np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch)))
 
     def _update_policy_samples(self):
-        #TODO: handle synthetic samples.
+        #TODO: Handle synthetic samples.
         if self._hyperparams['policy_sample_mode'] == 'add':
             for m in range(self.M):
                 samples = self.cur[m].pol_info.policy_samples
@@ -138,7 +138,7 @@ class AlgorithmBADMM(Algorithm):
                 prc[:,t,:,:] = np.tile(traj.inv_pol_covar[t,:,:], [N, 1, 1])
                 for i in range(N):
                     mu[i,t,:] = (traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]) - \
-                            np.linalg.solve(prc[i,t,:,:],  #TODO: divide by pol_wt[t]
+                            np.linalg.solve(prc[i,t,:,:],  #TODO: Divide by pol_wt[t]
                             pol_info.lambda_K[t,:,:].dot(X[i,t,:]) + pol_info.lambda_k[t,:])
                 wt[:,t].fill(pol_info.pol_wt[t])
             tgt_mu = np.concatenate((tgt_mu, mu))
@@ -399,7 +399,7 @@ class AlgorithmBADMM(Algorithm):
                 traj_mu[i,:] = traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]
             # Compute KL divergence.
             diff = pol_mu[:,t,:] - traj_mu
-            #TODO: rename these.
+            #TODO: Rename these.
             term1 = pol_prec[:,t,:,:] * traj.pol_covar[t,:,:]
             term2 = 0.5 * dU + np.sum(np.log(np.diag(traj.chol_pol_covar[t,:,:])))
             term3 = np.log(pol_det_sigma[:,t])

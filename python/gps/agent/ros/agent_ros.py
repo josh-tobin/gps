@@ -61,11 +61,11 @@ class AgentROS(Agent):
         request.arm = arm
         request.stamp = rospy.get_rostime()
         result_msg = self._data_service.publish_and_wait(request)
-        # TODO - make IDs match, assert that they match elsewhere here.
+        # TODO - Make IDs match, assert that they match elsewhere here.
         sample = msg_to_sample(result_msg, self)
         return sample
 
-    # TODO - the following could be more general by being relax_actuator and reset_actuator.
+    # TODO - The following could be more general by being relax_actuator and reset_actuator.
     def relax_arm(self, arm):
         """
         Relax one of the arms of the robot.
