@@ -14,6 +14,7 @@ from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
@@ -71,24 +72,25 @@ x0[14:] = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_x0, ee_rot_x0).T)
 
 ee_tgt = np.ndarray.flatten(get_ee_points(ee_points, ee_pos_tgt, ee_rot_tgt).T)
 
+reset_condition = { TRIAL_ARM: {
+                        'mode': JOINT_SPACE,
+                        'data': x0[0:7],
+                        },
+                    AUXILIARY_ARM: {
+                        'mode': JOINT_SPACE,
+                        'data': np.zeros(7),
+                    },
+                };
+
 agent = {
     'type': AgentROS,
     'dt': 0.05,
-    'x0': x0,
     'conditions': common['conditions'],
     'T': 100,
+    'x0': x0,
     'reset_conditions': {
-        0: {
-            TRIAL_ARM: {
-                'mode': JOINT_SPACE,
-                'data': x0[0:7],
-                #'data': np.array([0.5, 0.5, -0.5, -0.5, 0.5, -0.5, -0.5])
-            },
-            AUXILIARY_ARM: {
-                'mode': JOINT_SPACE,
-                'data': np.zeros(7),
-            },
-        },
+        0: reset_condition,
+        #1: reset_condition,
      },
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
@@ -99,6 +101,7 @@ agent = {
 algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
+    'iterations': 10,
 }
 
 algorithm['init_traj_distr'] = {
@@ -111,11 +114,8 @@ algorithm['init_traj_distr'] = {
             'init_stiffness': 1.0,
             'init_stiffness_vel': 0.5,
         },
-        'dX': sum([SENSOR_DIMS[state_include] for state_include in agent['state_include']]),
-        'dU': 7,
         'dt': agent['dt'],
         'T': agent['T'],
-        'x0': agent['x0'],
     }
 }
 
@@ -166,6 +166,12 @@ algorithm['cost'] = {
 algorithm['dynamics'] = {
     'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 20,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    },
 }
 
 algorithm['traj_opt'] = {
@@ -175,8 +181,9 @@ algorithm['traj_opt'] = {
 algorithm['policy_opt'] = {}
 
 config = {
-    'iterations': 20,
+    'iterations': algorithm['iterations'],
     'common': common,
+    'verbose_trials': -1,
     'agent': agent,
     'gui_on': True,
     'algorithm': algorithm,
