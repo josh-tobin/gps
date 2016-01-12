@@ -38,3 +38,14 @@ class CaffePolicy(Policy):
         action_mean = self.net.forward().values()[0][0]
         u = action_mean + self.chol_pol_covar.T.dot(noise)
         return u
+
+    def get_weights_string(self):
+        f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        self.net.save(f.name)
+        f.close()
+        with open(f.name,'r') as tempfile:
+            weights_string = tempfile.read()
+        return weights_string
+
+    def get_model_prototxt(self):
+        raise('NotImplemented - TODO')

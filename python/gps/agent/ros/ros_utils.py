@@ -3,10 +3,11 @@ import numpy as np
 
 
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
-from gps_agent_pkg.msg import ControllerParams, LinGaussParams
+from gps.algorithm.policy.caffe_policy import CaffePolicy
+from gps_agent_pkg.msg import ControllerParams, LinGaussParams, CaffeParams
 from gps.agent.agent_utils import generate_noise
 from gps.sample.sample import Sample
-from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER
+from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER, CAFFE_CONTROLLER
 
 
 def msg_to_sample(ros_msg, agent):
@@ -35,6 +36,10 @@ def policy_to_msg(policy, noise):
         msg.lingauss.dU = policy.dU
         msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
         msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
+    elif isinstance(policy, CaffePolicy):
+        msg.controller_to_execute = CAFFE_CONTROLLER
+        msg.weights_string = policy.get_weights_string()
+        msg.model_prototxt = policy.get_model_prototxt() # TODO - copy over to brett?
     else:
         raise NotImplementedError("Unknown policy object: %s" % policy)
     return msg
@@ -79,7 +84,7 @@ class ServiceEmulator(object):
         Args:
             pub_msg (pub_type): Message to publish
             timeout (float, optional): Timeout in seconds. Default 5.0
-            poll_delay (float, optional): Speed of 
+            poll_delay (float, optional): Speed of
                 polling for the subscriber message in seconds. Default 0.01
             check_id (bool, optional): If enabled, will only return messages with
                 a matching id field. Currently not implemented.
