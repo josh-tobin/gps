@@ -6,6 +6,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
 
 from gps.gui.config import common as common_config
 from gps.gui.config import gps_training as gps_training_config
@@ -13,6 +14,7 @@ from gps.gui.action import Action
 from gps.gui.action_axis import ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.mean_plotter import MeanPlotter
+from gps.gui.plotter_3d import Plotter3D
 from gps.gui.image_visualizer import ImageVisualizer
 
 # ~~~ GUI Specifications ~~~
@@ -103,12 +105,13 @@ class GPSTrainingGUI:
             self.append_output_text(line)
 
         # Visualization Axis
-        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
-        self._ax_vis = plt.subplot(self._gs_vis[0])
-        self._vis_axis = ImageVisualizer(self._ax_vis, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
+        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
+        self._ax_vis = plt.subplot(self._gs_vis[0], projection='3d')
+        self._vis_traj_axis = Plotter3D(self._ax_vis, label='Trajectory Samples', color='green')
+        self._vis_pol_axis = Plotter3D(self._ax_vis, label='Policy Samples', color='red')
 
         # Image Axis
-        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
+        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
         self._ax_image = plt.subplot(self._gs_image[0])
         self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240,240), rostopic=self._hyperparams['image_topic'])
 
@@ -205,3 +208,6 @@ class GPSTrainingGUI:
             self.append_output_text('itr | cost')
             self._first_update = False
         self.append_output_text('%02d  | %f' % (itr, np.mean(costs)))
+
+        self._vis_traj_axis.update(xs=[1,2], ys=[1,2], zs=[1,2])
+        self._vis_pol_axis.update(xs=[0,3], ys=[2,5], zs=[4,7])
