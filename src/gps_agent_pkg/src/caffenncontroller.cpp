@@ -1,36 +1,44 @@
+#include "caffe/caffe.hpp"
+#include "google/protobuf/text_format.h"
+
+#include "gps_agent_pkg/caffenncontroller.h"
 #include "gps_agent_pkg/robotplugin.h"
-#include "gps_agent_pkg/lingausscontroller.h"
 #include "gps_agent_pkg/util.h"
 
 using namespace gps_control;
 
 // Constructor.
-NeuralNetworkController::NeuralNetworkController()
+CaffeNNController::CaffeNNController()
 : TrialController()
 {
     is_configured_ = false;
 }
 
 // Destructor.
-NeuralNetworkController::~NeuralNetworkController()
+CaffeNNController::~CaffeNNController()
 {
 }
 
-
-void NeuralNetworkController::get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U){
+void CaffeNNController::get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U){
+    if (is_configured_) {
+        net_->forward(obs, U);
+    }
 }
 
 // Configure the controller.
-void NeuralNetworkController::configure_controller(OptionsMap &options)
+void CaffeNNController::configure_controller(OptionsMap &options)
 {
     //Call superclass
     TrialController::configure_controller(options);
 
-    weights_string_ = boost::get<string>(options["weights_string"]);
-    model_prototxt_ = boost::get<string>(options["model_prototxt"]);
+    //weights_string_ = boost::get<string>(options["weights_string"]);
+    std::string net_param_string = boost::get<string>(options["net_param"]);
 
-    // TODO - Construct network here
+    NetParameter net_param;
+    google::protobuf::TextFormat::ParseFromString(net_param_string, &net_param);
+    net_.reset(new NeuralNetworkCaffe(net_param));
+    net_->set_weights(net_param);
 
-    ROS_INFO_STREAM("Received Caffe network parameters");
+    ROS_INFO_STREAM("Set Caffe network parameters");
     is_configured_ = true;
 }

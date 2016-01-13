@@ -7,6 +7,8 @@ Controller that executes a trial using a neural network policy using Caffe.
 #include <vector>
 #include <Eigen/Dense>
 
+#include "gps_agent_pkg/neuralnetworkcaffe.h"
+
 // Superclass.
 #include "gps_agent_pkg/trialcontroller.h"
 
@@ -16,7 +18,8 @@ namespace gps_control
 class CaffeNNController : public TrialController
 {
 private:
-    // Pointer to a Caffe network
+    // Pointer to Caffe network
+    boost::scoped_ptr<NeuralNetworkCaffe> net_;
 public:
     // Constructor.
     CaffeNNController();

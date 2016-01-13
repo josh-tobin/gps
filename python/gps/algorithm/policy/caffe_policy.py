@@ -40,12 +40,12 @@ class CaffePolicy(Policy):
         return u
 
     def get_weights_string(self):
+        raise('NotImplemented - weights string prob in net_param')
+
+    def get_net_param(self):
         f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
         self.net.save(f.name)
         f.close()
-        with open(f.name,'r') as tempfile:
+        with open(f.name,'rb') as tempfile:
             weights_string = tempfile.read()
         return weights_string
-
-    def get_model_prototxt(self):
-        raise('NotImplemented - TODO')

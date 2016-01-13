@@ -103,6 +103,12 @@ void NeuralNetworkCaffe::set_weights(void *weights_ptr)
     delete weights;
 
     google::protobuf::TextFormat::ParseFromString(weights_string, &net_param);
+    this->set_weights(&net_param);
+}
+
+// Set the weights on the network from protobuffer string
+void NeuralNetworkCaffe::set_weights(NetParameter& net_param)
+{
     net_->CopyTrainedLayersFrom(net_param);
     ROS_INFO("NN weights set successfully");
     weights_set_ = true;
