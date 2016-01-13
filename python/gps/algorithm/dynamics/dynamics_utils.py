@@ -12,6 +12,9 @@ def guess_dynamics(gains, acc, dX, dU, dt):
         dX: Dimensionality of the state.
         dU: Dimensionality of the action.
         dt: Length of a time step.
+    Returns:
+        Fd: A dX by dX+dU transition matrix.
+        fc: A dX bias vector.
     """
     #TODO: Use packing instead of assuming which indices are the joint angles.
     Fd = np.vstack([

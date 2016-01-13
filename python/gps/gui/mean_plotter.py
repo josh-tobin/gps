@@ -25,7 +25,7 @@ class MeanPlotter:
         self._t = 0
         self._data_len = data_len
         self._data = np.empty((data_len, 0))
-        self._plots = [self._ax.plot([], [], '.', color=self._color, alpha=self._alpha)[0] \
+        self._plots = [self._ax.plot([], [], '.', color=self._color, alpha=self._alpha)[0]
                 for _ in range(data_len)]
         
         self._init = True
@@ -44,7 +44,7 @@ class MeanPlotter:
         self._data = np.append(self._data, x, axis=1)
         self._data_mean = np.append(self._data_mean, mean, axis=1)
 
-        [self._plots[i].set_data(np.arange(0, self._t), self._data[i,:]) \
+        [self._plots[i].set_data(np.arange(0, self._t), self._data[i,:])
                 for i in range(self._data_len)]
         self._plots_mean.set_data(np.arange(0, self._t), self._data_mean[0,:])
 

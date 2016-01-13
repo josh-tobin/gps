@@ -12,7 +12,7 @@ class SampleList(object):
 
     def get_X(self, idx=None):
         """
-        Returns NxTxdX numpy array of states.
+        Returns N x T x dX numpy array of states.
         """
         if idx is None:
             idx = range(len(self._samples))
@@ -20,7 +20,7 @@ class SampleList(object):
 
     def get_U(self, idx=None):
         """
-        Returns NxTxdU numpy array of actions.
+        Returns N x T x dU numpy array of actions.
         """
         if idx is None:
             idx = range(len(self._samples))
@@ -28,7 +28,7 @@ class SampleList(object):
 
     def get_obs(self, idx=None):
         """
-        Returns NxTxdO numpy array of feature representations.
+        Returns N x T x dO numpy array of feature representations.
         """
         if idx is None:
             idx = range(len(self._samples))

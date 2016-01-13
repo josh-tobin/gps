@@ -3,7 +3,7 @@ import abc
 
 class Cost(object):
     """
-    Cost superclass
+    Cost superclass.
     """
     __metaclass__ = abc.ABCMeta
 

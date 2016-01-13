@@ -138,7 +138,7 @@ class AlgorithmBADMM(Algorithm):
                 prc[:,t,:,:] = np.tile(traj.inv_pol_covar[t,:,:], [N, 1, 1])
                 for i in range(N):
                     mu[i,t,:] = (traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]) - \
-                            np.linalg.solve(prc[i,t,:,:],  #TODO: Divide by pol_wt[t]
+                            np.linalg.solve(prc[i,t,:,:],  #TODO: Divide by pol_wt[t].
                             pol_info.lambda_K[t,:,:].dot(X[i,t,:]) + pol_info.lambda_k[t,:])
                 wt[:,t].fill(pol_info.pol_wt[t])
             tgt_mu = np.concatenate((tgt_mu, mu))
@@ -254,7 +254,7 @@ class AlgorithmBADMM(Algorithm):
             else:
                 # Standard DGD step.
                 pol_info.pol_wt = np.array(
-                        [max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0) \
+                        [max(pol_info.pol_wt[i] + self._hyperparams['lg_step']*kl_m[i], 0)
                                 for i in range(T)])
             pol_info.prev_kl = kl_m
 
@@ -426,6 +426,10 @@ class AlgorithmBADMM(Algorithm):
     def _estimate_cost(self, traj_distr, traj_info, m):
         """
         Compute Laplace approximation to expected cost.
+        Args:
+            traj_distr: A linear Gaussian policy object.
+            traj_info: A TrajectoryInfo object.
+            m: Condition number.
         """
         pol_info = self.cur[m].pol_info
 

@@ -45,7 +45,7 @@ class RealTimePlotter:
 
         t, tw = self._t, self._time_window
         t0, tf = (0, t) if t < tw else (t - tw, t)
-        [self._plots[i].set_data(np.arange(t0, tf), self._data[t0:tf,i]) \
+        [self._plots[i].set_data(np.arange(t0, tf), self._data[t0:tf,i])
                 for i in range(self._data_len)]
 
         x_range = (0, tw) if t < tw else (t - tw, t)

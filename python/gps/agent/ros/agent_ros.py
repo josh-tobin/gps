@@ -115,6 +115,8 @@ class AgentROS(Agent):
             policy: A Policy object.
             condition: Which condition setup to run.
             verbose: Whether or not to visualize the trial.
+        Returns:
+            sample: A Sample object.
         """
         self.reset(condition)
 

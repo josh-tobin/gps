@@ -39,6 +39,8 @@ def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
         func_output_shape: Shape of the output of func. Default is empty-tuple,
             which works for scalar-valued functions.
         epsilon: Difference to use for computing gradient.
+    Returns:
+        Gradient vector of each dimension of func with respect to each dimension of input.
     """
     gradient = np.zeros(inputs.shape+func_output_shape)
     for idx, _ in np.ndenumerate(inputs):
@@ -58,6 +60,8 @@ def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
 def approx_equal(a, b, threshold=1e-5):
     """
     Return whether two numbers are equal within an absolute threshold.
+    Returns:
+        True if a and b are equal within threshold.
     """
     return np.all(np.abs(a - b) < threshold)
 

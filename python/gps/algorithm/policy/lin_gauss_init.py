@@ -1,12 +1,12 @@
 """
-Initializations for Linear Gaussian controllers.
+Initializations for linear Gaussian controllers.
 """
 import copy
 import numpy as np
 import scipy as sp
 import scipy.linalg
 
-from gps.algorithm.dynamics.dynamics_util import guess_dynamics
+from gps.algorithm.dynamics.dynamics_utils import guess_dynamics
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps.algorithm.policy.config import init_lg
 

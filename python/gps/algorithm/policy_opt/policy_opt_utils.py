@@ -20,6 +20,8 @@ def construct_fc_network(n_layers=3, dim_hidden=[40,40], dim_input=27, dim_outpu
         dim_input: Dimensionality of input.
         dim_output: Dimensionality of the output.
         batch_size: Batch size.
+    Returns:
+        A NetParameter specification of the network.
     """
     # Needed for Caffe to find defined python layers.
     sys.path.append('/'.join(str.split(policy_opt_path, '/')[:-1]))

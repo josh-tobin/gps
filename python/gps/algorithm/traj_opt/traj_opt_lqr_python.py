@@ -6,7 +6,7 @@ import copy
 
 from gps.algorithm.traj_opt.config import traj_opt_lqr
 from gps.algorithm.traj_opt.traj_opt import TrajOpt
-from gps.algorithm.traj_opt.traj_opt_util import LineSearch, traj_distr_kl, DGD_MAX_ITER, THRESHA, \
+from gps.algorithm.traj_opt.traj_opt_utils import LineSearch, traj_distr_kl, DGD_MAX_ITER, THRESHA, \
         THRESHB
 
 
@@ -106,6 +106,9 @@ class TrajOptLQRPython(TrajOpt):
         Args:
             traj_distr: A linear Gaussian policy object.
             traj_info: A TrajectoryInfo object.
+        Returns:
+            mu: A T x dX mean action vector.
+            sigma: A T x dX x dX covariance matrix.
         """
         # Compute state-action marginals from specified conditional parameters and current traj_info.
         T = traj_distr.T
@@ -133,11 +136,11 @@ class TrajOptLQRPython(TrajOpt):
                 np.hstack([sigma[t,idx_x,idx_x], sigma[t,idx_x,idx_x].dot(traj_distr.K[t,:,:].T)]),
                 np.hstack([
                     traj_distr.K[t,:,:].dot(sigma[t,idx_x,idx_x]),
-                    traj_distr.K[t,:,:].dot(sigma[t,idx_x,idx_x]).dot(traj_distr.K[t,:,:].T) + \
+                    traj_distr.K[t,:,:].dot(sigma[t,idx_x,idx_x]).dot(traj_distr.K[t,:,:].T) +
                             traj_distr.pol_covar[t,:,:]
                 ])
             ])
-            mu[t,:] = np.hstack([mu[t,idx_x], traj_distr.K[t,:,:].dot(mu[t,idx_x]) + \
+            mu[t,:] = np.hstack([mu[t,idx_x], traj_distr.K[t,:,:].dot(mu[t,idx_x]) +
                     traj_distr.k[t,:]])
             if t < T - 1:
                 sigma[t+1,idx_x,idx_x] = Fm[t,:,:].dot(sigma[t,:,:]).dot(Fm[t,:,:].T) + dyn_covar[t,:,:]
@@ -153,6 +156,9 @@ class TrajOptLQRPython(TrajOpt):
             eta: Dual variable.
             algorithm: Algorithm object needed to compute costs.
             m: Condition number.
+        Returns:
+            traj_distr: A new linear Gaussian policy.
+            new_eta: The updated dual variable. Updates happen if the Q-function is not PD.
         """
         # Constants.
         T = prev_traj_distr.T

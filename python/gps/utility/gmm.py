@@ -26,7 +26,7 @@ class GMM(object):
         """
         Evaluate dynamics prior.
         Args:
-            pts: A NxD array of points.
+            pts: A N x D array of points.
         """
         # Compute posterior cluster weights.
         logwts = self.clusterwts(pts)
@@ -47,7 +47,9 @@ class GMM(object):
         """
         Compute log observation probabilities under GMM.
         Args:
-            data: A NxD array of points.
+            data: A N x D array of points.
+        Returns:
+            logobs: A N x K array of log probabilities (for each point on each cluster).
         """
         # Constants.
         K = self.sigma.shape[0]
@@ -82,7 +84,10 @@ class GMM(object):
         """
         Compute the moments of the cluster mixture with specified weights.
         Args:
-            logwts: A Kx1 array of log cluster probabilities.
+            logwts: A K x 1 array of log cluster probabilities.
+        Returns:
+            mu: A (D,) mean vector.
+            sigma: A D x D covariance matrix.
         """
         # Exponentiate.
         wts = np.exp(logwts)
@@ -103,7 +108,9 @@ class GMM(object):
         """
         Compute cluster weights for specified points under GMM.
         Args:
-            data: An NxD array of points
+            data: An N x D array of points
+        Returns:
+            A K x 1 array of average cluster log probabilities.
         """
         # Compute probability of each point under each cluster.
         logobs = self.estep(data)

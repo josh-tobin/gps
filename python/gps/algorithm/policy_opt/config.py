@@ -1,7 +1,7 @@
 import caffe
 import numpy as np
 
-from policy_opt_caffe_util import construct_fc_network
+from gps.algorithm.policy_opt.policy_opt_utils import construct_fc_network
 
 
 policy_opt_caffe = {

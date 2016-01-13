@@ -19,17 +19,18 @@ from gps.gui.target_setup_gui import load_pose_from_npz
 from gps.proto.gps_pb2 import *
 
 
-# TODO - put this somewhere else
+# TODO - Put this somewhere else.
 def get_ee_points(offsets, ee_pos, ee_rot):
-    """ Helper method for computing the end effector points given a
-    position, rotation matrix, and offsets for each of the ee points.
+    """
+    Helper method for computing the end effector points given a position, rotation matrix, and
+    offsets for each of the ee points.
 
     Args:
-        offsets: Nx3 array where N is the number of points
-        ee_pos: 1x3 array of the end effector position
-        ee_rot: 3x3 rotation matrix of the end effector.
+        offsets: N x 3 array where N is the number of points.
+        ee_pos: 1 x 3 array of the end effector position.
+        ee_rot: 3 x 3 rotation matrix of the end effector.
     Returns:
-        3xN array of end effector points
+        3 x N array of end effector points.
     """
     return ee_rot.dot(offsets.T) + ee_pos.T
 
@@ -52,7 +53,7 @@ EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 JA_x0, EE_POS_x0, EE_ROT_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
 _, EE_POS_TGT, EE_ROT_TGT = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
 
-# TODO - construct this somewhere else?
+# TODO - Construct this somewhere else?
 x0 = np.zeros(23)
 x0[0:7] = JA_x0
 x0[14:] = np.ndarray.flatten(get_ee_points(EE_POINTS, EE_POS_x0, EE_ROT_x0).T)
@@ -129,14 +130,14 @@ fk_cost1 = {
     'ramp_option': RAMP_LINEAR,
 }
 
-# TODO - this isn't quite right.
+# TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': EE_TGT,
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]),
     'l1': 1.0,
     'l2': 0.0,
-    'wp_final_multiplier': 10.0,  # Weight multiplier on final timestep
+    'wp_final_multiplier': 10.0,  # Weight multiplier on final timestep.
     'ramp_option': RAMP_FINAL_ONLY,
 }
 

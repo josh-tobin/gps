@@ -18,5 +18,7 @@ class Policy(object):
             obs: Observation vector.
             t: Time step.
             noise: A dU-dimensional noise vector.
+        Returns:
+            A dU dimensional action vector.
         """
         raise NotImplementedError("Must be implemented in subclass.")

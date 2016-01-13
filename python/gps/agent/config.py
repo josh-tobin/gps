@@ -1,7 +1,6 @@
 """
 Default configuration and hyperparameter values for Agent objects.
 """
-from copy import deepcopy
 import numpy as np
 
 from gps.proto.gps_pb2 import AUXILIARY_ARM, TRIAL_ARM

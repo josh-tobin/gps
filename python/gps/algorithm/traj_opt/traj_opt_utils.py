@@ -20,6 +20,8 @@ def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
         new_sigma: T x dX x dX, variance of new trajectory distribution, computed from forward.
         new_traj_distr: A linear gaussian policy object, new distribution.
         prev_traj_distr: A linear gaussian policy object, previous distribution.
+    Returns:
+        kl_div: The KL divergence between the new and previous trajectories.
     """
     # Constants.
     T = new_mu.shape[0]
@@ -89,6 +91,8 @@ class LineSearch(object):
             con: Constraint violotion amount.
             new_eta: new values of eta.
             min_eta: minimum value of eta.
+        Returns:
+            eta: New found value of eta.
         """
         # Adjust eta.
         if not self.data or ((abs(self.data['c1']-con) < 1e-8*abs(self.data['c1']+con)) and

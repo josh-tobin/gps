@@ -89,6 +89,8 @@ class PolicyOptCaffe(PolicyOpt):
             tgt_mu: numpy array of mean controller outputs that is N x T x dU.
             tgt_prc: Numpy array of precision matrices that is N x T x dU x dU.
             tgt_wt: Numpy array of weights that is N x T.
+        Returns:
+            A CaffePolicy object with updated weights.
         """
         N, T = obs.shape[:2]
         dU, dObs = self._dU, self._dObs

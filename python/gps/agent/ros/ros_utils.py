@@ -82,6 +82,8 @@ class ServiceEmulator(object):
             timeout: Timeout in seconds.
             poll_delay: Speed of polling for the subscriber message in seconds.
             check_id: If enabled, will only return messages with a matching id field.
+        Returns:
+            sub_msg: Subscriber message.
         """
         if check_id:  # This is not yet implemented in C++.
             raise NotImplementedError()

@@ -48,6 +48,8 @@ class LinearGaussianPolicy(Policy):
         Fold noise into k.
         Args:
             noise: A T x Du noise vector with ~mean 0 and variance 1.
+        Returns:
+            k: A T x dU bias vector.
         """
         k = np.zeros_like(self.k)
         for i in range(self.T):
@@ -56,6 +58,11 @@ class LinearGaussianPolicy(Policy):
         return k
 
     def nans_like(self):
+        """
+        Returns:
+            A new linear Gaussian policy object with the same dimensions but all values filled with
+            NaNs.
+        """
         policy = LinearGaussianPolicy(
             np.zeros_like(self.K),
             np.zeros_like(self.k),
