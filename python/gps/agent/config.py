@@ -37,6 +37,7 @@ try:
         'reset_conditions': [],  # Defines reset modes + positions for trial and auxiliary arms
         'frequency': 20,
         'end_effector_points': np.array([]),
+        #TODO: Actually pass in low gains and high gains and use both for the position controller.
         'pid_params': np.array([
             1200, 0.0, 30, 4,
             1200, 0.0, 10, 4,
