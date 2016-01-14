@@ -25,7 +25,7 @@ class CostTorque(Cost):
         Du = sample.dU
         Dx = sample.dX
         l = 0.5 * np.sum(self._hyperparams['wu'] * (sample_u ** 2), axis=1)
-        lu = self._hyperparams['wu']*sample_u
+        lu = self._hyperparams['wu'] * sample_u
         lx = np.zeros((T, Dx))
         luu = np.tile(np.diag(self._hyperparams['wu']), [T, 1, 1])
         lxx = np.zeros((T, Dx, Dx))

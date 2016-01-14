@@ -79,7 +79,7 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-5/PR2_GAINS,
+    'wu': 5e-5 / PR2_GAINS,
 }
 
 fk_cost = {

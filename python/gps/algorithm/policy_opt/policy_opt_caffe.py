@@ -223,7 +223,7 @@ class PolicyOptCaffe(PolicyOpt):
         self.policy.scale = state['scale']
         self.policy.bias = state['bias']
         self.caffe_iter = state['caffe_iter']
-        self.solver.restore(self._hyperparams['weights_file_prefix'] +
-                '_iter_' + str(self.caffe_iter) + '.solverstate')
-        self.policy.net.copy_from(self._hyperparams['weights_file_prefix'] +
-                '_iter_' + str(self.caffe_iter) + '.caffemodel')
+        self.solver.restore(self._hyperparams['weights_file_prefix'] + '_iter_' +
+                str(self.caffe_iter) + '.solverstate')
+        self.policy.net.copy_from(self._hyperparams['weights_file_prefix'] + '_iter_' +
+                str(self.caffe_iter) + '.caffemodel')
