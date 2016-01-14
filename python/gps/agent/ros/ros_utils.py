@@ -39,7 +39,7 @@ def policy_to_msg(policy, noise):
     elif isinstance(policy, CaffePolicy):
         msg.controller_to_execute = CAFFE_CONTROLLER
         #msg.weights_string = policy.get_weights_string()
-        msg.net_param = policy.get_net_param() # TODO - copy over to brett?
+        msg.net_param = policy.get_net_param()
     else:
         raise NotImplementedError("Unknown policy object: %s" % policy)
     return msg
