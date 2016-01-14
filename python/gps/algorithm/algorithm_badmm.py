@@ -397,18 +397,17 @@ class AlgorithmBADMM(Algorithm):
             traj_mu = np.zeros((N, dU))
             for i in range(N):
                 traj_mu[i,:] = traj.K[t,:,:].dot(X[i,t,:]) + traj.k[t,:]
-            # Compute KL divergence.
             diff = pol_mu[:,t,:] - traj_mu
-            #TODO: Rename these.
-            term1 = pol_prec[:,t,:,:] * traj.pol_covar[t,:,:]
-            term2 = 0.5 * dU + np.sum(np.log(np.diag(traj.chol_pol_covar[t,:,:])))
-            term3 = np.log(pol_det_sigma[:,t])
+            tr_pp_ct = pol_prec[:,t,:,:] * traj.pol_covar[t,:,:]
+            k_ln_det_ct = 0.5 * dU + np.sum(np.log(np.diag(traj.chol_pol_covar[t,:,:])))
+            ln_det_cp = np.log(pol_det_sigma[:,t])
             # IMPORTANT: note that this assumes that pol_prec does not depend on state!!!! (only the
             #            last term makes this assumption)
-            term4 = np.sum(diff * (diff.dot(pol_prec[1,t,:,:])), axis=1)
-            kl[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=1) - term2 + 0.5 * term3 + 0.5 * term4
-            kl_m[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=0), axis=0) - term2 + \
-                    0.5 * np.mean(term3) + 0.5 * np.mean(term4)
+            d_pp_d = np.sum(diff * (diff.dot(pol_prec[1,t,:,:])), axis=1)
+            kl[:,t] = 0.5 * np.sum(np.sum(tr_pp_ct, axis=1), axis=1) - k_ln_det_ct + \
+                    0.5 * ln_det_cp + 0.5 * d_pp_d
+            kl_m[t] = 0.5 * np.sum(np.sum(np.mean(tr_pp_ct, axis=0), axis=0), axis=0) - k_ln_det_ct \
+                    + 0.5 * np.mean(ln_det_cp) + 0.5 * np.mean(d_pp_d)
             # Compute trajectory action at sample with Lagrange multiplier.
             traj_mu = np.zeros((N, dU))
             for i in range(N):
@@ -416,11 +415,11 @@ class AlgorithmBADMM(Algorithm):
                         (traj.k[t,:] - pol_info.lambda_k[t,:])
             # Compute KL divergence with Lagrange multiplier.
             diff_l = pol_mu[:,t,:] - traj_mu
-            term4_l = np.sum(diff_l * (diff_l.dot(pol_prec[1,t,:,:])), axis=1)
-            kl_l[:,t] = 0.5 * np.sum(np.sum(term1, axis=1), axis=1) - term2 + 0.5 * term3 + \
-                    0.5 * term4_l
-            kl_lm[t] = 0.5 * np.sum(np.sum(np.mean(term1, axis=0), axis=0), axis=0) - term2 + \
-                    0.5 * np.mean(term3) + 0.5 * np.mean(term4_l)
+            d_pp_d_l = np.sum(diff_l * (diff_l.dot(pol_prec[1,t,:,:])), axis=1)
+            kl_l[:,t] = 0.5 * np.sum(np.sum(tr_pp_ct, axis=1), axis=1) - k_ln_det_ct + \
+                    0.5 * ln_det_cp + 0.5 * d_pp_d_l
+            kl_lm[t] = 0.5 * np.sum(np.sum(np.mean(tr_pp_ct, axis=0), axis=0), axis=0) - \
+                    k_ln_det_ct + 0.5 * np.mean(ln_det_cp) + 0.5 * np.mean(d_pp_d_l)
         return kl_m, kl, kl_lm, kl_l
 
     def _estimate_cost(self, traj_distr, traj_info, m):

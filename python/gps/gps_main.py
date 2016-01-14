@@ -45,7 +45,7 @@ class GPSMain():
                         % itr_load)
                 self.algorithm = self.data_logger.unpickle(
                         self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr_load))
-                self.gui.update(self.algorithm)
+                self.gui.update(self.algorithm, itr_load)
                 itr_start = itr_load + 1
             else:
                 itr_start = 0

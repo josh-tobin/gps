@@ -50,15 +50,15 @@ PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 
-JA_x0, EE_POS_x0, EE_ROT_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
-_, EE_POS_TGT, EE_ROT_TGT = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
+ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
+_, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
 
 # TODO - Construct this somewhere else?
 x0 = np.zeros(23)
-x0[0:7] = JA_x0
-x0[14:] = np.ndarray.flatten(get_ee_points(EE_POINTS, EE_POS_x0, EE_ROT_x0).T)
+x0[0:7] = ja_x0
+x0[14:] = np.ndarray.flatten(get_ee_points(EE_POINTS, ee_pos_x0, ee_rot_x0).T)
 
-EE_TGT = np.ndarray.flatten(get_ee_points(EE_POINTS, EE_POS_TGT, EE_ROT_TGT).T)
+ee_tgt = np.ndarray.flatten(get_ee_points(EE_POINTS, ee_pos_tgt, ee_rot_tgt).T)
 
 RESET_CONDITION = {
     TRIAL_ARM: {
@@ -118,12 +118,12 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-3/PR2_GAINS,
+    'wu': 5e-3 / PR2_GAINS,
 }
 
 fk_cost1 = {
     'type': CostFK,
-    'target_end_effector': EE_TGT,
+    'target_end_effector': ee_tgt,
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]),
     'l1': 0.1,
     'l2': 0.0001,
@@ -133,7 +133,7 @@ fk_cost1 = {
 # TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
-    'target_end_effector': EE_TGT,
+    'target_end_effector': ee_tgt,
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]),
     'l1': 1.0,
     'l2': 0.0,
