@@ -2,8 +2,8 @@ import abc
 
 
 class PolicyOpt(object):
-    """Policy optimization superclass
-
+    """
+    Policy optimization superclass.
     """
     __metaclass__ = abc.ABCMeta
 
@@ -14,5 +14,7 @@ class PolicyOpt(object):
 
     @abc.abstractmethod
     def update(self):
-        """ Update policy. """
-        raise NotImplementedError("Must be implemented in subclass");
+        """
+        Update policy.
+        """
+        raise NotImplementedError("Must be implemented in subclass.");

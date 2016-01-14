@@ -1,57 +1,58 @@
-"""Default configuration and hyperparameter values for gui objects
-
+"""
+Default configuration and hyperparameter values for GUI objects.
 """
 from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 
-# PS3 Joystick Buttons and Axes (documentation: http://wiki.ros.org/ps3joy)
-# Mappings from ps3 controller buttons to their corresponding array indices
+
+# PS3 Joystick Buttons and Axes (documentation: http://wiki.ros.org/ps3joy).
+# Mappings from PS3 controller buttons to their corresponding array indices.
 ps3_button = {
-    'select'            :  0,
-    'stick_left'        :  1,
-    'stick_right'       :  2,
-    'start'             :  3,
-    'cross_up'          :  4,
-    'cross_right'       :  5,
-    'cross_down'        :  6,
-    'cross_left'        :  7,
-    'rear_left_2'       :  8,
-    'rear_right_2'      :  9,
-    'rear_left_1'       : 10,
-    'rear_right_1'      : 11,
-    'action_triangle'   : 12,
-    'action_circle'     : 13,
-    'action_cross'      : 14,
-    'action_square'     : 15,
-    'pairing'           : 16,
+    'select':          0,
+    'stick_left':      1,
+    'stick_right':     2,
+    'start':           3,
+    'cross_up':        4,
+    'cross_right':     5,
+    'cross_down':      6,
+    'cross_left':      7,
+    'rear_left_2':     8,
+    'rear_right_2':    9,
+    'rear_left_1':     10,
+    'rear_right_1':    11,
+    'action_triangle': 12,
+    'action_circle':   13,
+    'action_cross':    14,
+    'action_square':   15,
+    'pairing':         16,
 }
 inverted_ps3_button = {value: key for key, value in ps3_button.iteritems()}
 
-# Mappings from ps3 controller axes to their corresponding array indices
+# Mappings from Ps3 controller axes to their corresponding array indices.
 ps3_axis = {
-    'stick_left_leftwards'      :  0,
-    'stick_left_upwards'        :  1,
-    'stick_right_leftwards'     :  2,
-    'stick_right_upwards'       :  3,
-    'button_cross_up'           :  4,
-    'button_cross_right'        :  5,
-    'button_cross_down'         :  6,
-    'button_cross_left'         :  7,
-    'button_rear_left_2'        :  8,
-    'button_rear_right_2'       :  9,
-    'button_rear_left_1'        : 10,
-    'button_rear_right_1'       : 11,
-    'button_action_triangle'    : 12,
-    'button_action_circle'      : 13,
-    'button_action_cross'       : 14,
-    'button_action_square'      : 15,
-    'acceleratometer_left'      : 16,
-    'acceleratometer_forward'   : 17,
-    'acceleratometer_up'        : 18,
-    'gyro_yaw'                  : 19,
+    'stick_left_leftwards':    0,
+    'stick_left_upwards':      1,
+    'stick_right_leftwards':   2,
+    'stick_right_upwards':     3,
+    'button_cross_up':         4,
+    'button_cross_right':      5,
+    'button_cross_down':       6,
+    'button_cross_left':       7,
+    'button_rear_left_2':      8,
+    'button_rear_right_2':     9,
+    'button_rear_left_1':      10,
+    'button_rear_right_1':     11,
+    'button_action_triangle':  12,
+    'button_action_circle':    13,
+    'button_action_cross':     14,
+    'button_action_square':    15,
+    'acceleratometer_left':    16,
+    'acceleratometer_forward': 17,
+    'acceleratometer_up':      18,
+    'gyro_yaw':                19,
 }
 inverted_ps3_axis = {value: key for key, value in ps3_axis.iteritems()}
 
-# Mappings from actions to their corresponding keyboard bindings
+# Mappings from actions to their corresponding keyboard bindings.
 keyboard_bindings = {
     # Target Setup
     'ptn': 'left',
@@ -77,7 +78,7 @@ keyboard_bindings = {
 }
 inverted_keyboard_bindings = {value: key for key, value in keyboard_bindings.iteritems()}
 
-# Mappings from actions to their corresponding ps3 controller bindings
+# Mappings from actions to their corresponding PS3 controller bindings.
 ps3_bindings = {
     # Target Setup
     'ptn'  : (ps3_button['rear_right_1'], ps3_button['cross_left']),
@@ -115,7 +116,7 @@ common = {
     'inverted_ps3_bindings': inverted_ps3_bindings,
 
     'ps3_topic': 'joy',
-    'ps3_process_rate': 20,  # only process 1/20 of ps3 controller messages
+    'ps3_process_rate': 20,  # Only process 1/20 of ps3 controller messages.
 
     'image_topic': '/camera/image/rgb_color',
 }

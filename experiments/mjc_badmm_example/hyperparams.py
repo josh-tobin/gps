@@ -27,10 +27,11 @@ SENSOR_DIMS = {
     ACTION: 7,
 }
 
-PR2_GAINS = np.array([3.09,1.08,0.393,0.674,0.111,0.152,0.098])
+PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/mjc_badmm_example/'
+
 
 common = {
     'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
@@ -78,17 +79,13 @@ algorithm = {
 
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
-    'args': {
-        'hyperparams': {
-            'init_gains':  1.0 / PR2_GAINS,
-            'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
-            'init_var': 1.0,
-            'init_stiffness': 1.0,
-            'init_stiffness_vel': 0.5,
-        },
-        'dt': agent['dt'],
-        'T': agent['T'],
-    }
+    'init_gains':  1.0 / PR2_GAINS,
+    'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
+    'init_var': 1.0,
+    'init_stiffness': 1.0,
+    'init_stiffness_vel': 0.5,
+    'dt': agent['dt'],
+    'T': agent['T'],
 }
 
 torque_cost = {
@@ -98,7 +95,7 @@ torque_cost = {
 
 fk_cost = {
     'type': CostFK,
-    'target_end_effector': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'target_end_effector': np.array([0.0, 0.3, -0.5, 0.0, 0.3, -0.2]),
     'wp': np.array([1, 1, 1, 1, 1, 1]),
     'l1': 0.1,
     'l2': 10.0,
@@ -145,6 +142,16 @@ config = {
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui_on': False,  # Currently doesn't work for BADMM.
+    'gui_on': True,
     'algorithm': algorithm,
 }
+
+common['info'] = (
+    'exp_name: '   + str(common['experiment_name'])              + '\n'
+    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)
