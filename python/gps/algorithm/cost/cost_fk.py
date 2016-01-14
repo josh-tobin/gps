@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 import numpy as np
 
 from gps.algorithm.cost.config import cost_fk
@@ -9,28 +9,20 @@ from gps.proto.gps_pb2 import JOINT_ANGLES, END_EFFECTOR_POINTS, END_EFFECTOR_PO
 
 class CostFK(Cost):
     """
-    Forward kinematics cost function. Used for costs involving the
-    end effector position.
+    Forward kinematics cost function. Used for costs involving the end effector position.
     """
-
     def __init__(self, hyperparams):
-        config = deepcopy(cost_fk)
+        config = copy.deepcopy(cost_fk)
         config.update(hyperparams)
         Cost.__init__(self, config)
 
     def eval(self, sample):
         """
         Evaluate forward kinematics (end-effector penalties) cost.
-
         Temporary note: This implements the 'joint' penalty type from the matlab code,
-            with the velocity/velocity diff/etc. penalties remove (use CostState instead)
-
+            with the velocity/velocity diff/etc. penalties removed. (Use CostState instead)
         Args:
-            sample: A single sample
-
-        Return:
-            l, lx, lu, lxx, luu, lux:
-                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
+            sample: A single sample.
         """
         T = sample.T
         dX = sample.dX
@@ -52,17 +44,14 @@ class CostFK(Cost):
         tgt = self._hyperparams['target_end_effector']
         pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
-        # TODO - these should be partially zeros so we're not doubling counting
+        # TODO - These should be partially zeros so we're not double counting.
         # (See pts_jacobian_only in matlab costinfos code)
         jx = sample.get(END_EFFECTOR_POINT_JACOBIANS)
 
-        # Evaluate penalty term.
-        # Use estimated Jacobians and no higher order terms
+        # Evaluate penalty term. Use estimated Jacobians and no higher order terms.
         jxx_zeros = np.zeros((T, dist.shape[1], jx.shape[2], jx.shape[2]))
-        l, ls, lss = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
-                                                   self._hyperparams['l1'],
-                                                   self._hyperparams['l2'],
-                                                   self._hyperparams['alpha'])
+        l, ls, lss = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros, self._hyperparams['l1'],
+                self._hyperparams['l2'], self._hyperparams['alpha'])
         # Add to current terms.
         sample.agent.pack_data_x(lx, ls, data_types=[JOINT_ANGLES])
         sample.agent.pack_data_x(lxx, lss, data_types=[JOINT_ANGLES, JOINT_ANGLES])

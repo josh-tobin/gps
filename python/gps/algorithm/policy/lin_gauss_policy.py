@@ -3,24 +3,16 @@ import numpy as np
 from gps.algorithm.policy.policy import Policy
 from gps.utility import check_shape
 
+
 class LinearGaussianPolicy(Policy):
     """
-    Time-varying linear gaussian policy.
-
-    U = K*x + k + noise
-    Where noise ~ N(0, chol_pol_covar)
-
-    Args:
-        K: T x Du x Dx
-        k: T x Du
-        pol_covar: T x Du x Du
-        chol_pol_covar: T x Du x Du
-        inv_pol_covar: T x Du x Du
+    Time-varying linear Gaussian policy.
+    U = K*x + k + noise, where noise ~ N(0, chol_pol_covar)
     """
     def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar):
         Policy.__init__(self)
 
-        # Assume K has the correct shape, and make sure others match
+        # Assume K has the correct shape, and make sure others match.
         self.T = K.shape[0]
         self.dU = K.shape[1]
         self.dX = K.shape[2]
@@ -41,11 +33,10 @@ class LinearGaussianPolicy(Policy):
     def act(self, x, obs, t, noise=None):
         """
         Return an action for a state.
-
         Args:
-            x: State vector
-            obs: Observation vector
-            t: timestep
+            x: State vector.
+            obs: Observation vector.
+            t: Time step.
             noise: Action noise vector. This will be scaled by the variance.
         """
         u = self.K[t].dot(x) + self.k[t]
@@ -55,11 +46,10 @@ class LinearGaussianPolicy(Policy):
     def fold_k(self, noise):
         """
         Fold noise into k.
-
         Args:
-            noise: A T x Du noise vector with ~mean 0 and variance 1
+            noise: A T x Du noise vector with ~mean 0 and variance 1.
         Returns:
-            k: A T x dU bias vector
+            k: A T x dU bias vector.
         """
         k = np.zeros_like(self.k)
         for i in range(self.T):
@@ -70,8 +60,8 @@ class LinearGaussianPolicy(Policy):
     def nans_like(self):
         """
         Returns:
-            A new LinearGaussianPolicy object with the same dimensions but
-        all values filled with nan.
+            A new linear Gaussian policy object with the same dimensions but all values filled with
+            NaNs.
         """
         policy = LinearGaussianPolicy(
             np.zeros_like(self.K),

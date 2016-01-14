@@ -1,2 +1,1 @@
-
-from .general_utils import *
+from gps.utility.general_utils import *

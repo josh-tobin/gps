@@ -34,6 +34,8 @@ private:
     // State and obs datatypes
     std::vector<gps::SampleType> state_datatypes_;
     std::vector<gps::SampleType> obs_datatypes_;
+    // end effector target (subtracted before control is computed)
+    Eigen::VectorXd ee_tgt_;
 
 protected:
     bool is_configured_;

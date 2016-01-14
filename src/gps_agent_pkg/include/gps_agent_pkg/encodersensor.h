@@ -61,6 +61,8 @@ private:
     Eigen::MatrixXd end_effector_points_;
     // Previous end-effector points.
     Eigen::MatrixXd previous_end_effector_points_;
+    // End-effector points target.
+    Eigen::MatrixXd end_effector_points_target_;
     // Velocities of points.
     Eigen::MatrixXd previous_end_effector_point_velocities_;
     // Temporary storage.

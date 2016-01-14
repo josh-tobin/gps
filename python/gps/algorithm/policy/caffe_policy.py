@@ -6,15 +6,12 @@ from gps.algorithm.policy.policy import Policy
 
 class CaffePolicy(Policy):
     """
-    A neural network policy implemented in Caffe.
-    The network output is taken to be the mean, and gaussian noise is added on top of it.
-
-    U = net.forward(obs) + noise
-    Where noise ~ N(0, diag(var))
-
+    A neural network policy implemented in Caffe. The network output is taken to be the mean, and
+    Gaussian noise is added on top of it.
+    U = net.forward(obs) + noise, where noise ~ N(0, diag(var))
     Args:
-        test_net (caffe.Net): initialized caffe network that can run forward
-        var (float vector): Du-dimensional noise variance vector.
+        test_net: initialized caffe network that can run forward.
+        var: Du-dimensional noise variance vector.
     """
     def __init__(self, test_net, var):
         Policy.__init__(self)
@@ -24,11 +21,10 @@ class CaffePolicy(Policy):
     def act(self, x, obs, t, noise):
         """
         Return an action for a state.
-
         Args:
-            x: State vector
-            obs: Observation vector
-            t: timestep
+            x: State vector.
+            obs: Observation vector.
+            t: Time step.
             noise: Action noise vector. This will be scaled by the variance.
         """
         # Normalize obs.

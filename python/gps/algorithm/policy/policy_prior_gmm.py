@@ -23,9 +23,8 @@ class PolicyPriorGMM(object):
         Hyperparameters:
             min_samples_per_cluster: Minimum number of samples per cluster.
             max_clusters: Maximum number of clusters to fit.
-            max_samples: Maximum number of trajectories to use for fitting the GMM at
-                any given time.
-            strength: Adjust strength of prior.
+            max_samples: Maximum number of trajectories to use for fitting the GMM at any given time.
+            strength: Adjusts the strength of the prior.
         """
         config = copy.deepcopy(policy_prior_gmm)
         config.update(hyperparams)
