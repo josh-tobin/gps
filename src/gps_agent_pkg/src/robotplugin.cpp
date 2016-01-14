@@ -363,6 +363,21 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         }
     }
     sensor_params["ee_sites"] = ee_points;
+
+    // update end effector points target
+    Eigen::MatrixXd ee_points_tgt;
+    if( msg->ee_points_tgt.size() != ee_points.size()){
+        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)", 
+                (int)msg->ee_points_tgt.size(), (int)msg->ee_points.size());
+    }
+    ee_points_tgt.resize(n_points, 3);
+    for(int i=0; i<n_points; i++){
+        for(int j=0; j<3; j++){
+            ee_points_tgt(i, j) = msg->ee_points_tgt[j+3*i];
+        }
+    }
+    sensor_params["ee_points_tgt"] = ee_points_tgt;
+
     configure_sensors(sensor_params);
 
     controller_initialized_ = true;

@@ -47,29 +47,38 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 
-ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'initial')
-_, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', '0', 'target')
+x0s = []
+ee_tgts = []
+reset_conditions = []
 
-# TODO - Construct this somewhere else?
-x0 = np.zeros(23)
-x0[0:7] = ja_x0
-x0[14:] = np.ndarray.flatten(get_ee_points(EE_POINTS, ee_pos_x0, ee_rot_x0).T)
+# Set up each condition.
+for i in xrange(common['conditions']):
 
-ee_tgt = np.ndarray.flatten(get_ee_points(EE_POINTS, ee_pos_tgt, ee_rot_tgt).T)
+    ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(common['target_filename'], 'trial_arm', str(i), 'initial')
+    _, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(common['target_filename'], 'trial_arm', str(i), 'target')
 
-RESET_CONDITION = {
-    TRIAL_ARM: {
-        'mode': JOINT_SPACE,
-        'data': x0[0:7],
-    },
-    AUXILIARY_ARM: {
-        'mode': JOINT_SPACE,
-        'data': np.zeros(7),
-    },
-}
+    # TODO - Construct this somewhere else?
+    x0 = np.zeros(23)
+    x0[:7] = ja_x0
+    x0[14:] = np.ndarray.flatten(get_ee_points(EE_POINTS, ee_pos_x0, ee_rot_x0).T)
+
+    ee_tgt = np.ndarray.flatten(get_ee_points(EE_POINTS, ee_pos_tgt, ee_rot_tgt).T)
+
+    reset_condition = {
+        TRIAL_ARM: {
+            'mode': JOINT_SPACE,
+            'data': x0[0:7],
+        },
+        AUXILIARY_ARM: {
+            'mode': JOINT_SPACE,
+            'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
+        },
+    }
+
+    x0s.append(x0)
+    ee_tgts.append(ee_tgt)
+    reset_conditions.append(reset_condition)
 
 
 common = {
@@ -78,7 +87,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 1,
+    'conditions': 2,
 }
 
 if not os.path.exists(common['data_files_dir']):
@@ -89,10 +98,9 @@ agent = {
     'dt': 0.05,
     'conditions': common['conditions'],
     'T': 100,
-    'x0': x0,
-    'reset_conditions': {
-        0: RESET_CONDITION,
-     },
+    'x0': x0s,
+    'ee_points_tgt': ee_tgts,
+    'reset_conditions': reset_conditions,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS],
     'end_effector_points': EE_POINTS,
@@ -123,7 +131,8 @@ torque_cost = {
 
 fk_cost1 = {
     'type': CostFK,
-    'target_end_effector': ee_tgt,
+    # Target end effector is subtracted out of EE_POINTS in ROS so goal is 0.
+    'target_end_effector': np.zeros(3 * EE_POINTS.shape[0]),
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]),
     'l1': 0.1,
     'l2': 0.0001,
@@ -133,7 +142,8 @@ fk_cost1 = {
 # TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
-    'target_end_effector': ee_tgt,
+    # Target end effector is subtracted out of EE_POINTS in ROS so goal is 0.
+    'target_end_effector': np.zeros(3 * EE_POINTS.shape[0]),
     'wp': np.ones(SENSOR_DIMS[END_EFFECTOR_POINTS]),
     'l1': 1.0,
     'l2': 0.0,

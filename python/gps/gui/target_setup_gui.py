@@ -278,6 +278,7 @@ def load_from_npz(filename, key, default=None):
         with np.load(filename) as f:
             return f[key]
     except (IOError, KeyError) as e:
+        print 'error loading %s from %s' % (key, filename), e
         pass
     return default
 
