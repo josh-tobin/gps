@@ -176,7 +176,7 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     int n_points_target_ = end_effector_points_target_.cols();
     if( end_effector_points_target_.cols() != 3){
         ROS_ERROR("EE tgt has more than 3 coordinates: Shape=(%d,%d)", 
-                (int)end_effector_points__target_.rows(),
+                (int)end_effector_points_target_.rows(),
                 (int)end_effector_points_target_.cols());
     }
     if(n_points_ != n_points_target_){
