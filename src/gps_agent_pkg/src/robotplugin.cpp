@@ -2,8 +2,10 @@
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/caffenncontroller.h"
 #include "gps_agent_pkg/lingausscontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
+#include "gps_agent_pkg/CaffeParams.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
 #include "gps_agent_pkg/util.h"
@@ -343,6 +345,13 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             controller_params["k_"+to_string(t)] = k;
         }
         trial_controller_->configure_controller(controller_params);
+    }else if (msg->controller.controller_to_execute == gps::CAFFE_CONTROLLER) {
+        gps_agent_pkg::CaffeParams params = msg->controller.caffe;
+        trial_controller_.reset(new CaffeNNController());
+        std::string net_param = params.net_param;
+        controller_params["net_param"] = net_param;
+        controller_params["T"] = (int)params.T;
+        trial_controller_->configure_controller(controller_params);
     }else{
         ROS_ERROR("Unknown trial controller arm type");
     }
@@ -367,7 +376,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     // update end effector points target
     Eigen::MatrixXd ee_points_tgt;
     if( msg->ee_points_tgt.size() != ee_points.size()){
-        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)", 
+        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)",
                 (int)msg->ee_points_tgt.size(), (int)msg->ee_points.size());
     }
     ee_points_tgt.resize(n_points, 3);

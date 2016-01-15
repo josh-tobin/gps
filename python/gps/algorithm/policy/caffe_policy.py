@@ -1,5 +1,6 @@
 import caffe
 import numpy as np
+import tempfile
 
 from gps.algorithm.policy.policy import Policy
 
@@ -42,6 +43,6 @@ class CaffePolicy(Policy):
         f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
         self.net.save(f.name)
         f.close()
-        with open(f.name,'rb') as tempfile:
-            weights_string = tempfile.read()
+        with open(f.name,'rb') as temp_file:
+            weights_string = temp_file.read()
         return weights_string

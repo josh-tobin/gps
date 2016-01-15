@@ -32,7 +32,10 @@ void CaffeNNController::configure_controller(OptionsMap &options)
     TrialController::configure_controller(options);
 
     //weights_string_ = boost::get<string>(options["weights_string"]);
+    //ROS_INFO(options["net_param"]);
+    ROS_INFO("doing boost get");
     std::string net_param_string = boost::get<string>(options["net_param"]);
+    ROS_INFO("did boost get");
 
     NetParameter net_param;
     google::protobuf::TextFormat::ParseFromString(net_param_string, &net_param);

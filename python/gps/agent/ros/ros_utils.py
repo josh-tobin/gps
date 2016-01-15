@@ -37,8 +37,9 @@ def policy_to_msg(policy, noise):
         msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
     elif isinstance(policy, CaffePolicy):
         msg.controller_to_execute = CAFFE_CONTROLLER
+        msg.caffe = CaffeParams()
         #msg.weights_string = policy.get_weights_string()
-        msg.net_param = policy.get_net_param()
+        msg.caffe.net_param = policy.get_net_param()
     else:
         raise NotImplementedError("Unknown policy object: %s" % policy)
     return msg

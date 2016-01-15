@@ -92,6 +92,7 @@ class GPSMain():
                 if 'verbose_policy_trials' in self._hyperparams:
                     for m in range(self._conditions):
                         for _ in range(self._hyperparams['verbose_policy_trials']):
+                            import pdb; pdb.set_trace()
                             self.agent.sample(self.algorithm.policy_opt.policy, m, verbose=True,
                                     save=False)
 

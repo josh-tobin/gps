@@ -167,7 +167,7 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     n_points_ = end_effector_points_.cols();
 
     if( end_effector_points_.cols() != 3){
-        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", 
+        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)",
                 (int)end_effector_points_.rows(),
                 (int)end_effector_points_.cols());
     }
@@ -175,12 +175,12 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     end_effector_points_target_ = boost::get<Eigen::MatrixXd>(options["ee_points_tgt"]).transpose();
     int n_points_target_ = end_effector_points_target_.cols();
     if( end_effector_points_target_.cols() != 3){
-        ROS_ERROR("EE tgt has more than 3 coordinates: Shape=(%d,%d)", 
-                (int)end_effector_points__target_.rows(),
+        ROS_ERROR("EE tgt has more than 3 coordinates: Shape=(%d,%d)",
+                (int)end_effector_points_target_.rows(),
                 (int)end_effector_points_target_.cols());
     }
     if(n_points_ != n_points_target_){
-        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)", 
+        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)",
                   n_points_target_, n_points_);
     }
 
