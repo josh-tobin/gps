@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class ImageVisualizer:
     """
     If rostopic is given to constructor, then this will automatically update with rostopic image.
@@ -45,7 +46,7 @@ class ImageVisualizer:
         image = np.array(image)
         if self._crop_size:
             h, w, ch, cw = image.shape[0], image.shape[1], self._crop_size[0], self._crop_size[1]
-            image = image[h/2-ch/2:h/2-ch/2+ch, w/2-cw/2:w/2-cw/2+cw, :]
+            image = image[h/2-ch/2:h/2-ch/2+ch,w/2-cw/2:w/2-cw/2+cw,:]
 
         if not self._init:
             self.init((image.shape[0], image.shape[1]))
@@ -61,12 +62,13 @@ class ImageVisualizer:
         self._ax.figure.canvas.draw()
 
     def update_ros(image_msg):
-        # extract image
+        # Extract image.
         image = np.fromstring(image_msg.data, np.uint8)
-        # convert from ros image format to matplotlib image format
-        image = image.reshape(curr_im.height, curr_im.width, 3)[::-1, :, ::-1]
-        # update visualizer
+        # Convert from ros image format to matplotlib image format.
+        image = image.reshape(curr_im.height, curr_im.width, 3)[::-1,:,::-1]
+        # Update visualizer.
         self.update(image)
+
 
 if __name__ == "__main__":
     import time
@@ -74,13 +76,13 @@ if __name__ == "__main__":
 
     plt.ion()
     fig, ax = plt.subplots()
-    visualizer = ImageVisualizer(ax, cropsize=(3,3))
+    visualizer = ImageVisualizer(ax, cropsize=(3, 3))
 
     im = np.zeros((5, 5, 3))
     while True:
-        i = random.randint(0, im.shape[0]-1)
-        j = random.randint(0, im.shape[1]-1)
-        k = random.randint(0, im.shape[2]-1)
-        im[i, j, k] = (im[i, j, k] + random.randint(0, 255)) % 256
+        i = random.randint(0, im.shape[0] - 1)
+        j = random.randint(0, im.shape[1] - 1)
+        k = random.randint(0, im.shape[2] - 1)
+        im[i,j,k] = (im[i,j,k] + random.randint(0, 255)) % 256
         visualizer.update(im)
         time.sleep(5e-3)

@@ -29,6 +29,8 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n,
     temp_end_effector_points_.resize(3,1);
     end_effector_points_.resize(3,1);
     end_effector_points_.fill(0.0);
+    end_effector_points_target_.resize(3,1);
+    end_effector_points_target_.fill(0.0);
 
     // Resize point jacobians
     point_jacobians_.resize(3, previous_angles_.size());
@@ -115,7 +117,8 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         temp_end_effector_points_ = previous_rotation_*end_effector_points_;
         temp_end_effector_points_.colwise() += previous_position_;
 
-        // TODO: very important: remember to adjust for target points! probably best to do this *after* velocity computation in case config changes...
+        // Subtract the target end effector points so that the goal is always zero
+        temp_end_effector_points_ -= end_effector_points_target_;
 
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
@@ -164,9 +167,23 @@ void EncoderSensor::configure_sensor(OptionsMap &options)
     n_points_ = end_effector_points_.cols();
 
     if( end_effector_points_.cols() != 3){
-        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", (int)n_points_,
+        ROS_ERROR("EE Sites have more than 3 coordinates: Shape=(%d,%d)", 
+                (int)end_effector_points_.rows(),
                 (int)end_effector_points_.cols());
     }
+
+    end_effector_points_target_ = boost::get<Eigen::MatrixXd>(options["ee_points_tgt"]).transpose();
+    int n_points_target_ = end_effector_points_target_.cols();
+    if( end_effector_points_target_.cols() != 3){
+        ROS_ERROR("EE tgt has more than 3 coordinates: Shape=(%d,%d)", 
+                (int)end_effector_points_target_.rows(),
+                (int)end_effector_points_target_.cols());
+    }
+    if(n_points_ != n_points_target_){
+        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)", 
+                  n_points_target_, n_points_);
+    }
+
     previous_end_effector_points_.resize(3, n_points_);
     previous_end_effector_point_velocities_.resize(3, n_points_);
     temp_end_effector_points_.resize(3, n_points_);

@@ -8,12 +8,12 @@ from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_state import CostState
-from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior import PolicyPrior
-from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
 from gps.proto.gps_pb2 import *
 
 
@@ -25,6 +25,7 @@ SENSOR_DIMS = {
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
 EXP_DIR = BASE_DIR + '/experiments/mjc_pointmass_example/'
+
 
 common = {
     'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
@@ -58,29 +59,24 @@ agent = {
 algorithm = {
     'type': AlgorithmBADMM,
     'conditions': common['conditions'],
-    'iterations': 5,
-    'lg_step_schedule': 0,
-    'policy_dual_rate': 0,
+    'iterations': 10,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
+    'policy_dual_rate': 0.2,
     'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
-    'fixed_lg_step': 1,
-    'kl_step': 0.1,
+    'fixed_lg_step': 3,
     'min_step_mult': 0.01,
-    'max_step_mult': 10.0,
+    'max_step_mult': 1.0,
     'sample_decrease_var': 0.05,
     'sample_increase_var': 0.1,
 }
 
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
-    'args': {
-        'hyperparams': {
-            'init_var': 1.0,
-            'init_stiffness': 10.0,
-            'init_stiffness_vel': 10.0,
-        },
-        'dt': agent['dt'],
-        'T': agent['T'],
-    }
+    'init_var': 1.0,
+    'init_stiffness': 10.0,
+    'init_stiffness_vel': 10.0,
+    'dt': agent['dt'],
+    'T': agent['T'],
 }
 
 algorithm['cost'] = {
@@ -94,8 +90,14 @@ algorithm['cost'] = {
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLR,
+    'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 2,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    }
 }
 
 algorithm['traj_opt'] = {
@@ -104,22 +106,35 @@ algorithm['traj_opt'] = {
 
 algorithm['policy_opt'] = {
     'type': PolicyOptCaffe,
+    'weights_file_prefix': EXP_DIR + 'policy',
+    'iterations': 10000,
+    'network_arch_params': {
+        'n_layers': 2,
+        'dim_hidden': [20],
+    },
 }
 
 algorithm['policy_prior'] = {
-    'type': PolicyPriorGMM,
-    'max_clusters': 2,
-    'min_samples_per_cluster': 40,
-    'max_samples': 20,
+    'type': PolicyPrior,
 }
 
 config = {
     'iterations': algorithm['iterations'],
-    'num_samples': 20,
+    'num_samples': 5,
     'verbose_trials': 1,
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui_on': False,  # Currently doesn't work for BADMM.
+    'gui_on': True,
     'algorithm': algorithm,
 }
+
+common['info'] = (
+    'exp_name: '   + str(common['experiment_name'])              + '\n'
+    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)

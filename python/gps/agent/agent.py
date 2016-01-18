@@ -1,33 +1,39 @@
 import abc
-from gps.sample.sample_list import SampleList
+import copy
 
+from gps.agent.config import agent
 from gps.proto.gps_pb2 import ACTION
+from gps.sample.sample_list import SampleList
 
 
 class Agent(object):
-    """Agent superclass
-
+    """
+    Agent superclass. The agent interacts with the environment to collect samples.
     """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, hyperparams):
-        self._hyperparams = hyperparams
+        config = copy.deepcopy(agent)
+        config.update(hyperparams)
+        self._hyperparams = config
 
-        # Store samples, along with size and index information for samples
+        # Store samples, along with size and index information for samples.
         self._samples = [[] for _ in range(self._hyperparams['conditions'])]
         self.T = self._hyperparams['T']
         self.dU = self._hyperparams['sensor_dims'][ACTION]
 
         self.x_data_types = self._hyperparams['state_include']
         self.obs_data_types = self._hyperparams['obs_include']
-        # list of indices for each data type in state X
+
+        # List of indices for each data type in state X.
         self._state_idx, i = [], 0
         for sensor in self.x_data_types:
             dim = self._hyperparams['sensor_dims'][sensor]
             self._state_idx.append(list(range(i, i+dim)))
             i += dim
         self.dX = i
-        # list of indices for each data type in observation
+
+        # List of indices for each data type in observation.
         self._obs_idx, i = [], 0
         for sensor in self.obs_data_types:
             dim = self._hyperparams['sensor_dims'][sensor]
@@ -39,139 +45,119 @@ class Agent(object):
 
     @abc.abstractmethod
     def sample(self, policy, condition):
-        raise NotImplementedError("Must be implemented in subclass")
+        raise NotImplementedError("Must be implemented in subclass.")
 
     def reset(self, condition):
-        raise NotImplementedError("Implement in subclass if needed")
+        pass  # May be overridden in subclass.
 
     def get_samples(self, condition, start=0, end=None):
         """
         Return the requested samples based on the start and end indices.
-
         Args:
-            start (int): Starting index of samples to return.
-            end (int): End index of samples to return.
+            start: Starting index of samples to return.
+            end: End index of samples to return.
         """
         return SampleList(self._samples[condition][start:]) if end == None \
                 else SampleList(self._samples[condition][start:end])
 
-    def pack_data_obs(self, existing_mat, data_to_insert, data_types=None, axes=None):
+    def pack_data_obs(self, existing_mat, data_to_insert, data_types, axes=None):
+        """
+        Update the observation matrix with new data.
+        Args:
+            existing_mat: Current observation matrix.
+            data_to_insert: New data to insert into the existing matrix.
+            data_types: Name of the sensors to insert data for.
+            axes: Which axes to insert data into. Defaults to the last axes.
+        """
         num_sensor = len(data_types)
         if axes is None:
-            # If axes not specified, assume you are indexing on last dimensions
-            axes = list(range(-1, -num_sensor-1, -1))
+            # If axes not specified, assume indexing on last dimensions.
+            axes = list(range(-1, -num_sensor - 1, -1))
         else:
-            # Make sure number of sensors and axes are consistent
+            # Make sure number of sensors and axes are consistent.
             if num_sensor != len(axes):
-                raise ValueError('Length of sensors (%d) must equal length of axes (%d)', num_sensor, len(axes))
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)',
+                        num_sensor, len(axes))
 
-        #Shape Checks
+        # Shape checks.
         insert_shape = list(existing_mat.shape)
         for i in range(num_sensor):
-            if existing_mat.shape[axes[i]] != self.dO:  # Make sure you are slicing along X
+            if existing_mat.shape[axes[i]] != self.dO:  # Make sure to slice along X.
                 raise ValueError('Axes must be along an dX=%d dimensional axis', self.dO)
             insert_shape[axes[i]] = len(self._obs_data_idx[data_types[i]])
-        # Make sure data is the right shape
         if tuple(insert_shape) != data_to_insert.shape:
-            raise ValueError('Data has shape %s. Expected %s', data_to_insert.shape, tuple(insert_shape))
+            raise ValueError('Data has shape %s. Expected %s', data_to_insert.shape,
+                    tuple(insert_shape))
 
-        # Actually perform the slice
-        index = [slice(None)]*len(existing_mat.shape)
+        # Actually perform the slice.
+        index = [slice(None) for _ in range(len(existing_mat.shape))]
         for i in range(num_sensor):
-            index[axes[i]] = slice(self._obs_data_idx[data_types[i]][0], self._obs_data_idx[data_types[i]][-1]+1)
+            index[axes[i]] = slice(self._obs_data_idx[data_types[i]][0],
+                    self._obs_data_idx[data_types[i]][-1] + 1)
         existing_mat[index] = data_to_insert
 
-    def pack_data_x(self, existing_mat, data_to_insert, data_types=None, axes=None):
-        #TODO: update 'Example Usage' below, now that dX, etc. aren't passed in
+    def pack_data_x(self, existing_mat, data_to_insert, data_types, axes=None):
         """
-        Inserts data into existing_mat into the indices specified by data_types and axes.
-        Can insert 1 data type per axis.
-
+        Update the state matrix with new data.
         Args:
-            existing_mat: Matrix to insert into
-            data_to_insert: Matrix to insert into existing_mat.
-            data_types (list, string): Name of the sensors you are inserting data for
-            axis (list, int): (Optional) Which axis you wish to insert data into.
-                Defaults to last axes : -1, -2, ... -len(data_types).
-
-        TODO: Update/remove the following example.
-        Example Usage:
-        >>> dX = 3; T=2
-        >>> sample_data = SampleData({'T':T, 'dX': dX, 'dU': 0, 'dO': dX}, None, SysOutWriter())
-        >>> sample_data._x_data_idx = {'a': [0], 'b': [1], 'c': [2]}
-        >>> existing_mat = np.zeros((T, dX, dX))
-        >>> data_to_insert = np.ones((T, 1, dX))
-        >>> sample_data.pack_data_x(existing_mat, data_to_insert, data_types=['a'], axes=[1])
-        >>> existing_mat
-        array([[[ 1.,  1.,  1.],
-                [ 0.,  0.,  0.],
-                [ 0.,  0.,  0.]],
-        <BLANKLINE>
-               [[ 1.,  1.,  1.],
-                [ 0.,  0.,  0.],
-                [ 0.,  0.,  0.]]])
-        >>> data_to_insert = np.ones((T, 1, 1))*2
-        >>> sample_data.pack_data_x(existing_mat, data_to_insert, data_types=['a', 'b'], axes=[1, 2])
-        >>> existing_mat
-        array([[[ 1.,  2.,  1.],
-                [ 0.,  0.,  0.],
-                [ 0.,  0.,  0.]],
-        <BLANKLINE>
-               [[ 1.,  2.,  1.],
-                [ 0.,  0.,  0.],
-                [ 0.,  0.,  0.]]])
+            existing_mat: Current state matrix.
+            data_to_insert: New data to insert into the existing matrix.
+            data_types: Name of the sensors to insert data for.
+            axes: Which axes to insert data into. Defaults to the last axes.
         """
         num_sensor = len(data_types)
         if axes is None:
-            # If axes not specified, assume you are indexing on last dimensions
-            axes = list(range(-1, -num_sensor-1, -1))
+            # If axes not specified, assume indexing on last dimensions.
+            axes = list(range(-1, -num_sensor - 1, -1))
         else:
-            # Make sure number of sensors and axes are consistent
+            # Make sure number of sensors and axes are consistent.
             if num_sensor != len(axes):
-                raise ValueError('Length of sensors (%d) must equal length of axes (%d)' % (num_sensor, len(axes)))
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)',
+                        num_sensor, len(axes))
 
-        #Shape Checks
+        # Shape checks.
         insert_shape = list(existing_mat.shape)
         for i in range(num_sensor):
-            if existing_mat.shape[axes[i]] != self.dX:  # Make sure you are slicing along X
+            if existing_mat.shape[axes[i]] != self.dX:  # Make sure to slice along X.
                 raise ValueError('Axes must be along an dX=%d dimensional axis', self.dX)
             insert_shape[axes[i]] = len(self._x_data_idx[data_types[i]])
-        # Make sure data is the right shape
         if tuple(insert_shape) != data_to_insert.shape:
-            raise ValueError('Data has shape %s. Expected %s' % (data_to_insert.shape, tuple(insert_shape)))
+            raise ValueError('Data has shape %s. Expected %s',
+                    data_to_insert.shape, tuple(insert_shape))
 
-        # Actually perform the slice
-        index = [slice(None)]*len(existing_mat.shape)
+        # Actually perform the slice.
+        index = [slice(None) for _ in range(len(existing_mat.shape))]
         for i in range(num_sensor):
-            index[axes[i]] = slice(self._x_data_idx[data_types[i]][0], self._x_data_idx[data_types[i]][-1]+1)
+            index[axes[i]] = slice(self._x_data_idx[data_types[i]][0],
+                    self._x_data_idx[data_types[i]][-1] + 1)
         existing_mat[index] = data_to_insert
 
-    def unpack_data_x(self, existing_mat, data_types=None, axes=None):
+    def unpack_data_x(self, existing_mat, data_types, axes=None):
         """
-        Returns the data from existing_mat corresponding to data_types.
-
+        Returns the requested data from the state matrix.
         Args:
-            existing_mat: Matrix to unpack from
-            data_types (list, string): Name of the sensor you are unpacking
-            axes (list, int): (Optional) Which axes you wish to unpack along.
-                Defaults to last axes : -1, -2, ... -len(data_types).
+            existing_mat: State matrix to unpack from.
+            data_types: Names of the sensor to unpack.
+            axes: Which axes to unpack along. Defaults to the last axes.
         """
         num_sensor = len(data_types)
         if axes is None:
-            # If axes not specified, assume you are indexing on last dimensions
-            axes = list(range(-1, -num_sensor-1, -1))
+            # If axes not specified, assume indexing on last dimensions.
+            axes = list(range(-1, -num_sensor - 1, -1))
         else:
-            # Make sure number of sensors and axes are consistent
+            # Make sure number of sensors and axes are consistent.
             if num_sensor != len(axes):
-                raise ValueError('Length of sensors (%d) must equal length of axes (%d)', num_sensor, len(axes))
+                raise ValueError('Length of sensors (%d) must equal length of axes (%d)',
+                        num_sensor, len(axes))
 
-        #Shape Checks
+        # Shape checks.
         for i in range(num_sensor):
-            if existing_mat.shape[axes[i]] != self.dX:  # Make sure you are slicing along X
+            if existing_mat.shape[axes[i]] != self.dX:  # Make sure to slice along X.
                 raise ValueError('Axes must be along an dX=%d dimensional axis', self.dX)
 
-        # Actually perform the slice
-        index = [slice(None)]*len(existing_mat.shape)
+        # Actually perform the slice.
+        index = [slice(None) for _ in range(len(existing_mat.shape))]
         for i in range(num_sensor):
-            index[axes[i]] = slice(self._x_data_idx[data_types[i]][0], self._x_data_idx[data_types[i]][-1]+1)
+            index[axes[i]] = slice(self._x_data_idx[data_types[i]][0],
+                    self._x_data_idx[data_types[i]][-1] + 1)
         return existing_mat[index]

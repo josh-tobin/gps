@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 import mjcpy
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
@@ -15,48 +15,49 @@ class AgentMuJoCo(Agent):
     All communication between the algorithms and MuJoCo is done through this class.
     """
     def __init__(self, hyperparams):
-        config = deepcopy(agent_mujoco)
+        config = copy.deepcopy(agent_mujoco)
         config.update(hyperparams)
         Agent.__init__(self, config)
         self._setup_conditions()
         self._setup_world(hyperparams['filename'])
 
     def _setup_conditions(self):
+        """
+        Helper method for setting some hyperparameters that may vary by condition.
+        """
         def setup(value, n):
             if not isinstance(value, list):
                 try:
                     return [value.copy() for _ in range(n)]
                 except AttributeError:
                     return [value for _ in range(n)]
-            assert len(value) == n, 'number of elements must match number of conditions'
+            assert len(value) == n, 'Number of elements must match number of conditions.'
             return value
 
-        #TODO: discuss a different way to organize some of this
         conds = self._hyperparams['conditions']
-        for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
-                'noisy_body_idx', 'noisy_body_var'):
+        for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', 'noisy_body_idx',
+                'noisy_body_var'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
 
     def _setup_world(self, filename):
         """
         Helper method for handling setup of the MuJoCo world.
-
         Args:
-            filename: path to XML file containing the world information
+            filename: Path to XML file containing the world information.
         """
         self._world = mjcpy.MJCWorld(filename)
         options = {
-            'timestep': self._hyperparams['dt']/self._hyperparams['substeps'],
+            'timestep': self._hyperparams['dt'] / self._hyperparams['substeps'],
             'disableflags': 0,
         }
         if self._hyperparams['rk']:
-            options['integrator'] = 3  # Runge-Kutta
+            options['integrator'] = 3  # Runge-Kutta integrator.
         else:
-            options['integrator'] = 2  # Semi-implicit Euler
+            options['integrator'] = 2  # Semi-implicit Euler integrator.
         self._world.set_option(options)
 
         self._model = self._world.get_model()
-        self._model = [deepcopy(self._model) for _ in range(self._hyperparams['conditions'])]
+        self._model = [copy.deepcopy(self._model) for _ in range(self._hyperparams['conditions'])]
         self._options = self._world.get_option()
 
         for i in range(self._hyperparams['conditions']):
@@ -70,7 +71,7 @@ class AgentMuJoCo(Agent):
             self._world.set_data(data)
             self._world.kinematics()
 
-        # Initialize x0
+        # Initialize x0.
         self._data = self._world.get_data()
         eepts = self._data['site_xpos'].flatten()
 
@@ -87,17 +88,17 @@ class AgentMuJoCo(Agent):
     def sample(self, policy, condition, verbose=True, save=True):
         """
         Runs a trial and constructs a new sample containing information about the trial.
-
         Args:
-            policy: policy to to used in the trial
-            condition (int): Which condition setup to run.
-            verbose (boolean): whether or not to plot the trial
+            policy: Policy to to used in the trial.
+            condition: Which condition setup to run.
+            verbose: Whether or not to plot the trial.
+            save: Whether or not to store the trial into the list of samples.
         """
-        new_sample = self._init_sample(condition)  # create new sample, populate first time step
+        new_sample = self._init_sample(condition)  # Create new sample, populate first time step.
         mj_X = self._hyperparams['x0'][condition]
         U = np.zeros([self.T, self.dU])
-        noise = generate_noise(self.T, self.dU, smooth=self._hyperparams['smooth_noise'], \
-                var=self._hyperparams['smooth_noise_var'], \
+        noise = generate_noise(self.T, self.dU, smooth=self._hyperparams['smooth_noise'],
+                var=self._hyperparams['smooth_noise_var'],
                 renorm=self._hyperparams['smooth_noise_renormalize'])
         if np.any(self._hyperparams['x0var'][condition] > 0):
             x0n = self._hyperparams['x0var'] * np.random.randn(self._hyperparams['x0var'].shape)
@@ -119,7 +120,7 @@ class AgentMuJoCo(Agent):
             if (t+1) < self.T:
                 for step in range(self._hyperparams['substeps']):
                     mj_X, _ = self._world.step(mj_X, mj_U)
-                #TODO: some hidden state stuff will go here
+                #TODO: Some hidden state stuff will go here.
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
         new_sample.set(ACTION, U)
@@ -129,6 +130,8 @@ class AgentMuJoCo(Agent):
     def _init_sample(self, condition):
         """
         Construct a new sample and fill in the first time step.
+        Args:
+            condition: Which condition to initialize.
         """
         sample = Sample(self)
         sample.set(JOINT_ANGLES, self._hyperparams['x0'][condition][self._joint_idx], t=0)
@@ -145,6 +148,14 @@ class AgentMuJoCo(Agent):
         return sample
 
     def _set_sample(self, sample, mj_X, t, condition):
+        """
+        Set the data for a sample for one time step.
+        Args:
+            sample: Sample object to set data for.
+            mj_X: Data to set for sample.
+            t: Time step to set for sample.
+            condition: Which condition to set.
+        """
         sample.set(JOINT_ANGLES, np.array(mj_X[self._joint_idx]), t=t+1)
         sample.set(JOINT_VELOCITIES, np.array(mj_X[self._vel_idx]), t=t+1)
         curr_eepts = self._data['site_xpos'].flatten()

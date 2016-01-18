@@ -2,38 +2,36 @@ import numpy as np
 import logging
 
 from gps.algorithm.algorithm import Algorithm
-from gps.utility.general_utils import IterationData, TrajectoryInfo
+from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo
+from gps.utility.general_utils import extract_condition
+
 
 LOGGER = logging.getLogger(__name__)
 
+
 class AlgorithmTrajOpt(Algorithm):
-    """Sample-based trajectory optimization.
-
     """
-
+    Sample-based trajectory optimization.
+    """
     def __init__(self, hyperparams):
         Algorithm.__init__(self, hyperparams)
 
-        # Keep 1 iteration data for each condition
+        # IterationData objects for each condition.
         self.cur = [IterationData() for _ in range(self.M)]
         self.prev = [IterationData() for _ in range(self.M)]
 
-        init_args = self._hyperparams['init_traj_distr']['args']
-        self.dynamics = [None]*self.M
         for m in range(self.M):
-            self.cur[m].traj_distr = self._hyperparams['init_traj_distr']['type'](**init_args)
             self.cur[m].traj_info = TrajectoryInfo()
-            self.cur[m].step_mult = 1.0
-            self.dynamics[m] = self._hyperparams['dynamics']['type'](
-                self._hyperparams['dynamics'])
-        self.eta = [1.0]*self.M
-
+            dynamics = self._hyperparams['dynamics']
+            self.cur[m].traj_info.dynamics = dynamics['type'](dynamics)
+            init_traj_distr = extract_condition(self._hyperparams['init_traj_distr'], m)
+            self.cur[m].traj_distr = init_traj_distr['type'](init_traj_distr)
 
     def iteration(self, sample_lists):
         """
         Run iteration of LQR.
         Args:
-            sample_lists: List of sample_list objects for each condition.
+            sample_lists: List of SampleList objects for each condition.
         """
         for m in range(self.M):
             self.cur[m].sample_list = sample_lists[m]
@@ -41,53 +39,50 @@ class AlgorithmTrajOpt(Algorithm):
         # Update dynamics model using all sample.
         self._update_dynamics()
 
-        self._update_step_size()  # KL Divergence step size
+        self._update_step_size()  # KL Divergence step size.
 
-        # Run inner loop to compute new policies under new dynamics and step size
+        # Run inner loop to compute new policies under new dynamics and step size.
         for inner_itr in range(self._hyperparams['inner_iterations']):
             self._update_trajectories()
 
         self._advance_iteration_variables()
 
-    # TODO - can this go in super class
     def _update_step_size(self):
-        """ Evaluate costs on samples, adjusts step size """
-        # Evaluate cost function for all conditions and samples
+        """
+        Evaluate costs on samples, and adjust the step size.
+        """
+        # Evaluate cost function for all conditions and samples.
         for m in range(self.M):
             self._eval_cost(m)
 
-        for m in range(self.M):  # m = condition
+        # Adjust step size relative to the previous iteration.
+        for m in range(self.M):
             if self.iteration_count >= 1 and self.prev[m].sample_list:
-                # Evaluate cost and adjust step size relative to the previous iteration.
                 self._stepadjust(m)
 
     def _stepadjust(self, m):
         """
         Calculate new step sizes.
-
         Args:
             m: Condition
         """
-        # No policy by default.
-        pol_kl = np.zeros(self.T)
+        # Compute values under Laplace approximation. This is the policy that the previous samples
+        # were actually drawn from under the dynamics that were estimated from the previous samples.
+        previous_laplace_obj = self.traj_opt.estimate_cost(self.prev[m].traj_distr,
+                self.prev[m].traj_info)
+        # This is the policy that we just used under the dynamics that were estimated from the 
+        # previous samples (so this is the cost we thought we would have.
+        new_predicted_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr,
+                self.prev[m].traj_info)
 
-        # Compute values under Laplace approximation.
-        # This is the policy that the previous samples were actually drawn from
-        # under the dynamics that were estimated from the previous samples.
-        previous_laplace_obj = self.traj_opt.estimate_cost(self.prev[m].traj_distr, self.prev[m].traj_info)
-        # This is the policy that we just used under the dynamics that were
-        # estimated from the previous samples (so this is the cost we thought we
-        # would have).
-        new_predicted_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr, self.prev[m].traj_info)
-
-        # This is the actual cost we have under the current trajectory based on the
-        # latest samples.
-        new_actual_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr, self.cur[m].traj_info)
+        # This is the actual cost we have under the current trajectory based on the latest samples.
+        new_actual_laplace_obj = self.traj_opt.estimate_cost(self.cur[m].traj_distr,
+                self.cur[m].traj_info)
 
         # Measure the entropy of the current trajectory (for printout).
         ent = 0
         for t in range(self.T):
-            ent = ent + np.sum(np.log(np.diag(self.cur[m].traj_distr.chol_pol_covar[t, :, :])))
+            ent = ent + np.sum(np.log(np.diag(self.cur[m].traj_distr.chol_pol_covar[t,:,:])))
 
         # Compute actual objective values based on the samples.
         previous_mc_obj = np.mean(np.sum(self.prev[m].cs, axis=1), axis=0)
@@ -100,20 +95,23 @@ class AlgorithmTrajOpt(Algorithm):
         actual_impr = np.sum(previous_laplace_obj) - np.sum(new_actual_laplace_obj)
 
         # Print improvement details.
-        LOGGER.debug('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj), previous_mc_obj)
-        LOGGER.debug('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj), new_mc_obj)
-        LOGGER.debug('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj), new_mc_obj)
+        LOGGER.debug('Previous cost: Laplace: %f MC: %f', np.sum(previous_laplace_obj),
+                previous_mc_obj)
+        LOGGER.debug('Predicted new cost: Laplace: %f MC: %f', np.sum(new_predicted_laplace_obj),
+                new_mc_obj)
+        LOGGER.debug('Actual new cost: Laplace: %f MC: %f', np.sum(new_actual_laplace_obj),
+                new_mc_obj)
         LOGGER.debug('Predicted/actual improvement: %f / %f', predicted_impr, actual_impr)
 
-        # model improvement as: I = predicted_dI * KL + penalty * KL^2
-        # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2)
-        # optimize I w.r.t. KL: 0 = predicted_dI + 2 * penalty * KL => KL' = (-predicted_dI)/(2*penalty) = (pred/2*(pred-act)) * KL
-        # therefore, the new multiplier is given by pred/2*(pred-act)
+        # Model improvement as I = predicted_dI * KL + penalty * KL^2, where predicted_dI = pred/KL
+        # and penalty = (act-pred)/(KL^2).
+        # Optimize I w.r.t. KL: 0 = predicted_dI + 2 * penalty * KL
+        # => KL' = (-predicted_dI)/(2*penalty) = (pred/2*(pred-act)) * KL.
+        # Therefore, the new multiplier is given by pred/2*(pred-act).
         new_mult = predicted_impr / (2.0 * max(1e-4, predicted_impr - actual_impr))
         new_mult = max(0.1, min(5.0, new_mult))
         new_step = max(min(new_mult * self.cur[m].step_mult, self._hyperparams['max_step_mult']),
-                          self._hyperparams['min_step_mult'])
-        step_change = new_step / self.cur[m].step_mult
+                self._hyperparams['min_step_mult'])
         self.cur[m].step_mult = new_step
 
         if new_mult > 1:
@@ -121,20 +119,42 @@ class AlgorithmTrajOpt(Algorithm):
         else:
             LOGGER.debug('Decreasing step size multiplier to %f', new_step)
 
-        self.cur[m].step_change = step_change
-        self.cur[m].pol_kl = pol_kl
-
-    # TODO - move to super class
     def _advance_iteration_variables(self):
         """
-        Move all 'cur' variables to 'prev'.
-        Advance iteration counter
+        Move all 'cur' variables to 'prev', and advance iteration counter.
         """
         self.iteration_count += 1
         self.prev = self.cur
         self.cur = [IterationData() for _ in range(self.M)]
         for m in range(self.M):
             self.cur[m].traj_info = TrajectoryInfo()
+            self.cur[m].traj_info.dynamics = self.prev[m].traj_info.dynamics
             self.cur[m].step_mult = self.prev[m].step_mult
+            self.cur[m].eta = self.prev[m].eta
             self.cur[m].traj_distr = self.new_traj_distr[m]
         delattr(self, 'new_traj_distr')
+
+    def _compute_costs(self, m, eta):
+        """
+        Compute cost estimates used in the LQR backward pass.
+        """
+        traj_info, traj_distr = self.cur[m].traj_info, self.cur[m].traj_distr
+        fCm, fcv = traj_info.Cm / eta, traj_info.cv / eta
+
+        # Add in the trajectory divergence term.
+        for t in range(self.T - 1, -1, -1):
+            fCm[t,:,:] += np.vstack([
+                np.hstack([
+                    traj_distr.K[t,:,:].T.dot(traj_distr.inv_pol_covar[t,:,:]).dot(traj_distr.K[t,:,:]),
+                    -traj_distr.K[t,:,:].T.dot(traj_distr.inv_pol_covar[t,:,:])
+                ]),
+                np.hstack([
+                    -traj_distr.inv_pol_covar[t,:,:].dot(traj_distr.K[t,:,:]),
+                    traj_distr.inv_pol_covar[t,:,:]
+                ])])
+            fcv[t,:] += np.hstack([
+                traj_distr.K[t,:,:].T.dot(traj_distr.inv_pol_covar[t,:,:]).dot(traj_distr.k[t,:]),
+                -traj_distr.inv_pol_covar[t,:,:].dot(traj_distr.k[t,:])
+            ])
+
+        return fCm, fcv

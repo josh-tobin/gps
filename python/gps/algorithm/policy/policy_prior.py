@@ -31,5 +31,5 @@ class PolicyPrior(object):
         Phi = self._hyperparams['strength'] * np.vstack([
             np.hstack([sig, sig.dot(prior_fd.T)]),
             np.hstack([prior_fd.dot(sig), prior_fd.dot(sig).dot(prior_fd.T) + prior_cond])
-            ])
+        ])
         return np.zeros(dX+dU), Phi, 0, self._hyperparams['strength']

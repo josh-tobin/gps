@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 import numpy as np
 
 from gps.algorithm.cost.config import cost_state
@@ -8,23 +8,18 @@ from gps.algorithm.cost.cost_utils import evall1l2term, get_ramp_multiplier
 
 class CostState(Cost):
     """
-    Computes l1/l2 distance to a fixed target state
+    Computes l1/l2 distance to a fixed target state.
     """
-
     def __init__(self, hyperparams):
-        config = deepcopy(cost_state)
+        config = copy.deepcopy(cost_state)
         config.update(hyperparams)
         Cost.__init__(self, config)
 
     def eval(self, sample):
         """
-        Evaluate cost function and derivatives on a sample
-
+        Evaluate cost function and derivatives on a sample.
         Args:
             sample:  A single sample
-        Return:
-            l, lx, lu, lxx, luu, lux:
-                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
         """
         T = sample.T
         Du = sample.dU
@@ -45,20 +40,15 @@ class CostState(Cost):
             _, dim_sensor = x.shape
 
             wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
-                                      wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
+                    wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
             wp = wp*np.expand_dims(wpm, axis=-1)
-            # Compute state penalty
+            # Compute state penalty.
             dist = x - tgt
 
             # Evaluate penalty term.
-            l, ls, lss = evall1l2term(
-                wp,
-                dist,
-                np.tile(np.eye(dim_sensor), [T, 1, 1]),
-                np.zeros((T, dim_sensor, dim_sensor, dim_sensor)),
-                self._hyperparams['l1'],
-                self._hyperparams['l2'],
-                self._hyperparams['alpha'])
+            l, ls, lss = evall1l2term(wp, dist, np.tile(np.eye(dim_sensor), [T, 1, 1]),
+                    np.zeros((T, dim_sensor, dim_sensor, dim_sensor)), self._hyperparams['l1'],
+                    self._hyperparams['l2'], self._hyperparams['alpha'])
 
             final_l += l
 
