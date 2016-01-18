@@ -109,10 +109,11 @@ class GPSTrainingGUI:
             self.append_output_text(line)
 
         # Visualization Axis
-        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 2:4])
-        self._ax_vis = plt.subplot(self._gs_vis[0], projection='3d')
-        self._vis_traj_axis = Plotter3D(self._ax_vis, label='Trajectory Samples', color='green')
-        self._vis_pol_axis = Plotter3D(self._ax_vis, label='Policy Samples', color='red')
+        num_conditions = self._hyperparams['conditions']
+        rows = 2
+        cols = int(np.ceil(float(num_conditions)/rows))
+        self._gs_vis = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=self._gs[2:4, 2:4])
+        self._axarr_vis = [plt.subplot(self._gs_vis[i/col, i%rows], projection='3d') for i in range(num_conditions)]
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
@@ -192,7 +193,8 @@ class GPSTrainingGUI:
     def set_action_bgcolor(self, color, alpha=1.0):
         self._action_output_axis.set_bgcolor(color, alpha)
 
-    def update(self, algorithm, sample_lists, itr):
+    def update(self, itr, algorithm, traj_sample_lists, pol_sample_lists):
+        # Plot Costs
         if algorithm.M == 1:
             # Update plot with each sample's cost (summed over time).
             costs = np.sum(algorithm.prev[0].cs, axis=1)
@@ -201,22 +203,29 @@ class GPSTrainingGUI:
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
         self._plot_axis.update(costs)
 
+        # Print Costs
         if self._first_update:
             self.set_output_text(self._hyperparams['experiment_name'])
             self.append_output_text('itr | cost')
             self._first_update = False
         self.append_output_text('%02d  | %f' % (itr, np.mean(costs)))
 
-        if algorithm.M == 1:
-            # update plot with each sample
-            samples = sample_lists[0].get_samples()
-            sample0 = samples[0]
-            ee_pos = sample0.get(END_EFFECTOR_POINTS)
-            self._vis_traj_axis.update(xs=ee_points[:,0], ys=ee_points[:,2], zs=ee_points[:,1])
-        else:
-            # update plot with first sample of each condition
-            samples = sample_lists[0].get_samples()
-            sample0 = samples[0]
-            ee_points = sample0.get(END_EFFECTOR_POINTS)
-            self._vis_traj_axis.update(xs=ee_points[:,0], ys=ee_points[:,2], zs=ee_points[:,1])
-        # self._vis_pol_axis.update(xs=[0,3], ys=[2,5], zs=[4,7])
+        # Plot Trajectory Visualizations
+        for m in range(algorithm.M):
+            cond_axis = self.axarr_vis[m]
+            cond_axis.clear()
+            cond_axis.legend()
+            # Plot Trajectory Samples
+            traj_samples = traj_sample_lists[m].get_samples()
+            for sample in traj_samples:
+                ee_pt = sample.get(END_EFFECTOR_POINTS)
+                cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='green', label='Trajectory Samples')
+            # Plots Policy Samples
+            pol_samples = pol_sample_lists[m].get_samples()
+            for sample in pol_samples:
+                ee_pt = sample.get(END_EFFECTOR_POINTS)
+                cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
+            # Plot Linear Gaussian Controllers (Mean/Covariance)
+            # TODO
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
