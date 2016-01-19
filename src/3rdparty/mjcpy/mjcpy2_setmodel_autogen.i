@@ -45,9 +45,6 @@
     _csdihk(d, "nmocap", m_model->nmocap);
     _csdihk(d, "nsensordata", m_model->nsensordata);
     _csdihk(d, "nbuffer", m_model->nbuffer);
-    _csdihk(d, "opt", m_model->opt);
-    _csdihk(d, "vis", m_model->vis);
-    _csdihk(d, "stat", m_model->stat);
     _cadihk(d, "qpos0", m_model->qpos0);
     _cadihk(d, "qpos_spring", m_model->qpos_spring);
     _cadihk(d, "body_parentid", m_model->body_parentid);

@@ -85,6 +85,7 @@ private:
 };
 
 PyMJCWorld2::PyMJCWorld2(const std::string& loadfile) {
+    mj_activate("src/3rdparty/mjpro/mjkey.txt");
   	if (endswith(loadfile, "xml")) {
         NewModelFromXML(loadfile.c_str(), m_model);
   	}

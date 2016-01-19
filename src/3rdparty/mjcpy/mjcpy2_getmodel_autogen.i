@@ -45,9 +45,6 @@
     out["nmocap"] = m_model->nmocap;
     out["nsensordata"] = m_model->nsensordata;
     out["nbuffer"] = m_model->nbuffer;
-    out["opt"] = m_model->opt;
-    out["vis"] = m_model->vis;
-    out["stat"] = m_model->stat;
     out["qpos0"] = toNdarray2<mjtNum>(m_model->qpos0, m_model->nq, 1);
     out["qpos_spring"] = toNdarray2<mjtNum>(m_model->qpos_spring, m_model->nq, 1);
     out["body_parentid"] = toNdarray2<int>(m_model->body_parentid, m_model->nbody, 1);
