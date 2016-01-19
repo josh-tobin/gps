@@ -43,20 +43,10 @@ class AgentMuJoCo(Agent):
             filename: Path to XML file containing the world information.
         """
         self._world = mjcpy.MJCWorld(filename)
-        options = {
-            'timestep': self._hyperparams['dt'] / self._hyperparams['substeps'],
-            'disableflags': 0,
-        }
-        if self._hyperparams['rk']:
-            options['integrator'] = 3  # Runge-Kutta integrator.
-        else:
-            options['integrator'] = 2  # Semi-implicit Euler integrator.
-        self._world.set_option(options)
 
         self._model = self._world.get_model()
         self._model = [copy.deepcopy(self._model)
                        for _ in range(self._hyperparams['conditions'])]
-        self._options = self._world.get_option()
 
         for i in range(self._hyperparams['conditions']):
             for j in range(len(self._hyperparams['pos_body_idx'][i])):
