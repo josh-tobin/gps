@@ -118,7 +118,7 @@ common = {
     'ps3_topic': 'joy',
     'ps3_process_rate': 20,  # Only process 1/20 of ps3 controller messages.
 
-    'image_topic': '/camera/image/rgb_color',
+    'image_topic': '/camera/rgb/image_color',
 }
 
 target_setup = {

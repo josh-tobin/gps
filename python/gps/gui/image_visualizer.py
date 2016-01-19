@@ -29,19 +29,16 @@ class ImageVisualizer:
             except ImportError as e:
                 print 'rostopic image visualization not enabled', e
 
+        self._plot = self._ax.imshow(np.zeros((1, 1, 3)))
         self._overlay_plot = self._ax.imshow(np.zeros((1,1,3)), alpha=0.0)
+        self._ax.set_axis_off()
+        self._ax.get_figure().canvas.draw()
 
     def init(self, display_size):
         self._t = 0
         self._display_size = display_size
         display_x, display_y = self._display_size
         self._data = np.empty((0, display_x, display_y, self._rgb_channels))
-
-        self._ax.set_axis_off()
-        self._ax.set_xlim(0, display_x)
-        self._ax.set_ylim(0, display_y)
-        self._plot = self._ax.imshow(np.zeros((display_x, display_y, self._rgb_channels)))
-
         self._init = True
 
     def update(self, image):
@@ -60,30 +57,37 @@ class ImageVisualizer:
         self._data = np.append(self._data, image, axis=0)
 
         self._plot.set_array(self._data[self._t-1])
+        self.draw()
 
-        self._ax.figure.canvas.draw()
-
-    def update_ros(image_msg):
+    def update_ros(self, image_msg):
         # Extract image.
         image = np.fromstring(image_msg.data, np.uint8)
         # Convert from ros image format to matplotlib image format.
-        image = image.reshape(curr_im.height, curr_im.width, 3)[::-1,:,::-1]
+        image = image.reshape(image_msg.height, image_msg.width, 3)[:,:,::-1]
+        image = 255 - image
         # Update visualizer.
         self.update(image)
 
-    def get_current_image():
+    def get_current_image(self):
         if not self._init or self._t == 0:
             return None
-        return self._data[self._t-1]
+        return self._data[-1]
 
-    def overlay_image(self, image):
+    def overlay_image(self, image, alpha=0.2):
         if image is None:
-            self._overlay_plot.set_array(np.zeros(1,1,3))
+            self._overlay_plot.set_array(np.zeros((1,1,3)))
             self._overlay_plot.set_alpha(0.0)
         else:
             self._overlay_plot.set_array(image)
-            self._overlay_plot.set_alpha(0.2)
-        self._ax.figure.canvas.draw()
+            self._overlay_plot.set_alpha(alpha)
+        self.draw()
+
+    def draw(self):
+        self._ax.draw_artist(self._ax.patch)
+        self._ax.draw_artist(self._plot)
+        self._ax.draw_artist(self._overlay_plot)
+        self._ax.figure.canvas.update()
+        self._ax.figure.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 if __name__ == "__main__":
     import time

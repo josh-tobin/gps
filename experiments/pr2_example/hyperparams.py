@@ -84,7 +84,7 @@ for i in xrange(common['conditions']):
         },
         AUXILIARY_ARM: {
             'mode': JOINT_SPACE,
-            'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
+            'data': np.array([-0.0, 0, 0, 0, 0, 0, 0]),
         },
     }
 

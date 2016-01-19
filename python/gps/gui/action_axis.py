@@ -5,7 +5,7 @@ from matplotlib.widgets import Button
 
 class ActionAxis:
     def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy',
-            inverted_ps3_button=None):
+            ps3_button=None, inverted_ps3_button=None):
         """
         Constructs an ActionAxis assuming actions is a dictionary of fully initialized actions.
         Each action must have: key, name, func.
@@ -49,6 +49,8 @@ class ActionAxis:
 
         # PS3 Input using ROS.
         if ros_enabled:
+            self._ps3_button = ps3_button
+            self._inverted_ps3_button = inverted_ps3_button
             self._ps3_bindings = {}
             for key, action in self._actions.iteritems():
                 if action._pb is not None:
@@ -75,10 +77,10 @@ class ActionAxis:
             self._actions[self._ps3_bindings[buttons_pressed]]._func()
         else:
             if not (len(buttons_pressed) == 0 or (len(buttons_pressed) == 1 and
-                    (buttons_pressed[0] == ps3_button['rear_right_1'] or
-                        buttons_pressed[0] == ps3_button['rear_right_2']))):
+                    (buttons_pressed[0] == self._ps3_button['rear_right_1'] or
+                        buttons_pressed[0] == self._ps3_button['rear_right_2']))):
                 print 'Unrecognized ps3 controller input: ' + '\n' + \
-                        str([inverted_ps3_button[b] for b in buttons_pressed])
+                        str([self._inverted_ps3_button[b] for b in buttons_pressed])
 
 
 if __name__ == "__main__":

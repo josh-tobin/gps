@@ -7,7 +7,6 @@ import argparse
 import threading
 import time
 
-from gps.gui.target_setup_gui import TargetSetupGUI
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
 
@@ -71,7 +70,7 @@ class GPSMain():
                                             self.gui.err_msg = 'Agent reset not implemented.'
                                     elif self.gui.request == 'fail':
                                         self.gui.err_msg = 'Cannot fail before sampling.'
-                                    self.gui.process_mode()  # complete request
+                                    self.gui.process_mode()  # complete request on gui side
 
                             self.agent.sample(pol, m,
                                     verbose=(i < self._hyperparams['verbose_trials']))
@@ -165,6 +164,7 @@ if __name__ == "__main__":
         try:
             import matplotlib.pyplot as plt
             from gps.agent.ros.agent_ros import AgentROS
+            from gps.gui.target_setup_gui import TargetSetupGUI
 
             agent = AgentROS(hyperparams.config['agent'])
             target_setup_gui = TargetSetupGUI(hyperparams.config['common'], agent)
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
         g = GPSMain(hyperparams.config)
         if hyperparams.config['gui_on']:
-            t = threading.Thread(target=lambda: g.run(itr_load=resume_training_itr), args=())
+            t = threading.Thread(target=lambda: g.run(itr_load=resume_training_itr))
             t.daemon = True
             t.start()
 

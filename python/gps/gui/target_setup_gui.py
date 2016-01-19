@@ -107,6 +107,7 @@ class TargetSetupGUI:
         self._action_axis = ActionAxis(self._actions, self._axarr_action, 
                 ps3_process_rate=self._hyperparams['ps3_process_rate'],
                 ps3_topic=self._hyperparams['ps3_topic'],
+                ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         # Output Axis.
@@ -114,13 +115,15 @@ class TargetSetupGUI:
         self._ax_status_output = plt.subplot(self._gs_output[0:3, 0:2])
         self._status_output_axis = OutputAxis(self._ax_status_output,
                 log_filename=self._log_filename)
-        self.update_status_text()
+        
 
         self._ax_initial_image = plt.subplot(self._gs_output[3, 0])
         self._initial_image_visualizer = ImageVisualizer(self._ax_initial_image)
 
         self._ax_target_image = plt.subplot(self._gs_output[3, 1])
-        self._initial_image_visualizer = ImageVisualizer(self._ax_target_image)
+        self._target_image_visualizer = ImageVisualizer(self._ax_target_image)
+
+        self.update_status_text()
 
         # Status Axis.
         self._gs_status = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2,2:4])
@@ -196,26 +199,26 @@ class TargetSetupGUI:
         self.set_action_text('set_target_position: success')
 
     def set_initial_image(self, event=None):
-        image = self._visualizer.get_current_image()
-        if image is None:
+        self._initial_image = self._visualizer.get_current_image()
+        if self._initial_image is None:
             self.set_action_text('set_initial_image: failure (no image available)')
             return
         save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
-                'initial', 'image', image)
+                'initial', 'image', self._initial_image)
 
         self.update_status_text()
         self.set_action_text('set_initial_image: success')
 
     def set_target_image(self, event=None):
-        image = self._visualizer.get_current_image()
-        if image is None:
-            self.set_action_text('set_initial_image: failure (no image available)')
+        self._target_image = self._visualizer.get_current_image()
+        if self._target_image is None:
+            self.set_action_text('set_target_image: failure (no image available)')
             return
         save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
-                'initial', 'image', image)
+                'target', 'image', self._target_image)
 
         self.update_status_text()
-        self.set_action_text('set_initial_image: success')
+        self.set_action_text('set_target_image: success')
 
     def move_to_initial(self, event=None):
         ja = self._initial_position[0]
@@ -244,8 +247,8 @@ class TargetSetupGUI:
         )
         self._status_output_axis.set_text(text)
 
-        self._initial_image_visualizer.update(self._initial_image)
-        self._target_image_visualizer.update(self._target_image)
+        self._initial_image_visualizer.overlay_image(self._initial_image, alpha=1.0)
+        self._target_image_visualizer.overlay_image(self._target_image, alpha=1.0)
 
     def set_action_text(self, text=''):
         self._action_output_axis.set_text(text)
@@ -322,7 +325,7 @@ def load_from_npz(filename, key, default=None):
         with np.load(filename) as f:
             return f[key]
     except (IOError, KeyError) as e:
-        print 'error loading %s from %s' % (key, filename), e
+        # print 'error loading %s from %s' % (key, filename), e
         pass
     return default
 

@@ -89,6 +89,7 @@ class GPSTrainingGUI:
         self._action_axis = ActionAxis(self._actions, self._axarr_action,
                 ps3_process_rate=self._hyperparams['ps3_process_rate'],
                 ps3_topic=self._hyperparams['ps3_topic'],
+                ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         self._ax_action_output = plt.subplot(self._gs_action[1,2:4])
@@ -110,10 +111,12 @@ class GPSTrainingGUI:
 
         # Visualization Axis
         num_conditions = self._hyperparams['conditions']
-        rows = 2
-        cols = int(np.ceil(float(num_conditions)/rows))
+        if num_conditions == 1:
+            rows, cols = 1, 1
+        else:
+            rows, cols = int(np.ceil(float(num_conditions)/2)), 2
         self._gs_vis = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=self._gs[2:4, 2:4])
-        self._axarr_vis = [plt.subplot(self._gs_vis[i/col, i%rows], projection='3d') for i in range(num_conditions)]
+        self._axarr_vis = [plt.subplot(self._gs_vis[i/cols, i%cols], projection='3d') for i in range(num_conditions)]
 
         # Image Axis
         self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
@@ -212,7 +215,7 @@ class GPSTrainingGUI:
 
         # Plot Trajectory Visualizations
         for m in range(algorithm.M):
-            cond_axis = self.axarr_vis[m]
+            cond_axis = self._axarr_vis[m]
             cond_axis.clear()
             cond_axis.legend()
             # Plot Trajectory Samples
@@ -221,10 +224,11 @@ class GPSTrainingGUI:
                 ee_pt = sample.get(END_EFFECTOR_POINTS)
                 cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='green', label='Trajectory Samples')
             # Plots Policy Samples
-            pol_samples = pol_sample_lists[m].get_samples()
-            for sample in pol_samples:
-                ee_pt = sample.get(END_EFFECTOR_POINTS)
-                cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
+            if pol_sample_lists is not None:
+                pol_samples = pol_sample_lists[m].get_samples()
+                for sample in pol_samples:
+                    ee_pt = sample.get(END_EFFECTOR_POINTS)
+                    cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
             # Plot Linear Gaussian Controllers (Mean/Covariance)
             # TODO
         self._fig.canvas.draw()
