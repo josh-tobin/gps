@@ -36,7 +36,9 @@ class PolicyOptCaffe(PolicyOpt):
         self.caffe_iter = 0
         self.var = self._hyperparams['init_var'] * np.ones(dU)
 
-        self.policy = CaffePolicy(self.solver.test_nets[0], np.zeros(dU))
+        self.policy = CaffePolicy(self.solver.test_nets[0],
+                                  self.solver.test_nets[1],
+                                  np.zeros(dU))
 
     def init_solver(self):
         """
@@ -64,8 +66,15 @@ class PolicyOptCaffe(PolicyOpt):
             solver_param.train_net_param.CopyFrom(
                     self._hyperparams['network_model'](**network_arch_params))
 
+            # For running forward in python.
             network_arch_params['batch_size'] = 1
             network_arch_params['phase'] = TEST
+            solver_param.test_net_param.add().CopyFrom(
+                    self._hyperparams['network_model'](**network_arch_params))
+
+            # For running forward on the robot.
+            network_arch_params['batch_size'] = 1
+            network_arch_params['phase'] = 'deploy'
             solver_param.test_net_param.add().CopyFrom(
                     self._hyperparams['network_model'](**network_arch_params))
 

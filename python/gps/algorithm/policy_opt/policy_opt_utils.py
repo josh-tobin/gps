@@ -20,6 +20,7 @@ def construct_fc_network(n_layers=3, dim_hidden=[40,40], dim_input=27, dim_outpu
         dim_input: Dimensionality of input.
         dim_output: Dimensionality of the output.
         batch_size: Batch size.
+        phase: TRAIN, TEST, or 'deploy'
     Returns:
         A NetParameter specification of the network.
     """
@@ -35,10 +36,14 @@ def construct_fc_network(n_layers=3, dim_hidden=[40,40], dim_input=27, dim_outpu
 
         [input, action, precision] = L.Python(ntop=3, python_param=dict(
             module='policy_layers', param_str=data_layer_info, layer='PolicyDataLayer'))
-    else:
+    elif phase == TEST:
         data_layer_info = json.dumps({'shape': [{'dim': (batch_size, dim_input)}]})
         input = L.Python(ntop=1, python_param=dict(
             module='policy_layers', param_str=data_layer_info, layer='PolicyDataLayer'))
+    else phase == 'deploy':
+        # This is the network that runs on the robot. This data layer will be bypassed.
+        [input] = L.DummyData(ntop=1,
+            shape=[dict(dim=[batch_size, dim_input])])
 
     cur_top = input
     dim_hidden.append(dim_output)
@@ -51,7 +56,7 @@ def construct_fc_network(n_layers=3, dim_hidden=[40,40], dim_input=27, dim_outpu
             cur_top = L.ReLU(cur_top, in_place=True)
 
     if phase == TRAIN:
-        out = L.Python(cur_top, action, precision, loss_weight=1.0, 
+        out = L.Python(cur_top, action, precision, loss_weight=1.0,
                 python_param=dict(module='policy_layers', layer='WeightedEuclideanLoss'))
     else:
         out = cur_top
