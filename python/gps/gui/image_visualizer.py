@@ -29,6 +29,8 @@ class ImageVisualizer:
             except ImportError as e:
                 print 'rostopic image visualization not enabled', e
 
+        self._overlay_plot = self._ax.imshow(np.zeros((1,1,3)), alpha=0.0)
+
     def init(self, display_size):
         self._t = 0
         self._display_size = display_size
@@ -69,6 +71,19 @@ class ImageVisualizer:
         # Update visualizer.
         self.update(image)
 
+    def get_current_image():
+        if not self._init or self._t == 0:
+            return None
+        return self._data[self._t-1]
+
+    def overlay_image(self, image):
+        if image is None:
+            self._overlay_plot.set_array(np.zeros(1,1,3))
+            self._overlay_plot.set_alpha(0.0)
+        else:
+            self._overlay_plot.set_array(image)
+            self._overlay_plot.set_alpha(0.2)
+        self._ax.figure.canvas.draw()
 
 if __name__ == "__main__":
     import time

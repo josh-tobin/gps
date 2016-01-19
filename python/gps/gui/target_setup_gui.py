@@ -15,13 +15,17 @@ from gps.gui.output_axis import OutputAxis
 from gps.gui.image_visualizer import ImageVisualizer
 
 from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
+try:
+    from gps.agent.ros.ros_utils import TimeoutException
+except ImportError as e:
+    print('Cannot import TimeoutException because ROS is not installed.')
 
 # ~~~ GUI Specifications ~~~
 # Action Axis
 #     - previous target number, next target number
 #     - previous actuator type, next actuator type
 #     - set initial position, set target position
-#     - set initial features, set target features
+#     - set initial image, set target image
 #     - move to initial position, move to target position
 #     - relax controller, mannequin mode
 
@@ -60,6 +64,8 @@ class TargetSetupGUI:
         self._actuator_name = self._actuator_names[self._actuator_number]
         self._initial_position = ('unknown', 'unknown', 'unknown')
         self._target_position  = ('unknown', 'unknown', 'unknown')
+        self._initial_image = None
+        self._target_image  = None
         self.reload_positions()
 
         # Actions.
@@ -71,8 +77,8 @@ class TargetSetupGUI:
 
             Action('sip', 'set_initial_position', self.set_initial_position, axis_pos=4),
             Action('stp', 'set_target_position',  self.set_target_position,  axis_pos=5),
-            Action('sif', 'set_initial_features', self.set_initial_features, axis_pos=6),
-            Action('stf', 'set_target_features',  self.set_target_features,  axis_pos=7),
+            Action('sii', 'set_initial_image',    self.set_initial_image,    axis_pos=6),
+            Action('sti', 'set_target_image',     self.set_target_image,     axis_pos=7),
 
             Action('mti', 'move_to_initial',      self.move_to_initial,      axis_pos=8),
             Action('mtt', 'move_to_target',       self.move_to_target,       axis_pos=9),
@@ -93,7 +99,7 @@ class TargetSetupGUI:
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
-        self._gs  = gridspec.GridSpec(4, 4)
+        self._gs  = gridspec.GridSpec(5, 4)
 
         # Action Axis.
         self._gs_action = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs[0:2,0:4])
@@ -104,18 +110,25 @@ class TargetSetupGUI:
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
 
         # Output Axis.
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=self._gs[2:4,0:2])
-
-        self._ax_action_output = plt.subplot(self._gs_output[3])
-        self._action_output_axis = OutputAxis(self._ax_action_output)
-
-        self._ax_status_output = plt.subplot(self._gs_output[0:3])
+        self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 2, subplot_spec=self._gs[2:5,0:2])
+        self._ax_status_output = plt.subplot(self._gs_output[0:3, 0:2])
         self._status_output_axis = OutputAxis(self._ax_status_output,
                 log_filename=self._log_filename)
         self.update_status_text()
 
+        self._ax_initial_image = plt.subplot(self._gs_output[3, 0])
+        self._initial_image_visualizer = ImageVisualizer(self._ax_initial_image)
+
+        self._ax_target_image = plt.subplot(self._gs_output[3, 1])
+        self._initial_image_visualizer = ImageVisualizer(self._ax_target_image)
+
+        # Status Axis.
+        self._gs_status = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2,2:4])
+        self._ax_action_output = plt.subplot(self._gs_status[0])
+        self._action_output_axis = OutputAxis(self._ax_action_output)
+
         # Image Axis.
-        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4,2:4])
+        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[3:5,2:4])
         self._ax_image = plt.subplot(self._gs_image[0])
         self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
@@ -152,7 +165,11 @@ class TargetSetupGUI:
         self.set_action_text()
 
     def set_initial_position(self, event=None):
-        sample = self._agent.get_data(arm=self._actuator_type)
+        try:
+            sample = self._agent.get_data(arm=self._actuator_type)
+        except TimeoutException as e:
+            self.set_action_text('set_initial_position: failure (TimeoutException while retrieving sample)')
+            return
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
@@ -163,7 +180,11 @@ class TargetSetupGUI:
         self.set_action_text('set_initial_position: success')
 
     def set_target_position(self, event=None):
-        sample = self._agent.get_data(arm=self._actuator_type)
+        try:
+            sample = self._agent.get_data(arm=self._actuator_type)
+        except TimeoutException as e:
+            self.set_action_text('set_target_position: failure (TimeoutException while retrieving sample)')
+            return
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
@@ -174,11 +195,27 @@ class TargetSetupGUI:
         self.update_status_text()
         self.set_action_text('set_target_position: success')
 
-    def set_initial_features(self, event=None):
-        self.set_action_text('set_initial_features: NOT IMPLEMENTED')
+    def set_initial_image(self, event=None):
+        image = self._visualizer.get_current_image()
+        if image is None:
+            self.set_action_text('set_initial_image: failure (no image available)')
+            return
+        save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
+                'initial', 'image', image)
 
-    def set_target_features(self, event=None):
-        self.set_action_text('set_target_features: NOT IMPLEMENTED')
+        self.update_status_text()
+        self.set_action_text('set_initial_image: success')
+
+    def set_target_image(self, event=None):
+        image = self._visualizer.get_current_image()
+        if image is None:
+            self.set_action_text('set_initial_image: failure (no image available)')
+            return
+        save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
+                'initial', 'image', image)
+
+        self.update_status_text()
+        self.set_action_text('set_initial_image: success')
 
     def move_to_initial(self, event=None):
         ja = self._initial_position[0]
@@ -207,6 +244,9 @@ class TargetSetupGUI:
         )
         self._status_output_axis.set_text(text)
 
+        self._initial_image_visualizer.update(self._initial_image)
+        self._target_image_visualizer.update(self._target_image)
+
     def set_action_text(self, text=''):
         self._action_output_axis.set_text(text)
 
@@ -215,6 +255,10 @@ class TargetSetupGUI:
                 str(self._target_number), 'initial')
         self._target_position  = load_pose_from_npz(self._target_filename, self._actuator_name,
                 str(self._target_number), 'target')
+        self._initial_image    = load_data_from_npz(self._target_filename, self._actuator_name,
+                str(self._target_number), 'initial', 'image', default=None)
+        self._target_image     = load_data_from_npz(self._target_filename, self._actuator_name,
+                str(self._target_number), 'target',  'image', default=None)
 
 
 def save_pose_to_npz(filename, actuator_name, target_number, data_time, values):

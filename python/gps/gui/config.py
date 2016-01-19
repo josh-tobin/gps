@@ -62,8 +62,8 @@ keyboard_bindings = {
 
     'sip': 'j',
     'stp': 'k',
-    'sif': 'l',
-    'stf': ';',
+    'sii': 'l',
+    'sti': ';',
 
     'mti': 'u',
     'mtt': 'i',
@@ -88,8 +88,8 @@ ps3_bindings = {
 
     'sip'  : (ps3_button['rear_right_1'], ps3_button['action_square']),
     'stp'  : (ps3_button['rear_right_1'], ps3_button['action_circle']),
-    'sif'  : (ps3_button['rear_right_1'], ps3_button['action_cross']),
-    'stf'  : (ps3_button['rear_right_1'], ps3_button['action_triangle']),
+    'sii'  : (ps3_button['rear_right_1'], ps3_button['action_cross']),
+    'sti'  : (ps3_button['rear_right_1'], ps3_button['action_triangle']),
 
     'mti'  : (ps3_button['rear_right_2'], ps3_button['cross_left']),
     'mtt'  : (ps3_button['rear_right_2'], ps3_button['cross_right']),
