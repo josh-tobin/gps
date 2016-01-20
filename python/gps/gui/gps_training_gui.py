@@ -212,6 +212,8 @@ class GPSTrainingGUI:
             self.append_output_text('itr | cost')
             self._first_update = False
         self.append_output_text('%02d  | %f' % (itr, np.mean(costs)))
+        # self.algorithm.prev[m].pol_info.prev_kl (BADMM)
+        # self.algorithm.prev[m].step_mult
 
         # Plot Trajectory Visualizations
         for m in range(algorithm.M):
@@ -230,6 +232,7 @@ class GPSTrainingGUI:
                     ee_pt = sample.get(END_EFFECTOR_POINTS)
                     cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
             # Plot Linear Gaussian Controllers (Mean/Covariance)
-            # TODO
+            # mu, sigma = self.algorithm.traj_opt.forward(self.algorithm.prev[m].traj_dist, self.algorithm.prev[m].traj_info)
+            # look at update draw for plotting
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
