@@ -19,22 +19,7 @@ from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
 from gps.gui.target_setup_gui import load_pose_from_npz
 from gps.proto.gps_pb2 import *
-
-
-# TODO - Put this somewhere else.
-def get_ee_points(offsets, ee_pos, ee_rot):
-    """
-    Helper method for computing the end effector points given a position, rotation matrix, and
-    offsets for each of the ee points.
-
-    Args:
-        offsets: N x 3 array where N is the number of points.
-        ee_pos: 1 x 3 array of the end effector position.
-        ee_rot: 3 x 3 rotation matrix of the end effector.
-    Returns:
-        3 x N array of end effector points.
-    """
-    return ee_rot.dot(offsets.T) + ee_pos.T
+from gps.utility.general_utils import get_ee_points
 
 
 EE_POINTS = np.array([[0.02, -0.025, 0.05], [0.02, -0.025, 0.05], [0.02, 0.05, 0.0]])
