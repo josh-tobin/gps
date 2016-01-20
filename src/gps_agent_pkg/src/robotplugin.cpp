@@ -325,10 +325,10 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         int dX = (int) lingauss.dX;
         int dU = (int) lingauss.dU;
         //Prepare options map
-        controller_params["T"] = (int)lingauss.T;
+        controller_params["T"] = (int)msg->T;
         controller_params["dX"] = dX;
         controller_params["dU"] = dU;
-        for(int t=0; t<(int)lingauss.T; t++){
+        for(int t=0; t<(int)msg->T; t++){
             Eigen::MatrixXd K;
             K.resize(dU, dX);
             for(int u=0; u<dU; u++){
@@ -350,7 +350,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         trial_controller_.reset(new CaffeNNController());
         std::string net_param = params.net_param;
         controller_params["net_param"] = net_param;
-        controller_params["T"] = (int)params.T;
+        controller_params["T"] = (int)msg->T;
         trial_controller_->configure_controller(controller_params);
     }else{
         ROS_ERROR("Unknown trial controller arm type");

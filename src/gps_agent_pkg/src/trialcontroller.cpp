@@ -4,8 +4,7 @@
 using namespace gps_control;
 
 // Constructor.
-TrialController::TrialController()
-: Controller()
+TrialController::TrialController() : Controller()
 {
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
@@ -69,8 +68,7 @@ void TrialController::configure_controller(OptionsMap &options)
 // Check if controller is finished with its current task.
 bool TrialController::is_finished() const
 {
-    // Check whether we are close enough to the current target.
-    // TODO: implement.
+    //ROS_INFO("trial_controller is_finished called, end step: %d",trial_end_step_);
     return step_counter_ >= trial_end_step_;
 }
 

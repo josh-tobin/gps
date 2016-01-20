@@ -30,7 +30,6 @@ def policy_to_msg(policy, noise):
     if isinstance(policy, LinearGaussianPolicy):
         msg.controller_to_execute = LIN_GAUSS_CONTROLLER
         msg.lingauss = LinGaussParams()
-        msg.lingauss.T = policy.T
         msg.lingauss.dX = policy.dX
         msg.lingauss.dU = policy.dU
         msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
@@ -38,7 +37,6 @@ def policy_to_msg(policy, noise):
     elif isinstance(policy, CaffePolicy):
         msg.controller_to_execute = CAFFE_CONTROLLER
         msg.caffe = CaffeParams()
-        #msg.weights_string = policy.get_weights_string()
         msg.caffe.net_param = policy.get_net_param()
     else:
         raise NotImplementedError("Unknown policy object: %s" % policy)

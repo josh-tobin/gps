@@ -40,10 +40,12 @@ def construct_fc_network(n_layers=3, dim_hidden=[40,40], dim_input=27, dim_outpu
         data_layer_info = json.dumps({'shape': [{'dim': (batch_size, dim_input)}]})
         input = L.Python(ntop=1, python_param=dict(
             module='policy_layers', param_str=data_layer_info, layer='PolicyDataLayer'))
-    else phase == 'deploy':
+    elif phase == 'deploy':
         # This is the network that runs on the robot. This data layer will be bypassed.
-        [input] = L.DummyData(ntop=1,
+        input = L.DummyData(ntop=1,
             shape=[dict(dim=[batch_size, dim_input])])
+    else:
+        raise Exception('Unknown network phase')
 
     cur_top = input
     dim_hidden.append(dim_output)

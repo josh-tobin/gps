@@ -38,7 +38,9 @@ void CaffeNNController::configure_controller(OptionsMap &options)
     ROS_INFO("did boost get");
 
     NetParameter net_param;
-    google::protobuf::TextFormat::ParseFromString(net_param_string, &net_param);
+    net_param.ParseFromString(net_param_string);
+    //google::protobuf::TextFormat::ParseFromString(net_param_string, &net_param);
+    //google::protobuf::MessageLite::ParseFromString(net_param_string, &net_param);
     net_.reset(new NeuralNetworkCaffe(net_param));
     net_->set_weights(net_param);
 

@@ -80,6 +80,7 @@ class PolicyOptCaffe(PolicyOpt):
 
             # These are required by Caffe to be set, but not used.
             solver_param.test_iter.append(1)
+            solver_param.test_iter.append(1)
             solver_param.test_interval = 1000000
 
             f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
