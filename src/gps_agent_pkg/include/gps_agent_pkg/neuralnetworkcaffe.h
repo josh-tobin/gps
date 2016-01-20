@@ -36,6 +36,7 @@ public:
 
     // Set the weights of the neural network.
     virtual void set_weights(void *weights_ptr);
+    virtual void set_weights(NetParameter& net_param);
 };
 
 }
