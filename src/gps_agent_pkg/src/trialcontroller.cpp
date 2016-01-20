@@ -43,6 +43,7 @@ void TrialController::configure_controller(OptionsMap &options)
 {
     ROS_INFO_STREAM(">TrialController::configure_controller");
     if(!is_finished()){
+        // TODO(chelsea/sergey/zoe) This error happens every time...
         ROS_ERROR("Cannot configure controller while a trial is in progress");
     }
     std::vector<int> datatypes;
