@@ -72,3 +72,18 @@ def extract_condition(hyperparams, m):
     hyperparameter dictionary.
     """
     return {var: val[m] if isinstance(val, list) else val for var, val in hyperparams.items()}
+
+
+def get_ee_points(offsets, ee_pos, ee_rot):
+    """
+    Helper method for computing the end effector points given a position, rotation matrix, and
+    offsets for each of the ee points.
+
+    Args:
+        offsets: N x 3 array where N is the number of points.
+        ee_pos: 1 x 3 array of the end effector position.
+        ee_rot: 3 x 3 rotation matrix of the end effector.
+    Returns:
+        3 x N array of end effector points.
+    """
+    return ee_rot.dot(offsets.T) + ee_pos.T

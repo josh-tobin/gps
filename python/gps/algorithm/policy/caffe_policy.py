@@ -1,5 +1,6 @@
 import caffe
 import numpy as np
+import tempfile
 
 from gps.algorithm.policy.policy import Policy
 
@@ -13,9 +14,10 @@ class CaffePolicy(Policy):
         test_net: initialized caffe network that can run forward.
         var: Du-dimensional noise variance vector.
     """
-    def __init__(self, test_net, var):
+    def __init__(self, test_net, deploy_net, var):
         Policy.__init__(self)
         self.net = test_net
+        self.deploy_net = deploy_net
         self.chol_pol_covar = np.diag(np.sqrt(var))
 
     def act(self, x, obs, t, noise):
@@ -34,3 +36,15 @@ class CaffePolicy(Policy):
         action_mean = self.net.forward().values()[0][0]
         u = action_mean + self.chol_pol_covar.T.dot(noise)
         return u
+
+    def get_weights_string(self):
+        raise('NotImplemented - weights string prob in net_param')
+
+    def get_net_param(self):
+        f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        self.deploy_net.share_with(self.net)
+        self.deploy_net.save(f.name)
+        f.close()
+        with open(f.name,'rb') as temp_file:
+            weights_string = temp_file.read()
+        return weights_string

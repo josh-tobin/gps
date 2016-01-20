@@ -122,13 +122,14 @@ class AgentROS(Agent):
         self.reset_arm(AUXILIARY_ARM, condition_data[AUXILIARY_ARM]['mode'],
                 condition_data[AUXILIARY_ARM]['data'])
 
-    def sample(self, policy, condition, verbose=True):
+    def sample(self, policy, condition, verbose=True, save=True):
         """
         Reset and execute a policy and collect a sample.
         Args:
             policy: A Policy object.
             condition: Which condition setup to run.
             verbose: Whether or not to visualize the trial.
+            save: Whether or not to store the trial into the list of samples.
         Returns:
             sample: A Sample object.
         """
@@ -154,5 +155,6 @@ class AgentROS(Agent):
         sample_msg = self._trial_service.publish_and_wait(trial_command, timeout=self._hyperparams['trial_timeout'])
 
         sample = msg_to_sample(sample_msg, self)
-        self._samples[condition].append(sample)
+        if save:
+            self._samples[condition].append(sample)
         return sample
