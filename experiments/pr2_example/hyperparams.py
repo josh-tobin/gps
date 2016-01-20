@@ -48,18 +48,6 @@ x0s = []
 ee_tgts = []
 reset_conditions = []
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
-
-common = {
-    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
-    'experiment_dir': EXP_DIR,
-    'data_files_dir': EXP_DIR + 'data_files/',
-    'target_filename': EXP_DIR + 'target.npz',
-    'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2,
-}
-
 # Set up each condition.
 for i in xrange(common['conditions']):
 
