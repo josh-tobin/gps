@@ -69,7 +69,6 @@ void TrialController::configure_controller(OptionsMap &options)
 // Check if controller is finished with its current task.
 bool TrialController::is_finished() const
 {
-    //ROS_INFO("trial_controller is_finished called, end step: %d",trial_end_step_);
     return step_counter_ >= trial_end_step_;
 }
 
