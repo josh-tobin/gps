@@ -50,7 +50,7 @@ class Algorithm(object):
         Instantiate dynamics objects and update prior. Fit dynamics to
         current samples.
         """
-        for cond range(self.M):
+        for cond in range(self.M):
             if self.iteration_count >= 1:
                 self.prev[cond].traj_info.dynamics = \
                         self.cur[cond].traj_info.dynamics.copy()
