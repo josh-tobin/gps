@@ -1,12 +1,10 @@
-"""
-Default configuration and hyperparameter values for algorithm objects.
-"""
+""" Default configuration and hyperparameter values for Algorithm objects. """
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 
 
-""" Algorithm """
-alg = {
+# Algorithm
+ALG = {
     'inner_iterations': 1,  # Number of iterations.
     'min_eta': 1e-5,  # Minimum initial lagrange multiplier in DGD for trajectory optimization.
     'kl_step':0.2,
@@ -28,8 +26,8 @@ alg = {
 }
 
 
-""" AlgorithmBADMM """
-alg_badmm = {
+# AlgorithmBADMM
+ALG_BADMM = {
     'inner_iterations': 4,
     'policy_dual_rate': 1.0,
     'policy_dual_rate_covar': 0.0,

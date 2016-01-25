@@ -4,7 +4,7 @@ import abc
 import copy
 import numpy as np
 
-from gps.algorithm.config import alg
+from gps.algorithm.config import ALG
 
 
 class Algorithm(object):
@@ -12,14 +12,29 @@ class Algorithm(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, hyperparams):
-        config = copy.deepcopy(alg)
+        config = copy.deepcopy(ALG)
         config.update(hyperparams)
         self._hyperparams = config
 
         self.M = hyperparams['conditions']
         self.iteration_count = 0
 
-        self.traj_opt = hyperparams['traj_opt']['type'](hyperparams['traj_opt'])
+        # IterationData objects for each condition.
+        self.cur = [IterationData() for _ in range(self.M)]
+        self.prev = [IterationData() for _ in range(self.M)]
+
+        for m in range(self.M):
+            self.cur[m].traj_info = TrajectoryInfo()
+            dynamics = self._hyperparams['dynamics']
+            self.cur[m].traj_info.dynamics = dynamics['type'](dynamics)
+            init_traj_distr = extract_condition(
+                self._hyperparams['init_traj_distr'], m
+            )
+            self.cur[m].traj_distr = init_traj_distr['type'](init_traj_distr)
+
+        self.traj_opt = hyperparams['traj_opt']['type'](
+            hyperparams['traj_opt']
+        )
         self.cost = [
             hyperparams['cost']['type'](hyperparams['cost'])
             for _ in range(self.M)
@@ -40,9 +55,7 @@ class Algorithm(object):
 
     @abc.abstractmethod
     def iteration(self, sample_list):
-        """
-        Run iteration of the algorithm.
-        """
+        """ Run iteration of the algorithm. """
         raise NotImplementedError("Must be implemented in subclass")
 
     def _update_dynamics(self):
@@ -111,7 +124,10 @@ class Algorithm(object):
 
             # Assemble matrix and vector.
             cv[n, :, :] = np.c_[lx, lu]
-            Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
+            Cm[n, :, :, :] = np.concatenate(
+                (np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]),
+                axis=1
+            )
 
             # Adjust for expanding cost around a sample.
             X = sample.get_X()
@@ -120,7 +136,8 @@ class Algorithm(object):
             rdiff = -yhat
             rdiff_expand = np.expand_dims(rdiff, axis=2)
             cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)
-            cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
+            cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * \
+                    np.sum(rdiff * cv_update, axis=1)
             cv[n, :, :] += cv_update
 
         # Fill in cost estimate.
@@ -128,4 +145,4 @@ class Algorithm(object):
         self.cur[cond].traj_info.cv = np.mean(cv, 0)  # Linear term (vector).
         self.cur[cond].traj_info.Cm = np.mean(Cm, 0)  # Quadratic term (matrix).
 
-        self.cur[cond].cs = cs # True value of cost.
+        self.cur[cond].cs = cs  # True value of cost.
