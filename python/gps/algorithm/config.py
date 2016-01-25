@@ -1,4 +1,4 @@
-""" Default configuration and hyperparameter values for Algorithm objects. """
+""" Default configuration and hyperparameter values for algorithms. """
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 
