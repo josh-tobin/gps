@@ -1,11 +1,11 @@
-import caffe
+""" This file defines a few useful custom Caffe layers. """
 import json
+
+import caffe
 
 
 class PolicyDataLayer(caffe.Layer):
-    """
-    A data layer for passing data into the network at training time.
-    """
+    """ A layer for passing data into the network at training time. """
     def setup(self, bottom, top):
         info = json.loads(self.param_str)
         for ind, top_blob in enumerate(info['shape']):
@@ -16,7 +16,8 @@ class PolicyDataLayer(caffe.Layer):
 
     def forward(self, bottom, top):
         # Nothing to do - data will already be set externally.
-        # TODO - Maybe later include way to pass data to this layer and handle batching here.
+        # TODO - Maybe later include way to pass data to this layer and
+        #        handle batching here.
         pass
 
     def backward(self, top, propagate_down, bottom):
@@ -24,9 +25,7 @@ class PolicyDataLayer(caffe.Layer):
 
 
 class WeightedEuclideanLoss(caffe.Layer):
-    """
-    A weighted Euclidean loss layer.
-    """
+    """ A weighted Euclidean loss layer. """
     def setup(self, bottom, top):
         pass
 
