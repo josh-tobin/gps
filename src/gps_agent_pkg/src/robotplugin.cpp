@@ -2,15 +2,18 @@
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
-#include "gps_agent_pkg/caffenncontroller.h"
 #include "gps_agent_pkg/lingausscontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
-#include "gps_agent_pkg/CaffeParams.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
 #include "gps_agent_pkg/util.h"
 #include "gps/proto/gps.pb.h"
 #include <vector>
+
+#ifdef USE_CAFFE
+#include "gps_agent_pkg/caffenncontroller.h"
+#include "gps_agent_pkg/CaffeParams.h"
+#endif
 
 using namespace gps_control;
 
@@ -382,14 +385,18 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             controller_params["k_"+to_string(t)] = k;
         }
         trial_controller_->configure_controller(controller_params);
-    }else if (msg->controller.controller_to_execute == gps::CAFFE_CONTROLLER) {
+    }
+#ifdef USE_CAFFE
+    else if (msg->controller.controller_to_execute == gps::CAFFE_CONTROLLER) {
         gps_agent_pkg::CaffeParams params = msg->controller.caffe;
         trial_controller_.reset(new CaffeNNController());
         std::string net_param = params.net_param;
         controller_params["net_param"] = net_param;
         controller_params["T"] = (int)msg->T;
         trial_controller_->configure_controller(controller_params);
-    }else{
+    }
+#endif
+    else{
         ROS_ERROR("Unknown trial controller arm type");
     }
 
