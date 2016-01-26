@@ -85,9 +85,9 @@ class GPSTrainingGUI:
         # Assign GUI component locations.
         self._g s= gridspec.GridSpec(8, 8)
         self._gs_action_axis        = self._gs[0:1, 0:8]
-        self._gs_action_output_axis = self._gs[1:2, 0:4]
-        self._gs_status_output_axis = self._gs[1:2, 4:8]
-        self._gs_output_axis        = self._gs[2:4, 0:4]
+        self._gs_action_output      = self._gs[1:2, 0:4]
+        self._gs_status_output      = self._gs[1:2, 4:8]
+        self._gs_algthm_output      = self._gs[2:4, 0:4]
         self._gs_cost_plotter       = self._gs[2:4, 4:8]
         self._gs_traj_visualizer    = self._gs[4:8, 0:4]
         self._gs_image_visualizer   = self._gs[4:8, 4:8]
@@ -98,13 +98,13 @@ class GPSTrainingGUI:
                 ps3_topic=self._hyperparams['ps3_topic'],
                 ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
-        self._action_output_axis = OutputAxis(self._fig, self._gs_action_output_axis, border_on=True)
-        self._status_output_axis = OutputAxis(self._fig, self._gs_status_output_axis, border_on=False)
-        self._output_axis = OutputAxis(self._fig, self._gs_output_axis, max_display_size=10,
+        self._action_output = OutputAxis(self._fig, self._gs_action_output, border_on=True)
+        self._status_output = OutputAxis(self._fig, self._gs_status_output, border_on=False)
+        self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=10,
                 log_filename=self._log_filename, font_family='monospace')
-        self._plot_axis = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
+        self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
         # TODO: create visualization axis object and put here
-        self._image_axis = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
 
         # Visualization Axis
@@ -177,19 +177,19 @@ class GPSTrainingGUI:
 
     # GUI functions.
     def set_status_text(self, text):
-        self._status_output_axis.set_text(text)
+        self._status_output.set_text(text)
 
     def set_output_text(self, text):
-        self._output_axis.set_text(text)
+        self._algthm_output.set_text(text)
 
     def append_output_text(self, text):
-        self._output_axis.append_text(text)
+        self._algthm_output.append_text(text)
 
     def set_action_text(self, text):
-        self._action_output_axis.set_text(text)
+        self._action_output.set_text(text)
 
     def set_action_bgcolor(self, color, alpha=1.0):
-        self._action_output_axis.set_bgcolor(color, alpha)
+        self._action_output.set_bgcolor(color, alpha)
 
     def update(self, itr, algorithm, traj_sample_lists, pol_sample_lists):
         # Plot Costs
@@ -199,7 +199,7 @@ class GPSTrainingGUI:
         else:
             # Update plot with each condition's mean sample cost (summed over time).
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
-        self._plot_axis.update(costs)
+        self._cost_plotter.update(costs)
 
         # Print Costs
         if self._first_update:

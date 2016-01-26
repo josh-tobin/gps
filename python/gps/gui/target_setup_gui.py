@@ -102,10 +102,10 @@ class TargetSetupGUI:
         # Assign GUI component locations.
         self._gs = gridspec.GridSpec(4, 4)
         self._gs_action_axis                = self._gs[0:1, 0:4]
-        self._gs_status_output_axis         = self._gs[1:3, 0:2]
+        self._gs_target_output              = self._gs[1:3, 0:2]
         self._gs_initial_image_visualizer   = self._gs[3:4, 0:1]
         self._gs_target_image_visualizer    = self._gs[3:4, 1:2]
-        self._gs_action_output_axis         = self._gs[1:2, 2:4]
+        self._gs_status_output              = self._gs[1:2, 2:4]
         self._gs_image_visualizer           = self._gs[2:4, 2:4]
 
         # Create GUI components.
@@ -114,12 +114,12 @@ class TargetSetupGUI:
                 ps3_topic=self._hyperparams['ps3_topic'],
                 ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
-        self._status_output_axis = OutputAxis(self._fig, self._gs_status_output_axis,
+        self._target_output = OutputAxis(self._fig, self._gs_target_outputs,
                 log_filename=self._log_filename)
         self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
         self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
-        self._action_output_axis = OutputAxis(self._fig, self._gs_action_output_axis)
-        self._image_axis = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
+        self._status_output = OutputAxis(self._fig, self._gs_status_output)
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
 
         # Setup GUI components.
@@ -234,13 +234,13 @@ class TargetSetupGUI:
             'initial position\n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._initial_position +
             'target position \n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' % self._target_position
         )
-        self._status_output_axis.set_text(text)
+        self._target_output.set_text(text)
 
         self._initial_image_visualizer.overlay_image(self._initial_image, alpha=1.0)
         self._target_image_visualizer.overlay_image(self._target_image, alpha=1.0)
 
     def set_action_text(self, text=''):
-        self._action_output_axis.set_text(text)
+        self._status_output.set_text(text)
 
     def reload_positions(self):
         self._initial_position = load_pose_from_npz(self._target_filename, self._actuator_name,
