@@ -7,8 +7,11 @@ class ImageVisualizer:
     If rostopic is given to constructor, then this will automatically update with rostopic image.
     Else, the update method must be manually called.
     """
-    def __init__(self, axis, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None):
-        self._ax = axis
+    def __init__(self, fig, gs, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None):
+        self._fig = fig
+        self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
+        self._ax = plt.subplot(self._gs[0])
+
         self._image_size = imagesize
         self._crop_size = cropsize
         self._rgb_channels = rgb_channels
@@ -32,7 +35,7 @@ class ImageVisualizer:
         self._plot = self._ax.imshow(np.zeros((1, 1, 3)))
         self._overlay_plot = self._ax.imshow(np.zeros((1,1,3)), alpha=0.0)
         self._ax.set_axis_off()
-        self._ax.get_figure().canvas.draw()
+        self._fig.canvas.draw()
 
     def init(self, display_size):
         self._t = 0

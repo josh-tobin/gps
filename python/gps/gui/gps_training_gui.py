@@ -81,33 +81,31 @@ class GPSTrainingGUI:
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
-        self._gs  = gridspec.GridSpec(4, 4)
+        
+        # Assign GUI component locations.
+        self._g s= gridspec.GridSpec(8, 8)
+        self._gs_action_axis        = self._gs[0:1, 0:8]
+        self._gs_action_output_axis = self._gs[1:2, 0:4]
+        self._gs_status_output_axis = self._gs[1:2, 4:8]
+        self._gs_output_axis        = self._gs[2:4, 0:4]
+        self._gs_cost_plotter       = self._gs[2:4, 4:8]
+        self._gs_traj_visualizer    = self._gs[4:8, 0:4]
+        self._gs_image_visualizer   = self._gs[4:8, 4:8]
 
-        # Action Axis.
-        self._gs_action = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec=self._gs[0:1,0:4])
-        self._axarr_action = [plt.subplot(self._gs_action[0,i]) for i in range(4)]
-        self._action_axis = ActionAxis(self._actions, self._axarr_action,
+        # Create GUI components.
+        self._action_axis = ActionAxis(self._fig, self._gs_action_axis, 1, 4, self._actions,
                 ps3_process_rate=self._hyperparams['ps3_process_rate'],
                 ps3_topic=self._hyperparams['ps3_topic'],
                 ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
-
-        self._ax_action_output = plt.subplot(self._gs_action[1,2:4])
-        self._action_output_axis = OutputAxis(self._ax_action_output, border_on=True)
-
-        self._ax_status_output = plt.subplot(self._gs_action[1,0:2])
-        self._status_output_axis = OutputAxis(self._ax_status_output)
-
-        # Output Axis.
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2,0:4])
-        self._ax_plot = plt.subplot(self._gs_output[1])
-        self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
-
-        self._ax_output = plt.subplot(self._gs_output[0])
-        self._output_axis = OutputAxis(self._ax_output, max_display_size=10,
+        self._action_output_axis = OutputAxis(self._fig, self._gs_action_output_axis, border_on=True)
+        self._status_output_axis = OutputAxis(self._fig, self._gs_status_output_axis, border_on=False)
+        self._output_axis = OutputAxis(self._fig, self._gs_output_axis, max_display_size=10,
                 log_filename=self._log_filename, font_family='monospace')
-        for line in self._hyperparams['info'].split('\n'):
-            self.append_output_text(line)
+        self._plot_axis = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
+        # TODO: create visualization axis object and put here
+        self._image_axis = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
+                rostopic=self._hyperparams['image_topic'])
 
         # Visualization Axis
         num_conditions = self._hyperparams['conditions']
@@ -115,15 +113,12 @@ class GPSTrainingGUI:
             rows, cols = 1, 1
         else:
             rows, cols = int(np.ceil(float(num_conditions)/2)), 2
-        self._gs_vis = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=self._gs[2:4, 2:4])
+        self._gs_vis = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=self._gs_traj_visualizer)
         self._axarr_vis = [plt.subplot(self._gs_vis[i/cols, i%cols], projection='3d') for i in range(num_conditions)]
 
-        # Image Axis
-        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4, 0:2])
-        self._ax_image = plt.subplot(self._gs_image[0])
-        self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240, 240),
-                rostopic=self._hyperparams['image_topic'])
-
+        # Setup GUI components.
+        for line in self._hyperparams['info'].split('\n'):
+            self.append_output_text(line)
         self.run_mode()
         self._fig.canvas.draw()
 

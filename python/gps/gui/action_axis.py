@@ -4,16 +4,18 @@ from matplotlib.widgets import Button
 
 
 class ActionAxis:
-    def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy',
+    def __init__(self, fig, gs, rows, cols, actions, ps3_process_rate=20, ps3_topic='joy',
             ps3_button=None, inverted_ps3_button=None):
         """
         Constructs an ActionAxis assuming actions is a dictionary of fully initialized actions.
         Each action must have: key, name, func.
         Each action can have: axis_pos, keyboard_binding, ps3_binding.
         """
+        self._fig = fig
+        self._gs = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=gs)
+        assert(len(self.actions) <= rows*cols, 'Too many actions to put into gridspec.')
+        self._axarr = [plt.subplot(self._gs[i]) for i in range(len(actions))]
         self._actions = actions
-        self._axarr = axarr
-        self._fig = axarr[0].get_figure()
 
         # Try to import ROS.
         ros_enabled = False

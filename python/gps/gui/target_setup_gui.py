@@ -66,8 +66,7 @@ class TargetSetupGUI:
         self._target_position  = ('unknown', 'unknown', 'unknown')
         self._initial_image = None
         self._target_image  = None
-        self.reload_positions()
-
+        
         # Actions.
         actions_arr = [
             Action('ptn', 'prev_target_number',   self.prev_target_number,   axis_pos=0),
@@ -99,43 +98,33 @@ class TargetSetupGUI:
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
-        self._gs  = gridspec.GridSpec(5, 4)
+        
+        # Assign GUI component locations.
+        self._gs = gridspec.GridSpec(4, 4)
+        self._gs_action_axis                = self._gs[0:1, 0:4]
+        self._gs_status_output_axis         = self._gs[1:3, 0:2]
+        self._gs_initial_image_visualizer   = self._gs[3:4, 0:1]
+        self._gs_target_image_visualizer    = self._gs[3:4, 1:2]
+        self._gs_action_output_axis         = self._gs[1:2, 2:4]
+        self._gs_image_visualizer           = self._gs[2:4, 2:4]
 
-        # Action Axis.
-        self._gs_action = gridspec.GridSpecFromSubplotSpec(3, 4, subplot_spec=self._gs[0:2,0:4])
-        self._axarr_action = [plt.subplot(self._gs_action[i]) for i in range(3*4)]
-        self._action_axis = ActionAxis(self._actions, self._axarr_action, 
+        # Create GUI components.
+        self._action_axis = ActionAxis(self._fig, self._gs_action_axis, 3, 4, self._actions,
                 ps3_process_rate=self._hyperparams['ps3_process_rate'],
                 ps3_topic=self._hyperparams['ps3_topic'],
                 ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
-
-        # Output Axis.
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(4, 2, subplot_spec=self._gs[2:5,0:2])
-        self._ax_status_output = plt.subplot(self._gs_output[0:3, 0:2])
-        self._status_output_axis = OutputAxis(self._ax_status_output,
+        self._status_output_axis = OutputAxis(self._fig, self._gs_status_output_axis,
                 log_filename=self._log_filename)
-        
-
-        self._ax_initial_image = plt.subplot(self._gs_output[3, 0])
-        self._initial_image_visualizer = ImageVisualizer(self._ax_initial_image)
-
-        self._ax_target_image = plt.subplot(self._gs_output[3, 1])
-        self._target_image_visualizer = ImageVisualizer(self._ax_target_image)
-
-        self.update_status_text()
-
-        # Status Axis.
-        self._gs_status = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2,2:4])
-        self._ax_action_output = plt.subplot(self._gs_status[0])
-        self._action_output_axis = OutputAxis(self._ax_action_output)
-
-        # Image Axis.
-        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[3:5,2:4])
-        self._ax_image = plt.subplot(self._gs_image[0])
-        self._visualizer = ImageVisualizer(self._ax_image, cropsize=(240, 240),
+        self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
+        self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
+        self._action_output_axis = OutputAxis(self._fig, self._gs_action_output_axis)
+        self._image_axis = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
 
+        # Setup GUI components.
+        self.reload_positions()
+        self.update_status_text()
         self._fig.canvas.draw()
 
     # Target Setup Functions.
