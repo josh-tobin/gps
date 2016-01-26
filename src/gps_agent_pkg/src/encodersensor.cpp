@@ -4,10 +4,13 @@
 using namespace gps_control;
 
 // Constructor.
-EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, plugin)
+EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType actuator_type): Sensor(n, plugin)
 {
+    // Set internal arm
+    actuator_type_ = actuator_type;
+
     // Get current joint angles.
-    plugin->get_joint_encoder_readings(previous_angles_, gps::TRIAL_ARM);
+    plugin->get_joint_encoder_readings(previous_angles_, actuator_type);
 
     // Initialize velocities.
     previous_velocities_.resize(previous_angles_.size());
@@ -56,7 +59,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     double update_time = current_time.toSec() - previous_angles_time_.toSec();
 
     // Get new vector of joint angles from plugin.
-    plugin->get_joint_encoder_readings(temp_joint_angles_, gps::TRIAL_ARM);
+    plugin->get_joint_encoder_readings(temp_joint_angles_, actuator_type_);
     joint_filter_->update(update_time, temp_joint_angles_);
 
     //ROS_INFO_STREAM("EncoderSensor::update");
@@ -66,7 +69,7 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         joint_filter_->get_state(temp_joint_angles_);
 
         // Get FK solvers from plugin.
-        plugin->get_fk_solver(fk_solver_,jac_solver_, gps::TRIAL_ARM);
+        plugin->get_fk_solver(fk_solver_,jac_solver_, actuator_type_);
 
         // Compute end effector position, rotation, and Jacobian.
         // Save angles in KDL joint array.

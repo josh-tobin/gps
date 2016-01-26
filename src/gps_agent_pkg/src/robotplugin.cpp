@@ -28,7 +28,8 @@ RobotPlugin::~RobotPlugin()
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     ROS_INFO_STREAM("Initializing RobotPlugin");
-    data_request_waiting_ = false;
+    trial_data_request_waiting_ = false;
+    aux_data_request_waiting_ = false;
     sensors_initialized_ = false;
     controller_initialized_ = false;
 
@@ -71,17 +72,31 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 
     // Create all sensors.
     for (int i = 0; i < 1; i++)
-    // TODO: readd this when more sensors work
+    // TODO: ZDM: readd this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
-        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this));
+        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM));
         sensors_.push_back(sensor);
     }
 
     // Create current state sample and populate it using the sensors.
     current_time_step_sample_.reset(new Sample(MAX_TRIAL_LENGTH));
-    initialize_sample(current_time_step_sample_);
+    initialize_sample(current_time_step_sample_, gps::TRIAL_ARM);
+
+    aux_sensors_.clear();
+    // Create all auxiliary sensors.  Currently only an encodersensor
+    for (int i = 0; i < 1; i++)
+    {
+        ROS_INFO_STREAM("creating auxiliary sensor: " + to_string(i));
+        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::AUXILIARY_ARM));
+        aux_sensors_.push_back(sensor);
+    }
+
+    // Create current state sample and populate it using the sensors.
+    aux_current_time_step_sample_.reset(new Sample(1));
+    initialize_sample(aux_current_time_step_sample_, gps::AUXILIARY_ARM);
+
     sensors_initialized_ = true;
 }
 
@@ -91,9 +106,7 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
 {
     ROS_INFO("configure sensors");
     sensors_initialized_ = false;
-    for (int i = 0; i < 1; i++)
-    // TODO: readd this when more sensors work
-    //for (int i = 0; i < TotalSensorTypes; i++)
+    for (int i = 0; i < sensors_.size(); i++)
     {
         sensors_[i]->configure_sensor(opts);
         sensors_[i]->set_sample_data_format(current_time_step_sample_);
@@ -102,6 +115,13 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
     OptionsMap sample_metadata;
     current_time_step_sample_->set_meta_data(
         gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
+
+    // configure auxiliary sensors
+    for (int i = 0; i < aux_sensors_.size(); i++)
+    {
+        aux_sensors_[i]->configure_sensor(opts); // TODO: ZDM: make sure this is right!
+        aux_sensors_[i]->set_sample_data_format(aux_current_time_step_sample_);
+    }
     sensors_initialized_ = true;
 }
 
@@ -117,18 +137,26 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 }
 
 // Helper function to initialize a sample from the current sensors.
-void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
+void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample, gps::ActuatorType actuator_type)
 {
     // Go through all of the sensors and initialize metadata.
-    // TODO ZDM :uncomment the following to account for more than joint sensors
-    //for (int i = 0; i < TotalSensorTypes; i++)
-    for (int i = 0; i < 1; i++)
+    if (actuator_type == gps::TRIAL_ARM)
     {
-        sensors_[i]->set_sample_data_format(sample);
+        for (int i = 0; i < sensors_.size(); i++)
+        {
+            sensors_[i]->set_sample_data_format(sample);
+        }
+        // Set sample data format on the actions, which are not handled by any sensor.
+        OptionsMap sample_metadata;
+        sample->set_meta_data(gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
     }
-    // Set sample data format on the actions, which are not handled by any sensor.
-    OptionsMap sample_metadata;
-    sample->set_meta_data(gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
+    else if (actuator_type == gps::AUXILIARY_ARM)
+    {
+        for (int i = 0; i < aux_sensors_.size(); i++)
+        {
+            aux_sensors_[i]->set_sample_data_format(sample);
+        }
+    }
     ROS_INFO("set sample data format");
 }
 
@@ -140,9 +168,7 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
         //return;
     //}
     // Update all of the sensors and fill in the sample.
-    // TODO ZDM :uncomment the following to account for more than joint sensors
-    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
-    for (int sensor = 0; sensor < 1; sensor++)
+    for (int sensor = 0; sensor < sensors_.size(); sensor++)
     {
         sensors_[sensor]->update(this, current_time, is_controller_step);
         if (trial_controller_ != NULL){
@@ -153,11 +179,23 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
     }
+    
+    // Update all of the auxiliary sensors and fill in the sample.
+    for (int sensor = 0; sensor < aux_sensors_.size(); sensor++)
+    {
+        aux_sensors_[sensor]->update(this, current_time, is_controller_step);
+        aux_sensors_[sensor]->set_sample_data(aux_current_time_step_sample_, 0);
+    }
 
     // If a data request is waiting, publish the sample.
-    if (data_request_waiting_) {
+    if (trial_data_request_waiting_) {
         publish_sample_report(current_time_step_sample_);
-        data_request_waiting_ = false;
+        trial_data_request_waiting_ = false;
+    }
+
+    if (aux_data_request_waiting_) {
+        publish_sample_report(aux_current_time_step_sample_);
+        aux_data_request_waiting_ = false;
     }
 }
 
@@ -293,13 +331,12 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     // TODO - it seems like the below could cause a race condition seg fault,
     // but I haven't seen one happen yet...
     // Sergey: I have...
-    initialize_sample(current_time_step_sample_);
+    initialize_sample(current_time_step_sample_, gps::TRIAL_ARM);
 
     float frequency = msg->frequency;  // Controller frequency
 
     // Update sensor frequency
-    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
-    for (int sensor = 0; sensor < 1; sensor++)
+    for (int sensor = 0; sensor < sensors_.size(); sensor++)
     {
         sensors_[sensor]->set_update(1.0/frequency);
     }
@@ -405,15 +442,42 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
 
 void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {
     ROS_INFO_STREAM("received data request");
-    data_request_waiting_ = true;
+    OptionsMap params;
+    int arm = msg->arm;
+    if (arm < 2 && arm >= 0)
+    {
+        gps::ActuatorType arm_type = (gps::ActuatorType) arm;
+        if (arm_type == gps::TRIAL_ARM)
+        {
+            trial_data_request_waiting_ = true;
+        }
+        else if (arm_type == gps::AUXILIARY_ARM)
+        {
+            aux_data_request_waiting_ = true;
+        }
+    }
+    else 
+    {
+        ROS_INFO("Data request arm type not valid: %d", arm);
+    }
 }
 
 // Get sensor.
-Sensor *RobotPlugin::get_sensor(SensorType sensor)
+Sensor *RobotPlugin::get_sensor(SensorType sensor, gps::ActuatorType actuator_type)
 {
-    assert(sensor < TotalSensorTypes);
-    // TODO: does this need to be a raw pointer?
-    return sensors_[sensor].get();
+    // TODO: ZDM: make this work for multiple sensors of each type -- pass in int instead of sensortype?
+    if(actuator_type == gps::TRIAL_ARM)
+    {
+        assert(sensor < TotalSensorTypes);
+        // TODO: does this need to be a raw pointer?
+        return sensors_[sensor].get();
+    }
+    else if (actuator_type == gps::AUXILIARY_ARM)
+    {
+        assert((int)sensor < aux_sensors_.size());
+        // TODO: does this need to be a raw pointer?
+        return aux_sensors_[sensor].get();
+    }
 }
 
 // Get forward kinematics solver.

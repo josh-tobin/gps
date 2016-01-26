@@ -4,12 +4,12 @@
 using namespace gps_control;
 
 // Factory function.
-Sensor* Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin)
+Sensor* Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType actuator_type)
 {
     switch (type)
     {
     case EncoderSensorType:
-        return (Sensor *) (new EncoderSensor(n,plugin));
+        return (Sensor *) (new EncoderSensor(n,plugin,actuator_type));
     /*
     case CameraSensorType:
         return CameraSensor(n,plugin);
