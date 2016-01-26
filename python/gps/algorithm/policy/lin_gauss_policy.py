@@ -1,3 +1,4 @@
+""" This file defines the linear Gaussian policy class. """
 import numpy as np
 
 from gps.algorithm.policy.policy import Policy
@@ -37,7 +38,7 @@ class LinearGaussianPolicy(Policy):
             x: State vector.
             obs: Observation vector.
             t: Time step.
-            noise: Action noise vector. This will be scaled by the variance.
+            noise: Action noise. This will be scaled by the variance.
         """
         u = self.K[t].dot(x) + self.k[t]
         u += self.chol_pol_covar[t].T.dot(noise)
@@ -47,7 +48,7 @@ class LinearGaussianPolicy(Policy):
         """
         Fold noise into k.
         Args:
-            noise: A T x Du noise vector with ~mean 0 and variance 1.
+            noise: A T x Du noise vector with mean 0 and variance 1.
         Returns:
             k: A T x dU bias vector.
         """
@@ -60,14 +61,12 @@ class LinearGaussianPolicy(Policy):
     def nans_like(self):
         """
         Returns:
-            A new linear Gaussian policy object with the same dimensions but all values filled with
-            NaNs.
+            A new linear Gaussian policy object with the same dimensions
+            but all values filled with NaNs.
         """
         policy = LinearGaussianPolicy(
-            np.zeros_like(self.K),
-            np.zeros_like(self.k),
-            np.zeros_like(self.pol_covar),
-            np.zeros_like(self.chol_pol_covar),
+            np.zeros_like(self.K), np.zeros_like(self.k),
+            np.zeros_like(self.pol_covar), np.zeros_like(self.chol_pol_covar),
             np.zeros_like(self.inv_pol_covar)
         )
         policy.K.fill(np.nan)

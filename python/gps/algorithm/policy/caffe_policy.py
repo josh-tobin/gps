@@ -1,4 +1,4 @@
-import caffe
+""" This file defines a neural network policy implemented in Caffe. """
 import numpy as np
 
 from gps.algorithm.policy.policy import Policy
@@ -6,11 +6,11 @@ from gps.algorithm.policy.policy import Policy
 
 class CaffePolicy(Policy):
     """
-    A neural network policy implemented in Caffe. The network output is taken to be the mean, and
-    Gaussian noise is added on top of it.
+    A neural network policy implemented in Caffe. The network output is
+    taken to be the mean, and Gaussian noise is added on top of it.
     U = net.forward(obs) + noise, where noise ~ N(0, diag(var))
     Args:
-        test_net: initialized caffe network that can run forward.
+        test_net: Initialized caffe network that can run forward.
         var: Du-dimensional noise variance vector.
     """
     def __init__(self, test_net, var):
@@ -25,7 +25,7 @@ class CaffePolicy(Policy):
             x: State vector.
             obs: Observation vector.
             t: Time step.
-            noise: Action noise vector. This will be scaled by the variance.
+            noise: Action noise. This will be scaled by the variance.
         """
         # Normalize obs.
         obs = obs.dot(self.scale) + self.bias

@@ -1,5 +1,6 @@
 """ This file defines the base class for dynamics estimation. """
 import abc
+
 import numpy as np
 
 

@@ -1,14 +1,10 @@
+""" This file defines the base class for the policy. """
 import abc
 
 
 class Policy(object):
-    """
-    Computes actions from states/observations.
-    """
+    """ Computes actions from states/observations. """
     __metaclass__ = abc.ABCMeta
-
-    def __init__(self):
-        pass
 
     @abc.abstractmethod
     def act(self, x, obs, t, noise):
