@@ -25,13 +25,13 @@ import numpy as np
 
 class PointMassWorld (Framework):
     name="PointMass"
-    def __init__(self, position=(0,2), angle=b2_pi, linearVelocity=(0,0), angularVelocity=0, target = (12, 24)):
+    def __init__(self, x0 =[0, 2, 0, 0], target = (12, 24)):
         super(PointMassWorld, self).__init__()
         self.world.gravity = (0.0, 0.0)
-        self.initial_position = position
-        self.initial_angle = angle
-        self.initial_linearVelocity = linearVelocity
-        self.initial_angularVelocity = angularVelocity
+        self.initial_position = (x0[0], x0[1])
+        self.initial_angle = b2_pi
+        self.initial_linearVelocity = (x0[2], x0[3])
+        self.initial_angularVelocity = 0
 
         # The boundaries
         ground = self.world.CreateBody(position=(0, 20))

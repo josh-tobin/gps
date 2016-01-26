@@ -20,9 +20,8 @@ class AgentBox2D(Agent):
         config.update(hyperparams)
         Agent.__init__(self, config)
 
-
         self._setup_conditions()
-        self._setup_world(hyperparams["target_state"])
+        self._setup_world(hyperparams["world"], hyperparams["target_state"])
 
     def _setup_conditions(self):
         def setup(value, n):
@@ -38,14 +37,14 @@ class AgentBox2D(Agent):
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
                 'noisy_body_idx', 'noisy_body_var'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
-    def _setup_world(self, target):
+    def _setup_world(self, world, target):
         """
         Helper method for handling setup of the Box2D world.
 
         """
         self.x0 = self._hyperparams["x0"]
         x0 = self._hyperparams['x0'][0]
-        self._world = PointMassWorld(position=(x0[0], x0[1]), target=(target[0], target[1]))
+        self._world = world(x0, target)
         self._world.run()
 
 
