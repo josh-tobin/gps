@@ -9,8 +9,7 @@ import matplotlib.gridspec as gridspec
 
 from gps.gui.config import common as common_config
 from gps.gui.config import target_setup as target_setup_config
-from gps.gui.action import Action
-from gps.gui.action_axis import ActionAxis
+from gps.gui.action_axis import Action, ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.image_visualizer import ImageVisualizer
 

@@ -10,8 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from gps.gui.config import common as common_config
 from gps.gui.config import gps_training as gps_training_config
-from gps.gui.action import Action
-from gps.gui.action_axis import ActionAxis
+from gps.gui.action_axis import Action, ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.mean_plotter import MeanPlotter
 from gps.gui.plotter_3d import Plotter3D
