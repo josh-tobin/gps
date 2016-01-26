@@ -27,8 +27,6 @@ class LinearGaussianPolicy(Policy):
         self.pol_covar = pol_covar
         self.chol_pol_covar = chol_pol_covar
         self.inv_pol_covar = inv_pol_covar
-        self.T = K.shape[0]
-        self.dU = k.shape[1]
 
     def act(self, x, obs, t, noise=None):
         """

@@ -4,8 +4,7 @@
 using namespace gps_control;
 
 // Constructor.
-TrialController::TrialController()
-: Controller()
+TrialController::TrialController() : Controller()
 {
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
@@ -44,6 +43,7 @@ void TrialController::configure_controller(OptionsMap &options)
 {
     ROS_INFO_STREAM(">TrialController::configure_controller");
     if(!is_finished()){
+        // TODO(chelsea/sergey/zoe) This error happens every time...
         ROS_ERROR("Cannot configure controller while a trial is in progress");
     }
     std::vector<int> datatypes;
@@ -69,8 +69,6 @@ void TrialController::configure_controller(OptionsMap &options)
 // Check if controller is finished with its current task.
 bool TrialController::is_finished() const
 {
-    // Check whether we are close enough to the current target.
-    // TODO: implement.
     return step_counter_ >= trial_end_step_;
 }
 
