@@ -1,10 +1,9 @@
+""" This file defines the base cost class. """
 import abc
 
 
 class Cost(object):
-    """
-    Cost superclass.
-    """
+    """ Cost superclass. """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, hyperparams):
