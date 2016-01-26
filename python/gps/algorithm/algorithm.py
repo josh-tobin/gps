@@ -2,6 +2,7 @@
 
 import abc
 import copy
+
 import numpy as np
 
 from gps.algorithm.config import ALG

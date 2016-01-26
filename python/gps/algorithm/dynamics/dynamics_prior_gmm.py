@@ -1,9 +1,10 @@
 """ This file defines the GMM prior for dynamics estimation. """
 import copy
 import logging
+
 import numpy as np
 
-from gps.algorithm.dynamics.config import dyn_prior_gmm
+from gps.algorithm.dynamics.config import DYN_PRIOR_GMM
 from gps.utility.gmm import GMM
 
 
@@ -20,21 +21,20 @@ class DynamicsPriorGMM(object):
     """
     def __init__(self, hyperparams):
         """
-        Args:
+        Hyperparameters:
             min_samples_per_cluster: Minimum samples per cluster.
             max_clusters: Maximum number of clusters to fit.
             max_samples: Maximum number of trajectories to use for
                 fitting the GMM at any given time.
             strength: Adjusts the strength of the prior.
         """
-        config = copy.deepcopy(dyn_prior_gmm)
+        config = copy.deepcopy(DYN_PRIOR_GMM)
         config.update(hyperparams)
         self._hyperparams = config
         self.X = None
         self.U = None
         self.gmm = GMM()
-        self._min_samp = \
-                self._hyperparams['min_samples_per_cluster']
+        self._min_samp = self._hyperparams['min_samples_per_cluster']
         self._max_samples = self._hyperparams['max_clusters']
         self._max_clusters = self._hyperparams['max_samples']
         self._strength = self._hyperparams['strength']
@@ -115,5 +115,5 @@ class DynamicsPriorGMM(object):
         m = m * self._strength
 
         # Multiply Phi by m (since it was normalized before).
-        Phi = Phi * m
+        Phi *= m
         return mu0, Phi, m, n0
