@@ -1,13 +1,23 @@
-import numpy as np
+""" This file defines the image visualizer class. """
+import logging
+import random
+import time
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 
-class ImageVisualizer:
+LOGGER = logging.getLogger(__name__)
+
+
+class ImageVisualizer(object):
     """
-    If rostopic is given to constructor, then this will automatically update with rostopic image.
-    Else, the update method must be manually called.
+    If rostopic is given to constructor, then this will automatically
+    update with rostopic image. Else, the update method must be manually
+    called.
     """
-    def __init__(self, axis, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None):
+    def __init__(self, axis, imagesize=None, cropsize=None, rgb_channels=3,
+                 rostopic=None):
         self._ax = axis
         self._image_size = imagesize
         self._crop_size = cropsize
@@ -25,11 +35,13 @@ class ImageVisualizer:
                 import roslib; roslib.load_manifest('gps_agent_pkg')
                 from sensor_msgs.msg import Image
 
-                rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1, buff_size=2**24)
+                rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1,
+                                 buff_size=2**24)
             except ImportError as e:
-                print 'rostopic image visualization not enabled', e
+                LOGGER.debug('rostopic image visualization not enabled: %s', e)
 
     def init(self, display_size):
+        """ Initialize images. """
         self._t = 0
         self._display_size = display_size
         display_x, display_y = self._display_size
@@ -38,21 +50,27 @@ class ImageVisualizer:
         self._ax.set_axis_off()
         self._ax.set_xlim(0, display_x)
         self._ax.set_ylim(0, display_y)
-        self._plot = self._ax.imshow(np.zeros((display_x, display_y, self._rgb_channels)))
+        self._plot = self._ax.imshow(
+            np.zeros((display_x, display_y, self._rgb_channels))
+        )
 
         self._init = True
 
     def update(self, image):
+        """ Update images. """
         image = np.array(image)
         if self._crop_size:
-            h, w, ch, cw = image.shape[0], image.shape[1], self._crop_size[0], self._crop_size[1]
-            image = image[h/2-ch/2:h/2-ch/2+ch,w/2-cw/2:w/2-cw/2+cw,:]
+            h, w = image.shape[0], image.shape[1]
+            ch, cw = self._crop_size[0], self._crop_size[1]
+            image = image[(h/2-ch/2):(h/2-ch/2+ch), (w/2-cw/2):(w/2-cw/2+cw), :]
 
         if not self._init:
             self.init((image.shape[0], image.shape[1]))
 
-        assert image.shape == (self._display_size[0], self._display_size[1], self._rgb_channels)
-        image = image.reshape((1, self._display_size[0], self._display_size[1], self._rgb_channels))
+        assert image.shape == (self._display_size[0], self._display_size[1],
+                               self._rgb_channels)
+        image = image.reshape((1, self._display_size[0], self._display_size[1],
+                               self._rgb_channels))
 
         self._t += 1
         self._data = np.append(self._data, image, axis=0)
@@ -61,19 +79,18 @@ class ImageVisualizer:
 
         self._ax.figure.canvas.draw()
 
-    def update_ros(image_msg):
+    #TODO: Where does curr_im come from?
+    def update_ros(self, image_msg):
+        """ Update ROS. """
         # Extract image.
         image = np.fromstring(image_msg.data, np.uint8)
         # Convert from ros image format to matplotlib image format.
-        image = image.reshape(curr_im.height, curr_im.width, 3)[::-1,:,::-1]
+        image = image.reshape(curr_im.height, curr_im.width, 3)[::-1, :, ::-1]
         # Update visualizer.
         self.update(image)
 
 
 if __name__ == "__main__":
-    import time
-    import random
-
     plt.ion()
     fig, ax = plt.subplots()
     visualizer = ImageVisualizer(ax, cropsize=(3, 3))
@@ -83,6 +100,6 @@ if __name__ == "__main__":
         i = random.randint(0, im.shape[0] - 1)
         j = random.randint(0, im.shape[1] - 1)
         k = random.randint(0, im.shape[2] - 1)
-        im[i,j,k] = (im[i,j,k] + random.randint(0, 255)) % 256
+        im[i, j, k] = (im[i, j, k] + random.randint(0, 255)) % 256
         visualizer.update(im)
         time.sleep(5e-3)

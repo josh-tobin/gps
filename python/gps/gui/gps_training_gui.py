@@ -1,11 +1,26 @@
-import copy
-import itertools
-import time
+"""
+~~~ GUI Specifications ~~~
+Action Axis
+    - stop, reset, start, emergency stop
 
-import numpy as np
+Data Plotter
+    - algorithm training costs
+    - losses of feature points / end effector points
+    - joint states, feature point states, etc.
+    - save tracked data to file
+
+Image Visualizer
+    - real-time image and feature points visualization
+    - overlay of initial and target feature points
+    - visualize hidden states?
+    - create movie from image visualizations
+"""
+import copy
+import time
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import numpy as np
 
 from gps.gui.config import common as common_config
 from gps.gui.config import gps_training as gps_training_config
@@ -15,24 +30,9 @@ from gps.gui.output_axis import OutputAxis
 from gps.gui.mean_plotter import MeanPlotter
 from gps.gui.image_visualizer import ImageVisualizer
 
-# ~~~ GUI Specifications ~~~
-# Action Axis
-#     - stop, reset, start, emergency stop
 
-# Data Plotter
-#     - algorithm training costs
-#     - losses of feature points / end effector points
-#     - joint states, feature point states, etc.
-#     - save tracked data to file
-
-# Image Visualizer
-#     - real-time image and feature points visualization
-#     - overlay of initial and target feature points
-#     - visualize hidden states?
-#     - create movie from image visualizations
-
-
-class GPSTrainingGUI:
+class GPSTrainingGUI(object):
+    """ GPS Training GUI class. """
     def __init__(self, hyperparams):
         self._hyperparams = copy.deepcopy(common_config)
         self._hyperparams.update(copy.deepcopy(gps_training_config))
@@ -41,8 +41,8 @@ class GPSTrainingGUI:
         self._log_filename = self._hyperparams['log_filename']
 
         # GPS Training Status.
-        self.mode = 'run'       # Valid modes: run, wait, end, request, process.
-        self.request = None     # Valid requests: stop, reset, go, fail, None.
+        self.mode = 'run'  # Modes: run, wait, end, request, process.
+        self.request = None  # Requests: stop, reset, go, fail, None.
         self.err_msg = None
         self._colors = {
             'run': 'cyan',
@@ -58,10 +58,10 @@ class GPSTrainingGUI:
 
         # Actions.
         actions_arr = [
-            Action('stop',  'stop',  self.request_stop,  axis_pos=0),
+            Action('stop', 'stop', self.request_stop, axis_pos=0),
             Action('reset', 'reset', self.request_reset, axis_pos=1),
-            Action('go',    'go',    self.request_go,    axis_pos=2),
-            Action('fail',  'fail',  self.request_fail,  axis_pos=3),
+            Action('go', 'go', self.request_go, axis_pos=2),
+            Action('fail', 'fail', self.request_fail, axis_pos=3),
         ]
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
@@ -73,53 +73,73 @@ class GPSTrainingGUI:
         # GUI Components.
         plt.ion()
         plt.rcParams['toolbar'] = 'None'
-        plt.rcParams['keymap.save'] = ''  # Remove 's' keyboard shortcut for saving.
+        # Remove 's' keyboard shortcut for saving.
+        plt.rcParams['keymap.save'] = ''
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
-        self._gs  = gridspec.GridSpec(4, 4)
+        self._gs = gridspec.GridSpec(4, 4)
 
         # Action Axis.
-        self._gs_action = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec=self._gs[0:1,0:4])
-        self._axarr_action = [plt.subplot(self._gs_action[0,i]) for i in range(4)]
-        self._action_axis = ActionAxis(self._actions, self._axarr_action,
-                ps3_process_rate=self._hyperparams['ps3_process_rate'],
-                ps3_topic=self._hyperparams['ps3_topic'],
-                inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
+        self._gs_action = gridspec.GridSpecFromSubplotSpec(
+            2, 4, subplot_spec=self._gs[:1, :4]
+        )
+        self._axarr_action = [plt.subplot(self._gs_action[0, i])
+                              for i in range(4)]
+        self._action_axis = ActionAxis(
+            self._actions, self._axarr_action,
+            ps3_process_rate=self._hyperparams['ps3_process_rate'],
+            ps3_topic=self._hyperparams['ps3_topic'],
+            inverted_ps3_button=self._hyperparams['inverted_ps3_button']
+        )
 
-        self._ax_action_output = plt.subplot(self._gs_action[1,2:4])
-        self._action_output_axis = OutputAxis(self._ax_action_output, border_on=True)
+        self._ax_action_output = plt.subplot(self._gs_action[1, 2:4])
+        self._action_output_axis = OutputAxis(self._ax_action_output,
+                                              border_on=True)
 
-        self._ax_status_output = plt.subplot(self._gs_action[1,0:2])
+        self._ax_status_output = plt.subplot(self._gs_action[1, :2])
         self._status_output_axis = OutputAxis(self._ax_status_output)
 
         # Output Axis.
-        self._gs_output = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=self._gs[1:2,0:4])
+        self._gs_output = gridspec.GridSpecFromSubplotSpec(
+            1, 2, subplot_spec=self._gs[1:2, :4]
+        )
         self._ax_plot = plt.subplot(self._gs_output[1])
         self._plot_axis = MeanPlotter(self._ax_plot, label='cost')
 
         self._ax_output = plt.subplot(self._gs_output[0])
-        self._output_axis = OutputAxis(self._ax_output, max_display_size=10,
-                log_filename=self._log_filename, font_family='monospace')
+        self._output_axis = OutputAxis(
+            self._ax_output, max_display_size=10,
+            log_filename=self._log_filename, font_family='monospace'
+        )
         for line in self._hyperparams['info'].split('\n'):
             self.append_output_text(line)
 
         # Visualization Axis.
-        self._gs_vis = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4,0:2])
+        self._gs_vis = gridspec.GridSpecFromSubplotSpec(
+            1, 1, subplot_spec=self._gs[2:4, :2]
+        )
         self._ax_vis = plt.subplot(self._gs_vis[0])
-        self._vis_axis = ImageVisualizer(self._ax_vis, cropsize=(240, 240),
-                rostopic=self._hyperparams['image_topic'])
+        self._vis_axis = ImageVisualizer(
+            self._ax_vis, cropsize=(240, 240),
+            rostopic=self._hyperparams['image_topic']
+        )
 
         # Image Axis.
-        self._gs_image = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self._gs[2:4,2:4])
+        self._gs_image = gridspec.GridSpecFromSubplotSpec(
+            1, 1, subplot_spec=self._gs[2:4, 2:4]
+        )
         self._ax_image = plt.subplot(self._gs_image[0])
-        self._image_axis = ImageVisualizer(self._ax_image, cropsize=(240, 240),
-                rostopic=self._hyperparams['image_topic'])
+        self._image_axis = ImageVisualizer(
+            self._ax_image, cropsize=(240, 240),
+            rostopic=self._hyperparams['image_topic']
+        )
 
         self.run_mode()
         self._fig.canvas.draw()
 
     # GPS Training Functions.
+    #TODO: Docstrings here.
     def request_stop(self, event=None):
         self.request_mode('stop')
 
@@ -143,7 +163,8 @@ class GPSTrainingGUI:
         self.set_action_text(self.request + ' processed')
         self.set_action_bgcolor(self._colors[self.request], alpha=1.0)
         if self.err_msg:
-            self.set_action_text(self.request + ' processed' + '\nERROR: ' + self.err_msg)
+            self.set_action_text(self.request + ' processed' + '\nERROR: ' +
+                                 self.err_msg)
             self.err_msg = None
             time.sleep(1.0)
         else:
@@ -193,8 +214,10 @@ class GPSTrainingGUI:
             # Update plot with each sample's cost (summed over time).
             costs = np.sum(algorithm.prev[0].cs, axis=1)
         else:
-            # Update plot with each condition's mean sample cost (summed over time).
-            costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
+            # Update plot with each condition's mean sample cost
+            # (summed over time).
+            costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1))
+                     for m in range(algorithm.M)]
         self._plot_axis.update(costs)
 
         if self._first_update:

@@ -1,13 +1,25 @@
+""" This file defines the action axis class. """
 import itertools
+import logging
+
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 
+from gps.gui.action import Action
+from gps.gui.config import common as gui_config_common
 
-class ActionAxis:
+
+LOGGER = logging.getLogger(__name__)
+
+
+class ActionAxis(object):
+    """ Action axis class. """
     def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy',
-            inverted_ps3_button=None):
+                 inverted_ps3_button=None):
         """
-        Constructs an ActionAxis assuming actions is a dictionary of fully initialized actions.
+        Constructs an ActionAxis assuming actions is a dictionary of
+        fully initialized actions.
         Each action must have: key, name, func.
         Each action can have: axis_pos, keyboard_binding, ps3_binding.
         """
@@ -23,21 +35,26 @@ class ActionAxis:
             from sensor_msgs.msg import Joy
             ros_enabled = True
         except ImportError as e:
-            print 'PS3 not enabled', e
+            LOGGER.debug('PS3 not enabled: %s', e)
 
         # Mouse Input.
         self._buttons = {}
         for key, action in self._actions.iteritems():
             if action._axis_pos is not None:
                 if ros_enabled:
-                    if inverted_ps3_button is not None and action._pb is not None:
-                        ps3_bindings_str = ',\n'.join([inverted_ps3_button[i] for i in action._pb])
+                    if (inverted_ps3_button is not None and
+                        action._pb is not None):
+                        ps3_bindings_str = ',\n'.join([
+                            inverted_ps3_button[i] for i in action._pb
+                        ])
                     else:
                         ps3_bindings_str = str(action._pb)
-                    button_name = '%s\n(%s)\n(%s)' % (action._name, action._kb, ps3_bindings_str)
+                    button_name = '%s\n(%s)\n(%s)' % \
+                            (action._name, action._kb, ps3_bindings_str)
                 else:
                     button_name = '%s\n(%s)' % (action._name, action._kb)
-                self._buttons[key] = Button(self._axarr[action._axis_pos], button_name)
+                self._buttons[key] = Button(self._axarr[action._axis_pos],
+                                            button_name)
                 self._buttons[key].on_clicked(action._func)
 
         # Keyboard Input.
@@ -45,7 +62,8 @@ class ActionAxis:
         for key, action in self._actions.iteritems():
             if action._kb is not None:
                 self._keyboard_bindings[action._kb] = key
-        self._cid = self._fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self._cid = self._fig.canvas.mpl_connect('key_press_event',
+                                                 self.on_key_press)
 
         # PS3 Input using ROS.
         if ros_enabled:
@@ -60,33 +78,34 @@ class ActionAxis:
             self._ps3_process_rate = ps3_process_rate
             rospy.Subscriber(ps3_topic, Joy, self.ps3_callback)
 
+    #TODO: Docstrings here.
     def on_key_press(self, event):
         if event.key in self._keyboard_bindings:
             self._actions[self._keyboard_bindings[event.key]]._func()
         else:
-            print 'Unrecognized keyboard input: ' + str(event.key)
+            LOGGER.debug('Unrecognized keyboard input: %s', str(event.key))
 
     def ps3_callback(self, joy_msg):
         self._ps3_count += 1
         if self._ps3_count % self._ps3_process_rate != 0:
             return
-        buttons_pressed = tuple([i for i in range(len(joy_msg.buttons)) if joy_msg.buttons[i]])
+        buttons_pressed = tuple([
+            i for i in range(len(joy_msg.buttons)) if joy_msg.buttons[i]
+        ])
         if buttons_pressed in self._ps3_bindings:
             self._actions[self._ps3_bindings[buttons_pressed]]._func()
         else:
-            if not (len(buttons_pressed) == 0 or (len(buttons_pressed) == 1 and
-                    (buttons_pressed[0] == ps3_button['rear_right_1'] or
-                        buttons_pressed[0] == ps3_button['rear_right_2']))):
-                print 'Unrecognized ps3 controller input: ' + '\n' + \
-                        str([inverted_ps3_button[b] for b in buttons_pressed])
+            #TODO: Where are (inverted_)ps3_button defined?
+            if not (len(buttons_pressed) == 0 or 
+                    (len(buttons_pressed) == 1 and
+                     (buttons_pressed[0] == ps3_button['rear_right_1'] or
+                      buttons_pressed[0] == ps3_button['rear_right_2']))):
+                LOGGER.debug('Unrecognized ps3 controller input:\n%s',
+                             str([inverted_ps3_button[b]
+                                  for b in buttons_pressed])
 
 
 if __name__ == "__main__":
-    import matplotlib.gridspec as gridspec
-
-    from gps.gui.config import common as gui_config_common
-    from gps.gui.action import Action
-
     number = 0
 
     def plus_1(event=None):
@@ -98,20 +117,19 @@ if __name__ == "__main__":
         number = number + 2
 
     def print_number(event=None):
-        global number
         print number
 
     actions_arr = [
         Action('print', 'print', print_number, axis_pos=0, keyboard_binding='p', ps3_binding=None),
-        Action('plus1', 'plus1', plus_1,       axis_pos=1, keyboard_binding='1', ps3_binding=None),
-        Action('plus2', 'plus2', plus_2,       axis_pos=2, keyboard_binding='2', ps3_binding=None),
+        Action('plus1', 'plus1', plus_1, axis_pos=1, keyboard_binding='1', ps3_binding=None),
+        Action('plus2', 'plus2', plus_2, axis_pos=2, keyboard_binding='2', ps3_binding=None),
     ]
 
     actions = {action._key: action for action in actions_arr}
 
     plt.ion()
     fig = plt.figure(figsize=(10, 10))
-    gs  = gridspec.GridSpec(1, 1)
+    gs = gridspec.GridSpec(1, 1)
     gs_action = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[0])
     axarr_action = [plt.subplot(gs_action[i]) for i in range(3)]
 
