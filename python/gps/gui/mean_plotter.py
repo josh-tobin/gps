@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pylab as plt
+import matplotlib.gridspec as gridspec
 
 
 class MeanPlotter:
     def __init__(self, fig, gs, label='mean', color='black', alpha=1.0, min_itr=10):
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
-        self._axis = plt.subplot(self._gs[0])
+        self._ax = plt.subplot(self._gs[0])
         
         self._label = label
         self._color = color

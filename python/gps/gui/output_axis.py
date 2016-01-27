@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib.colors import ColorConverter
 
 
@@ -7,24 +8,24 @@ class OutputAxis:
             bgcolor='white', bgalpha=0.0, font_family='sans-serif'):
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
-        self._axis = plt.subplot(self._gs[0])
+        self._ax = plt.subplot(self._gs[0])
         self._log_filename = log_filename
 
-        self._text_box = self._axis.text(0.02, 0.95, '', color='black', fontsize=12, va='top',
-                ha='left', transform=self._axis.transAxes, family=font_family)
+        self._text_box = self._ax.text(0.02, 0.95, '', color='black', fontsize=12, va='top',
+                ha='left', transform=self._ax.transAxes, family=font_family)
         self._text_arr = []
         self._max_display_size = max_display_size
         self._bgcolor = bgcolor
         self._bgalpha = bgalpha
         
         self.cc = ColorConverter()
-        self._axis.set_xticks([])
-        self._axis.set_yticks([])
+        self._ax.set_xticks([])
+        self._ax.set_yticks([])
         if not border_on:
-            self._axis.spines['top'].set_visible(False)
-            self._axis.spines['right'].set_visible(False)
-            self._axis.spines['bottom'].set_visible(False)
-            self._axis.spines['left'].set_visible(False)
+            self._ax.spines['top'].set_visible(False)
+            self._ax.spines['right'].set_visible(False)
+            self._ax.spines['bottom'].set_visible(False)
+            self._ax.spines['left'].set_visible(False)
 
         self.draw()
 
@@ -52,7 +53,7 @@ class OutputAxis:
 
     def draw(self):
         self._text_box.set_text('\n'.join(self._text_arr))
-        self._axis.set_axis_bgcolor(self.cc.to_rgba(self._bgcolor, self._bgalpha))
+        self._ax.set_axis_bgcolor(self.cc.to_rgba(self._bgcolor, self._bgalpha))
         self._fig.canvas.draw()
 
 

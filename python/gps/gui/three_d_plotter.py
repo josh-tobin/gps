@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
+import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
 class ThreeDPlotter:
@@ -8,27 +9,28 @@ class ThreeDPlotter:
             cols = int(np.floor(np.sqrt(num_plots)))
         if rows is None:
             rows = int(np.ceil(float(num_plots)/cols))
+        assert(num_plots <= rows*cols, 'Too many plots to put into gridspec.')
 
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=gs)
-        assert(len(self.actions) <= rows*cols, 'Too many actions to put into gridspec.')
         self._axarr = [plt.subplot(self._gs[i], projection='3d') for i in range(num_plots)]
         self._plots = [[] for i in range(num_plots)]
 
         for ax in self._axarr:
             ax.legend()
 
-    def plot(self, i, xs, ys, zs, label, color):
-        plot = self._axarr[i].plot(xs, ys, zs=zs, label=label, color=color)[0]
+    def plot(self, i, xs, ys, zs, color='black', label=''):
+        plot = self._axarr[i].plot(xs, ys, zs=zs, color=color, label=label)[0]
         self._plots[i].append(plot)
 
     def clear(self, i):
         for plot in self._plots[i]:
             plot.remove()
+        self._plots[i] = []
 
     def draw(self):
         self._fig.canvas.draw()
-        self._ax.figure.canvas.flush_events()   # Fixes bug with Qt4Agg backend
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 if __name__ == "__main__":
     import time

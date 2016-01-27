@@ -104,7 +104,7 @@ class TargetSetupGUI:
         self._gs_target_output              = self._gs[1:3, 0:2]
         self._gs_initial_image_visualizer   = self._gs[3:4, 0:1]
         self._gs_target_image_visualizer    = self._gs[3:4, 1:2]
-        self._gs_status_output              = self._gs[1:2, 2:4]
+        self._gs_action_output              = self._gs[1:2, 2:4]
         self._gs_image_visualizer           = self._gs[2:4, 2:4]
 
         # Create GUI components.
@@ -117,26 +117,26 @@ class TargetSetupGUI:
                 log_filename=self._log_filename)
         self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
         self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
-        self._status_output = OutputAxis(self._fig, self._gs_status_output)
+        self._action_output = OutputAxis(self._fig, self._gs_action_output)
         self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
 
         # Setup GUI components.
         self.reload_positions()
-        self.update_status_text()
+        self.update_target_text()
         self._fig.canvas.draw()
 
     # Target Setup Functions.
     def prev_target_number(self, event=None):
         self._target_number = (self._target_number - 1) % self._num_targets      
         self.reload_positions()
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text()
 
     def next_target_number(self, event=None):
         self._target_number = (self._target_number + 1) % self._num_targets        
         self.reload_positions()
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text()
 
     def prev_actuator_type(self, event=None):
@@ -144,7 +144,7 @@ class TargetSetupGUI:
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text()
 
     def next_actuator_type(self, event=None):
@@ -152,7 +152,7 @@ class TargetSetupGUI:
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text()
 
     def set_initial_position(self, event=None):
@@ -167,7 +167,7 @@ class TargetSetupGUI:
         self._initial_position = (ja, ee_pos, ee_rot)
         save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
                 'initial', self._initial_position)
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text('set_initial_position: success')
 
     def set_target_position(self, event=None):
@@ -183,7 +183,7 @@ class TargetSetupGUI:
         save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
                 'target', self._target_position)
 
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text('set_target_position: success')
 
     def set_initial_image(self, event=None):
@@ -194,7 +194,7 @@ class TargetSetupGUI:
         save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
                 'initial', 'image', self._initial_image)
 
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text('set_initial_image: success')
 
     def set_target_image(self, event=None):
@@ -205,7 +205,7 @@ class TargetSetupGUI:
         save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
                 'target', 'image', self._target_image)
 
-        self.update_status_text()
+        self.update_target_text()
         self.set_action_text('set_target_image: success')
 
     def move_to_initial(self, event=None):
@@ -226,7 +226,7 @@ class TargetSetupGUI:
         self.set_action_text('mannequin_mode: NOT IMPLEMENTED')
 
     # GUI functions.
-    def update_status_text(self):
+    def update_target_text(self):
         text = (
             'target number = %s\n' % (str(self._target_number)) +
             'actuator name = %s\n' % (str(self._actuator_name)) +
@@ -239,7 +239,7 @@ class TargetSetupGUI:
         self._target_image_visualizer.overlay_image(self._target_image, alpha=1.0)
 
     def set_action_text(self, text=''):
-        self._status_output.set_text(text)
+        self._action_output.set_text(text)
 
     def reload_positions(self):
         self._initial_position = load_pose_from_npz(self._target_filename, self._actuator_name,

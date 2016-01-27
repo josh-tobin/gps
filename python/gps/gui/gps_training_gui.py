@@ -13,7 +13,7 @@ from gps.gui.config import gps_training as gps_training_config
 from gps.gui.action_axis import Action, ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.mean_plotter import MeanPlotter
-from gps.gui.plotter_3d import Plotter3D
+from gps.gui.three_d_plotter import ThreeDPlotter
 from gps.gui.image_visualizer import ImageVisualizer
 
 from gps.proto.gps_pb2 import END_EFFECTOR_POINTS
@@ -82,10 +82,10 @@ class GPSTrainingGUI:
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
         
         # Assign GUI component locations.
-        self._g s= gridspec.GridSpec(8, 8)
+        self._gs = gridspec.GridSpec(8, 8)
         self._gs_action_axis        = self._gs[0:1, 0:8]
-        self._gs_action_output      = self._gs[1:2, 0:4]
-        self._gs_status_output      = self._gs[1:2, 4:8]
+        self._gs_status_output      = self._gs[1:2, 0:4]
+        self._gs_action_output      = self._gs[1:2, 4:8]
         self._gs_algthm_output      = self._gs[2:4, 0:4]
         self._gs_cost_plotter       = self._gs[2:4, 4:8]
         self._gs_traj_visualizer    = self._gs[4:8, 0:4]
@@ -102,7 +102,7 @@ class GPSTrainingGUI:
         self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=10,
                 log_filename=self._log_filename, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
-        self._traj_visualizer = ThreeDPotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
+        self._traj_visualizer = ThreeDPlotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
         self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
 
@@ -203,7 +203,7 @@ class GPSTrainingGUI:
         # Plot Trajectory Visualizations
         for m in range(algorithm.M):
             # Clear previous plots
-            self._traj_visualizer.clear(i)
+            self._traj_visualizer.clear(m)
             # Plot Trajectory Samples
             traj_samples = traj_sample_lists[m].get_samples()
             for sample in traj_samples:
