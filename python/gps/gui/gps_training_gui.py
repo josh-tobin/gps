@@ -102,18 +102,9 @@ class GPSTrainingGUI:
         self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=10,
                 log_filename=self._log_filename, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
-        # TODO: create visualization axis object and put here
+        self._traj_visualizer = ThreeDPotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
         self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
                 rostopic=self._hyperparams['image_topic'])
-
-        # Visualization Axis
-        num_conditions = self._hyperparams['conditions']
-        if num_conditions == 1:
-            rows, cols = 1, 1
-        else:
-            rows, cols = int(np.ceil(float(num_conditions)/2)), 2
-        self._gs_vis = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=self._gs_traj_visualizer)
-        self._axarr_vis = [plt.subplot(self._gs_vis[i/cols, i%cols], projection='3d') for i in range(num_conditions)]
 
         # Setup GUI components.
         for line in self._hyperparams['info'].split('\n'):
@@ -211,22 +202,23 @@ class GPSTrainingGUI:
 
         # Plot Trajectory Visualizations
         for m in range(algorithm.M):
-            cond_axis = self._axarr_vis[m]
-            cond_axis.clear()
-            cond_axis.legend()
+            # Clear previous plots
+            self._traj_visualizer.clear(i)
             # Plot Trajectory Samples
             traj_samples = traj_sample_lists[m].get_samples()
             for sample in traj_samples:
                 ee_pt = sample.get(END_EFFECTOR_POINTS)
-                cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='green', label='Trajectory Samples')
+                self._traj_visualizer.plot(i=m, xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='green', label='Trajectory Samples')
+            # Plot Linear Gaussian Controllers (Mean/Covariance)
+            # mu, sigma = self.algorithm.traj_opt.forward(self.algorithm.prev[m].traj_dist, self.algorithm.prev[m].traj_info)
+            # look at update draw for plotting
             # Plots Policy Samples
             if pol_sample_lists is not None:
                 pol_samples = pol_sample_lists[m].get_samples()
                 for sample in pol_samples:
                     ee_pt = sample.get(END_EFFECTOR_POINTS)
-                    cond_axis.plot(xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
-            # Plot Linear Gaussian Controllers (Mean/Covariance)
-            # mu, sigma = self.algorithm.traj_opt.forward(self.algorithm.prev[m].traj_dist, self.algorithm.prev[m].traj_info)
-            # look at update draw for plotting
+                    self._traj_visualizer.plot(i=m, xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
+            # Draw new plots
+            self._traj_visualizer.draw()
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
