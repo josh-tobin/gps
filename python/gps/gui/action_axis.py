@@ -102,7 +102,7 @@ class ActionAxis(object):
                       buttons_pressed[0] == ps3_button['rear_right_2']))):
                 LOGGER.debug('Unrecognized ps3 controller input:\n%s',
                              str([inverted_ps3_button[b]
-                                  for b in buttons_pressed])
+                                  for b in buttons_pressed]))
 
 
 if __name__ == "__main__":
