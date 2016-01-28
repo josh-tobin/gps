@@ -52,6 +52,7 @@ class GPSMain():
             n = self._hyperparams['num_samples']
             for itr in range(itr_start, self._iterations):
                 for m in range(self._conditions):
+                    self.gui.set_image_overlays(m)
                     for i in range(n):
                         self.gui.set_status_text('Sampling: iteration %d, condition %d, sample %d.'
                                 % (itr, m, i))

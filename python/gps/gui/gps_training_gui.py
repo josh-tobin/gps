@@ -16,6 +16,7 @@ from gps.gui.mean_plotter import MeanPlotter
 from gps.gui.three_d_plotter import ThreeDPlotter
 from gps.gui.image_visualizer import ImageVisualizer
 
+from gps.gui.target_setup_gui import load_data_from_npz
 from gps.proto.gps_pb2 import END_EFFECTOR_POINTS
 
 # ~~~ GUI Specifications ~~~
@@ -42,6 +43,7 @@ class GPSTrainingGUI:
         self._hyperparams.update(hyperparams)
 
         self._log_filename = self._hyperparams['log_filename']
+        self._target_filename = self._hyperparams['target_filename']
 
         # GPS Training Status.
         self.mode = 'run'       # Valid modes: run, wait, end, request, process.
@@ -103,8 +105,8 @@ class GPSTrainingGUI:
                 log_filename=self._log_filename, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
         self._traj_visualizer = ThreeDPlotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
-        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
-                rostopic=self._hyperparams['image_topic'])
+        self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
+                cropsize=(240, 240), rostopic=self._hyperparams['image_topic'])
 
         # Setup GUI components.
         for line in self._hyperparams['info'].split('\n'):
@@ -181,6 +183,14 @@ class GPSTrainingGUI:
     def set_action_bgcolor(self, color, alpha=1.0):
         self._action_output.set_bgcolor(color, alpha)
 
+    def set_image_overlays(self, condition):
+        initial_image = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
+                'initial', 'image', default=np.zeros((1,1,3)))
+        target_image  = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
+                'target',  'image', default=np.zeros((1,1,3)))
+        self._image_visualizer.set_initial_image(initial_image, alpha=0.2)
+        self._image_visualizer.set_target_image(target_image, alpha=0.2)
+        
     def update(self, itr, algorithm, traj_sample_lists, pol_sample_lists):
         # Plot Costs
         if algorithm.M == 1:

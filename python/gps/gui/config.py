@@ -75,6 +75,9 @@ keyboard_bindings = {
     'reset': 'r',
     'go'   : 'g',
     'fail' : 'f',
+
+    'oii'  : 'i',
+    'oti'  : 't',
 }
 inverted_keyboard_bindings = {value: key for key, value in keyboard_bindings.iteritems()}
 
@@ -101,6 +104,9 @@ ps3_bindings = {
     'reset': (ps3_button['rear_right_2'], ps3_button['action_triangle']),
     'go'   : (ps3_button['rear_right_2'], ps3_button['action_circle']),
     'fail' : (ps3_button['rear_right_2'], ps3_button['action_cross']),
+
+    'oii'  : (ps3_button['cross_up']    ,),
+    'oti'  : (ps3_button['cross_down']  ,),
 }
 inverted_ps3_bindings = {value: key for key, value in ps3_bindings.iteritems()}
 
@@ -131,4 +137,5 @@ target_setup = {
 
 gps_training = {
     'gps_training_log_filename': 'gps_training_log.txt',
+    'image_actuator': target_setup['actuator_names'][0],    # which actuator to get initial and target images from
 }

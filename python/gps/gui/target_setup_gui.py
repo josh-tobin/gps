@@ -118,8 +118,8 @@ class TargetSetupGUI:
         self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
         self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
         self._action_output = OutputAxis(self._fig, self._gs_action_output)
-        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, cropsize=(240, 240),
-                rostopic=self._hyperparams['image_topic'])
+        self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
+                cropsize=(240, 240), rostopic=self._hyperparams['image_topic'])
 
         # Setup GUI components.
         self.reload_positions()
@@ -237,6 +237,8 @@ class TargetSetupGUI:
 
         self._initial_image_visualizer.overlay_image(self._initial_image, alpha=1.0)
         self._target_image_visualizer.overlay_image(self._target_image, alpha=1.0)
+        self._image_visualizer.set_initial_image(self._initial_image, alpha=0.2)
+        self._image_visualizer.set_target_image(self._target_image, alpha=0.2)
 
     def set_action_text(self, text=''):
         self._action_output.set_text(text)
