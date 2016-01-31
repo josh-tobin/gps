@@ -1,8 +1,10 @@
+""" Hyperparameters for MJC peg insertion policy optimization. """
 from __future__ import division
 
 from datetime import datetime
-import numpy as np
 import os.path
+
+import numpy as np
 
 from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
@@ -16,7 +18,8 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
-from gps.proto.gps_pb2 import *
+from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
+        END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES, ACTION
 
 
 SENSOR_DIMS = {
@@ -34,7 +37,8 @@ EXP_DIR = BASE_DIR + '/experiments/mjc_badmm_example/'
 
 
 common = {
-    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment' + '_' + \
+            datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
@@ -48,18 +52,21 @@ if not os.path.exists(common['data_files_dir']):
 agent = {
     'type': AgentMuJoCo,
     'filename': './mjc_models/pr2_arm3d_old_mjc.xml',
-    'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]), np.zeros(7)]),
+    'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]),
+                          np.zeros(7)]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
     'pos_body_offset': [np.array([0, 0.2, 0]), np.array([0, 0.1, 0]),
-        np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
+                        np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
-    'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
+                      END_EFFECTOR_POINT_VELOCITIES],
+    'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
+                    END_EFFECTOR_POINT_VELOCITIES],
 }
 
 algorithm = {
@@ -147,10 +154,10 @@ config = {
 }
 
 common['info'] = (
-    'exp_name: '   + str(common['experiment_name'])              + '\n'
-    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
-    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
-    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'exp_name: ' + str(common['experiment_name'])              + '\n'
+    'alg_type: ' + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  ' + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: ' + str(algorithm['cost']['type'].__name__)     + '\n'
     'iterations: ' + str(config['iterations'])                   + '\n'
     'conditions: ' + str(algorithm['conditions'])                + '\n'
     'samples:    ' + str(config['num_samples'])                  + '\n'
