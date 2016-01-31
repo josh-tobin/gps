@@ -48,7 +48,7 @@ class Agent(object):
                                                    self._obs_idx)}
 
     @abc.abstractmethod
-    def sample(self, policy, condition):
+    def sample(self, policy, condition, verbose=True, save=True):
         """
         Draw a sample from the environment, using the specified policy
         and under the specified condition.
@@ -68,6 +68,10 @@ class Agent(object):
         """
         return SampleList(self._samples[condition][start:]) if end is None
                           else SampleList(self._samples[condition][start:end])
+
+    def delete_last_sample(condition):
+        """ Delete the last sample from the specified condition. """
+        self._samples[condition].pop()
 
     def pack_data_obs(self, existing_mat, data_to_insert, data_types,
                       axes=None):

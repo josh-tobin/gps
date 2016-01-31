@@ -2,7 +2,7 @@
 import numpy as np
 
 from gps.algorithm.policy.policy import Policy
-from gps.utility import check_shape
+from gps.utility.general_utils import check_shape
 
 
 class LinearGaussianPolicy(Policy):

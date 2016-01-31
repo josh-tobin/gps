@@ -1,7 +1,7 @@
 """ This file defines utility classes and functions for costs. """
 import numpy as np
 
-from gps.utility import finite_differences, approx_equal
+from gps.utility.general_utils import finite_differences, approx_equal
 
 
 RAMP_CONSTANT = 1

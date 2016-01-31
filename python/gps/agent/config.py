@@ -1,5 +1,10 @@
 """ Default configuration and hyperparameters for agent objects. """
+import logging
+
 import numpy as np
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 # Agent

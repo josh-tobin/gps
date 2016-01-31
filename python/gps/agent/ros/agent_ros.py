@@ -137,12 +137,13 @@ class AgentROS(Agent):
         self.reset_arm(AUXILIARY_ARM, condition_data[AUXILIARY_ARM]['mode'],
                        condition_data[AUXILIARY_ARM]['data'])
 
-    def sample(self, policy, condition, save=True):
+    def sample(self, policy, condition, verbose=True, save=True):
         """
         Reset and execute a policy and collect a sample.
         Args:
             policy: A Policy object.
             condition: Which condition setup to run.
+            verbose: Unused for this agent.
             save: Whether or not to store the trial into the samples.
         Returns:
             sample: A Sample object.
