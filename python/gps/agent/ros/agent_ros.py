@@ -4,7 +4,7 @@ import copy
 import rospy
 
 from gps.agent.agent import Agent
-from gps.agent.agent_utils import generate_noise
+from gps.agent.agent_utils import generate_noise, setup
 from gps.agent.config import AGENT_ROS
 from gps.agent.ros.ros_utils import ServiceEmulator, msg_to_sample, \
         policy_to_msg
@@ -34,17 +34,6 @@ class AgentROS(Agent):
         self._seq_id = 0  # Used for setting seq in ROS commands.
 
         conditions = self._hyperparams['conditions']
-
-        def setup(value, n):
-            """ Go through various types of hyperparameters. """
-            if not isinstance(value, list):
-                try:
-                    return [value.copy() for _ in range(n)]
-                except AttributeError:
-                    return [value for _ in range(n)]
-            assert len(value) == n, \
-                    'Number of elements must match number of conditions or 1.'
-            return value
 
         self.x0 = []
         for field in ('x0', 'ee_points_tgt', 'reset_conditions'):

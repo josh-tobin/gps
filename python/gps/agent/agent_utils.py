@@ -27,3 +27,15 @@ def generate_noise(T, dU, smooth=False, var=1.0, renorm=False):
             variance = np.var(noise, axis=0)
             noise = noise / np.sqrt(variance)
     return noise
+
+
+def setup(value, n):
+    """ Go through various types of hyperparameters. """
+    if not isinstance(value, list):
+        try:
+            return [value.copy() for _ in range(n)]
+        except AttributeError:
+            return [value for _ in range(n)]
+    assert len(value) == n, \
+            'Number of elements must match number of conditions or 1.'
+    return value

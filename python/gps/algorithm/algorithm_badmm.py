@@ -280,6 +280,7 @@ class AlgorithmBADMM(Algorithm):
                 ])
             pol_info.prev_kl = kl_m
 
+    #TODO: Any possible abstraction here?
     def _advance_iteration_variables(self):
         """
         Move all 'cur' variables to 'prev', reinitialize 'cur'
@@ -299,6 +300,7 @@ class AlgorithmBADMM(Algorithm):
             self.cur[m].pol_info = self.prev[m].pol_info
         delattr(self, 'new_traj_distr')
 
+    #TODO: Any possible abstraction here?
     def _stepadjust(self, m):
         """
         Calculate new step sizes.

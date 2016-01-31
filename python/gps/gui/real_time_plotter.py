@@ -39,6 +39,7 @@ class RealTimePlotter:
 
         self._init = True
 
+    #TODO: Any possible abstraction with MeanPlotter.update?
     def update(self, x):
         """ Update plots. """
         x = np.ravel([x])

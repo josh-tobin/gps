@@ -5,7 +5,7 @@ import mjcpy
 import numpy as np
 
 from gps.agent.agent import Agent
-from gps.agent.agent_utils import generate_noise
+from gps.agent.agent_utils import generate_noise, setup
 from gps.agent.config import AGENT_MUJOCO
 from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
         END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES, \
@@ -30,17 +30,6 @@ class AgentMuJoCo(Agent):
         Helper method for setting some hyperparameters that may vary by
         condition.
         """
-        def setup(value, n):
-            """ Go through various types of hyperparameters. """
-            if not isinstance(value, list):
-                try:
-                    return [value.copy() for _ in range(n)]
-                except AttributeError:
-                    return [value for _ in range(n)]
-            assert len(value) == n, \
-                    'Number of elements must match number of conditions.'
-            return value
-
         conds = self._hyperparams['conditions']
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset',
                       'noisy_body_idx', 'noisy_body_var'):

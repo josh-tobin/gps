@@ -84,6 +84,8 @@ class TargetSetupGUI(object):
             Action('rc', 'relax_controller', self.relax_controller, axis_pos=10),
             Action('mm', 'mannequin_mode', self.mannequin_mode, axis_pos=11),
         ]
+        #TODO: Is it possible to merge this code with
+        #      GPSTrainingGUI.__init__?
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
             if key in self._hyperparams['keyboard_bindings']:
