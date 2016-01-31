@@ -43,7 +43,7 @@ class Sample(object):
 
     def get(self, sensor_name, t=None):
         """ Get trajectory data for a particular sensor. """
-        return (self._data[sensor_name] if t is None 
+        return (self._data[sensor_name] if t is None
                 else self._data[sensor_name][t, :])
 
     def get_X(self, t=None):

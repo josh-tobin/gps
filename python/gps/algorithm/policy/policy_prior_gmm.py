@@ -45,6 +45,7 @@ class PolicyPriorGMM(object):
         self._strength = self._hyperparams['strength']
 
     def update(self, samples, policy_opt, all_samples, retrain=True):
+        """ Update prior with additional data. """
         X, obs = samples.get_X(), samples.get_obs()
         all_X, all_obs = all_samples.get_X(), all_samples.get_obs()
         U = all_samples.get_U()
@@ -82,6 +83,7 @@ class PolicyPriorGMM(object):
             self.gmm.update(XU, K)
 
     def eval(self, Ts, Ps):
+        """ Evaluate prior. """
         # Construct query data point.
         pts = np.concatenate((Ts, Ps), axis=1)
         # Perform query.

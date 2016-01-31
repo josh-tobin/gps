@@ -50,9 +50,9 @@ def construct_fc_network(n_layers=3, dim_hidden=[40, 40], dim_input=27,
             'shape': [{'dim': (batch_size, dim_input)}]
         })
         net_input = L.Python(ntop=1,
-                         python_param=dict(module='policy_layers',
-                                           param_str=data_layer_info,
-                                           layer='PolicyDataLayer'))
+                             python_param=dict(module='policy_layers',
+                                               param_str=data_layer_info,
+                                               layer='PolicyDataLayer'))
     elif phase == 'deploy':
         # This is the network that runs on the robot. This data layer
         # will be bypassed.

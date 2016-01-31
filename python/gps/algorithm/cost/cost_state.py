@@ -33,7 +33,7 @@ class CostState(Cost):
         final_lux = np.zeros((T, Du, Dx))
 
         for data_type in self._hyperparams['data_types']:
-            config = self._hyperparams['data_types'][data_type_name]
+            config = self._hyperparams['data_types'][data_type]
             wp = config['wp']
             tgt = config['target_state']
             x = sample.get(data_type)

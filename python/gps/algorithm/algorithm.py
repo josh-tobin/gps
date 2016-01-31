@@ -6,6 +6,8 @@ import copy
 import numpy as np
 
 from gps.algorithm.config import ALG
+from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo
+from gps.utility.general_utils import extract_condition
 
 
 class Algorithm(object):
@@ -78,7 +80,7 @@ class Algorithm(object):
             self.cur[cond].traj_info.x0mu = x0mu
             self.cur[cond].traj_info.x0sigma = np.diag(
                 np.maximum(np.var(init_X, axis=0),
-                self._hyperparams['initial_state_var'])
+                           self._hyperparams['initial_state_var'])
             )
 
             prior = self.cur[cond].traj_info.dynamics.get_prior()

@@ -3,8 +3,9 @@ import logging
 import random
 import time
 
-import matplotlib.pyplot as plt
 import numpy as np
+
+import matplotlib.pyplot as plt
 
 
 LOGGER = logging.getLogger(__name__)
@@ -32,9 +33,10 @@ class ImageVisualizer(object):
         if rostopic is not None:
             try:
                 import rospy
-                import roslib; roslib.load_manifest('gps_agent_pkg')
+                import roslib
                 from sensor_msgs.msg import Image
 
+                roslib.load_manifest('gps_agent_pkg')
                 rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1,
                                  buff_size=2**24)
             except ImportError as e:

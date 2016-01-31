@@ -150,7 +150,7 @@ class PolicyOptCaffe(PolicyOpt):
         for i in range(self._hyperparams['iterations']):
             # Load in data for this batch.
             start_idx = int(i * self.batch_size %
-                (batches_per_epoch * self.batch_size))
+                            (batches_per_epoch * self.batch_size))
             idx_i = idx[start_idx:start_idx+self.batch_size]
             self.solver.net.blobs[blob_names[0]].data[:] = obs[idx_i]
             self.solver.net.blobs[blob_names[1]].data[:] = tgt_mu[idx_i]

@@ -26,9 +26,10 @@ import copy
 import imp
 import os.path
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import numpy as np
 import rospy
 
 from gps.agent.ros.agent_ros import AgentROS
@@ -111,7 +112,7 @@ class TargetSetupGUI(object):
         self._axarr_action = [plt.subplot(self._gs_action[i])
                               for i in range(12)]
         self._action_axis = ActionAxis(
-            self._actions, self._axarr_action, 
+            self._actions, self._axarr_action,
             ps3_process_rate=self._hyperparams['ps3_process_rate'],
             ps3_topic=self._hyperparams['ps3_topic'],
             inverted_ps3_button=self._hyperparams['inverted_ps3_button']
@@ -240,7 +241,7 @@ class TargetSetupGUI(object):
             self._target_filename, self._actuator_name,
             str(self._target_number), 'initial'
         )
-        self._target_position  = load_pose_from_npz(
+        self._target_position = load_pose_from_npz(
             self._target_filename, self._actuator_name,
             str(self._target_number), 'target'
         )

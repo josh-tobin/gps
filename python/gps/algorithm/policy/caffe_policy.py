@@ -1,6 +1,7 @@
 """ This file defines a neural network policy implemented in Caffe. """
-import numpy as np
 import tempfile
+
+import numpy as np
 
 from gps.algorithm.policy.policy import Policy
 
@@ -38,13 +39,15 @@ class CaffePolicy(Policy):
         return u
 
     def get_weights_string(self):
-        raise('NotImplemented - weights string prob in net_param')
+        """ Return the weights of the neural network as a string. """
+        raise 'NotImplemented - weights string prob in net_param'
 
     def get_net_param(self):
+        """ Return the weights of the neural network as a string. """
         f = tempfile.NamedTemporaryFile(mode='w+', delete=False)
         self.deploy_net.share_with(self.net)
         self.deploy_net.save(f.name)
         f.close()
-        with open(f.name,'rb') as temp_file:
+        with open(f.name, 'rb') as temp_file:
             weights_string = temp_file.read()
         return weights_string

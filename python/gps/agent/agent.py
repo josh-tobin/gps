@@ -66,10 +66,10 @@ class Agent(object):
             start: Starting index of samples to return.
             end: End index of samples to return.
         """
-        return SampleList(self._samples[condition][start:]) if end is None
-                          else SampleList(self._samples[condition][start:end])
+        return (SampleList(self._samples[condition][start:]) if end is None
+                else SampleList(self._samples[condition][start:end]))
 
-    def delete_last_sample(condition):
+    def delete_last_sample(self, condition):
         """ Delete the last sample from the specified condition. """
         self._samples[condition].pop()
 

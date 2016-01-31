@@ -1,15 +1,16 @@
 """ This file defines an agent for the MuJoCo simulator environment. """
 import copy
 
-import mjcpy
 import numpy as np
+
+import mjcpy
 
 from gps.agent.agent import Agent
 from gps.agent.agent_utils import generate_noise, setup
 from gps.agent.config import AGENT_MUJOCO
 from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
         END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES, \
-        END_EFFECTOR_POINT_JACOBIANS
+        END_EFFECTOR_POINT_JACOBIANS, ACTION
 from gps.sample.sample import Sample
 
 

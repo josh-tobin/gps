@@ -2,11 +2,12 @@
 import random
 import time
 
-import matplotlib.pylab as plt
 import numpy as np
 
+import matplotlib.pylab as plt
 
-class RealTimePlotter:
+
+class RealTimePlotter(object):
     """ Real time plotter class. """
     def __init__(self, axis, time_window=500, labels=None, alphas=None):
         self._ax = axis

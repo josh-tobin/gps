@@ -18,9 +18,10 @@ Image Visualizer
 import copy
 import time
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import numpy as np
 
 from gps.gui.config import common as common_config
 from gps.gui.config import gps_training as gps_training_config

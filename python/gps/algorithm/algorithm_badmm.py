@@ -7,10 +7,9 @@ import scipy as sp
 
 from gps.algorithm.algorithm import Algorithm
 from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo, \
-        PolicyInfo, estimate_moments, gauss_fit_joint_prior
+        PolicyInfo, gauss_fit_joint_prior
 from gps.algorithm.config import ALG_BADMM
 from gps.sample.sample_list import SampleList
-from gps.utility.general_utils import extract_condition
 
 
 LOGGER = logging.getLogger(__name__)
@@ -74,7 +73,7 @@ class AlgorithmBADMM(Algorithm):
         """
         # Compute temporal interpolation value.
         t = min((self.iteration_count + 1.0) /
-                 (self._hyperparams['iterations'] - 1), 1)
+                (self._hyperparams['iterations'] - 1), 1)
         # Perform iteration-based interpolation of entropy penalty.
         if type(self._hyperparams['ent_reg_schedule']) in (int, float):
             self.policy_opt._hyperparams['ent_reg'] = \
@@ -224,7 +223,7 @@ class AlgorithmBADMM(Algorithm):
                 traj_mu[i, t, :] = traj.K[t, :, :].dot(X[i, t, :]) + \
                         traj.k[t, :]
         # Compute policy action at each sampled state.
-        pol_mu, pol_sig = pol_info.pol_mu, pol_info.pol_sig
+        pol_mu = pol_info.pol_mu
         # Compute the difference and increment based on pol_wt.
         for t in range(T):
             tU, pU = traj_mu[:, t, :], pol_mu[:, t, :]
@@ -356,7 +355,7 @@ class AlgorithmBADMM(Algorithm):
 
         LOGGER.debug(
             'Trajectory step: ent: %f cost: %f -> %f KL: %f -> %f',
-             ent, prev_mc_obj, new_mc_obj, prev_mc_kl_sum, new_mc_kl_sum
+            ent, prev_mc_obj, new_mc_obj, prev_mc_kl_sum, new_mc_kl_sum
         )
 
         # Compute predicted and actual improvement.
@@ -532,7 +531,7 @@ class AlgorithmBADMM(Algorithm):
         # Modify policy action via Lagrange multiplier.
         cv[:, dX:] -= pol_info.lambda_k
         Cm[:, dX:, :dX] -= pol_info.lambda_K
-        Cm[:, :dX, dX:] -= np.transpose(pol_info.lambda_K, [0, 2, 1]) 
+        Cm[:, :dX, dX:] -= np.transpose(pol_info.lambda_K, [0, 2, 1])
 
         #Pre-process the costs with KL-divergence terms.
         TKLm = np.zeros((T, dX+dU, dX+dU))

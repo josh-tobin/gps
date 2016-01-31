@@ -31,8 +31,10 @@ class ActionAxis(object):
         ros_enabled = False
         try:
             import rospy
-            import roslib; roslib.load_manifest('gps_agent_pkg')
+            import roslib
             from sensor_msgs.msg import Joy
+
+            roslib.load_manifest('gps_agent_pkg')
             ros_enabled = True
         except ImportError as e:
             LOGGER.debug('PS3 not enabled: %s', e)
@@ -43,7 +45,7 @@ class ActionAxis(object):
             if action._axis_pos is not None:
                 if ros_enabled:
                     if (inverted_ps3_button is not None and
-                        action._pb is not None):
+                            action._pb is not None):
                         ps3_bindings_str = ',\n'.join([
                             inverted_ps3_button[i] for i in action._pb
                         ])
@@ -96,7 +98,7 @@ class ActionAxis(object):
             self._actions[self._ps3_bindings[buttons_pressed]]._func()
         else:
             #TODO: Where are (inverted_)ps3_button defined?
-            if not (len(buttons_pressed) == 0 or 
+            if not (len(buttons_pressed) == 0 or
                     (len(buttons_pressed) == 1 and
                      (buttons_pressed[0] == ps3_button['rear_right_1'] or
                       buttons_pressed[0] == ps3_button['rear_right_2']))):

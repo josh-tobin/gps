@@ -5,7 +5,6 @@ import numpy as np
 
 from gps.algorithm.algorithm import Algorithm
 from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo
-from gps.utility.general_utils import extract_condition
 
 
 LOGGER = logging.getLogger(__name__)
@@ -60,7 +59,7 @@ class AlgorithmTrajOpt(Algorithm):
             self.prev[m].traj_distr, self.prev[m].traj_info
         )
         # This is the policy that we just used under the dynamics that
-        # were estimated from the previous samples (so this is the cost 
+        # were estimated from the previous samples (so this is the cost
         # we thought we would have).
         new_predicted_laplace_obj = self.traj_opt.estimate_cost(
             self.cur[m].traj_distr, self.prev[m].traj_info
@@ -93,7 +92,7 @@ class AlgorithmTrajOpt(Algorithm):
                 np.sum(new_actual_laplace_obj)
 
         # Print improvement details.
-        LOGGER.debug('Previous cost: Laplace: %f MC: %f', 
+        LOGGER.debug('Previous cost: Laplace: %f MC: %f',
                      np.sum(previous_laplace_obj), previous_mc_obj)
         LOGGER.debug('Predicted new cost: Laplace: %f MC: %f',
                      np.sum(new_predicted_laplace_obj), new_mc_obj)
@@ -149,7 +148,7 @@ class AlgorithmTrajOpt(Algorithm):
             fCm[t, :, :] += np.vstack([
                 np.hstack([
                     K[t, :, :].T.dot(ipc[t, :, :]).dot(K[t, :, :]),
-                    -K[t, :, :].T.dot(inv_pol_covar[t, :, :])
+                    -K[t, :, :].T.dot(ipc[t, :, :])
                 ]),
                 np.hstack([
                     -ipc[t, :, :].dot(K[t, :, :]), ipc[t, :, :]

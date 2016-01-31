@@ -1,8 +1,6 @@
 """ This file defines utility classes and functions for costs. """
 import numpy as np
 
-from gps.utility.general_utils import finite_differences, approx_equal
-
 
 RAMP_CONSTANT = 1
 RAMP_LINEAR = 2
@@ -69,10 +67,10 @@ def evall1l2term(wp, d, Jd, Jdd, l1, l2, alpha):
         np.sqrt(alpha + np.sum(dscl ** 2, axis=1, keepdims=True)), axis=1
     )
     d2 = l1 * (
-        (np.expand_dims(np.eye(wp.shape[1]), axis=0) * 
+        (np.expand_dims(np.eye(wp.shape[1]), axis=0) *
          (np.expand_dims(wp ** 2, axis=1) / psq)) -
-        ((np.expand_dims(dscls, axis=1) * 
-         np.expand_dims(dscls, axis=2)) / psq ** 3)
+        ((np.expand_dims(dscls, axis=1) *
+          np.expand_dims(dscls, axis=2)) / psq ** 3)
     )
     d2 += l2 * (
         np.expand_dims(wp, axis=2) * np.tile(np.eye(wp.shape[1]), [T, 1, 1])
@@ -116,7 +114,7 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
 
     # Compute total cost.
     l = 0.5 * np.sum(dsclsq ** 2, axis=1) * l2 + \
-            0.5 * np.log(alpha + np.sum(dscl ** 2, axis=1)) * l1 
+            0.5 * np.log(alpha + np.sum(dscl ** 2, axis=1)) * l1
     # First order derivative terms.
     d1 = dscl * l2 + (
         dscls / (alpha + np.sum(dscl ** 2, axis=1, keepdims=True)) * l1
@@ -133,7 +131,7 @@ def evallogl2term(wp, d, Jd, Jdd, l1, l2, alpha):
         (np.expand_dims(np.eye(wp.shape[1]), axis=0) *
          (np.expand_dims(wp ** 2, axis=1) / psq)) -
         ((np.expand_dims(dscls, axis=1) *
-         np.expand_dims(dscls, axis=2)) / psq ** 2)
+          np.expand_dims(dscls, axis=2)) / psq ** 2)
     )
     d2 += l2 * (
         np.expand_dims(wp, axis=2) * np.tile(np.eye(wp.shape[1]), [T, 1, 1])

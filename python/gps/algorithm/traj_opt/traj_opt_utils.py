@@ -62,11 +62,11 @@ def traj_distr_kl(new_mu, new_sigma, new_traj_distr, prev_traj_distr):
 
         # Construct matrix, vector, and constants.
         M_prev = np.r_[
-            np.c_[K_prev.T.dot(prc_prev).dot(K_prev),-K_prev.T.dot(prc_prev)],
+            np.c_[K_prev.T.dot(prc_prev).dot(K_prev), -K_prev.T.dot(prc_prev)],
             np.c_[-prc_prev.dot(K_prev), prc_prev]
         ]
         M_new = np.r_[
-            np.c_[K_new.T.dot(prc_new).dot(K_new),-K_new.T.dot(prc_new)],
+            np.c_[K_new.T.dot(prc_new).dot(K_new), -K_new.T.dot(prc_new)],
             np.c_[-prc_new.dot(K_new), prc_new]
         ]
         v_prev = np.r_[K_prev.T.dot(prc_prev).dot(k_prev),
@@ -113,8 +113,8 @@ class LineSearch(object):
         """
         # Adjust eta.
         if (not self.data or
-            (abs(self.data['c1'] - con) < 1e-8 * abs(self.data['c1'] + con) and
-            abs(self.data['c2'] - con) < 1e-8 * abs(self.data['c2'] + con)):
+                (abs(self.data['c1'] - con) < 1e-8 * abs(self.data['c1'] + con) and
+                 abs(self.data['c2'] - con) < 1e-8 * abs(self.data['c2'] + con))):
             # Take initial step if we don't have multiple points already
             # available.
             self.data = {'c1': con, 'c2': con, 'e1': eta, 'e2': eta}
@@ -129,7 +129,7 @@ class LineSearch(object):
             # Choose two points to fit.
             leta = eta
             if (self.data['c1'] <= con and self.data['c2'] > con and
-                self.data['c1'] < 0 and self.data['c2'] > 0):
+                    self.data['c1'] < 0 and self.data['c2'] > 0):
                 mid = 1
                 if con < 0:
                     c1 = con
@@ -144,15 +144,15 @@ class LineSearch(object):
             else:
                 mid = 0
                 if (self.data['c1'] < 0 and self.data['c2'] < 0 and con < 0 and
-                    # Too little change in all cases.
-                    eta <= self.data['e1'] and eta <= self.data['e2'] and
-                    # eta is decreasing.
-                    self.data['c1'] != self.data['c2'] and
-                    # Change in con is small compared to change in eta.
-                    abs(self.data['c2'] - con) / (
-                        max(abs(self.data['c2']), abs(con)) *
-                        abs(np.log(self.data['e2']) - np.log(eta))
-                    ) < 1e-2):
+                        # Too little change in all cases.
+                        eta <= self.data['e1'] and eta <= self.data['e2'] and
+                        # eta is decreasing.
+                        self.data['c1'] != self.data['c2'] and
+                        # Change in con is small compared to change in eta.
+                        abs(self.data['c2'] - con) / (
+                            max(abs(self.data['c2']), abs(con)) *
+                            abs(np.log(self.data['e2']) - np.log(eta))
+                        ) < 1e-2):
 
                     # If rate is changing very slowly, try jumping to lowest possible eta.
                     LOGGER.debug(
@@ -208,8 +208,8 @@ class LineSearch(object):
             # the ratio of gradients is very high in log space (with 50
             # percent probability).
             if (abs(np.log(abs(lc1 / lc2))) > 2 * abs(np.log(abs(c1 / c2))) and
-                c1 * c2 < 0 and np.random.rand() < 0.5):
-                solve_orig = 1 
+                    c1 * c2 < 0 and np.random.rand() < 0.5):
+                solve_orig = 1
             else:
                 solve_orig = 0
 
@@ -225,7 +225,7 @@ class LineSearch(object):
                 if not solve_orig:
                     LOGGER.debug(
                         'Solving non-log problem due to a > 0: %f %f',
-                        abs(np.log(abs(lc1 / lc2))),abs(np.log(abs(c1 / c2)))
+                        abs(np.log(abs(lc1 / lc2))), abs(np.log(abs(c1 / c2)))
                     )
 
                 # Fit quadratic.

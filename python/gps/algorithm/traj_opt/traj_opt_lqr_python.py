@@ -55,7 +55,7 @@ class TrajOptLQRPython(TrajOpt):
 
             # Main convergence check - constraint satisfaction.
             if (abs(kl_div - kl_step*T) < 0.1*kl_step*T or
-                (itr >= 20 and kl_div < kl_step*T)):
+                    (itr >= 20 and kl_div < kl_step*T)):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged",
                              itr, kl_div, kl_step * T)
                 eta = prev_eta  # TODO - Should this be here?
@@ -67,7 +67,7 @@ class TrajOptLQRPython(TrajOpt):
 
             # Convergence check - dual variable change when min_eta hit.
             if (abs(prev_eta - eta) < THRESHA and
-                eta == max(min_eta, self._hyperparams['min_eta'])):
+                    eta == max(min_eta, self._hyperparams['min_eta'])):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged (eta limit)",
                              itr, kl_div, kl_step * T)
                 break
@@ -75,7 +75,7 @@ class TrajOptLQRPython(TrajOpt):
             # Convergence check - constraint satisfaction, KL not
             # changing much.
             if (itr > 2 and abs(kl_div - prev_kl_div) < THRESHB and
-                kl_div < kl_step*T):
+                    kl_div < kl_step*T):
                 LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)",
                              itr, kl_div, kl_step * T)
                 break
@@ -227,7 +227,7 @@ class TrajOptLQRPython(TrajOpt):
                             Fm[t, :, :].T.dot(Vxx[t+1, :, :]).dot(Fm[t, :, :])
                     Qt = Qt + \
                             Fm[t, :, :].T.dot(Vx[t+1, :] +
-                                Vxx[t+1, :, :].dot(fv[t, :]))
+                                              Vxx[t+1, :, :].dot(fv[t, :]))
 
                 # Symmetrize quadratic component.
                 Qtt = 0.5 * (Qtt + Qtt.T)

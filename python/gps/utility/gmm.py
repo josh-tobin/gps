@@ -99,7 +99,7 @@ class GMM(object):
         wts = np.exp(logwts)
 
         # Compute overall mean.
-        mu = np.sum(self.mu * wts,axis=0)
+        mu = np.sum(self.mu * wts, axis=0)
 
         # Compute overall covariance.
         # For some reason this version works way better than the "right"
@@ -142,7 +142,7 @@ class GMM(object):
         LOGGER.debug('Fitting GMM with %d clusters on %d points', K, N)
 
         if (not self.warmstart or self.sigma is None or
-            K != self.sigma.shape[0]):
+                K != self.sigma.shape[0]):
             # Initialization.
             LOGGER.debug('Initializing GMM.')
             self.sigma = np.zeros((K, Do, Do))

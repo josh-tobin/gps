@@ -1,4 +1,5 @@
 """ This file defines a few useful custom Caffe layers. """
+#TODO: Add docstrings, but are these layers still needed?
 import json
 
 import caffe
