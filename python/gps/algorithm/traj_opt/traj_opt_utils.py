@@ -105,7 +105,7 @@ class LineSearch(object):
         """
         Adjust eta using second order bracketed line search.
         Args:
-            con: Constraint violotion amount.
+            con: Constraint violation amount.
             new_eta: New values of eta.
             min_eta: Minimum value of eta.
         Returns:
@@ -113,8 +113,8 @@ class LineSearch(object):
         """
         # Adjust eta.
         if (not self.data or
-                (abs(self.data['c1']-con) < 1e-8 * abs(self.data['c1']+con) and
-                 abs(self.data['c2']-con) < 1e-8 * abs(self.data['c2']+con))):
+                (abs(self.data['c1']-con) < 1e-16 * abs(self.data['c1']+con) and
+                 abs(self.data['c2']-con) < 1e-16 * abs(self.data['c2']+con))):
             # Take initial step if we don't have multiple points already
             # available.
             self.data = {'c1': con, 'c2': con, 'e1': eta, 'e2': eta}
