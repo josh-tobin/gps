@@ -1,10 +1,9 @@
+""" This file defines the base trajectory optimization class. """
 import abc
 
 
 class TrajOpt(object):
-    """
-    Trajectory optimization superclass.
-    """
+    """ Trajectory optimization superclass. """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, hyperparams):
@@ -12,9 +11,8 @@ class TrajOpt(object):
 
     @abc.abstractmethod
     def update(self):
-        """
-        Update trajectory distributions.
-        """
+        """ Update trajectory distributions. """
         raise NotImplementedError("Must be implemented in subclass.")
+
 
 # TODO - Interface with C++ traj opt?

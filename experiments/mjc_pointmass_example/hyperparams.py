@@ -1,8 +1,10 @@
+""" Hyperparameters for MJC 2D navigation policy optimization. """
 from __future__ import division
 
 from datetime import datetime
-import numpy as np
 import os.path
+
+import numpy as np
 
 from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
@@ -14,7 +16,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior import PolicyPrior
-from gps.proto.gps_pb2 import *
+from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, ACTION
 
 
 SENSOR_DIMS = {
@@ -28,7 +30,8 @@ EXP_DIR = BASE_DIR + '/experiments/mjc_pointmass_example/'
 
 
 common = {
-    'experiment_name': 'my_experiment' + '_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_name': 'my_experiment' + '_' + \
+            datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
@@ -125,15 +128,15 @@ config = {
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui_on': True,
+    'gui': True,
     'algorithm': algorithm,
 }
 
 common['info'] = (
-    'exp_name: '   + str(common['experiment_name'])              + '\n'
-    'alg_type: '   + str(algorithm['type'].__name__)             + '\n'
-    'alg_dyn:  '   + str(algorithm['dynamics']['type'].__name__) + '\n'
-    'alg_cost: '   + str(algorithm['cost']['type'].__name__)     + '\n'
+    'exp_name: ' + str(common['experiment_name'])              + '\n'
+    'alg_type: ' + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  ' + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: ' + str(algorithm['cost']['type'].__name__)     + '\n'
     'iterations: ' + str(config['iterations'])                   + '\n'
     'conditions: ' + str(algorithm['conditions'])                + '\n'
     'samples:    ' + str(config['num_samples'])                  + '\n'
