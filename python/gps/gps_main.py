@@ -222,7 +222,7 @@ def main():
         np.random.seed(0)
 
         gps = GPSMain(hyperparams.config)
-        if hyperparams.config['gui_on']:
+        if hyperparams.config['gui']:
             run_gps = threading.Thread(
                 target=lambda: gps.run(itr_load=resume_training_itr), args=()
             )

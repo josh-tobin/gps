@@ -26,6 +26,19 @@ class Algorithm(object):
         self.M = hyperparams['conditions']
         self.iteration_count = 0
 
+        # Grab a few values from the agent.
+        agent = self._hyperparams['agent']
+        self.T = self._hyperparams['T'] = agent.T
+        self.dU = self._hyperparams['dU'] = agent.dU
+        self.dX = self._hyperparams['dX'] = agent.dX
+        self.dO = self._hyperparams['dO'] = agent.dO
+
+        init_traj_distr = config['init_traj_distr']
+        init_traj_distr['x0'] = agent.x0
+        init_traj_distr['dX'] = agent.dX
+        init_traj_distr['dU'] = agent.dU
+        del self._hyperparams['agent']  # Don't want to pickle this.
+
         # IterationData objects for each condition.
         self.cur = [IterationData() for _ in range(self.M)]
         self.prev = [IterationData() for _ in range(self.M)]
@@ -47,19 +60,6 @@ class Algorithm(object):
             for _ in range(self.M)
         ]
         self.base_kl_step = self._hyperparams['kl_step']
-
-        # Grab a few values from the agent.
-        agent = self._hyperparams['agent']
-        self.T = self._hyperparams['T'] = agent.T
-        self.dU = self._hyperparams['dU'] = agent.dU
-        self.dX = self._hyperparams['dX'] = agent.dX
-        self.dO = self._hyperparams['dO'] = agent.dO
-
-        init_traj_distr = config['init_traj_distr']
-        init_traj_distr['x0'] = agent.x0
-        init_traj_distr['dX'] = agent.dX
-        init_traj_distr['dU'] = agent.dU
-        del self._hyperparams['agent']  # Don't want to pickle this.
 
     @abc.abstractmethod
     def iteration(self, sample_list):
