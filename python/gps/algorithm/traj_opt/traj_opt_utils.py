@@ -113,8 +113,8 @@ class LineSearch(object):
         """
         # Adjust eta.
         if (not self.data or
-                (abs(self.data['c1'] - con) < 1e-8 * abs(self.data['c1'] + con) and
-                 abs(self.data['c2'] - con) < 1e-8 * abs(self.data['c2'] + con))):
+                (abs(self.data['c1']-con) < 1e-8 * abs(self.data['c1']+con) and
+                 abs(self.data['c2']-con) < 1e-8 * abs(self.data['c2']+con))):
             # Take initial step if we don't have multiple points already
             # available.
             self.data = {'c1': con, 'c2': con, 'e1': eta, 'e2': eta}
@@ -154,7 +154,8 @@ class LineSearch(object):
                             abs(np.log(self.data['e2']) - np.log(eta))
                         ) < 1e-2):
 
-                    # If rate is changing very slowly, try jumping to lowest possible eta.
+                    # If rate is changing very slowly, try jumping to
+                    # lowest possible eta.
                     LOGGER.debug(
                         'Rate is changing slowly, jumping to minimum eta.'
                     )
@@ -250,9 +251,9 @@ class LineSearch(object):
                 MAX_LOG_STEP = 4
 
             if nlogeta > np.log(eta):
-                nlogeta = np.log(eta) + min(nlogeta - np.log(eta), MAX_LOG_STEP)
+                nlogeta = np.log(eta) + min(nlogeta-np.log(eta), MAX_LOG_STEP)
             else:
-                nlogeta = np.log(eta) + max(nlogeta - np.log(eta), -MAX_LOG_STEP)
+                nlogeta = np.log(eta) + max(nlogeta-np.log(eta), -MAX_LOG_STEP)
 
             # Save old info and set new eta.
             self.data['c1'] = c1

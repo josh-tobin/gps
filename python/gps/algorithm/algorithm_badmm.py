@@ -6,8 +6,7 @@ import numpy as np
 import scipy as sp
 
 from gps.algorithm.algorithm import Algorithm
-from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo, \
-        PolicyInfo, gauss_fit_joint_prior
+from gps.algorithm.algorithm_utils import PolicyInfo, gauss_fit_joint_prior
 from gps.algorithm.config import ALG_BADMM
 from gps.sample.sample_list import SampleList
 
@@ -76,11 +75,10 @@ class AlgorithmBADMM(Algorithm):
                 (self._hyperparams['iterations'] - 1), 1)
         # Perform iteration-based interpolation of entropy penalty.
         if type(self._hyperparams['ent_reg_schedule']) in (int, float):
-            self.policy_opt._hyperparams['ent_reg'] = \
-                    self._hyperparams['ent_reg_schedule']
+            self.policy_opt.set_ent_reg(self._hyperparams['ent_reg_schedule'])
         else:
             sch = self._hyperparams['ent_reg_schedule']
-            self.policy_opt._hyperparams['ent_reg'] = np.exp(
+            self.policy_opt.set_ent_reg(
                 np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch))
             )
         # Perform iteration-based interpolation of Lagrange multiplier.
@@ -279,27 +277,17 @@ class AlgorithmBADMM(Algorithm):
                 ])
             pol_info.prev_kl = kl_m
 
-    #TODO: Any possible abstraction here?
     def _advance_iteration_variables(self):
         """
         Move all 'cur' variables to 'prev', reinitialize 'cur'
         variables, and advance iteration counter.
         """
-        self.iteration_count += 1
-        self.prev = self.cur
-        self.cur = [IterationData() for _ in range(self.M)]
+        Algorithm._advance_iteration_variables(self)
         for m in range(self.M):
-            self.cur[m].traj_info = TrajectoryInfo()
             self.cur[m].traj_info.last_kl_step = \
                     self.prev[m].traj_info.last_kl_step
-            self.cur[m].traj_info.dynamics = self.prev[m].traj_info.dynamics
-            self.cur[m].step_mult = self.prev[m].step_mult
-            self.cur[m].eta = self.prev[m].eta
-            self.cur[m].traj_distr = self.new_traj_distr[m]
             self.cur[m].pol_info = self.prev[m].pol_info
-        delattr(self, 'new_traj_distr')
 
-    #TODO: Any possible abstraction here?
     def _stepadjust(self, m):
         """
         Calculate new step sizes.
@@ -326,11 +314,7 @@ class AlgorithmBADMM(Algorithm):
         )
 
         # Measure the entropy of the current trajectory (for printout).
-        ent = 0
-        for t in range(self.T):
-            ent = ent + np.sum(
-                np.log(np.diag(self.cur[m].traj_distr.chol_pol_covar[t, :, :]))
-            )
+        ent = self._measure_ent(m)
 
         # Compute actual objective values based on the samples.
         prev_mc_obj = np.mean(np.sum(self.prev[m].cs, axis=1), axis=0)
@@ -393,25 +377,7 @@ class AlgorithmBADMM(Algorithm):
             self.cur[m].step_mult = max(actual_step,
                                         self._hyperparams['min_step_mult'])
 
-        # Model improvement as I = predicted_dI * KL + penalty * KL^2,
-        # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2).
-        # Optimize I w.r.t. KL: 0 = predicted_dI + 2 * penalty * KL =>
-        # KL' = (-predicted_dI)/(2*penalty) = (pred/2*(pred-act)) * KL.
-        # Therefore, the new multiplier is given by pred/2*(pred-act).
-        new_mult = predicted_impr / (2.0 * max(1e-4,
-                                               predicted_impr - actual_impr))
-        new_mult = max(0.1, min(5.0, new_mult))
-        new_step = max(
-            min(new_mult * self.cur[m].step_mult,
-                self._hyperparams['max_step_mult']),
-            self._hyperparams['min_step_mult']
-        )
-        self.cur[m].step_mult = new_step
-
-        if new_mult > 1:
-            LOGGER.debug('Increasing step size multiplier to %f', new_step)
-        else:
-            LOGGER.debug('Decreasing step size multiplier to %f', new_step)
+        self._set_new_mult(predicted_impr, actual_impr, m)
 
     def _policy_kl(self, m, prev=False):
         """
@@ -521,7 +487,7 @@ class AlgorithmBADMM(Algorithm):
 
         return predicted_cost, predicted_kl
 
-    def _compute_costs(self, m, eta):
+    def compute_costs(self, m, eta):
         """ Compute cost estimates used in the LQR backward pass. """
         traj_info, traj_distr = self.cur[m].traj_info, self.cur[m].traj_distr
         pol_info = self.cur[m].pol_info

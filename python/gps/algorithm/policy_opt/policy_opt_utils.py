@@ -56,7 +56,8 @@ def construct_fc_network(n_layers=3, dim_hidden=[40, 40], dim_input=27,
     elif phase == 'deploy':
         # This is the network that runs on the robot. This data layer
         # will be bypassed.
-        net_input = L.DummyData(ntop=1, shape=[dict(dim=[batch_size, dim_input])])
+        net_input = L.DummyData(ntop=1,
+                                shape=[dict(dim=[batch_size, dim_input])])
     else:
         raise Exception('Unknown network phase')
 

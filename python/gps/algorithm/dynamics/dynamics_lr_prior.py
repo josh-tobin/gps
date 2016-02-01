@@ -11,7 +11,8 @@ class DynamicsLRPrior(Dynamics):
         self.Fm = None
         self.fv = None
         self.dyn_covar = None
-        self.prior = self._hyperparams['prior']['type'](self._hyperparams['prior'])
+        self.prior = \
+                self._hyperparams['prior']['type'](self._hyperparams['prior'])
 
     def update_prior(self, sample):
         """ Update dynamics prior. """

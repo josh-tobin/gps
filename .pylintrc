@@ -12,4 +12,12 @@ disable=too-few-public-methods,
     no-self-use,
     attribute-defined-outside-init,
     redefined-outer-name,
-    consider-using-enumerate
+    consider-using-enumerate,
+    too-many-boolean-expressions,
+    too-many-statements,
+    import-error,
+    unexpected-keyword-arg
+
+
+[FORMAT]
+max-line-length=80

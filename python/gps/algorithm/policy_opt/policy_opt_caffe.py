@@ -223,6 +223,10 @@ class PolicyOptCaffe(PolicyOpt):
 
         return output, pol_sigma, pol_prec, pol_det_sigma
 
+    def set_ent_reg(self, ent_reg):
+        """ Set the entropy regularization. """
+        self._hyperparams['ent_reg'] = ent_reg
+
     # For pickling.
     def __getstate__(self):
         self.solver.snapshot()

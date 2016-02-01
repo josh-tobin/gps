@@ -140,11 +140,7 @@ class AgentROS(Agent):
         self.reset(condition)
 
         # Generate noise.
-        noise = generate_noise(
-            self.T, self.dU, smooth=self._hyperparams['smooth_noise'],
-            var=self._hyperparams['smooth_noise_var'],
-            renorm=self._hyperparams['smooth_noise_renormalize']
-        )
+        noise = generate_noise(self.T, self.dU, self._hyperparams)
 
         # Execute trial.
         trial_command = TrialCommand()

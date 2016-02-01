@@ -33,7 +33,7 @@ class TrajOptLQRPython(TrajOpt):
         prev_traj_distr = algorithm.cur[m].traj_distr
 
         # Set KL-divergence step size (epsilon).
-        kl_step = algorithm._hyperparams['kl_step'] * step_mult
+        kl_step = algorithm.base_kl_step * step_mult
 
         line_search = LineSearch(self._hyperparams['min_eta'])
         min_eta = -np.Inf
@@ -211,7 +211,7 @@ class TrajOptLQRPython(TrajOpt):
             Vxx = np.zeros((T, dX, dX))
             Vx = np.zeros((T, dX))
 
-            fCm, fcv = algorithm._compute_costs(m, eta)
+            fCm, fcv = algorithm.compute_costs(m, eta)
 
             # Compute state-action-state function at each time step.
             for t in range(T - 1, -1, -1):

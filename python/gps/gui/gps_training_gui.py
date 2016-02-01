@@ -78,7 +78,8 @@ class GPSTrainingGUI(object):
         plt.rcParams['keymap.save'] = ''
 
         self._fig = plt.figure(figsize=(12, 12))
-        self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
+        self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99,
+                                  wspace=0, hspace=0)
         self._gs = gridspec.GridSpec(4, 4)
 
         # Action Axis.

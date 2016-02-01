@@ -2,12 +2,16 @@
 
 import abc
 import copy
+import logging
 
 import numpy as np
 
 from gps.algorithm.config import ALG
 from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo
 from gps.utility.general_utils import extract_condition
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Algorithm(object):
@@ -42,6 +46,7 @@ class Algorithm(object):
             hyperparams['cost']['type'](hyperparams['cost'])
             for _ in range(self.M)
         ]
+        self.base_kl_step = self._hyperparams['kl_step']
 
         # Grab a few values from the agent.
         agent = self._hyperparams['agent']
@@ -149,3 +154,53 @@ class Algorithm(object):
         self.cur[cond].traj_info.Cm = np.mean(Cm, 0)  # Quadratic term (matrix).
 
         self.cur[cond].cs = cs  # True value of cost.
+
+    def _advance_iteration_variables(self):
+        """
+        Move all 'cur' variables to 'prev', and advance iteration
+        counter.
+        """
+        self.iteration_count += 1
+        self.prev = self.cur
+        self.cur = [IterationData() for _ in range(self.M)]
+        for m in range(self.M):
+            self.cur[m].traj_info = TrajectoryInfo()
+            self.cur[m].traj_info.dynamics = self.prev[m].traj_info.dynamics
+            self.cur[m].step_mult = self.prev[m].step_mult
+            self.cur[m].eta = self.prev[m].eta
+            self.cur[m].traj_distr = self.new_traj_distr[m]
+        delattr(self, 'new_traj_distr')
+
+    def _set_new_mult(self, predicted_impr, actual_impr, m):
+        """
+        Adjust step size multiplier according to the predicted versus
+        actual improvement.
+        """
+        # Model improvement as I = predicted_dI * KL + penalty * KL^2,
+        # where predicted_dI = pred/KL and penalty = (act-pred)/(KL^2).
+        # Optimize I w.r.t. KL: 0 = predicted_dI + 2 * penalty * KL =>
+        # KL' = (-predicted_dI)/(2*penalty) = (pred/2*(pred-act)) * KL.
+        # Therefore, the new multiplier is given by pred/2*(pred-act).
+        new_mult = predicted_impr / (2.0 * max(1e-4,
+                                               predicted_impr - actual_impr))
+        new_mult = max(0.1, min(5.0, new_mult))
+        new_step = max(
+            min(new_mult * self.cur[m].step_mult,
+                self._hyperparams['max_step_mult']),
+            self._hyperparams['min_step_mult']
+        )
+        self.cur[m].step_mult = new_step
+
+        if new_mult > 1:
+            LOGGER.debug('Increasing step size multiplier to %f', new_step)
+        else:
+            LOGGER.debug('Decreasing step size multiplier to %f', new_step)
+
+    def _measure_ent(self, m):
+        """ Measure the entropy of the current trajectory. """
+        ent = 0
+        for t in range(self.T):
+            ent = ent + np.sum(
+                np.log(np.diag(self.cur[m].traj_distr.chol_pol_covar[t, :, :]))
+            )
+        return ent

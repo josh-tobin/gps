@@ -100,11 +100,7 @@ class AgentMuJoCo(Agent):
         new_sample = self._init_sample(condition)
         mj_X = self._hyperparams['x0'][condition]
         U = np.zeros([self.T, self.dU])
-        noise = generate_noise(
-            self.T, self.dU, smooth=self._hyperparams['smooth_noise'],
-            var=self._hyperparams['smooth_noise_var'],
-            renorm=self._hyperparams['smooth_noise_renormalize']
-        )
+        noise = generate_noise(self.T, self.dU, self._hyperparams)
         if np.any(self._hyperparams['x0var'][condition] > 0):
             x0n = self._hyperparams['x0var'] * \
                     np.random.randn(self._hyperparams['x0var'].shape)

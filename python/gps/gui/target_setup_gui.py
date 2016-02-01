@@ -286,10 +286,10 @@ def save_to_npz(filename, key, value):
 def load_pose_from_npz(filename, actuator_name, target_number, data_time):
     ja = load_data_from_npz(filename, actuator_name, target_number, data_time,
                             'ja', default=np.zeros(7))
-    ee_pos = load_data_from_npz(filename, actuator_name, target_number, data_time,
-                                'ee_pos', default=np.zeros(3))
-    ee_rot = load_data_from_npz(filename, actuator_name, target_number, data_time,
-                                'ee_rot', default=np.zeros((3, 3)))
+    ee_pos = load_data_from_npz(filename, actuator_name, target_number,
+                                data_time, 'ee_pos', default=np.zeros(3))
+    ee_rot = load_data_from_npz(filename, actuator_name, target_number,
+                                data_time, 'ee_rot', default=np.zeros((3, 3)))
     return (ja, ee_pos, ee_rot)
 
 
