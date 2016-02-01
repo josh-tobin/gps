@@ -79,7 +79,8 @@ class AlgorithmBADMM(Algorithm):
         else:
             sch = self._hyperparams['ent_reg_schedule']
             self.policy_opt.set_ent_reg(
-                np.interp(t, np.linspace(0, 1, num=len(sch)), np.log(sch))
+                np.exp(np.interp(t, np.linspace(0, 1, num=len(sch)),
+                       np.log(sch)))
             )
         # Perform iteration-based interpolation of Lagrange multiplier.
         if type(self._hyperparams['lg_step_schedule']) in (int, float):

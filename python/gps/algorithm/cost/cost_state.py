@@ -43,7 +43,7 @@ class CostState(Cost):
                 self._hyperparams['ramp_option'], T,
                 wp_final_multiplier=self._hyperparams['wp_final_multiplier']
             )
-            wp *= np.expand_dims(wpm, axis=-1)
+            wp = wp * np.expand_dims(wpm, axis=-1)
             # Compute state penalty.
             dist = x - tgt
 
