@@ -1,13 +1,23 @@
+""" This file defines the image visualizer class. """
+import logging
+import random
+import time
+
 import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 from gps.gui.action_axis import Action, ActionAxis
 
-class ImageVisualizer:
+LOGGER = logging.getLogger(__name__)
+
+
+class ImageVisualizer(object):
     """
-    If rostopic is given to constructor, then this will automatically update with rostopic image.
-    Else, the update method must be manually called.
+    If rostopic is given to constructor, then this will automatically
+    update with rostopic image. Else, the update method must be manually
+    called.
     """
     def __init__(self, hyperparams, fig, gs, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None):
         self._hyperparams = hyperparams
@@ -67,14 +77,17 @@ class ImageVisualizer:
         if rostopic is not None:
             try:
                 import rospy
-                import roslib; roslib.load_manifest('gps_agent_pkg')
+                import roslib
                 from sensor_msgs.msg import Image
 
-                rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1, buff_size=2**24)
+                roslib.load_manifest('gps_agent_pkg')
+                rospy.Subscriber(rostopic, Image, self.update_ros, queue_size=1,
+                                 buff_size=2**24)
             except ImportError as e:
-                print 'rostopic image visualization not enabled', e
+                LOGGER.debug('rostopic image visualization not enabled: %s', e)
 
     def init(self, display_size):
+        """ Initialize images. """
         self._t = 0
         self._display_size = display_size
         display_x, display_y = self._display_size
@@ -82,16 +95,20 @@ class ImageVisualizer:
         self._init = True
 
     def update(self, image):
+        """ Update images. """
         image = np.array(image)
         if self._crop_size:
-            h, w, ch, cw = image.shape[0], image.shape[1], self._crop_size[0], self._crop_size[1]
-            image = image[h/2-ch/2:h/2-ch/2+ch,w/2-cw/2:w/2-cw/2+cw,:]
+            h, w = image.shape[0], image.shape[1]
+            ch, cw = self._crop_size[0], self._crop_size[1]
+            image = image[(h/2-ch/2):(h/2-ch/2+ch), (w/2-cw/2):(w/2-cw/2+cw), :]
 
         if not self._init:
             self.init((image.shape[0], image.shape[1]))
 
-        assert image.shape == (self._display_size[0], self._display_size[1], self._rgb_channels)
-        image = image.reshape((1, self._display_size[0], self._display_size[1], self._rgb_channels))
+        assert image.shape == (self._display_size[0], self._display_size[1],
+                               self._rgb_channels)
+        image = image.reshape((1, self._display_size[0], self._display_size[1],
+                               self._rgb_channels))
 
         self._t += 1
         self._data = np.append(self._data, image, axis=0)
@@ -151,9 +168,6 @@ class ImageVisualizer:
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 if __name__ == "__main__":
-    import time
-    import random
-
     plt.ion()
     fig, ax = plt.subplots()
     visualizer = ImageVisualizer(ax, cropsize=(3, 3))
@@ -163,6 +177,6 @@ if __name__ == "__main__":
         i = random.randint(0, im.shape[0] - 1)
         j = random.randint(0, im.shape[1] - 1)
         k = random.randint(0, im.shape[2] - 1)
-        im[i,j,k] = (im[i,j,k] + random.randint(0, 255)) % 256
+        im[i, j, k] = (im[i, j, k] + random.randint(0, 255)) % 256
         visualizer.update(im)
         time.sleep(5e-3)

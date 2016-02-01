@@ -1,4 +1,6 @@
+""" This file defines a Gaussian mixture model class. """
 import logging
+
 import numpy as np
 import scipy.linalg
 
@@ -7,15 +9,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 def logsum(vec, axis=0, keepdims=True):
+    #TODO: Add a docstring.
     maxv = np.max(vec, axis=axis, keepdims=keepdims)
-    maxv[maxv==-float('inf')] = 0
+    maxv[maxv == -float('inf')] = 0
     return np.log(np.sum(np.exp(vec-maxv), axis=axis, keepdims=keepdims)) + maxv
 
 
 class GMM(object):
-    """
-    Gaussian Mixture Model.
-    """
+    """ Gaussian Mixture Model. """
     def __init__(self, init_sequential=False, eigreg=False, warmstart=True):
         self.init_sequential = init_sequential
         self.eigreg = eigreg
@@ -32,7 +33,7 @@ class GMM(object):
         logwts = self.clusterwts(pts)
 
         # Compute posterior mean and covariance.
-        mu0,Phi = self.moments(logwts)
+        mu0, Phi = self.moments(logwts)
 
         # Set hyperparameters.
         m = self.N
@@ -49,7 +50,8 @@ class GMM(object):
         Args:
             data: A N x D array of points.
         Returns:
-            logobs: A N x K array of log probabilities (for each point on each cluster).
+            logobs: A N x K array of log probabilities (for each point
+                on each cluster).
         """
         # Constants.
         K = self.sigma.shape[0]
@@ -58,7 +60,7 @@ class GMM(object):
 
         # Compute probabilities.
         data = data.T
-        mu = self.mu[:,0:Di].T
+        mu = self.mu[:, 0:Di].T
         mu_expand = np.expand_dims(np.expand_dims(mu, axis=1), axis=1)
         assert mu_expand.shape == (Di, 1, 1, K)
         # Calculate for each point distance to each cluster.
@@ -69,20 +71,24 @@ class GMM(object):
         cconst = np.zeros((1, 1, 1, K))
 
         for i in range(K):
-            U = scipy.linalg.cholesky(self.sigma[i,:Di,:Di], check_finite=False)
-            Pdiff[:,:,0,i] = scipy.linalg.solve_triangular(U,
-                    scipy.linalg.solve_triangular(U.T, diff[:,:,0,i], lower=True,
-                        check_finite=False), check_finite=False)
-            cconst[0,0,0,i] = -np.sum(np.log(np.diag(U))) - 0.5 * Di * np.log(2 * np.pi)
+            U = scipy.linalg.cholesky(self.sigma[i, :Di, :Di],
+                                      check_finite=False)
+            Pdiff[:, :, 0, i] = scipy.linalg.solve_triangular(
+                U, scipy.linalg.solve_triangular(
+                    U.T, diff[:, :, 0, i], lower=True, check_finite=False
+                ), check_finite=False
+            )
+            cconst[0, 0, 0, i] = -np.sum(np.log(np.diag(U))) - 0.5 * Di * \
+                    np.log(2 * np.pi)
 
         logobs = -0.5 * np.sum(diff * Pdiff, axis=0, keepdims=True) + cconst
         assert logobs.shape == (1, N, 1, K)
-        logobs = logobs[0,:,0,:] + self.logmass.T
+        logobs = logobs[0, :, 0, :] + self.logmass.T
         return logobs
 
     def moments(self, logwts):
         """
-        Compute the moments of the cluster mixture with specified weights.
+        Compute the moments of the cluster mixture with logwts.
         Args:
             logwts: A K x 1 array of log cluster probabilities.
         Returns:
@@ -93,13 +99,14 @@ class GMM(object):
         wts = np.exp(logwts)
 
         # Compute overall mean.
-        mu = np.sum(self.mu*wts,axis=0)
+        mu = np.sum(self.mu * wts, axis=0)
 
         # Compute overall covariance.
-        # For some reason this version works way better than the "right" one... could we be
-        # computing xxt wrong?
+        # For some reason this version works way better than the "right"
+        # one... could we be computing xxt wrong?
         diff = self.mu - np.expand_dims(mu, axis=0)
-        diff_expand = np.expand_dims(diff, axis=1) * np.expand_dims(diff, axis=2)
+        diff_expand = np.expand_dims(diff, axis=1) * \
+                np.expand_dims(diff, axis=2)
         wts_expand = np.expand_dims(wts, axis=2)
         sigma = np.sum((self.sigma + diff_expand) * wts_expand, axis=0)
         return mu, sigma
@@ -135,7 +142,8 @@ class GMM(object):
 
         LOGGER.debug('Fitting GMM with %d clusters on %d points', K, N)
 
-        if (not self.warmstart) or (self.sigma is None) or (K != self.sigma.shape[0]):
+        if (not self.warmstart or self.sigma is None or
+                K != self.sigma.shape[0]):
             # Initialization.
             LOGGER.debug('Initializing GMM.')
             self.sigma = np.zeros((K, Do, Do))
@@ -154,11 +162,11 @@ class GMM(object):
             # Initialize.
             for i in range(K):
                 cluster_idx = (cidx == i)[0]
-                mu = np.mean(data[cluster_idx,:], axis=0)
-                diff = (data[cluster_idx,:] - mu).T
+                mu = np.mean(data[cluster_idx, :], axis=0)
+                diff = (data[cluster_idx, :] - mu).T
                 sigma = (1.0 / K) * (diff.dot(diff.T))
-                self.mu[i,:] = mu
-                self.sigma[i,:,:] = sigma + np.eye(Do) * 2e-6
+                self.mu[i, :] = mu
+                self.sigma[i, :, :] = sigma + np.eye(Do) * 2e-6
 
         prevll = -float('inf')
         for itr in range(max_iterations):
@@ -167,19 +175,20 @@ class GMM(object):
 
             # Compute log-likelihood.
             ll = np.sum(logsum(logobs, axis=1))
-            LOGGER.debug('GMM itr %d/%d. Log likelihood: %f', itr, max_iterations, ll)
+            LOGGER.debug('GMM itr %d/%d. Log likelihood: %f',
+                         itr, max_iterations, ll)
             if np.abs(ll-prevll) < 1e-2:
-                LOGGER.debug('GMM convergenced on itr=%d/%d', itr, max_iterations)
+                LOGGER.debug('GMM convergenced on itr=%d/%d',
+                             itr, max_iterations)
                 break
             prevll = ll
 
             # Renormalize to get cluster weights.
             logw = logobs - logsum(logobs, axis=1)
             assert logw.shape == (N, K)
-            wc = np.exp(logw)
 
             # Renormalize again to get weights for refitting clusters.
-            logwn = logw-logsum(logw,axis=0)
+            logwn = logw - logsum(logw, axis=0)
             assert logwn.shape == (N, K)
             w = np.exp(logwn)
 
@@ -190,7 +199,7 @@ class GMM(object):
             assert self.logmass.shape == (K, 1)
             self.mass = np.exp(self.logmass)
             # Reboot small clusters.
-            w[:,(self.mass < (1.0/K)*1e-4)[:,0]] = 1.0 / N
+            w[:, (self.mass < (1.0 / K) * 1e-4)[:, 0]] = 1.0 / N
             # Fit cluster means.
             w_expand = np.expand_dims(w, axis=2)
             data_expand = np.expand_dims(data, axis=1)
@@ -200,11 +209,13 @@ class GMM(object):
             assert wdata.shape == (N, K, Do)
             for i in range(K):
                 # Compute weighted outer product.
-                XX = wdata[:,i,:].T.dot(wdata[:,i,:])
-                self.sigma[i,:,:] = XX - np.outer(self.mu[i,:], self.mu[i,:])
+                XX = wdata[:, i, :].T.dot(wdata[:, i, :])
+                mu = self.mu[i, :]
+                self.sigma[i, :, :] = XX - np.outer(mu, mu)
 
                 if self.eigreg:  # Use eigenvalue regularization.
                     raise NotImplementedError()
                 else:  # Use quick and dirty regularization.
-                    self.sigma[i,:,:] = 0.5 * (self.sigma[i,:,:] + self.sigma[i,:,:].T) + \
+                    sigma = self.sigma[i, :, :]
+                    self.sigma[i, :, :] = 0.5 * (sigma + sigma.T) + \
                             1e-6 * np.eye(Do)

@@ -1,16 +1,16 @@
+""" This file defines the torque (action) cost. """
 import copy
+
 import numpy as np
 
-from gps.algorithm.cost.config import cost_torque
+from gps.algorithm.cost.config import COST_TORQUE
 from gps.algorithm.cost.cost import Cost
 
 
 class CostTorque(Cost):
-    """
-    Computes torque penalties.
-    """
+    """ Computes torque penalties. """
     def __init__(self, hyperparams):
-        config = copy.deepcopy(cost_torque)
+        config = copy.deepcopy(COST_TORQUE)
         config.update(hyperparams)
         Cost.__init__(self, config)
 

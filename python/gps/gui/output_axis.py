@@ -1,3 +1,6 @@
+""" This file defines the output axis. """
+import time
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import ColorConverter
@@ -17,7 +20,7 @@ class OutputAxis:
         self._max_display_size = max_display_size
         self._bgcolor = bgcolor
         self._bgalpha = bgalpha
-        
+
         self.cc = ColorConverter()
         self._ax.set_xticks([])
         self._ax.set_yticks([])
@@ -29,6 +32,7 @@ class OutputAxis:
 
         self.draw()
 
+    #TODO: Add docstrings here.
     def set_text(self, text):
         self._text_arr = [text]
         self.log_text(text)
@@ -58,8 +62,6 @@ class OutputAxis:
 
 
 if __name__ == "__main__":
-    import time
-
     plt.ion()
 
     axis = plt.gca()

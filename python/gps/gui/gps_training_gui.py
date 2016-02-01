@@ -1,5 +1,21 @@
+"""
+~~~ GUI Specifications ~~~
+Action Axis
+    - stop, reset, start, emergency stop
+
+Data Plotter
+    - algorithm training costs
+    - losses of feature points / end effector points
+    - joint states, feature point states, etc.
+    - save tracked data to file
+
+Image Visualizer
+    - real-time image and feature points visualization
+    - overlay of initial and target feature points
+    - visualize hidden states?
+    - create movie from image visualizations
+"""
 import copy
-import itertools
 import time
 
 import numpy as np
@@ -19,24 +35,8 @@ from gps.gui.image_visualizer import ImageVisualizer
 from gps.gui.target_setup_gui import load_data_from_npz
 from gps.proto.gps_pb2 import END_EFFECTOR_POINTS
 
-# ~~~ GUI Specifications ~~~
-# Action Axis
-#     - stop, reset, start, emergency stop
-
-# Data Plotter
-#     - algorithm training costs
-#     - losses of feature points / end effector points
-#     - joint states, feature point states, etc.
-#     - save tracked data to file
-
-# Image Visualizer
-#     - real-time image and feature points visualization
-#     - overlay of initial and target feature points
-#     - visualize hidden states?
-#     - create movie from image visualizations
-
-
-class GPSTrainingGUI:
+class GPSTrainingGUI(object):
+    """ GPS Training GUI class. """
     def __init__(self, hyperparams):
         self._hyperparams = copy.deepcopy(common_config)
         self._hyperparams.update(copy.deepcopy(gps_training_config))
@@ -46,8 +46,8 @@ class GPSTrainingGUI:
         self._target_filename = self._hyperparams['target_filename']
 
         # GPS Training Status.
-        self.mode = 'run'       # Valid modes: run, wait, end, request, process.
-        self.request = None     # Valid requests: stop, reset, go, fail, None.
+        self.mode = 'run'  # Modes: run, wait, end, request, process.
+        self.request = None  # Requests: stop, reset, go, fail, None.
         self.err_msg = None
         self._colors = {
             'run': 'cyan',
@@ -63,10 +63,10 @@ class GPSTrainingGUI:
 
         # Actions.
         actions_arr = [
-            Action('stop',  'stop',  self.request_stop,  axis_pos=0),
+            Action('stop', 'stop', self.request_stop, axis_pos=0),
             Action('reset', 'reset', self.request_reset, axis_pos=1),
-            Action('go',    'go',    self.request_go,    axis_pos=2),
-            Action('fail',  'fail',  self.request_fail,  axis_pos=3),
+            Action('go', 'go', self.request_go, axis_pos=2),
+            Action('fail', 'fail', self.request_fail, axis_pos=3),
         ]
         self._actions = {action._key: action for action in actions_arr}
         for key, action in self._actions.iteritems():
@@ -78,7 +78,8 @@ class GPSTrainingGUI:
         # GUI Components.
         plt.ion()
         plt.rcParams['toolbar'] = 'None'
-        plt.rcParams['keymap.save'] = ''  # Remove 's' keyboard shortcut for saving.
+        # Remove 's' keyboard shortcut for saving.
+        plt.rcParams['keymap.save'] = ''
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
@@ -111,10 +112,12 @@ class GPSTrainingGUI:
         # Setup GUI components.
         for line in self._hyperparams['info'].split('\n'):
             self.append_output_text(line)
+
         self.run_mode()
         self._fig.canvas.draw()
 
     # GPS Training Functions.
+    #TODO: Docstrings here.
     def request_stop(self, event=None):
         self.request_mode('stop')
 
@@ -138,7 +141,8 @@ class GPSTrainingGUI:
         self.set_action_text(self.request + ' processed')
         self.set_action_bgcolor(self._colors[self.request], alpha=1.0)
         if self.err_msg:
-            self.set_action_text(self.request + ' processed' + '\nERROR: ' + self.err_msg)
+            self.set_action_text(self.request + ' processed' + '\nERROR: ' +
+                                 self.err_msg)
             self.err_msg = None
             time.sleep(1.0)
         else:
