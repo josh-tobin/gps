@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "mujoco_osg_viewer.hpp"
 #include <string>
 #include "mj_engine.h"

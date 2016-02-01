@@ -30,5 +30,4 @@ find_package(Numpy)
 include(${CMAKE_SOURCE_DIR}/cmake/boost-python.cmake)
 
 add_subdirectory(Boost.NumPy)
-add_subdirectory(mjc)
-add_subdirectory(mjcpy)
+add_subdirectory(mjcpy2)
