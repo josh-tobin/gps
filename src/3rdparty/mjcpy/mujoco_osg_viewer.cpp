@@ -1,8 +1,9 @@
 #include "assert.h"
 #include "mujoco_osg_viewer.hpp"
 #include <string>
-#include <cstring>
-#include "mujoco.h"
+#include "mj_engine.h"
+#include "mj_user.h"
+#include "mj_xml.h"
 #include "unistd.h"
 #include <iostream>
 #include <osg/io_utils>
@@ -274,7 +275,7 @@ osg::Node* createOSGNode(const mjModel* model, int i_geom) {
 
 
 MujocoOSGViewer::MujocoOSGViewer() 
-: m_data(NULL), m_model(NULL)
+: m_option(NULL), m_data(NULL), m_model(NULL)
 {
     m_root = new osg::Group;
     m_robot = new osg::Group;
@@ -294,7 +295,7 @@ MujocoOSGViewer::MujocoOSGViewer()
 void MujocoOSGViewer::Idle() {    
     EventHandler* handler = dynamic_cast<EventHandler*>(m_handler.get());
     handler->m_idling = true;
-    mj_kinematics(m_model, m_data);
+    mj_kinematics(m_model, m_option, m_data);    
     _UpdateTransforms();
     while (handler->m_idling && !m_viewer.done()) {
         m_viewer.frame();
@@ -303,7 +304,7 @@ void MujocoOSGViewer::Idle() {
 }
 
 void MujocoOSGViewer::RenderOnce() {
-    mj_kinematics(m_model,m_data);
+    mj_kinematics(m_model,m_option,m_data);    
     _UpdateTransforms();
     m_viewer.frame();
 }
@@ -346,8 +347,10 @@ void MujocoOSGViewer::StopAsyncRendering() {
 
 void MujocoOSGViewer::SetModel(const mjModel* m) {
     m_model = m;
+    if (m_option!=NULL) mj_deleteOption(m_option);
+    m_option = mj_makeOption();
     if (m_data!=NULL) mj_deleteData(m_data);
-    m_data = mj_makeData(m_model);
+    m_data = mj_makeData(m_model,m_option);
 
     m_geomTFs.clear();
     for (int i=0; i < m->ngeom; ++i) {
@@ -390,11 +393,21 @@ void MujocoOSGViewer::SetData(const mjData* d) {
 }
 
 
-void NewModelFromXML(const char* filename,mjModel*& model) {
+void NewModelFromXML(const char* filename,mjModel*& model, mjOption*& option) {
     char errmsg[100];
-    model = mj_loadXML(filename, errmsg);
-    if( !model ) {
+    mjCModel* usermodel = mjParseXML(filename, errmsg);
+    if( !usermodel ) {
         printf("%s\n",errmsg);
     }
+    else {
+        model = usermodel->Compile();
+        if( !model ) {
+            strcpy(errmsg, usermodel->GetError().message);
+            printf("%s\n",errmsg);
+        }
+        option = mj_makeOption();
+        *option = usermodel->option;
+        delete usermodel;
+    }   
 }
 

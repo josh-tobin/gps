@@ -1,10 +1,18 @@
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/Boost.NumPy")
 
+set(MJCSDK "${CMAKE_SOURCE_DIR}/mjc/SDK")
+
 include_directories(SYSTEM 
-    "${CMAKE_SOURCE_DIR}/mjpro"
+    "${CMAKE_SOURCE_DIR}/mjc/Source" 
+    "${CMAKE_SOURCE_DIR}/mjc/Include" 
+    "${CMAKE_SOURCE_DIR}/mjc/Extensions/Include" 
+    "${CMAKE_SOURCE_DIR}/mjc/Extensions/Source" 
+    "${MJCSDK}/ccd"
+    "${MJCSDK}/qhull"
+    "${MJCSDK}/TinyXML"	
 )
-# boost_python_module(mjcpy2 mjcpy2.cpp mjosgviewer.cpp)
+# boost_python_module(mjcpy mjcpy.cpp mjosgviewer.cpp)
 # target_link_libraries(mjcpy mjc boost_numpy)
 
 add_definitions("-DmjUSEDOUBLE")
@@ -45,5 +53,5 @@ message("osg includes: ${OSG_INCLUDE_DIR}")
 
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/Boost.NumPy")
-boost_python_module(mjcpy mjcpy2.cpp  mujoco_osg_viewer.cpp)
-target_link_libraries(mjcpy "${CMAKE_SOURCE_DIR}/mjpro/libmujoco.so" ${OSG_LIBRARIES} boost_numpy)
+boost_python_module(mjcpy mjcpy.cpp  mujoco_osg_viewer.cpp)
+target_link_libraries(mjcpy mujoco ${OSG_LIBRARIES} boost_numpy)

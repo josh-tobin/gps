@@ -1,8 +1,8 @@
 import re
-from control4.config import CTRL_ROOT
 import os.path as osp
 
-fname = osp.join(CTRL_ROOT, "cpp/3rdparty/mjc2/source/engine/engine_typedef.h")
+# fname = "../mjpro/mjmodel.h"
+fname = "../mjpro/mjdata.h"
 with open(fname,"r") as fh:
     all_lines = fh.readlines()
 
@@ -84,16 +84,15 @@ def process(in_lines,structname):
 
 
 
-with open(osp.join(CTRL_ROOT,"cpp/src/mjcpy2/mjcpy2_getmodel_autogen.i"),"w") as outfile:
-    get_lines, set_lines = process(find_lines_between(all_lines, "_mjModel","}"),"m_model")
-    outfile.write("\n".join(get_lines))
-with open(osp.join(CTRL_ROOT,"cpp/src/mjcpy2/mjcpy2_getoption_autogen.i"),"w") as outfile:
-    get_lines, set_lines = process(find_lines_between(all_lines, "_mjOption","}"),"m_option")
-    outfile.write("\n".join(get_lines))
-with open(osp.join(CTRL_ROOT,"cpp/src/mjcpy2/mjcpy2_setoption_autogen.i"), "w") as outfile:
-    get_lines, set_lines = process(find_lines_between(all_lines, "_mjOption","}"),"m_option")
-    outfile.write("\n".join(set_lines))
-with open(osp.join(CTRL_ROOT,"cpp/src/mjcpy2/mjcpy2_getdata_autogen.i"),"w") as outfile:
+# with open("mjcpy2_getmodel_autogen.i","w") as outfile:
+#     get_lines, set_lines = process(find_lines_between(all_lines, "_mjModel","}"),"m_model")
+#     outfile.write("\n".join(get_lines))
+# with open("mjcpy2_setmodel_autogen.i","w") as outfile:
+#     get_lines, set_lines = process(find_lines_between(all_lines, "_mjModel","}"),"m_model")
+#     outfile.write("\n".join(set_lines))
+with open("mjcpy2_getdata_autogen.i","w") as outfile:
     get_lines, set_lines = process(find_lines_between(all_lines, "_mjData","}"),"m_data")
     outfile.write("\n".join(get_lines))
-
+with open("mjcpy2_setdata_autogen.i","w") as outfile:
+    get_lines, set_lines = process(find_lines_between(all_lines, "_mjData","}"),"m_data")
+    outfile.write("\n".join(set_lines))

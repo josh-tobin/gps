@@ -1,6 +1,5 @@
     out["timestep"] = m_option->timestep;
     out["gravity"] = toNdarray1<mjtNum>(m_option->gravity, 3);
-    out["wind"] = toNdarray1<mjtNum>(m_option->wind, 3);
     out["density"] = m_option->density;
     out["viscosity"] = m_option->viscosity;
     out["expdist"] = m_option->expdist;
@@ -20,4 +19,5 @@
     out["eqsoft"] = m_option->eqsoft;
     out["fastdiag"] = m_option->fastdiag;
     out["remotecontact"] = m_option->remotecontact;
+    out["fwdinv"] = m_option->fwdinv;
     out["stats"] = m_option->stats;

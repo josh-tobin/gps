@@ -1,6 +1,5 @@
     _csdihk(d, "timestep", m_option->timestep);
     _cadihk(d, "gravity", m_option->gravity);
-    _cadihk(d, "wind", m_option->wind);
     _csdihk(d, "density", m_option->density);
     _csdihk(d, "viscosity", m_option->viscosity);
     _csdihk(d, "expdist", m_option->expdist);
@@ -20,4 +19,5 @@
     _csdihk(d, "eqsoft", m_option->eqsoft);
     _csdihk(d, "fastdiag", m_option->fastdiag);
     _csdihk(d, "remotecontact", m_option->remotecontact);
+    _csdihk(d, "fwdinv", m_option->fwdinv);
     _csdihk(d, "stats", m_option->stats);
