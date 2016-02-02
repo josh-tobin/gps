@@ -144,7 +144,7 @@ class ImageVisualizer(object):
             self._overlay_plot_initial.set_array(self._initial_image)
             self._overlay_plot_initial.set_alpha(self._initial_alpha)
         else:
-            self._overlay_plot_initial.set_array(np.zerps((1,1,3)))
+            self._overlay_plot_initial.set_array(np.zeros((1,1,3)))
             self._overlay_plot_initial.set_alpha(0.0)
         self.draw()
 

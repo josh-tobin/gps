@@ -123,10 +123,10 @@ class TargetSetupGUI(object):
                 ps3_topic=self._hyperparams['ps3_topic'],
                 ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
-        self._target_output = OutputAxis(self._fig, self._gs_target_outputs,
+        self._target_output = OutputAxis(self._fig, self._gs_target_output,
                 log_filename=self._log_filename)
-        self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
-        self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
+        self._initial_image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_initial_image_visualizer)
+        self._target_image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_target_image_visualizer)
         self._action_output = OutputAxis(self._fig, self._gs_action_output)
         self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'])
@@ -249,8 +249,8 @@ class TargetSetupGUI(object):
         )
         self._target_output.set_text(text)
 
-        self._initial_image_visualizer.overlay_image(self._initial_image, alpha=1.0)
-        self._target_image_visualizer.overlay_image(self._target_image, alpha=1.0)
+        self._initial_image_visualizer.update(self._initial_image)
+        self._target_image_visualizer.update(self._target_image)
         self._image_visualizer.set_initial_image(self._initial_image, alpha=0.2)
         self._image_visualizer.set_target_image(self._target_image, alpha=0.2)
 
@@ -265,6 +265,7 @@ class TargetSetupGUI(object):
         self._initial_image    = load_data_from_npz(self._target_filename, self._actuator_name,
                 str(self._target_number), 'initial', 'image', default=None)
         self._target_image     = load_data_from_npz(self._target_filename, self._actuator_name,
+                str(self._target_number), 'target',  'image', default=None)
 
 
 def save_pose_to_npz(filename, actuator_name, target_number, data_time, values):

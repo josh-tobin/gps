@@ -184,7 +184,7 @@ config = {
     'common': common,
     'verbose_trials': 0,
     'agent': agent,
-    'gui': True,
+    'gui_on': True,
     'algorithm': algorithm,
     'num_samples': 5,
 }
