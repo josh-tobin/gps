@@ -107,7 +107,7 @@ class GPSTrainingGUI(object):
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
         self._traj_visualizer = ThreeDPlotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
         self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
-                cropsize=(240, 240), rostopic=self._hyperparams['image_topic'])
+                cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
         for line in self._hyperparams['info'].split('\n'):
@@ -192,8 +192,8 @@ class GPSTrainingGUI(object):
                 'initial', 'image', default=np.zeros((1,1,3)))
         target_image  = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
                 'target',  'image', default=np.zeros((1,1,3)))
-        self._image_visualizer.set_initial_image(initial_image, alpha=0.2)
-        self._image_visualizer.set_target_image(target_image, alpha=0.2)
+        self._image_visualizer.set_initial_image(initial_image, alpha=0.3)
+        self._image_visualizer.set_target_image(target_image, alpha=0.3)
         
     def update(self, itr, algorithm, traj_sample_lists, pol_sample_lists):
         # Plot Costs

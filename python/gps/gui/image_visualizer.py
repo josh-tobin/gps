@@ -19,7 +19,8 @@ class ImageVisualizer(object):
     update with rostopic image. Else, the update method must be manually
     called.
     """
-    def __init__(self, hyperparams, fig, gs, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None):
+    def __init__(self, hyperparams, fig, gs, imagesize=None, cropsize=None, rgb_channels=3, rostopic=None,
+            show_overlay_buttons=False):
         self._hyperparams = hyperparams
 
         # Real-time image
@@ -59,11 +60,12 @@ class ImageVisualizer(object):
         self._gs_action_axis = self._gs[0:1, 0]
         self._gs_image_axis  = self._gs[1:8, 0]
 
-        self._action_axis = ActionAxis(self._fig, self._gs_action_axis, 1, 2, self._actions,
-                ps3_process_rate=self._hyperparams['ps3_process_rate'],
-                ps3_topic=self._hyperparams['ps3_topic'],
-                ps3_button=self._hyperparams['ps3_button'],
-                inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
+        if show_overlay_buttons:
+            self._action_axis = ActionAxis(self._fig, self._gs_action_axis, 1, 2, self._actions,
+                    ps3_process_rate=self._hyperparams['ps3_process_rate'],
+                    ps3_topic=self._hyperparams['ps3_topic'],
+                    ps3_button=self._hyperparams['ps3_button'],
+                    inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
         
         self._ax_image = plt.subplot(self._gs_image_axis)
         self._ax_image.set_axis_off()
@@ -130,13 +132,13 @@ class ImageVisualizer(object):
             return None
         return self._data[-1]
 
-    def set_initial_image(self, image, alpha=0.2):
+    def set_initial_image(self, image, alpha=0.3):
         self._initial_image = image
         self._initial_alpha = alpha
 
-    def set_target_image(self, image, alpha=0.2):
+    def set_target_image(self, image, alpha=0.3):
         self._target_image = image
-        self._target_alpha = 0.2
+        self._target_alpha = alpha
 
     def toggle_initial_image_overlay(self, event=None):
         self._initial_image_overlay_on = not self._initial_image_overlay_on
