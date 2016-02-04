@@ -32,6 +32,7 @@ class ImageVisualizer(object):
 
         if rostopic is not None:
             try:
+                import rospkg
                 import rospy
                 import roslib
                 from sensor_msgs.msg import Image
@@ -41,6 +42,8 @@ class ImageVisualizer(object):
                                  buff_size=2**24)
             except ImportError as e:
                 LOGGER.debug('rostopic image visualization not enabled: %s', e)
+            except rospkg.common.ResourceNotFound as e:
+                LOGGER.debug('No gps_agent_pkg: %s', e)
 
     def init(self, display_size):
         """ Initialize images. """
