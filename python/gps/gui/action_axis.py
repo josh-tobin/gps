@@ -38,6 +38,8 @@ class ActionAxis(object):
             ros_enabled = True
         except ImportError as e:
             LOGGER.debug('PS3 not enabled: %s', e)
+        except rospkg.common.ResourceNotFound as e:
+            LOGGER.debug('No gps_agent_pkg: %s', e)
 
         # Mouse Input.
         self._buttons = {}
