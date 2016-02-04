@@ -10,7 +10,6 @@ import argparse
 import threading
 import time
 
-from gps.gui.target_setup_gui import TargetSetupGUI
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
 
@@ -205,6 +204,7 @@ def main():
         try:
             import matplotlib.pyplot as plt
             from gps.agent.ros.agent_ros import AgentROS
+            from gps.gui.target_setup_gui import TargetSetupGUI
 
             agent = AgentROS(hyperparams.config['agent'])
             TargetSetupGUI(hyperparams.config['common'], agent)
