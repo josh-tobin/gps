@@ -30,6 +30,7 @@ class ActionAxis(object):
         # Try to import ROS.
         ros_enabled = False
         try:
+            import rospkg
             import rospy
             import roslib
             from sensor_msgs.msg import Joy
