@@ -49,7 +49,12 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
 
 1. [Install Mujoco](https://www.roboti.us/) and place the downloaded `mjpro` directory into `$GPS_PATH/src/3rdparty`. Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjpro` directory.
 
-2. Build `$GPS_PATH/src/3rdparty`. Run `cd $GPS_PATH && mkdir build && cd build`, then `cmake ../src/3rdparty`, then `make -j`.
+2. Build `$GPS_PATH/src/3rdparty`. Run:
+    ```sh
+    cd $GPS_PATH && mkdir build && cd build
+    cmake ../src/3rdparty
+    make -j
+    ```
 
 3. Set up paths:
     ```sh
