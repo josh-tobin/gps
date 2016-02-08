@@ -1,12 +1,13 @@
 from __future__ import division
 
+from math import pi 
 from datetime import datetime
 import numpy as np
 import os.path
 
 from gps import __file__ as gps_filepath
 from gps.agent.box2d.agent_box2d import AgentBox2D
-from gps.agent.box2d.crawler_world.py import CrawlerWorld
+from gps.agent.box2d.arm_world import ArmWorld
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
@@ -20,6 +21,7 @@ from gps.proto.gps_pb2 import *
 SENSOR_DIMS = {
     POSITION: 2,
     JOINT_ANGLES: 1,
+    JOINT_VELOCITIES: 1,
     ACTION: 1
 }
 
@@ -37,9 +39,9 @@ if not os.path.exists(common['output_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    'target_state' : np.array([10]),
-    "world" : ArmWorld
-    'x0': np.array([0]),
+    'target_state' : np.array([.5*pi]),
+    "world" : ArmWorld,
+    'x0': np.array([0, 1, 0, 0]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 1, #5,
@@ -49,7 +51,7 @@ agent = {
     'pos_body_offset': np.array([]), #[np.array([0, 0.2, 0]), np.array([0, 0.1, 0]), np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [POSITION, JOINT_ANGLES],
+    'state_include': [POSITION, JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
 }
 
@@ -78,8 +80,8 @@ torque_cost = {
 state_cost = {
     'type': CostState,
     'data_types' : {
-        POSITION: {
-            'wp': np.ones(SENSOR_DIMS[POSITION]),
+        JOINT_ANGLES: {
+            'wp': np.ones(SENSOR_DIMS[JOINT_ANGLES]),
             'target_state': agent["target_state"],
         },
     },
@@ -87,8 +89,8 @@ state_cost = {
 
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
-    'weights': [0.0, 1.0],
+    'costs': [state_cost],
+    'weights': [1.0],
 }
 
 algorithm['dynamics'] = {

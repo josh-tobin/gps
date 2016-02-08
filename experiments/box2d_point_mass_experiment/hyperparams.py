@@ -6,7 +6,7 @@ import os.path
 
 from gps import __file__ as gps_filepath
 from gps.agent.box2d.agent_box2d import AgentBox2D
-from gps.agent.box2d.point_mass_world.py import PointMassWorld
+from gps.agent.box2d.point_mass_world import PointMassWorld
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_torque import CostTorque
@@ -38,7 +38,7 @@ if not os.path.exists(common['output_files_dir']):
 agent = {
     'type': AgentBox2D,
     'target_state' : np.array([5, 20]),
-    "world" : PointMassWorld
+    "world" : PointMassWorld,
     'x0': np.array([0, 5, 0, 0]),
     'rk': 0,
     'dt': 0.05,

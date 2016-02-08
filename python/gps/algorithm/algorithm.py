@@ -92,6 +92,7 @@ class Algorithm(object):
             cc[n, :] = l
             cs[n, :] = l
             # Assemble matrix and vector.
+            print(dX, dU, cv.shape, np.c_[lx, lu].shape, lx.shape, lu.shape)
             cv[n, :, :] = np.c_[lx, lu]  # T x (X+U)
             Cm[n, :, :, :] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
 
