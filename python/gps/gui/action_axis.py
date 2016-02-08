@@ -38,6 +38,7 @@ class ActionAxis:
         self._gs = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=gs)
         self._axarr = [plt.subplot(self._gs[i]) for i in range(len(actions))]
         self._actions = actions
+        self.inverted_ps3_button = inverted_ps3_button
 
         # Try to import ROS.
         ros_enabled = False
@@ -115,7 +116,7 @@ class ActionAxis:
                     (buttons_pressed[0] == self._ps3_button['rear_right_1'] or
                     buttons_pressed[0] == self._ps3_button['rear_right_2']))):
                 LOGGER.debug('Unrecognized ps3 controller input:\n%s',
-                        str([inverted_ps3_button[b] for b in buttons_pressed]))
+                        str([self.inverted_ps3_button[b] for b in buttons_pressed]))
 
 if __name__ == "__main__":
     number = 0

@@ -199,7 +199,7 @@ class TargetSetupGUI(object):
         self.set_action_text('set_target_position: success')
 
     def set_initial_image(self, event=None):
-        self._initial_image = self._visualizer.get_current_image()
+        self._initial_image = self._image_visualizer.get_current_image()
         if self._initial_image is None:
             self.set_action_text('set_initial_image: failure (no image available)')
             return
@@ -210,7 +210,7 @@ class TargetSetupGUI(object):
         self.set_action_text('set_initial_image: success')
 
     def set_target_image(self, event=None):
-        self._target_image = self._visualizer.get_current_image()
+        self._target_image = self._image_visualizer.get_current_image()
         if self._target_image is None:
             self.set_action_text('set_target_image: failure (no image available)')
             return
@@ -263,9 +263,9 @@ class TargetSetupGUI(object):
         self._target_position  = load_pose_from_npz(self._target_filename, self._actuator_name,
                 str(self._target_number), 'target')
         self._initial_image    = load_data_from_npz(self._target_filename, self._actuator_name,
-                str(self._target_number), 'initial', 'image', default=None)
+                str(self._target_number), 'initial', 'image', default=np.zeros((1,1,3)))
         self._target_image     = load_data_from_npz(self._target_filename, self._actuator_name,
-                str(self._target_number), 'target',  'image', default=None)
+                str(self._target_number), 'target',  'image', default=np.zeros((1,1,3)))
 
 
 def save_pose_to_npz(filename, actuator_name, target_number, data_time, values):
