@@ -19,10 +19,9 @@ from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
 
 SENSOR_DIMS = {
-    POSITION: 2,
-    JOINT_ANGLES: 1,
-    JOINT_VELOCITIES: 1,
-    ACTION: 1
+    JOINT_ANGLES: 2,
+    JOINT_VELOCITIES: 2,
+    ACTION: 2
 }
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
@@ -39,9 +38,9 @@ if not os.path.exists(common['output_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    'target_state' : np.array([.5*pi]),
+    'target_state' : np.array([1.75*pi, 1.5*pi]),
     "world" : ArmWorld,
-    'x0': np.array([0, 1, 0, 0]),
+    'x0': np.array([0, 0, 0, 0]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 1, #5,
@@ -51,7 +50,7 @@ agent = {
     'pos_body_offset': np.array([]), #[np.array([0, 0.2, 0]), np.array([0, 0.1, 0]), np.array([0, -0.1, 0]), np.array([0, -0.2, 0])],
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
-    'state_include': [POSITION, JOINT_ANGLES, JOINT_VELOCITIES],
+    'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
     'obs_include': [],
 }
 
@@ -67,7 +66,7 @@ algorithm['init_traj_distr'] = {
             'init_var': 5.0,
             'init_stiffness': 0.0,
         },
-        'x0': agent['x0'][:SENSOR_DIMS[POSITION]],
+        'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
         'T': agent['T'],
     }
 }
@@ -89,8 +88,8 @@ state_cost = {
 
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [state_cost],
-    'weights': [1.0],
+    'costs': [torque_cost, state_cost],
+    'weights': [0.25, 1.0],
 }
 
 algorithm['dynamics'] = {
