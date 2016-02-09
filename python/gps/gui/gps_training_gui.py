@@ -206,6 +206,7 @@ class GPSTrainingGUI(object):
         self._cost_plotter.update(costs)
 
         # Print Costs
+        
         if self._first_update:
             self.set_output_text(self._hyperparams['experiment_name'])
             self.append_output_text('itr | cost')
@@ -214,7 +215,7 @@ class GPSTrainingGUI(object):
         # self.algorithm.prev[m].pol_info.prev_kl (BADMM)
         # self.algorithm.prev[m].step_mult
 
-        # Plot Trajectory Visualizations
+        # Plot 3D Visualizations
         for m in range(algorithm.M):
             # Clear previous plots
             self._traj_visualizer.clear(m)
@@ -222,17 +223,39 @@ class GPSTrainingGUI(object):
             traj_samples = traj_sample_lists[m].get_samples()
             for sample in traj_samples:
                 ee_pt = sample.get(END_EFFECTOR_POINTS)
-                self._traj_visualizer.plot(i=m, xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='green', label='Trajectory Samples')
-            # Plot Linear Gaussian Controllers (Mean/Covariance)
-            # mu, sigma = self.algorithm.traj_opt.forward(self.algorithm.prev[m].traj_dist, self.algorithm.prev[m].traj_info)
-            # look at update draw for plotting
-            # Plots Policy Samples
+                self.plot_3d_points(m, ee_pt, color='green', label='Trajectory Samples')
+            
+            # Plot Policy Samples
             if pol_sample_lists is not None:
                 pol_samples = pol_sample_lists[m].get_samples()
                 for sample in pol_samples:
                     ee_pt = sample.get(END_EFFECTOR_POINTS)
-                    self._traj_visualizer.plot(i=m, xs=ee_pt[:,0], ys=ee_pt[:,1], zs=ee_pt[:,2], color='blue', label='Policy Samples')
+                    self.plot_3d_points(m, ee_pt, color='blue', label='Policy Samples')
+            
+            # Plot Linear Gaussian Controllers (Mean/Covariance)
+            mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
+            # TODO: gracefully extract mu and sigma for end effector points
+            mu_eept, sigma_eept = mu[:, 21:27], sigma[:, 21:27] # THIS IS HARDCODED FOR MJC_EXAMPLES
+            self.plot_3d_points(m, mu_eept, color='red', label='LQG Controllers')
+            # look at update draw for plotting
+            
             # Draw new plots
             self._traj_visualizer.draw()
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
+
+    def plot_3d_points(self, m, points, color, label):
+        """
+        Plots a (T x (3n)) array of points in 3D, where n is an integer.
+        """
+        n = points.shape[1]/3
+        for i in range(n):
+            self._traj_visualizer.plot(
+                i=m,
+                xs=points[:,3*i+0],
+                ys=points[:,3*i+1],
+                zs=points[:,3*i+2],
+                color=color,
+                label=label
+            )
+
