@@ -4,10 +4,19 @@ import numpy as np
 import rospy
 
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
-from gps.algorithm.policy.caffe_policy import CaffePolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams, CaffeParams
 from gps.sample.sample import Sample
 from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER, CAFFE_CONTROLLER
+import logging
+
+LOGGER = logging.getLogger(__name__)
+try:
+    from gps.algorithm.policy.caffe_policy import CaffePolicy
+    NO_CAFFE = False
+except ImportError as e:
+    NO_CAFFE = True
+    LOGGER.info("Caffe not imported")
+
 
 
 def msg_to_sample(ros_msg, agent):
@@ -37,12 +46,12 @@ def policy_to_msg(policy, noise):
                 policy.K.reshape(policy.T * policy.dX * policy.dU).tolist()
         msg.lingauss.k_t = \
                 policy.fold_k(noise).reshape(policy.T * policy.dU).tolist()
-    elif isinstance(policy, CaffePolicy):
+    elif NO_CAFFE == False and isinstance(policy, CaffePolicy):
         msg.controller_to_execute = CAFFE_CONTROLLER
         msg.caffe = CaffeParams()
         msg.caffe.net_param = policy.get_net_param()
     else:
-        raise NotImplementedError("Unknown policy object: %s" % policy)
+        raise NotImplementedError("Caffe not imported or Unknown policy object: %s" % policy)
     return msg
 
 

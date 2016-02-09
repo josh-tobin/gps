@@ -63,6 +63,9 @@ for i in xrange(common['conditions']):
     ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'initial'
     )
+    ja_aux, _, _ = load_pose_from_npz(
+        common['target_filename'], 'auxiliary_arm', str(i), 'initial'
+    )
     _, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'target'
     )
@@ -78,6 +81,9 @@ for i in xrange(common['conditions']):
         get_ee_points(EE_POINTS, ee_pos_tgt, ee_rot_tgt).T
     )
 
+    aux_x0 = np.zeros(7)
+    aux_x0[:] = ja_aux
+
     reset_condition = {
         TRIAL_ARM: {
             'mode': JOINT_SPACE,
@@ -85,7 +91,7 @@ for i in xrange(common['conditions']):
         },
         AUXILIARY_ARM: {
             'mode': JOINT_SPACE,
-            'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
+            'data': aux_x0,
         },
     }
 

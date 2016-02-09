@@ -75,9 +75,12 @@ private:
     Eigen::MatrixXd previous_jacobian_;
     // Time from last update when the previous angles were recorded (necessary to compute velocities).
     ros::Time previous_angles_time_;
+
+    // which arm is this EncoderSensor for?
+    gps::ActuatorType actuator_type_;
 public:
     // Constructor.
-    EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin);
+    EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType actuator_type);
     // Destructor.
     virtual ~EncoderSensor();
     // Update the sensor (called every tick).
