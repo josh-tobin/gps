@@ -45,13 +45,21 @@ Follow the following steps to get set up
 
 **Mujoco Setup**
 
-1. Install Mujoco
+In addition to the dependencies listed above, OpenSceneGraph is also needed.
 
-2. Talk to Marvin
+1. [Install Mujoco](https://www.roboti.us/) and place the downloaded `mjpro` directory into `$GPS_PATH/src/3rdparty`. Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjpro` directory.
+
+2. Build `$GPS_PATH/src/3rdparty`. Run:
+    ```sh
+    cd $GPS_PATH && mkdir build && cd build
+    cmake ../src/3rdparty
+    make -j
+    ```
 
 3. Set up paths:
     ```sh
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GPS_PATH/lib:$GPS_PATH/build/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GPS_PATH/build/lib
+    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/build/lib
     ```
 
 

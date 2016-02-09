@@ -1,13 +1,14 @@
-"""
-Default configuration and hyperparameter values for Agent objects.
-"""
+""" Default configuration and hyperparameters for agent objects. """
+import logging
+
 import numpy as np
 
-from gps.proto.gps_pb2 import AUXILIARY_ARM, TRIAL_ARM
+
+LOGGER = logging.getLogger(__name__)
 
 
-""" Agent """
-agent = {
+# Agent
+AGENT = {
     'dH': 0,
     'x0var': 0,
     'noisy_body_idx': np.array([]),
@@ -21,23 +22,28 @@ agent = {
 
 
 try:
-    import roslib
     import rospkg
+
+    import roslib
+
     roslib.load_manifest('gps_agent_pkg')
-    from gps_agent_pkg.msg import PositionCommand
-    """ AgentROS """
-    agent_ros = {
-        #TODO: It might be worth putting this in json/yaml so C++ can read it.
+
+    # AgentROS
+    AGENT_ROS = {
+        #TODO: It might be worth putting this in JSON/yaml format so C++
+        #      can read it.
         'trial_command_topic': 'gps_controller_trial_command',
         'reset_command_topic': 'gps_controller_position_command',
         'relax_command_topic': 'gps_controller_relax_command',
         'data_request_topic': 'gps_controller_data_request',
         'sample_result_topic': 'gps_controller_report',
-        'trial_timeout': 20,  # Give this many seconds to execute a trial.
-        'reset_conditions': [],  # Defines reset modes + positions for trial and auxiliary arms
+        'trial_timeout': 20,  # Give this many seconds for a trial.
+        'reset_conditions': [],  # Defines reset modes + positions for
+                                 # trial and auxiliary arms.
         'frequency': 20,
         'end_effector_points': np.array([]),
-        #TODO: Actually pass in low gains and high gains and use both for the position controller.
+        #TODO: Actually pass in low gains and high gains and use both
+        #      for the position controller.
         'pid_params': np.array([
             60, 200, 10, 4,
             600, 500, 10, 4,
@@ -49,12 +55,12 @@ try:
         ]),
     }
 except ImportError as e:
-    print 'No ROS enabled', e
+    LOGGER.debug('No ROS enabled: %s', e)
 except rospkg.common.ResourceNotFound as e:
-    print 'No gps_agent_pkg', e
+    LOGGER.debug('No gps_agent_pkg: %s', e)
 
 
-""" AgentMuJoCo """
-agent_mujoco = {
+# AgentMuJoCo
+AGENT_MUJOCO = {
     'substeps': 1,
 }

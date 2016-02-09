@@ -1,9 +1,10 @@
-import rospy
+""" This file defines utilities for the ROS agents. """
 import numpy as np
+
+import rospy
 
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 from gps_agent_pkg.msg import ControllerParams, LinGaussParams, CaffeParams
-from gps.agent.agent_utils import generate_noise
 from gps.sample.sample import Sample
 from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER, CAFFE_CONTROLLER
 import logging
@@ -20,7 +21,7 @@ except ImportError as e:
 
 def msg_to_sample(ros_msg, agent):
     """
-    Convert a SampleResult ROS message into a Sample python object.
+    Convert a SampleResult ROS message into a Sample Python object.
     """
     sample = Sample(agent)
     for sensor in ros_msg.sensor_data:
@@ -41,8 +42,10 @@ def policy_to_msg(policy, noise):
         msg.lingauss = LinGaussParams()
         msg.lingauss.dX = policy.dX
         msg.lingauss.dU = policy.dU
-        msg.lingauss.K_t = policy.K.reshape(policy.T*policy.dX*policy.dU).tolist()
-        msg.lingauss.k_t = policy.fold_k(noise).reshape(policy.T*policy.dU).tolist()
+        msg.lingauss.K_t = \
+                policy.K.reshape(policy.T * policy.dX * policy.dU).tolist()
+        msg.lingauss.k_t = \
+                policy.fold_k(noise).reshape(policy.T * policy.dU).tolist()
     elif NO_CAFFE == False and isinstance(policy, CaffePolicy):
         msg.controller_to_execute = CAFFE_CONTROLLER
         msg.caffe = CaffeParams()
@@ -53,16 +56,15 @@ def policy_to_msg(policy, noise):
 
 
 class TimeoutException(Exception):
-    """
-    Exception thrown on timeouts.
-    """
+    """ Exception thrown on timeouts. """
     def __init__(self, sec_waited):
-        super(TimeoutException, self).__init__("Timed out after %f seconds", sec_waited)
+        Exception.__init__("Timed out after %f seconds", sec_waited)
 
 
 class ServiceEmulator(object):
     """
-    Emulates a ROS service (request-response) from a publisher-subscriber pair.
+    Emulates a ROS service (request-response) from a
+    publisher-subscriber pair.
     Args:
         pub_topic: Publisher topic.
         pub_type: Publisher message type.
@@ -82,19 +84,20 @@ class ServiceEmulator(object):
             self._waiting = False
 
     def publish(self, pub_msg):
-        """
-        Publish a message without waiting for response.
-        """
+        """ Publish a message without waiting for response. """
         self._pub.publish(pub_msg)
 
-    def publish_and_wait(self, pub_msg, timeout=5.0, poll_delay=0.01, check_id=False):
+    def publish_and_wait(self, pub_msg, timeout=5.0, poll_delay=0.01,
+                         check_id=False):
         """
         Publish a message and wait for the response.
         Args:
             pub_msg: Message to publish.
             timeout: Timeout in seconds.
-            poll_delay: Speed of polling for the subscriber message in seconds.
-            check_id: If enabled, will only return messages with a matching id field.
+            poll_delay: Speed of polling for the subscriber message in
+                seconds.
+            check_id: If enabled, will only return messages with a
+                matching id field.
         Returns:
             sub_msg: Subscriber message.
         """

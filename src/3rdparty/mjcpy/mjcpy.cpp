@@ -453,30 +453,30 @@ bn::ndarray _GetContacts(mjData* d) {
 
 bp::dict PyMJCWorld2::GetModel() {
     bp::dict out;
-    #include "mjcpy2_getmodel_autogen.i"
+    #include "mjcpy_getmodel_autogen.i"
     return out;
 }
 void PyMJCWorld2::SetModel(bp::dict d) {
-    #include "mjcpy2_setmodel_autogen.i"
+    #include "mjcpy_setmodel_autogen.i"
 }
 bp::dict PyMJCWorld2::GetOption() {
     bp::dict out;
-    #include "mjcpy2_getoption_autogen.i"
+    #include "mjcpy_getoption_autogen.i"
     return out;
 }
 void PyMJCWorld2::SetOption(bp::dict d) {
-    #include "mjcpy2_setoption_autogen.i"
+    #include "mjcpy_setoption_autogen.i"
 }
 bp::dict PyMJCWorld2::GetData() {
     bp::dict out;
-    #include "mjcpy2_getdata_autogen.i"
+    #include "mjcpy_getdata_autogen.i"
     
     out["contacts"] = _GetContacts(m_data);
 
     return out;
 }
 void PyMJCWorld2::SetData(bp::dict d) {
-    #include "mjcpy2_setdata_autogen.i"
+    #include "mjcpy_setdata_autogen.i"
 }
 
 bn::ndarray PyMJCWorld2::GetContacts(const bn::ndarray& x) {
