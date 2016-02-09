@@ -485,13 +485,11 @@ Sensor *RobotPlugin::get_sensor(SensorType sensor, gps::ActuatorType actuator_ty
     if(actuator_type == gps::TRIAL_ARM)
     {
         assert(sensor < TotalSensorTypes);
-        // TODO: does this need to be a raw pointer?
         return sensors_[sensor].get();
     }
     else if (actuator_type == gps::AUXILIARY_ARM)
     {
         assert((int)sensor < aux_sensors_.size());
-        // TODO: does this need to be a raw pointer?
         return aux_sensors_[sensor].get();
     }
 }
