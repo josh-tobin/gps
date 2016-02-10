@@ -195,7 +195,7 @@ class GPSTrainingGUI(object):
         self._image_visualizer.set_initial_image(initial_image, alpha=0.3)
         self._image_visualizer.set_target_image(target_image, alpha=0.3)
         
-    def update(self, itr, algorithm, traj_sample_lists, pol_sample_lists):
+    def update(self, itr, algorithm, agent, traj_sample_lists, pol_sample_lists):
         # Plot Costs
         if algorithm.M == 1:
             # Update plot with each sample's cost (summed over time).
@@ -247,8 +247,9 @@ class GPSTrainingGUI(object):
             
             # Plot Linear Gaussian Controllers (Mean/Covariance)
             mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
-            # TODO: gracefully extract mu and sigma for end effector points
-            mu_eept, sigma_eept = mu[:, 21:27], sigma[:, 21:27] # THIS IS HARDCODED FOR MJC_EXAMPLES
+            eept_idx = agent.get_idx_x(END_EFFECTOR_POINTS)
+            start, end = eept_idx[0], eept_idx[-1]
+            mu_eept, sigma_eept = mu[:, start:end+1], sigma[:, start:end+1, start:end+1]
             self.plot_3d_points(m, mu_eept, color='red', label='LQG Controllers')
             # look at update draw for plotting
             

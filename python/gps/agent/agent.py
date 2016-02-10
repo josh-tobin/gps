@@ -73,6 +73,22 @@ class Agent(object):
         """ Delete the last sample from the specified condition. """
         self._samples[condition].pop()
 
+    def get_idx_x(self, sensor_name):
+        """
+        Return the indices corresponding to a certain state sensor name.
+        Args:
+            sensor_name: The name of the sensor.
+        """
+        return self._x_data_idx[sensor_name]
+
+    def get_idx_obs(self, sensor_name):
+        """
+        Return the indices corresponding to a certain observation sensor name.
+        Args:
+            sensor_name: The name of the sensor.
+        """
+        return self._obs_data_idx[sensor_name]
+
     def pack_data_obs(self, existing_mat, data_to_insert, data_types,
                       axes=None):
         """
