@@ -85,14 +85,14 @@ class GPSTrainingGUI(object):
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
         
         # Assign GUI component locations.
-        self._gs = gridspec.GridSpec(8, 8)
-        self._gs_action_axis        = self._gs[0:1, 0:8]
-        self._gs_status_output      = self._gs[1:2, 0:4]
-        self._gs_action_output      = self._gs[1:2, 4:8]
-        self._gs_algthm_output      = self._gs[2:4, 0:4]
-        self._gs_cost_plotter       = self._gs[2:4, 4:8]
-        self._gs_traj_visualizer    = self._gs[4:8, 0:4]
-        self._gs_image_visualizer   = self._gs[4:8, 4:8]
+        self._gs = gridspec.GridSpec(16, 8)
+        self._gs_action_axis        = self._gs[0:2,  0:8]
+        self._gs_action_output      = self._gs[2:3,  0:4]
+        self._gs_status_output      = self._gs[3:4,  0:4]
+        self._gs_cost_plotter       = self._gs[2:4,  4:8]
+        self._gs_algthm_output      = self._gs[4:8,  0:8]
+        self._gs_traj_visualizer    = self._gs[8:16, 0:4]
+        self._gs_image_visualizer   = self._gs[8:16, 4:8]
 
         # Create GUI components.
         self._action_axis = ActionAxis(self._fig, self._gs_action_axis, 1, 4, self._actions,
@@ -205,15 +205,28 @@ class GPSTrainingGUI(object):
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
         self._cost_plotter.update(costs)
 
-        # Print Costs
-        
+        # Print Iteration Data
         if self._first_update:
             self.set_output_text(self._hyperparams['experiment_name'])
-            self.append_output_text('itr | cost')
+            itr_data_fields = 'itr | cost '
+            for m in range(len(costs)):
+                itr_data_fields += ' | cost%d' % m
+            for m in range(algorithm.M):
+                itr_data_fields += ' | step%d' % m
+            if algorithm.prev[0].pol_info is not None:
+                for m in range(algorithm.M):
+                    itr_data_fields += ' | kl_div%d ' % m
+            self.append_output_text(itr_data_fields)
             self._first_update = False
-        self.append_output_text('%02d  | %f' % (itr, np.mean(costs)))
-        # self.algorithm.prev[m].pol_info.prev_kl (BADMM)
-        # self.algorithm.prev[m].step_mult
+        itr_data = ' %02d | %3.1f' % (itr, np.mean(costs))
+        for cost in costs:
+            itr_data += ' | %3.1f' % cost
+        for m in range(algorithm.M):
+            itr_data += ' | %3.1f' % algorithm.prev[m].step_mult
+        if algorithm.prev[m].pol_info is not None:
+            for m in range(algorithm.M):
+                itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl 
+        self.append_output_text(itr_data)
 
         # Plot 3D Visualizations
         for m in range(algorithm.M):
