@@ -81,6 +81,7 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
     ```
 
 **ROS Setup with Caffe**
+
 This is required if you intend to run neural network policies on the robot.
 
 0. Run step 1 and 2 of the above section.
