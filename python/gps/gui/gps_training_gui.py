@@ -250,8 +250,22 @@ class GPSTrainingGUI(object):
             eept_idx = agent.get_idx_x(END_EFFECTOR_POINTS)
             start, end = eept_idx[0], eept_idx[-1]
             mu_eept, sigma_eept = mu[:, start:end+1], sigma[:, start:end+1, start:end+1]
-            self.plot_3d_points(m, mu_eept, color='red', label='LQG Controllers')
-            # look at update draw for plotting
+            
+            e = 20
+            t = mu_eept.shape[0]
+            n = mu_eept.shape[1]/3
+            p = np.linspace(0, 2*np.pi, t)
+            xy_ellipse = np.c_[np.cos(p), np.sin(p)]
+            for i in range(n):
+                mu_eept_xy, sigma_eept_xy = mu_eept[:, 3*i+0:3*i+2], sigma_eept[:, 3*i+0:3*i+2, 3*i+0:3*i+2]
+                
+                # fix number of points, alpha, xlim/ylim/zlim
+                u, s, v = np.linalg.svd(sigma_eept_xy)
+                xy = np.dot(xy_ellipse, np.dot(np.sqrt(s), u.T))
+                x = (mu_eept[:, 3*i+0] + xy[:, 3*i+0]).flatten()
+                y = (mu_eept[:, 3*i+1] + xy[:, 3*i+1]).flatten()
+                z = (mu_eept[:, 3*i+2] + np.zeros((t, t))).flatten()
+                self._traj_visualizer.plot(i=m, xs=x, ys=y, zs=z, color='red', label='LQG Controllers')
             
             # Draw new plots
             self._traj_visualizer.draw()
