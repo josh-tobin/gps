@@ -232,42 +232,40 @@ class GPSTrainingGUI(object):
         for m in range(algorithm.M):
             # Clear previous plots
             self._traj_visualizer.clear(m)
-            # Plot Trajectory Samples
+
+            # TODO: calculate xlim, ylim, zlim; legend colors; scale of singular values?
+            self._traj_visualizer.set_lim(i=m, xlim=(-1, 1), ylim=(-1, 1), zlim=(-1, 1))
+            
+            # Linear Gaussian Controller Distributions (Red)
+            mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
+            eept_idx = agent.get_idx_x(END_EFFECTOR_POINTS)
+            start, end = eept_idx[0], eept_idx[-1]
+            mu_eept, sigma_eept = mu[:, start:end+1], sigma[:, start:end+1, start:end+1]
+
+            n = mu_eept.shape[1]/3
+            for i in range(n):
+                mu, sigma = mu_eept[:, 3*i+0:3*i+3], sigma_eept[:, 3*i+0:3*i+3, 3*i+0:3*i+3]
+                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-', linewidth=1.0, color='red', alpha=0.15, label='LQG Controller Distributions')
+
+            # Linear Gaussian Controller Means (Dark Red)
+            for i in range(n):
+                mu = mu_eept[:, 3*i+0:3*i+3]
+                self._traj_visualizer.plot_3d_points(i=m, points=mu, linestyle='None', marker='x', markersize=5.0, markeredgewidth=0.75, color=(0.5, 0, 0), alpha=1.0, label='LQG Controller Means')
+            
+            # Trajectory Samples (Green)
             traj_samples = traj_sample_lists[m].get_samples()
             for sample in traj_samples:
                 ee_pt = sample.get(END_EFFECTOR_POINTS)
                 self.plot_3d_points(m, ee_pt, color='green', label='Trajectory Samples')
             
-            # Plot Policy Samples
+            # Policy Samples (Blue)
             if pol_sample_lists is not None:
                 pol_samples = pol_sample_lists[m].get_samples()
                 for sample in pol_samples:
                     ee_pt = sample.get(END_EFFECTOR_POINTS)
                     self.plot_3d_points(m, ee_pt, color='blue', label='Policy Samples')
-            
-            # Plot Linear Gaussian Controllers (Mean/Covariance)
-            mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
-            eept_idx = agent.get_idx_x(END_EFFECTOR_POINTS)
-            start, end = eept_idx[0], eept_idx[-1]
-            mu_eept, sigma_eept = mu[:, start:end+1], sigma[:, start:end+1, start:end+1]
-            
-            e = 20
-            t = mu_eept.shape[0]
-            n = mu_eept.shape[1]/3
-            p = np.linspace(0, 2*np.pi, t)
-            xy_ellipse = np.c_[np.cos(p), np.sin(p)]
-            for i in range(n):
-                mu_eept_xy, sigma_eept_xy = mu_eept[:, 3*i+0:3*i+2], sigma_eept[:, 3*i+0:3*i+2, 3*i+0:3*i+2]
-                
-                # fix number of points, alpha, xlim/ylim/zlim
-                u, s, v = np.linalg.svd(sigma_eept_xy)
-                xy = np.dot(xy_ellipse, np.dot(np.sqrt(s), u.T))
-                x = (mu_eept[:, 3*i+0] + xy[:, 3*i+0]).flatten()
-                y = (mu_eept[:, 3*i+1] + xy[:, 3*i+1]).flatten()
-                z = (mu_eept[:, 3*i+2] + np.zeros((t, t))).flatten()
-                self._traj_visualizer.plot(i=m, xs=x, ys=y, zs=z, color='red', label='LQG Controllers')
-            
-            # Draw new plots
+
+            # Draw new plots  
             self._traj_visualizer.draw()
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
