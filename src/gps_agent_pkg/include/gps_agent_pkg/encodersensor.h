@@ -17,10 +17,7 @@ Joint encoder sensor: returns joint angles and, optionally, their velocities.
 // Superclass.
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/sample.h"
-
-/*
-TODO: this thing needs a Kalman filter.
-*/
+#include "gps_agent_pkg/encoderfilter.h"
 
 // This sensor writes to the following data types:
 // JointAngle
@@ -58,10 +55,14 @@ private:
     boost::shared_ptr<KDL::ChainFkSolverPos> fk_solver_;
     boost::shared_ptr<KDL::ChainJntToJacSolver> jac_solver_;
 
+    boost::scoped_ptr<EncoderFilter> joint_filter_;
+
     // End-effector points in the space of the end-effector.
     Eigen::MatrixXd end_effector_points_;
     // Previous end-effector points.
     Eigen::MatrixXd previous_end_effector_points_;
+    // End-effector points target.
+    Eigen::MatrixXd end_effector_points_target_;
     // Velocities of points.
     Eigen::MatrixXd previous_end_effector_point_velocities_;
     // Temporary storage.
@@ -74,15 +75,17 @@ private:
     Eigen::MatrixXd previous_jacobian_;
     // Time from last update when the previous angles were recorded (necessary to compute velocities).
     ros::Time previous_angles_time_;
+
+    // which arm is this EncoderSensor for?
+    gps::ActuatorType actuator_type_;
 public:
     // Constructor.
-    EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin);
+    EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType actuator_type);
     // Destructor.
     virtual ~EncoderSensor();
     // Update the sensor (called every tick).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
     // Configure the sensor (for sensor-specific trial settings).
-    // The settings include the configuration for the Kalman filter.
     virtual void configure_sensor(OptionsMap &options);
     // Set data format and meta data on the provided sample.
     virtual void set_sample_data_format(boost::scoped_ptr<Sample>& sample);

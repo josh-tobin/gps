@@ -4,7 +4,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 from gps.agent.agent import Agent
 from gps.agent.agent_utils import generate_noise
-from gps.agent.config import agent_box2d
+from gps.agent.config import AGENT_BOX2D
 from gps.proto.gps_pb2 import *
 from gps.sample.sample import Sample
 
@@ -16,7 +16,7 @@ class AgentBox2D(Agent):
     All communication between the algorithms and Box2D is done through this class.
     """
     def __init__(self, hyperparams):
-        config = deepcopy(agent_box2d)
+        config = deepcopy(AGENT_BOX2D)
         config.update(hyperparams)
         Agent.__init__(self, config)
 

@@ -65,8 +65,12 @@ protected:
     boost::scoped_ptr<TrialController> trial_controller_;
     // Sensor data for the current time step.
     boost::scoped_ptr<Sample> current_time_step_sample_;
+    // Auxiliary Sensor data for the current time step.
+    boost::scoped_ptr<Sample> aux_current_time_step_sample_;
     // Sensors.
     std::vector<boost::shared_ptr<Sensor> > sensors_;
+    // Auxiliary Sensors.
+    std::vector<boost::shared_ptr<Sensor> > aux_sensors_;
     // KDL chains for the end-effectors.
     KDL::Chain passive_arm_fk_chain_, active_arm_fk_chain_;
     // KDL solvers for the end-effectors.
@@ -86,8 +90,14 @@ protected:
     // Publishers.
     // Publish result of a trial, completion of position command, or just a report.
     ros_publisher_ptr(gps_agent_pkg::SampleResult) report_publisher_;
-    // Is a data request pending?
-    bool data_request_waiting_;
+    // Is a trial arm data request pending?
+    bool trial_data_request_waiting_;
+    // Is a auxiliary data request pending?
+    bool aux_data_request_waiting_;
+    // Are the sensors initialized?
+    bool sensors_initialized_;
+    // Is everything initialized for the trial controller?
+    bool controller_initialized_;
 public:
     // Constructor (this should do nothing).
     RobotPlugin();
@@ -102,7 +112,7 @@ public:
     // Initialize all of the sensors (this also includes FK computation objects).
     virtual void initialize_sensors(ros::NodeHandle& n);
     // TODO: Comment
-    virtual void initialize_sample(boost::scoped_ptr<Sample>& sample);
+    virtual void initialize_sample(boost::scoped_ptr<Sample>& sample, gps::ActuatorType actuator_type);
 
     //Helper method to configure all sensors
     virtual void configure_sensors(OptionsMap &opts);
@@ -131,7 +141,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const = 0;
     // Get sensor
-    virtual Sensor *get_sensor(SensorType sensor);
+    virtual Sensor *get_sensor(SensorType sensor, gps::ActuatorType actuator_type);
     // Get current encoder readings (robot-dependent).
     virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const = 0;
     // Get forward kinematics solver.

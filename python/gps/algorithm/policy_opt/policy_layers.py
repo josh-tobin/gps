@@ -1,9 +1,12 @@
-import caffe
+""" This file defines a few useful custom Caffe layers. """
+#TODO: Add docstrings, but are these layers still needed?
 import json
 
-class PolicyDataLayer(caffe.Layer):
-    """ A data layer for passing data into the network at training time. """
+import caffe
 
+
+class PolicyDataLayer(caffe.Layer):
+    """ A layer for passing data into the network at training time. """
     def setup(self, bottom, top):
         info = json.loads(self.param_str)
         for ind, top_blob in enumerate(info['shape']):
@@ -13,17 +16,17 @@ class PolicyDataLayer(caffe.Layer):
         pass
 
     def forward(self, bottom, top):
-        # Nothing to do - data will already set externally.
-        # TODO - maybe later include way to pass data to this layer
-        # and handle batching here.
+        # Nothing to do - data will already be set externally.
+        # TODO - Maybe later include way to pass data to this layer and
+        #        handle batching here.
         pass
 
     def backward(self, top, propagate_down, bottom):
         pass
 
-class WeightedEuclideanLoss(caffe.Layer):
-    """ A data layer for passing data into the network at training time. """
 
+class WeightedEuclideanLoss(caffe.Layer):
+    """ A weighted Euclidean loss layer. """
     def setup(self, bottom, top):
         pass
 
@@ -36,14 +39,14 @@ class WeightedEuclideanLoss(caffe.Layer):
         loss = 0.0
         for i in range(batch_size):
             loss += self.diff_[i].dot(bottom[2].data[i].dot(self.diff_[i]))
-        top[0].data[...] = loss/2.0/batch_size
+        top[0].data[...] = loss / 2.0 / batch_size
 
     def backward(self, top, propagate_down, bottom):
         batch_size = bottom[0].shape[0]
         for i in range(2):
             if propagate_down[i]:
-                sign = 1 if i==0 else -1
-                alpha = sign*top[0].diff[0]/batch_size
+                sign = 1 if i == 0 else -1
+                alpha = sign * top[0].diff[0] / batch_size
                 for j in range(batch_size):
                     bottom[i].diff[j] = bottom[2].data[j].dot(self.diff_[j])
                 bottom[i].diff[...] *= alpha

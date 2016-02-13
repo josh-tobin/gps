@@ -73,18 +73,13 @@ void NeuralNetworkCaffe::forward(const Eigen::VectorXd &input, Eigen::VectorXd &
     assert(x.rows() >= input_scaled_.rows());
     input_scaled_ = scale_*input.segment(0, input_scaled_.rows()) + bias_;
 
-    // Initialize input blobs and copy data to input blobs.
-    vector<float*> inputs;
-    inputs.push_back((float*) input_scaled_.data());
-
-    // Put input blobs into network.
-    shared_ptr<MemoryDataLayer<float> > md_layer =
-      boost::dynamic_pointer_cast<MemoryDataLayer<float> >(net_->layers()[0]);
-    md_layer->Reset(inputs, 1);
+    Blob<float>* input_blob = net_->bottom_vecs()[1][0];
+    caffe::caffe_copy(input_scaled_.rows(), (float*)input_scaled_.data(), input_blob->mutable_cpu_data());
 
     // Call net forward.
-    float initial_loss;
-    const vector<Blob<float>*>& output_blobs = net_->ForwardPrefilled(&initial_loss);
+    net_->ForwardFrom(1);
+
+    const vector<Blob<float>*>& output_blobs = net_->output_blobs();
 
     // Copy output blob to u.
     for (int i = 0; i < output.rows(); ++i) {
@@ -103,6 +98,12 @@ void NeuralNetworkCaffe::set_weights(void *weights_ptr)
     delete weights;
 
     google::protobuf::TextFormat::ParseFromString(weights_string, &net_param);
+    this->set_weights(&net_param);
+}
+
+// Set the weights on the network from protobuffer string
+void NeuralNetworkCaffe::set_weights(NetParameter& net_param)
+{
     net_->CopyTrainedLayersFrom(net_param);
     ROS_INFO("NN weights set successfully");
     weights_set_ = true;

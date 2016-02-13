@@ -4,8 +4,7 @@
 using namespace gps_control;
 
 // Constructor.
-TrialController::TrialController()
-: Controller()
+TrialController::TrialController() : Controller()
 {
     // Set initial time.
     last_update_time_ = ros::Time(0.0);
@@ -32,9 +31,6 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     get_action(step_counter_, X, obs, torques);
 
     // Set the torques for the sample
-    // TODO: This should be done by a "TorqueSensor"
-    OptionsMap sample_metadata;
-    sample->set_meta_data(gps::ACTION,torques.size(),SampleDataFormatEigenVector,sample_metadata);
     sample->set_data(step_counter_,gps::ACTION,torques,torques.size(),SampleDataFormatDouble);
 
     // Update last update time.
@@ -47,6 +43,7 @@ void TrialController::configure_controller(OptionsMap &options)
 {
     ROS_INFO_STREAM(">TrialController::configure_controller");
     if(!is_finished()){
+        // TODO(chelsea/sergey/zoe) This error happens every time...
         ROS_ERROR("Cannot configure controller while a trial is in progress");
     }
     std::vector<int> datatypes;
@@ -72,8 +69,6 @@ void TrialController::configure_controller(OptionsMap &options)
 // Check if controller is finished with its current task.
 bool TrialController::is_finished() const
 {
-    // Check whether we are close enough to the current target.
-    // TODO: implement.
     return step_counter_ >= trial_end_step_;
 }
 

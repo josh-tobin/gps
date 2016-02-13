@@ -6,9 +6,14 @@
 #include "gps_agent_pkg/trialcontroller.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
-#include "gps_agent_pkg/utils.h"
+#include "gps_agent_pkg/util.h"
 #include "gps/proto/gps.pb.h"
 #include <vector>
+
+#ifdef USE_CAFFE
+#include "gps_agent_pkg/caffenncontroller.h"
+#include "gps_agent_pkg/CaffeParams.h"
+#endif
 
 using namespace gps_control;
 
@@ -28,7 +33,10 @@ RobotPlugin::~RobotPlugin()
 void RobotPlugin::initialize(ros::NodeHandle& n)
 {
     ROS_INFO_STREAM("Initializing RobotPlugin");
-    data_request_waiting_ = false;
+    trial_data_request_waiting_ = false;
+    aux_data_request_waiting_ = false;
+    sensors_initialized_ = false;
+    controller_initialized_ = false;
 
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
@@ -69,17 +77,32 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 
     // Create all sensors.
     for (int i = 0; i < 1; i++)
-    // TODO: readd this when more sensors work
+    // TODO: ZDM: readd this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
-        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this));
+        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM));
         sensors_.push_back(sensor);
     }
 
     // Create current state sample and populate it using the sensors.
     current_time_step_sample_.reset(new Sample(MAX_TRIAL_LENGTH));
-    initialize_sample(current_time_step_sample_);
+    initialize_sample(current_time_step_sample_, gps::TRIAL_ARM);
+
+    aux_sensors_.clear();
+    // Create all auxiliary sensors.  Currently only an encodersensor
+    for (int i = 0; i < 1; i++)
+    {
+        ROS_INFO_STREAM("creating auxiliary sensor: " + to_string(i));
+        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::AUXILIARY_ARM));
+        aux_sensors_.push_back(sensor);
+    }
+
+    // Create current state sample and populate it using the sensors.
+    aux_current_time_step_sample_.reset(new Sample(1));
+    initialize_sample(aux_current_time_step_sample_, gps::AUXILIARY_ARM);
+
+    sensors_initialized_ = true;
 }
 
 
@@ -87,13 +110,24 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 void RobotPlugin::configure_sensors(OptionsMap &opts)
 {
     ROS_INFO("configure sensors");
-    for (int i = 0; i < 1; i++)
-    // TODO: readd this when more sensors work
-    //for (int i = 0; i < TotalSensorTypes; i++)
+    sensors_initialized_ = false;
+    for (int i = 0; i < sensors_.size(); i++)
     {
         sensors_[i]->configure_sensor(opts);
         sensors_[i]->set_sample_data_format(current_time_step_sample_);
     }
+    // Set sample data format on the actions, which are not handled by any sensor.
+    OptionsMap sample_metadata;
+    current_time_step_sample_->set_meta_data(
+        gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
+
+    // configure auxiliary sensors
+    for (int i = 0; i < aux_sensors_.size(); i++)
+    {
+        aux_sensors_[i]->configure_sensor(opts); // TODO: ZDM: make sure this is right!
+        aux_sensors_[i]->set_sample_data_format(aux_current_time_step_sample_);
+    }
+    sensors_initialized_ = true;
 }
 
 // Initialize position controllers.
@@ -108,14 +142,25 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 }
 
 // Helper function to initialize a sample from the current sensors.
-void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
+void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample, gps::ActuatorType actuator_type)
 {
     // Go through all of the sensors and initialize metadata.
-    // TODO ZDM :uncomment the following to account for more than joint sensors
-    //for (int i = 0; i < TotalSensorTypes; i++)
-    for (int i = 0; i < 1; i++)
+    if (actuator_type == gps::TRIAL_ARM)
     {
-        sensors_[i]->set_sample_data_format(sample);
+        for (int i = 0; i < sensors_.size(); i++)
+        {
+            sensors_[i]->set_sample_data_format(sample);
+        }
+        // Set sample data format on the actions, which are not handled by any sensor.
+        OptionsMap sample_metadata;
+        sample->set_meta_data(gps::ACTION,active_arm_torques_.size(),SampleDataFormatEigenVector,sample_metadata);
+    }
+    else if (actuator_type == gps::AUXILIARY_ARM)
+    {
+        for (int i = 0; i < aux_sensors_.size(); i++)
+        {
+            aux_sensors_[i]->set_sample_data_format(sample);
+        }
     }
     ROS_INFO("set sample data format");
 }
@@ -123,13 +168,12 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample)
 // Update the sensors at each time step.
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
+    if (!sensors_initialized_) return; // Don't try to use sensors until initialization finishes.
     //if(!is_controller_step){ //TODO: Remove this
         //return;
     //}
     // Update all of the sensors and fill in the sample.
-    // TODO ZDM :uncomment the following to account for more than joint sensors
-    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
-    for (int sensor = 0; sensor < 1; sensor++)
+    for (int sensor = 0; sensor < sensors_.size(); sensor++)
     {
         sensors_[sensor]->update(this, current_time, is_controller_step);
         if (trial_controller_ != NULL){
@@ -140,11 +184,23 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
     }
+    
+    // Update all of the auxiliary sensors and fill in the sample.
+    for (int sensor = 0; sensor < aux_sensors_.size(); sensor++)
+    {
+        aux_sensors_[sensor]->update(this, current_time, is_controller_step);
+        aux_sensors_[sensor]->set_sample_data(aux_current_time_step_sample_, 0);
+    }
 
     // If a data request is waiting, publish the sample.
-    if (data_request_waiting_) {
+    if (trial_data_request_waiting_) {
         publish_sample_report(current_time_step_sample_);
-        data_request_waiting_ = false;
+        trial_data_request_waiting_ = false;
+    }
+
+    if (aux_data_request_waiting_) {
+        publish_sample_report(aux_current_time_step_sample_);
+        aux_data_request_waiting_ = false;
     }
 }
 
@@ -155,7 +211,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     // TODO - don't pass in wrong sample if used
     passive_arm_controller_->update(this, current_time, current_time_step_sample_, passive_arm_torques_);
 
-    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured();
+    bool trial_init = trial_controller_ != NULL && trial_controller_->is_configured() && controller_initialized_;
     if(!is_controller_step && trial_init){
         return;
     }
@@ -268,6 +324,8 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     OptionsMap controller_params;
     ROS_INFO_STREAM("received trial command");
 
+    controller_initialized_ = false;
+
     //Read out trial information
     uint32_t T = msg->T;  // Trial length
     if (T > MAX_TRIAL_LENGTH) {
@@ -277,13 +335,13 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
 
     // TODO - it seems like the below could cause a race condition seg fault,
     // but I haven't seen one happen yet...
-    initialize_sample(current_time_step_sample_);
+    // Sergey: I have...
+    initialize_sample(current_time_step_sample_, gps::TRIAL_ARM);
 
     float frequency = msg->frequency;  // Controller frequency
 
     // Update sensor frequency
-    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
-    for (int sensor = 0; sensor < 1; sensor++)
+    for (int sensor = 0; sensor < sensors_.size(); sensor++)
     {
         sensors_[sensor]->set_update(1.0/frequency);
     }
@@ -307,10 +365,10 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         int dX = (int) lingauss.dX;
         int dU = (int) lingauss.dU;
         //Prepare options map
-        controller_params["T"] = (int)lingauss.T;
+        controller_params["T"] = (int)msg->T;
         controller_params["dX"] = dX;
         controller_params["dU"] = dU;
-        for(int t=0; t<(int)lingauss.T; t++){
+        for(int t=0; t<(int)msg->T; t++){
             Eigen::MatrixXd K;
             K.resize(dU, dX);
             for(int u=0; u<dU; u++){
@@ -327,7 +385,18 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             controller_params["k_"+to_string(t)] = k;
         }
         trial_controller_->configure_controller(controller_params);
-    }else{
+    }
+#ifdef USE_CAFFE
+    else if (msg->controller.controller_to_execute == gps::CAFFE_CONTROLLER) {
+        gps_agent_pkg::CaffeParams params = msg->controller.caffe;
+        trial_controller_.reset(new CaffeNNController());
+        std::string net_param = params.net_param;
+        controller_params["net_param"] = net_param;
+        controller_params["T"] = (int)msg->T;
+        trial_controller_->configure_controller(controller_params);
+    }
+#endif
+    else{
         ROS_ERROR("Unknown trial controller arm type");
     }
 
@@ -347,7 +416,24 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         }
     }
     sensor_params["ee_sites"] = ee_points;
+
+    // update end effector points target
+    Eigen::MatrixXd ee_points_tgt;
+    if( msg->ee_points_tgt.size() != ee_points.size()){
+        ROS_ERROR("Got %d ee_points_tgt (must match ee_points size: %d)",
+                (int)msg->ee_points_tgt.size(), (int)msg->ee_points.size());
+    }
+    ee_points_tgt.resize(n_points, 3);
+    for(int i=0; i<n_points; i++){
+        for(int j=0; j<3; j++){
+            ee_points_tgt(i, j) = msg->ee_points_tgt[j+3*i];
+        }
+    }
+    sensor_params["ee_points_tgt"] = ee_points_tgt;
+
     configure_sensors(sensor_params);
+
+    controller_initialized_ = true;
 }
 
 void RobotPlugin::test_callback(const std_msgs::Empty::ConstPtr& msg){
@@ -372,15 +458,40 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
 
 void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {
     ROS_INFO_STREAM("received data request");
-    data_request_waiting_ = true;
+    OptionsMap params;
+    int arm = msg->arm;
+    if (arm < 2 && arm >= 0)
+    {
+        gps::ActuatorType arm_type = (gps::ActuatorType) arm;
+        if (arm_type == gps::TRIAL_ARM)
+        {
+            trial_data_request_waiting_ = true;
+        }
+        else if (arm_type == gps::AUXILIARY_ARM)
+        {
+            aux_data_request_waiting_ = true;
+        }
+    }
+    else 
+    {
+        ROS_INFO("Data request arm type not valid: %d", arm);
+    }
 }
 
 // Get sensor.
-Sensor *RobotPlugin::get_sensor(SensorType sensor)
+Sensor *RobotPlugin::get_sensor(SensorType sensor, gps::ActuatorType actuator_type)
 {
-    assert(sensor < TotalSensorTypes);
-    // TODO: does this need to be a raw pointer?
-    return sensors_[sensor].get();
+    // TODO: ZDM: make this work for multiple sensors of each type -- pass in int instead of sensortype?
+    if(actuator_type == gps::TRIAL_ARM)
+    {
+        assert(sensor < TotalSensorTypes);
+        return sensors_[sensor].get();
+    }
+    else if (actuator_type == gps::AUXILIARY_ARM)
+    {
+        assert((int)sensor < aux_sensors_.size());
+        return aux_sensors_[sensor].get();
+    }
 }
 
 // Get forward kinematics solver.
