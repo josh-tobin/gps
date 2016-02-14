@@ -1,10 +1,12 @@
+""" This file defines the settings for Box2D's framwork. """
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # C++ version Copyright (c) 2006-2007 Erin Catto http://www.box2d.org
 # Python version by Ken Lauer / sirkne at gmail dot com
 #
-# Implemented using the pybox2d SWIG interface for Box2D (pybox2d.googlecode.com)
+# Implemented using the pybox2d SWIG interface for Box2D
+# (pybox2d.googlecode.com)
 #
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
@@ -21,88 +23,64 @@
 # 3. This notice may not be removed or altered from any source distribution.
 
 class fwSettings(object):
-    backend='pygame'        # The default backend to use in (can be: pyglet, pygame, etc.)
+    """ This class contains the settings for Box2D's framwork. """
+    backend = 'pygame'
 
     # Physics options
-    hz=20.0 # What we use on the robot, TODO - should this be set by the agent?
-    velocityIterations=8
-    positionIterations=3
-    enableWarmStarting=True   # Makes physics results more accurate (see Box2D wiki)
-    enableContinuous=True     # Calculate time of impact
-    enableSubStepping=False
+    hz = 20.0
+    velocityIterations = 8
+    positionIterations = 3
+    enableWarmStarting = True
+    enableContinuous = True
+    enableSubStepping = False
 
     # Drawing
-    drawStats=True
-    drawShapes=True
-    drawJoints=True
-    drawCoreShapes=False
-    drawAABBs=False
-    drawOBBs=False
-    drawPairs=False
-    drawContactPoints=False
-    maxContactPoints=100
-    drawContactNormals=False
-    drawFPS=True
-    drawMenu=True             # toggle by pressing F1
-    drawCOMs=False            # Centers of mass
-    pointSize=2.5             # pixel radius for drawing points
+    drawStats = True
+    drawShapes = True
+    drawJoints = True
+    drawCoreShapes = False
+    drawAABBs = False
+    drawOBBs = False
+    drawPairs = False
+    drawContactPoints = False
+    maxContactPoints = 100
+    drawContactNormals = False
+    drawFPS = True
+    drawMenu = True             # toggle by pressing F1
+    drawCOMs = False            # Centers of mass
+    pointSize = 2.5             # pixel radius for drawing points
 
     # Miscellaneous testbed options
-    pause=False
-    singleStep=False
-    onlyInit=False            # run the test's initialization without graphics, and then quit (for testing)
+    pause = False
+    singleStep = False
+    onlyInit = False
 
 #             text                  variable
-checkboxes =( ("Warm Starting"   , "enableWarmStarting"),
-              ("Time of Impact"  , "enableContinuous"),
-              ("Sub-Stepping"    , "enableSubStepping"),
-              ("Draw"            , None),
-              ("Shapes"          , "drawShapes"),
-              ("Joints"          , "drawJoints"),
-              ("AABBs"           , "drawAABBs"),
-              ("Pairs"           , "drawPairs"),
-              ("Contact Points"  , "drawContactPoints"),
-              ("Contact Normals" , "drawContactNormals"),
+checkboxes = (("Warm Starting", "enableWarmStarting"),
+              ("Time of Impact", "enableContinuous"),
+              ("Sub-Stepping", "enableSubStepping"),
+              ("Draw", None),
+              ("Shapes", "drawShapes"),
+              ("Joints", "drawJoints"),
+              ("AABBs", "drawAABBs"),
+              ("Pairs", "drawPairs"),
+              ("Contact Points", "drawContactPoints"),
+              ("Contact Normals", "drawContactNormals"),
               ("Center of Masses", "drawCOMs"),
-              ("Statistics"      , "drawStats"),
-              ("FPS"             , "drawFPS"),
-              ("Control"         , None),
-              ("Pause"           , "pause"),
-              ("Single Step"     , "singleStep") )
+              ("Statistics", "drawStats"),
+              ("FPS", "drawFPS"),
+              ("Control", None),
+              ("Pause" "pause"),
+              ("Single Step", "singleStep"))
 
 sliders = [
-    { 'name' : 'hz'                , 'text' : 'Hertz'    , 'min' : 5, 'max' : 200 },
-    { 'name' : 'positionIterations', 'text' : 'Pos Iters', 'min' : 0, 'max' : 100 },
-    { 'name' : 'velocityIterations', 'text' : 'Vel Iters', 'min' : 1, 'max' : 500 },
+    {'name' : 'hz', 'text' : 'Hertz', 'min' : 5, 'max' : 200},
+    {'name' : 'positionIterations', 'text' :
+     'Pos Iters', 'min' : 0, 'max' : 100},
+    {'name' : 'velocityIterations', 'text' :
+     'Vel Iters', 'min' : 1, 'max' : 500},
 ]
 
-from optparse import OptionParser
 
-parser = OptionParser()
 list_options = [i for i in dir(fwSettings) if not i.startswith('_')]
 
-for opt_name in list_options:
-    value = getattr(fwSettings, opt_name)
-    if isinstance(value, bool):
-        if value:
-            parser.add_option('','--NO'+opt_name, dest=opt_name, default=value,
-                              action='store_'+str(not value).lower(),
-                              help="don't "+opt_name)
-        else:
-            parser.add_option('','--'+opt_name, dest=opt_name, default=value,
-                              action='store_'+str(not value).lower(),
-                              help=opt_name)
-
-    else:
-        if isinstance(value, int):
-            opttype = 'int'
-        elif isinstance(value, float):
-            opttype = 'float'
-        else:
-            opttype = 'string'
-        parser.add_option('','--'+opt_name, dest=opt_name, default=value,
-                          type=opttype,
-                          help='sets the %s option'%(opt_name,))
-
-
-(fwSettings, args) = parser.parse_args()

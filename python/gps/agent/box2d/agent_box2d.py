@@ -1,19 +1,17 @@
+""" This file defines an agent for the Box2D simulator. """
 from copy import deepcopy
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
-
 from gps.agent.agent import Agent
-from gps.agent.agent_utils import generate_noise
+from gps.agent.agent_utils import generate_noise, setup
 from gps.agent.config import AGENT_BOX2D
-from gps.proto.gps_pb2 import *
+from gps.proto.gps_pb2 import ACTION
 from gps.sample.sample import Sample
-
-from point_mass_world import PointMassWorld
 
 
 class AgentBox2D(Agent):
     """
-    All communication between the algorithms and Box2D is done through this class.
+    All communication between the algorithms and Box2D is done through
+    this class.
     """
     def __init__(self, hyperparams):
         config = deepcopy(AGENT_BOX2D)
@@ -24,15 +22,10 @@ class AgentBox2D(Agent):
         self._setup_world(hyperparams["world"], hyperparams["target_state"])
 
     def _setup_conditions(self):
-        def setup(value, n):
-            if not isinstance(value, list):
-                try:
-                    return [value.copy() for _ in range(n)]
-                except AttributeError:
-                    return [value for _ in range(n)]
-            assert len(value) == n, 'number of elements must match number of conditions'
-            return value
-
+        """
+        Helper method for setting some hyperparameters that may vary by
+        condition.
+        """
         conds = self._hyperparams['conditions']
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
                 'noisy_body_idx', 'noisy_body_var'):
@@ -49,9 +42,10 @@ class AgentBox2D(Agent):
 
 
 
-    def sample(self, policy, condition, verbose=True, save=True):
+    def sample(self, policy, condition, verbose=False, save=True):
         """
-        Runs a trial and constructs a new sample containing information about the trial.
+        Runs a trial and constructs a new sample containing information
+        about the trial.
 
         Args:
             policy: policy to to used in the trial
@@ -60,34 +54,32 @@ class AgentBox2D(Agent):
         """
         self._world.reset_world()
         b2d_X = self._world.get_state()
-        new_sample = self._init_sample(b2d_X, condition)
+        new_sample = self._init_sample(b2d_X)
         U = np.zeros([self.T, self.dU])
-        noise = generate_noise(self.T, self.dU, smooth=self._hyperparams['smooth_noise'], \
-                var=self._hyperparams['smooth_noise_var'], \
-                renorm=self._hyperparams['smooth_noise_renormalize'])
+        noise = generate_noise(self.T, self.dU, self._hyperparams)
         for t in range(self.T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
-            b2d_U = policy.act(X_t, obs_t, t, noise[t,:])
-            U[t,:] = b2d_U
+            b2d_U = policy.act(X_t, obs_t, t, noise[t, :])
+            U[t, :] = b2d_U
             if (t+1) < self.T:
-                for step in range(self._hyperparams['substeps']):
-                     self._world.run_next(b2d_U)
+                for _ in range(self._hyperparams['substeps']):
+                    self._world.run_next(b2d_U)
                 b2d_X = self._world.get_state()
-                self._set_sample(new_sample, b2d_X, t, condition)
+                self._set_sample(new_sample, b2d_X, t)
         new_sample.set(ACTION, U)
         if save:
             self._samples[condition].append(new_sample)
 
 
-    def _init_sample(self, b2d_X, condition):
+    def _init_sample(self, b2d_X):
         """
         Construct a new sample and fill in the first time step.
         """
         sample = Sample(self)
-        self._set_sample(sample, b2d_X, -1, condition)
+        self._set_sample(sample, b2d_X, -1)
         return sample
 
-    def _set_sample(self, sample, b2d_X, t, condition):
+    def _set_sample(self, sample, b2d_X, t):
         for x in b2d_X.keys():
-            sample.set(x, np.array(b2d_X[x]),t=t+1)
+            sample.set(x, np.array(b2d_X[x]), t=t+1)

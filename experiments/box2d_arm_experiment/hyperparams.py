@@ -1,6 +1,6 @@
 from __future__ import division
 
-from math import pi 
+from math import pi
 from datetime import datetime
 import numpy as np
 import os.path
@@ -14,6 +14,7 @@ from gps.algorithm.cost.cost_torque import CostTorque
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr, init_pd
 from gps.proto.gps_pb2 import *
@@ -25,16 +26,21 @@ SENSOR_DIMS = {
 }
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
+EXP_DIR = BASE_DIR + '/experiments/bod2d_arm_experiment/'
+
 
 common = {
+    'experiment_name': 'my_experiment' + '_' + \
+            datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
+    'experiment_dir': EXP_DIR,
+    'data_files_dir': EXP_DIR + 'data_files/',
+    'target_filename': EXP_DIR + 'target.npz',
+    'log_filename': EXP_DIR + 'log.txt',
     'conditions': 1,
-    'experiment_dir': BASE_DIR + '/experiments/box2d_experiment/',
-    'experiment_name': 'my_experiment_' + datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
 }
-common['output_files_dir'] = common['experiment_dir'] + 'output_files/'
 
-if not os.path.exists(common['output_files_dir']):
-    os.makedirs(common['output_files_dir'])
+if not os.path.exists(common['data_files_dir']):
+    os.makedirs(common['data_files_dir'])
 
 agent = {
     'type': AgentBox2D,
@@ -60,15 +66,14 @@ algorithm = {
 }
 
 algorithm['init_traj_distr'] = {
-    'type': init_pd,
-    'args': {
-        'hyperparams': {
-            'init_var': 5.0,
-            'init_stiffness': 0.0,
-        },
-        'x0': agent['x0'][:SENSOR_DIMS[JOINT_ANGLES]],
-        'T': agent['T'],
-    }
+    'type': init_lqr,
+    'init_gains':  np.array([0, 0]),
+    'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
+    'init_var': 1.0,
+    'init_stiffness': 0,
+    'init_stiffness_vel': 0.0,
+    'dt': agent['dt'],
+    'T': agent['T'],
 }
 
 torque_cost = {
@@ -80,7 +85,7 @@ state_cost = {
     'type': CostState,
     'data_types' : {
         JOINT_ANGLES: {
-            'wp': np.ones(SENSOR_DIMS[JOINT_ANGLES]),
+            'wp': np.array([1, 1]),
             'target_state': agent["target_state"],
         },
     },
@@ -89,12 +94,18 @@ state_cost = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, state_cost],
-    'weights': [0.25, 1.0],
+    'weights': [0, 1.0],
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLR,
+    'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 20,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    },
 }
 
 algorithm['traj_opt'] = {
@@ -105,9 +116,10 @@ algorithm['policy_opt'] = {}
 
 config = {
     'iterations': 10,
-    'num_samples': 20, # Lots of samples because we're not using a prior for dynamics fit.
+    'num_samples': 5,
+    'verbose_trials': 0,
     'common': common,
     'agent': agent,
-    # 'gui': gui,  # For sim, we probably don't want the gui right now.
+    'gui': False,
     'algorithm': algorithm,
 }
