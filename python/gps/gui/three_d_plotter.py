@@ -12,12 +12,33 @@ class ThreeDPlotter:
         assert(num_plots <= rows*cols, 'Too many plots to put into gridspec.')
 
         self._fig = fig
-        self._gs = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=gs)
-        self._axarr = [plt.subplot(self._gs[i], projection='3d') for i in range(num_plots)]
+        self._gs = gridspec.GridSpecFromSubplotSpec(8, 1, subplot_spec=gs)
+        self._gs_legend = self._gs[0:1, 0]
+        self._gs_plot   = self._gs[1:8, 0]
+
+        self._ax_legend = plt.subplot(self._gs_legend)
+        self._ax_legend.get_xaxis().set_visible(False)
+        self._ax_legend.get_yaxis().set_visible(False)
+
+        self._gs_plots = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=self._gs_plot)
+        self._axarr = [plt.subplot(self._gs_plots[i], projection='3d') for i in range(num_plots)]
         self._lims = [None for i in range(num_plots)]
         self._plots = [[] for i in range(num_plots)]
 
-    def plot(self, i, xs, ys, zs, linestyle='-', linewidth=1.0, marker=None, markersize=5.0, markeredgewidth=0.75, color='black', alpha=1.0, label=''):
+        for ax in self._axarr:
+            ax.locator_params(nbins=5)
+            for item in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
+                item.set_fontsize(10)
+
+    def set_title(self, i, title):
+        self._axarr[i].set_title(title)
+        self._axarr[i].title.set_fontsize(10)
+
+    def add_legend(self, linestyle, marker, color, label):
+        self._ax_legend.plot([], [], linestyle=linestyle, marker=marker, color=color, label=label)
+        self._ax_legend.legend(ncol=2, mode='expand', fontsize=10)
+
+    def plot(self, i, xs, ys, zs, linestyle='-', linewidth=1.0, marker=None, markersize=5.0, markeredgewidth=1.0, color='black', alpha=1.0, label=''):
         # Manually clip at xlim, ylim, zlim (MPL doesn't support axis limits for 3D plots)
         if self._lims[i]:
             xlim, ylim, zlim = self._lims[i]
@@ -29,7 +50,7 @@ class ThreeDPlotter:
         plot = self._axarr[i].plot(xs, ys, zs=zs, linestyle=linestyle, linewidth=linewidth, marker=marker, markersize=markersize, markeredgewidth=markeredgewidth, color=color, alpha=alpha, label=label)[0]
         self._plots[i].append(plot)
 
-    def plot_3d_points(self, i, points, linestyle='-', linewidth=1.0, marker=None, markersize=5.0, markeredgewidth=0.75, color='black', alpha=1.0, label=''):
+    def plot_3d_points(self, i, points, linestyle='-', linewidth=1.0, marker=None, markersize=5.0, markeredgewidth=1.0, color='black', alpha=1.0, label=''):
         self.plot(i, points[:, 0], points[:, 1], points[:, 2], linestyle=linestyle, linewidth=linewidth, marker=marker, markersize=markersize, markeredgewidth=markeredgewidth, color=color, alpha=alpha, label=label)
 
     def plot_3d_gaussian(self, i, mu, sigma, edges=100, linestyle='-.', linewidth=1.0, color='black', alpha=0.1, label=''):

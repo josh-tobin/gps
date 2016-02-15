@@ -217,6 +217,14 @@ class GPSTrainingGUI(object):
                 for m in range(algorithm.M):
                     itr_data_fields += ' | kl_div%d ' % m
             self.append_output_text(itr_data_fields)
+
+            # WARNING: Make sure the legend values below match how the corresponding points are actually plotted
+            [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(algorithm.M)]
+            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
+            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
+            self._traj_visualizer.add_legend(linestyle='-.',   marker='None', color='red',       label='LQG Controller Distributions')
+            self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LQG Controller Means')
+
             self._first_update = False
         itr_data = ' %02d | %3.1f' % (itr, np.mean(costs))
         for cost in costs:
@@ -228,13 +236,23 @@ class GPSTrainingGUI(object):
                 itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl 
         self.append_output_text(itr_data)
 
+        # Calculate xlim, ylim, zlim for 3D visualizations from traj_sample_lists
+        all_eept = np.empty((0, 3))
+        for traj_samples in traj_sample_lists:
+            for sample in traj_samples.get_samples():
+                ee_pt = sample.get(END_EFFECTOR_POINTS)
+                for i in range(ee_pt.shape[1]/3):
+                    ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
+                    all_eept = np.r_[all_eept, ee_pt_i]
+        min_xyz = np.amin(all_eept, axis=0)
+        max_xyz = np.amax(all_eept, axis=0)
+        xlim, ylim, zlim = (min_xyz[0], max_xyz[0]), (min_xyz[1], max_xyz[1]), (min_xyz[2], max_xyz[2])
+
         # Plot 3D Visualizations
         for m in range(algorithm.M):
             # Clear previous plots
             self._traj_visualizer.clear(m)
-
-            # TODO: calculate xlim, ylim, zlim; legend colors; scale of singular values?
-            self._traj_visualizer.set_lim(i=m, xlim=(-1, 1), ylim=(-1, 1), zlim=(-1, 1))
+            self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
             
             # Linear Gaussian Controller Distributions (Red)
             mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
@@ -242,46 +260,33 @@ class GPSTrainingGUI(object):
             start, end = eept_idx[0], eept_idx[-1]
             mu_eept, sigma_eept = mu[:, start:end+1], sigma[:, start:end+1, start:end+1]
 
-            n = mu_eept.shape[1]/3
-            for i in range(n):
+            for i in range(mu_eept.shape[1]/3):
                 mu, sigma = mu_eept[:, 3*i+0:3*i+3], sigma_eept[:, 3*i+0:3*i+3, 3*i+0:3*i+3]
-                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-', linewidth=1.0, color='red', alpha=0.15, label='LQG Controller Distributions')
+                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-.', linewidth=1.0, color='red', alpha=0.5, label='LQG Controller Distributions')
 
             # Linear Gaussian Controller Means (Dark Red)
-            for i in range(n):
+            for i in range(mu_eept.shape[1]/3):
                 mu = mu_eept[:, 3*i+0:3*i+3]
-                self._traj_visualizer.plot_3d_points(i=m, points=mu, linestyle='None', marker='x', markersize=5.0, markeredgewidth=0.75, color=(0.5, 0, 0), alpha=1.0, label='LQG Controller Means')
+                self._traj_visualizer.plot_3d_points(i=m, points=mu, linestyle='None', marker='x', markersize=5.0, markeredgewidth=1.0, color=(0.5, 0, 0), alpha=1.0, label='LQG Controller Means')
             
             # Trajectory Samples (Green)
             traj_samples = traj_sample_lists[m].get_samples()
             for sample in traj_samples:
                 ee_pt = sample.get(END_EFFECTOR_POINTS)
-                self.plot_3d_points(m, ee_pt, color='green', label='Trajectory Samples')
+                for i in range(ee_pt.shape[1]/3):
+                    ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
+                    self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='green', label='Trajectory Samples')
             
             # Policy Samples (Blue)
             if pol_sample_lists is not None:
                 pol_samples = pol_sample_lists[m].get_samples()
                 for sample in pol_samples:
                     ee_pt = sample.get(END_EFFECTOR_POINTS)
-                    self.plot_3d_points(m, ee_pt, color='blue', label='Policy Samples')
+                    for i in range(ee_pt.shape[1]/3):
+                        ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
+                        self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='blue', label='Policy Samples')
 
             # Draw new plots  
             self._traj_visualizer.draw()
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
-
-    def plot_3d_points(self, m, points, color, label):
-        """
-        Plots a (T x (3n)) array of points in 3D, where n is an integer.
-        """
-        n = points.shape[1]/3
-        for i in range(n):
-            self._traj_visualizer.plot(
-                i=m,
-                xs=points[:,3*i+0],
-                ys=points[:,3*i+1],
-                zs=points[:,3*i+2],
-                color=color,
-                label=label
-            )
-
