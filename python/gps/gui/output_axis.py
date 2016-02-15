@@ -8,14 +8,14 @@ from matplotlib.colors import ColorConverter
 
 class OutputAxis:
     def __init__(self, fig, gs, log_filename=None, max_display_size=10, border_on=False,
-            bgcolor='white', bgalpha=0.0, font_family='sans-serif'):
+            bgcolor='white', bgalpha=0.0, fontsize=12, font_family='sans-serif'):
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
         self._ax = plt.subplot(self._gs[0])
         self._log_filename = log_filename
 
-        self._text_box = self._ax.text(0.02, 0.95, '', color='black', fontsize=12, va='top',
-                ha='left', transform=self._ax.transAxes, family=font_family)
+        self._text_box = self._ax.text(0.02, 0.95, '', color='black', fontsize=fontsize,
+                va='top', ha='left', transform=self._ax.transAxes, family=font_family)
         self._text_arr = []
         self._max_display_size = max_display_size
         self._bgcolor = bgcolor

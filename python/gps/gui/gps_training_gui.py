@@ -103,7 +103,7 @@ class GPSTrainingGUI(object):
         self._action_output = OutputAxis(self._fig, self._gs_action_output, border_on=True)
         self._status_output = OutputAxis(self._fig, self._gs_status_output, border_on=False)
         self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=10,
-                log_filename=self._log_filename, font_family='monospace')
+                log_filename=self._log_filename, fontsize=10, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
         self._traj_visualizer = ThreeDPlotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
         self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
@@ -205,39 +205,37 @@ class GPSTrainingGUI(object):
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
         self._cost_plotter.update(costs)
 
-        # Print Iteration Data
+        # Setup iteration data column titles and 3D visualization plot titles and legend
         if self._first_update:
             self.set_output_text(self._hyperparams['experiment_name'])
-            itr_data_fields = 'itr | cost '
-            for m in range(len(costs)):
-                itr_data_fields += ' | cost%d' % m
+            itr_data_fields = '%3s | %8s' % ('itr', 'avg_cost')
             for m in range(algorithm.M):
-                itr_data_fields += ' | step%d' % m
-            if algorithm.prev[0].pol_info is not None:
-                for m in range(algorithm.M):
-                    itr_data_fields += ' | kl_div_start%d ' % m
-                for m in range(algorithm.M):
-                    itr_data_fields += ' | kl_div_end%d ' % m
+                itr_data_fields += ' | %8s %8s %8s' % ('  cost  ', '  step  ', 'entropy ')
+                if algorithm.prev[0].pol_info is not None:
+                    itr_data_fields += ' %8s %8s' % ('kl_div_i', 'kl_div_f')
             self.append_output_text(itr_data_fields)
 
             # WARNING: Make sure the legend values below match how the corresponding points are actually plotted
             [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(algorithm.M)]
             self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
             self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
-            self._traj_visualizer.add_legend(linestyle='-.',   marker='None', color='red',       label='LQG Controller Distributions')
+            self._traj_visualizer.add_legend(linestyle='-',   marker='None', color='red',       label='LQG Controller Distributions')
             self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LQG Controller Means')
 
             self._first_update = False
-        itr_data = ' %02d | %3.1f' % (itr, np.mean(costs))
-        for cost in costs:
-            itr_data += ' | %3.1f' % cost
+
+        # Print Iteration Data
+        avg_cost = np.mean(costs)
+        itr_data = '%3d | %8.2f' % (itr, avg_cost)
         for m in range(algorithm.M):
-            itr_data += ' | %3.1f' % algorithm.prev[m].step_mult
-        if algorithm.prev[m].pol_info is not None:
-            for m in range(algorithm.M):
-                itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl[0]
-            for m in range(algorithm.M):
-                itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl[-1]
+            cost = costs[m]
+            step = algorithm.prev[m].step_mult
+            entropy = 2*np.sum(np.log(np.diagonal(algorithm.prev[m].traj_distr.chol_pol_covar, axis1=1, axis2=2)))
+            itr_data += ' | %8.2f %8.2f %8.2f' % (cost, step, entropy)
+            if algorithm.prev[0].pol_info is not None:
+                kl_div_i = algorithm.prev[m].pol_info.prev_kl[0]
+                kl_div_f = algorithm.prev[m].pol_info.prev_kl[-1]
+                itr_data += ' %8.2f %8.2f' % (kl_div_i, kl_div_f)
         self.append_output_text(itr_data)
 
         # Calculate xlim, ylim, zlim for 3D visualizations from traj_sample_lists and pol_sample_lists
@@ -268,7 +266,7 @@ class GPSTrainingGUI(object):
 
             for i in range(mu_eept.shape[1]/3):
                 mu, sigma = mu_eept[:, 3*i+0:3*i+3], sigma_eept[:, 3*i+0:3*i+3, 3*i+0:3*i+3]
-                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-.', linewidth=1.0, color='red', alpha=0.5, label='LQG Controller Distributions')
+                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-', linewidth=1.0, color='red', alpha=0.15, label='LQG Controller Distributions')
 
             # Linear Gaussian Controller Means (Dark Red)
             for i in range(mu_eept.shape[1]/3):
