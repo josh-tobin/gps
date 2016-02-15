@@ -215,7 +215,9 @@ class GPSTrainingGUI(object):
                 itr_data_fields += ' | step%d' % m
             if algorithm.prev[0].pol_info is not None:
                 for m in range(algorithm.M):
-                    itr_data_fields += ' | kl_div%d ' % m
+                    itr_data_fields += ' | kl_div_start%d ' % m
+                for m in range(algorithm.M):
+                    itr_data_fields += ' | kl_div_end%d ' % m
             self.append_output_text(itr_data_fields)
 
             # WARNING: Make sure the legend values below match how the corresponding points are actually plotted
@@ -233,13 +235,17 @@ class GPSTrainingGUI(object):
             itr_data += ' | %3.1f' % algorithm.prev[m].step_mult
         if algorithm.prev[m].pol_info is not None:
             for m in range(algorithm.M):
-                itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl 
+                itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl[0]
+            for m in range(algorithm.M):
+                itr_data += ' | %3.1f' % algorithm.prev[m].pol_info.prev_kl[-1]
         self.append_output_text(itr_data)
 
-        # Calculate xlim, ylim, zlim for 3D visualizations from traj_sample_lists
+        # Calculate xlim, ylim, zlim for 3D visualizations from traj_sample_lists and pol_sample_lists
+        # (this clips off LQG means/distributions that are not in the area of interest)
         all_eept = np.empty((0, 3))
-        for traj_samples in traj_sample_lists:
-            for sample in traj_samples.get_samples():
+        sample_lists = traj_sample_lists + pol_sample_lists if pol_sample_lists else traj_sample_lists
+        for sample_list in sample_lists:
+            for sample in sample_list.get_samples():
                 ee_pt = sample.get(END_EFFECTOR_POINTS)
                 for i in range(ee_pt.shape[1]/3):
                     ee_pt_i = ee_pt[:, 3*i+0:3*i+3]

@@ -150,8 +150,8 @@ class GPSMain(object):
         """ Take samples from the policy to see how it's doing. """
         if 'verbose_policy_trials' not in self._hyperparams:
             return None
-        pol_samples = [[None for _ in range(self._conditions)]
-                for _ in range(self._hyperparams['num_samples'])]
+        pol_samples = [[None for _ in range(self._hyperparams['num_samples'])]
+                for _ in range(self._conditions)]
         for cond in range(self._conditions):
             for i in range(self._hyperparams['num_samples']):
                 pol_samples[cond][i] = self.agent.sample(
@@ -160,7 +160,7 @@ class GPSMain(object):
                     verbose=(i < self._hyperparams['verbose_policy_trials']), 
                     save=False
                 )
-        return SampleList(pol_samples)
+        return [SampleList(samples) for samples in pol_samples]
 
     def _log_data(self, itr, traj_sample_lists, pol_sample_lists=None):
         """
