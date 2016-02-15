@@ -43,6 +43,7 @@ class ActionAxis:
         # Try to import ROS.
         ros_enabled = False
         try:
+            import rospkg
             import rospy
             import roslib
             from sensor_msgs.msg import Joy
@@ -51,6 +52,8 @@ class ActionAxis:
             ros_enabled = True
         except ImportError as e:
             LOGGER.debug('PS3 not enabled: %s', e)
+        except rospkg.common.ResourceNotFound as e:
+            LOGGER.debug('No gps_agent_pkg: %s', e)
 
         # Mouse Input.
         self._buttons = {}

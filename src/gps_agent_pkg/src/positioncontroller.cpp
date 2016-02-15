@@ -106,15 +106,15 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         temp_angles_ = current_angles_ - target_angles_;
 
         // Add to integral term.
-        pd_integral_ += temp_angles_;
+        pd_integral_ += temp_angles_ * update_time;
 
         // Clamp integral term
         for (int i = 0; i < temp_angles_.rows(); i++){
-            if (pd_integral_(i) > i_clamp_(i)) {
-                pd_integral_(i) = i_clamp_(i);
+            if (pd_integral_(i) * pd_gains_i_(i) > i_clamp_(i)) {
+                pd_integral_(i) = i_clamp_(i) / pd_gains_i_(i);
             }
-            else if (-pd_integral_(i) > i_clamp_(i)) {
-                pd_integral_(i) = -i_clamp_(i);
+            else if (pd_integral_(i) * pd_gains_i_(i) < -i_clamp_(i)) {
+                pd_integral_(i) = -i_clamp_(i) / pd_gains_i_(i);
             }
         }
 

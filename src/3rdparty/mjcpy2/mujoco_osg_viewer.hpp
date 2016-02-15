@@ -2,7 +2,8 @@
 #include <osg/Geometry>
 #include <osgViewer/Viewer>
 #include <osg/ref_ptr>
-#include "engine/engine.h"
+#include "mujoco.h"
+//#include "mj_engine.h"
 
 
 class MujocoOSGViewer {
@@ -18,7 +19,6 @@ public:
 	void _UpdateTransforms();  
 
   // osg::ref_ptr<EventHandler> m_handler;
-  mjOption* m_option;
   mjData* m_data;  
   const mjModel* m_model;
   osg::ref_ptr<osg::Group> m_root, m_robot;
@@ -28,4 +28,4 @@ public:
 };
 
 
-void NewModelFromXML(const char* filename,mjModel*&,mjOption*&);
+void NewModelFromXML(const char* filename,mjModel*&);
