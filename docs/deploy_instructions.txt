@@ -1,0 +1,1 @@
+For deploying onto website, run "make html", then the contents of _static/html/ to the server.
