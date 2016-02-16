@@ -79,14 +79,22 @@ class MeanPlotter:
         self.draw()
 
     def draw(self):
-        self._ax.figure.canvas.draw()
+        self._ax.draw_artist(self._ax.patch)
+        [self._ax.draw_artist(plot) for plot in self._plots]
+        self._ax.draw_artist(self._plots_mean)
+        self._fig.canvas.update()
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":
+    import matplotlib.gridspec as gridspec
+
+
     plt.ion()
-    fig, ax = plt.subplots()
-    plotter = MeanPlotter(ax, alpha=0.15)
+    fig = plt.figure()
+    gs = gridspec.GridSpec(1, 1)
+
+    plotter = MeanPlotter(fig, gs[0])
 
     i, j = 0, 0
     while True:

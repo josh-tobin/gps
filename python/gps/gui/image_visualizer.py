@@ -173,9 +173,14 @@ class ImageVisualizer(object):
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 if __name__ == "__main__":
+    from gps.gui.config import common as common_config
+    import matplotlib.gridspec as gridspec
+
+
     plt.ion()
-    fig, ax = plt.subplots()
-    visualizer = ImageVisualizer(ax, cropsize=(3, 3))
+    fig = plt.figure()
+    gs = gridspec.GridSpec(1, 1)
+    visualizer = ImageVisualizer(common_config, fig, gs[0], cropsize=(3, 3))
 
     im = np.zeros((5, 5, 3))
     while True:

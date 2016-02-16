@@ -18,7 +18,6 @@ class OutputAxis:
                 va='top', ha='left', transform=self._ax.transAxes, family=font_family)
         self._text_arr = []
         self._max_display_size = max_display_size
-        self.set_bgcolor(bgcolor, bgalpha)
 
         self._ax.set_xticks([])
         self._ax.set_yticks([])
@@ -29,12 +28,13 @@ class OutputAxis:
             self._ax.spines['left'].set_visible(False)
 
         self._fig.canvas.draw()
-        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
+        self._fig.canvas.flush_events()     # Fixes bug with Qt4Agg backend
+        self.set_bgcolor(bgcolor, bgalpha)  # this must come after fig.canvas.draw()
 
     #TODO: Add docstrings here.
     def set_text(self, text):
         self._text_arr = [text]
-        self._text_box.set_text('\n'.join(self._text_arr))
+        self.update_text()
         self.log_text(text)
         self.draw()
 
@@ -42,9 +42,13 @@ class OutputAxis:
         self._text_arr.append(text)
         if len(self._text_arr) > self._max_display_size:
             self._text_arr = self._text_arr[-self._max_display_size:]
-        self._text_box.set_text('\n'.join(self._text_arr))
+        self.update_text()
         self.log_text(text)
         self.draw()
+
+    def update_text(self):
+        self._text_box.set_text('\n'.join(self._text_arr))
+        self._fig.canvas.draw() # TODO Fix Me
 
     def log_text(self, text):
         if self._log_filename is not None:
@@ -56,18 +60,26 @@ class OutputAxis:
         self.draw()
 
     def draw(self):
-        self._fig.canvas.draw()
+        self._ax.draw_artist(self._ax.patch)
+        self._ax.draw_artist(self._text_box)
+        self._fig.canvas.update()
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":
+    import matplotlib.gridspec as gridspec
+
+
     plt.ion()
+    fig = plt.figure()
+    gs = gridspec.GridSpec(1, 1)
+    output_axis = OutputAxis(fig, gs[0], max_display_size=10, log_filename=None)
 
-    axis = plt.gca()
-    output_axis = OutputAxis(axis, max_display_size=5, log_filename=None)
-
-    for i in range(10):
+    max_i = 20
+    for i in range(max_i):
         output_axis.append_text(str(i))
+        c = 0.5 + 0.5*i/max_i
+        output_axis.set_bgcolor((c, c, c))
         time.sleep(1)
 
     plt.ioff()
