@@ -104,5 +104,4 @@ void NeuralNetworkCaffe::set_weights(NetParameter& net_param)
 {
     net_->CopyTrainedLayersFrom(net_param);
     ROS_INFO("NN weights set successfully");
-    weights_set_ = true;
 }
