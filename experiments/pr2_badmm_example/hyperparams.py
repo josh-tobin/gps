@@ -49,7 +49,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 1,
+    'conditions': 1, # TODO - this should be changed to 2 or 4, with targets set on the robot.
 }
 
 x0s = []
