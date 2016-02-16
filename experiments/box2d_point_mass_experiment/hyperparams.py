@@ -10,11 +10,11 @@ from gps.agent.box2d.agent_box2d import AgentBox2D
 from gps.agent.box2d.point_mass_world import PointMassWorld
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_state import CostState
-from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
-from gps.algorithm.policy.lin_gauss_init import init_lqr
+from gps.algorithm.policy.lin_gauss_init import init_pd
 from gps.proto.gps_pb2 import POSITION, LINEAR_VELOCITY, ACTION
 
 SENSOR_DIMS = {
@@ -24,7 +24,7 @@ SENSOR_DIMS = {
 }
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/bod2d_point_mass_experiment/'
+EXP_DIR = BASE_DIR + '/experiments/box2d_point_mass_experiment/'
 
 common = {
     'experiment_name': 'box2d_point_mass_experiment' + '_' + \
@@ -62,15 +62,16 @@ algorithm = {
 }
 
 algorithm['init_traj_distr'] = {
-    'type': init_lqr,
+    'type': init_pd,
     'init_var': 5.0,
     'init_stiffness': 0.0,
+    'dQ': SENSOR_DIMS[ACTION],
     'dt': agent['dt'],
     'T': agent['T'],
 }
 
 torque_cost = {
-    'type': CostTorque,
+    'type': CostAction,
     'wu': np.array([5e-5, 5e-5])
 }
 
@@ -87,7 +88,7 @@ state_cost = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, state_cost],
-    'weights': [0.0, 1.0],
+    'weights': [1.0, 1.0],
 }
 
 algorithm['dynamics'] = {
@@ -103,7 +104,7 @@ algorithm['policy_opt'] = {}
 
 config = {
     'iterations': 10,
-    'num_samples': 20, # Lots of samples because we're not using a prior for dynamics fit.
+    'num_samples': 20,
     'common': common,
     'verbose_trials': 0,
     'agent': agent,

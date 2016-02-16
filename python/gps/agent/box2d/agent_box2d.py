@@ -30,17 +30,14 @@ class AgentBox2D(Agent):
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
                 'noisy_body_idx', 'noisy_body_var'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
+
     def _setup_world(self, world, target):
         """
         Helper method for handling setup of the Box2D world.
-
         """
         self.x0 = self._hyperparams["x0"]
-        x0 = self._hyperparams['x0'][0]
-        self._world = world(x0, target)
+        self._world = world(self.x0[0], target)
         self._world.run()
-
-
 
     def sample(self, policy, condition, verbose=False, save=True):
         """
@@ -60,17 +57,15 @@ class AgentBox2D(Agent):
         for t in range(self.T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
-            b2d_U = policy.act(X_t, obs_t, t, noise[t, :])
-            U[t, :] = b2d_U
+            U[t, :] = policy.act(X_t, obs_t, t, noise[t, :])
             if (t+1) < self.T:
                 for _ in range(self._hyperparams['substeps']):
-                    self._world.run_next(b2d_U)
+                    self._world.run_next(U[t, :])
                 b2d_X = self._world.get_state()
                 self._set_sample(new_sample, b2d_X, t)
         new_sample.set(ACTION, U)
         if save:
             self._samples[condition].append(new_sample)
-
 
     def _init_sample(self, b2d_X):
         """
@@ -81,5 +76,5 @@ class AgentBox2D(Agent):
         return sample
 
     def _set_sample(self, sample, b2d_X, t):
-        for x in b2d_X.keys():
-            sample.set(x, np.array(b2d_X[x]), t=t+1)
+        for sensor in b2d_X.keys():
+            sample.set(sensor, np.array(b2d_X[sensor]), t=t+1)

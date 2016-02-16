@@ -2,17 +2,15 @@
 from __future__ import division
 
 import os.path
-from math import pi
 from datetime import datetime
 import numpy as np
-
 
 from gps import __file__ as gps_filepath
 from gps.agent.box2d.agent_box2d import AgentBox2D
 from gps.agent.box2d.arm_world import ArmWorld
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_state import CostState
-from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
@@ -27,7 +25,7 @@ SENSOR_DIMS = {
 }
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/bod2d_arm_experiment/'
+EXP_DIR = BASE_DIR + '/experiments/box2d_arm_experiment/'
 
 
 common = {
@@ -45,7 +43,7 @@ if not os.path.exists(common['data_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    'target_state' : np.array([1.75*pi, 0.5*pi]),
+    'target_state' : np.array([1.75*np.pi, 0.5*np.pi]),
     "world" : ArmWorld,
     'x0': np.array([0, 0, 0, 0]),
     'rk': 0,
@@ -71,13 +69,12 @@ algorithm['init_traj_distr'] = {
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
     'init_stiffness': 0,
-    'init_stiffness_vel': 0.0,
     'dt': agent['dt'],
     'T': agent['T'],
 }
 
-torque_cost = {
-    'type': CostTorque,
+action_cost = {
+    'type': CostAction,
     'wu': np.array([5e-5, 5e-5])
 }
 
@@ -85,7 +82,7 @@ state_cost = {
     'type': CostState,
     'data_types' : {
         JOINT_ANGLES: {
-            'wp': np.array([.1, 1]),
+            'wp': np.array([0.1, 1]),
             'target_state': agent["target_state"],
         },
     },
@@ -93,8 +90,8 @@ state_cost = {
 
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
-    'weights': [0, 1.0],
+    'costs': [action_cost, state_cost],
+    'weights': [1.0, 1.0],
 }
 
 algorithm['dynamics'] = {

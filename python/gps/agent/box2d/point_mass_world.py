@@ -15,7 +15,6 @@ class PointMassWorld(Framework):
         self.initial_linear_velocity = (x0[2], x0[3])
         self.initial_angular_velocity = 0
 
-        # The boundaries
         ground = self.world.CreateBody(position=(0, 20))
         ground.CreateEdgeChain(
             [(-20, -20),
@@ -24,7 +23,6 @@ class PointMassWorld(Framework):
              (20, -20),
              (-20, -20)]
             )
-
 
         xf1 = b2.b2Transform()
         xf1.angle = 0.3524 * b2.b2_pi
@@ -55,12 +53,12 @@ class PointMassWorld(Framework):
                                                 xf2*(0, .5)])],
         )
         self.target.active = False
+
     def Step(self, settings, action):
         """Called upon every step. """
         self.body.linearVelocity = (action[0], action[1])
 
         super(PointMassWorld, self).Step(settings)
-
 
     def reset_world(self):
         """ This resets the world to its initial state"""

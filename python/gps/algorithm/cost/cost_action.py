@@ -1,4 +1,4 @@
-""" This file defines the action cost. """
+""" This file defines the torque (action) cost. """
 import copy
 
 import numpy as np
