@@ -34,8 +34,9 @@ void CaffeNNController::configure_controller(OptionsMap &options)
 
     NetParameter net_param;
     net_param.ParseFromString(net_param_string);
+
+    // This sets the network and the weights
     net_.reset(new NeuralNetworkCaffe(net_param));
-    //net_->set_weights(net_param);
 
     Eigen::MatrixXd scale = boost::get<Eigen::MatrixXd>(options["scale"]);
     Eigen::VectorXd bias  = boost::get<Eigen::VectorXd>(options["bias"]);
