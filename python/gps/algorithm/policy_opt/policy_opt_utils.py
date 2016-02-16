@@ -8,7 +8,7 @@ from caffe.proto.caffe_pb2 import TRAIN, TEST
 from gps.algorithm.policy_opt import __file__ as policy_opt_path
 
 
-def construct_fc_network(n_layers=3, dim_hidden=[40, 40], dim_input=27,
+def construct_fc_network(n_layers=3, dim_hidden=None, dim_input=27,
                          dim_output=7, batch_size=25, phase=TRAIN):
     """
     Construct an anonymous network (no layer names) with the specified
@@ -29,6 +29,9 @@ def construct_fc_network(n_layers=3, dim_hidden=[40, 40], dim_input=27,
     Returns:
         A NetParameter specification of the network.
     """
+    if dim_hidden is None:
+        dim_hidden = (n_layers - 1) * [42]
+
     # Needed for Caffe to find defined python layers.
     sys.path.append('/'.join(str.split(policy_opt_path, '/')[:-1]))
 
