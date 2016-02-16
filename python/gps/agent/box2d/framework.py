@@ -20,7 +20,8 @@
 # 3. This notice may not be removed or altered from any source distribution.
 
 """
-The file sets up the basics of a Box2d world. Future worlds should use this as the base class.
+The file sets up the basics of a Box2d world.
+Future worlds should use this as the base class.
 """
 import Box2D as b2
 from time import time
