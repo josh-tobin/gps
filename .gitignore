@@ -88,6 +88,9 @@ MUJOCO_LOG.TXT
 *.caffemodel
 *.solverstate
 
+# Data files
+*.pkl
+
 # Experiment files
 experiments/*/data_files/
 experiments/*/log.txt
