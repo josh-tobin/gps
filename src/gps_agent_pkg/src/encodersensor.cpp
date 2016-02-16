@@ -62,7 +62,6 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
     plugin->get_joint_encoder_readings(temp_joint_angles_, actuator_type_);
     joint_filter_->update(update_time, temp_joint_angles_);
 
-    //ROS_INFO_STREAM("EncoderSensor::update");
     if (is_controller_step)
     {
         // Get filtered joint angles

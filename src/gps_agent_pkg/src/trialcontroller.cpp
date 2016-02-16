@@ -25,6 +25,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     }
     Eigen::VectorXd X, obs;
     sample->get_data(step_counter_, X, state_datatypes_);
+    sample->get_data(step_counter_, obs, obs_datatypes_); //TODO: Fill obs
     //sample->get_obs(step_counter_, obs); //TODO: Fill obs
 
     // Ask subclass to fill in torques

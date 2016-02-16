@@ -184,7 +184,7 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
     }
-    
+
     // Update all of the auxiliary sensors and fill in the sample.
     for (int sensor = 0; sensor < aux_sensors_.size(); sensor++)
     {
@@ -391,7 +391,35 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         gps_agent_pkg::CaffeParams params = msg->controller.caffe;
         trial_controller_.reset(new CaffeNNController());
         std::string net_param = params.net_param;
+        int dim_bias = params.dim_bias;
+        Eigen::MatrixXd scale;
+        scale.resize(dim_bias, dim_bias);
+        Eigen::VectorXd bias;
+        bias.resize(dim_bias);
+        //assert(dims[0] == dims[1]*dims[1]);
+
+        int idx = 0;
+        // Unpack the scale matrix
+        for (int j = 0; j < dim_bias; ++j)
+        {
+            for (int i = 0; i < dim_bias; ++i)
+            {
+                scale(i,j) = params.scale[idx];
+                idx++;
+            }
+        }
+
+        idx = 0;
+        // Unpack the bias vector
+        for (int i = 0; i < dim_bias; ++i)
+        {
+            bias(i) = params.bias[idx];
+            idx++;
+        }
+
         controller_params["net_param"] = net_param;
+        controller_params["scale"] = scale;
+        controller_params["bias"] = bias;
         controller_params["T"] = (int)msg->T;
         trial_controller_->configure_controller(controller_params);
     }
@@ -472,7 +500,7 @@ void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequ
             aux_data_request_waiting_ = true;
         }
     }
-    else 
+    else
     {
         ROS_INFO("Data request arm type not valid: %d", arm);
     }

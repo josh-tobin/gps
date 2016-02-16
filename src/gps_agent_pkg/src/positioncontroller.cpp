@@ -39,7 +39,6 @@ PositionController::PositionController(ros::NodeHandle& n, gps::ActuatorType arm
 
     // Initialize Jacobian temporary storage.
     temp_jacobian_.resize(6,size);
-    //ROS_INFO_STREAM("jacobian size: " + to_string(temp_jacobian_.size()));
 
     // Set initial mode.
     mode_ = gps::NO_CONTROL;
@@ -62,7 +61,6 @@ PositionController::~PositionController()
 // Update the controller (take an action).
 void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
-    //ROS_INFO_STREAM(">beginning position update");
     // Get current joint angles.
     plugin->get_joint_encoder_readings(temp_angles_, arm_);
 
@@ -123,16 +121,10 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         torques = -((pd_gains_p_.array() * temp_angles_.array()) +
                     (pd_gains_d_.array() * current_angle_velocities_.array()) +
                     (pd_gains_i_.array() * pd_integral_.array())).matrix();
-        //ROS_INFO_STREAM("joint outputs mode:");
-        //ROS_INFO_STREAM(mode_);
-        //ROS_INFO_STREAM(torques);
     }
     else
     {
         torques = Eigen::VectorXd::Zero(torques.rows());
-        //ROS_INFO_STREAM("joint outputs mode:");
-        //ROS_INFO_STREAM(mode_);
-        //ROS_INFO_STREAM(torques);
     }
 
     // TODO: shall we update the stored sample somewhere?
@@ -178,8 +170,6 @@ bool PositionController::is_finished() const
         double epsvel = 0.01;
         double error = (current_angles_ - target_angles_).norm();
         double vel = current_angle_velocities_.norm();
-        //ROS_INFO("error: %f", error);
-        //ROS_INFO("vel: %f", vel);
         return (error < epspos && vel < epsvel);
     }
     else if (mode_ == gps::NO_CONTROL){
