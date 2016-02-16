@@ -219,8 +219,8 @@ class GPSTrainingGUI(object):
             [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(algorithm.M)]
             self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
             self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
-            self._traj_visualizer.add_legend(linestyle='-',   marker='None', color='red',       label='LQG Controller Distributions')
-            self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LQG Controller Means')
+            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='red',       label='LG Controller Distributions')
+            self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LG Controller Means')
 
             self._first_update = False
 
@@ -256,7 +256,7 @@ class GPSTrainingGUI(object):
         for m in range(algorithm.M):
             # Clear previous plots
             self._traj_visualizer.clear(m)
-            self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
+            # self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
             
             # Linear Gaussian Controller Distributions (Red)
             mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
@@ -266,12 +266,12 @@ class GPSTrainingGUI(object):
 
             for i in range(mu_eept.shape[1]/3):
                 mu, sigma = mu_eept[:, 3*i+0:3*i+3], sigma_eept[:, 3*i+0:3*i+3, 3*i+0:3*i+3]
-                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-', linewidth=1.0, color='red', alpha=0.15, label='LQG Controller Distributions')
+                self._traj_visualizer.plot_3d_gaussian(i=m, mu=mu, sigma=sigma, edges=100, linestyle='-', linewidth=1.0, color='red', alpha=0.15, label='LG Controller Distributions')
 
             # Linear Gaussian Controller Means (Dark Red)
             for i in range(mu_eept.shape[1]/3):
                 mu = mu_eept[:, 3*i+0:3*i+3]
-                self._traj_visualizer.plot_3d_points(i=m, points=mu, linestyle='None', marker='x', markersize=5.0, markeredgewidth=1.0, color=(0.5, 0, 0), alpha=1.0, label='LQG Controller Means')
+                self._traj_visualizer.plot_3d_points(i=m, points=mu, linestyle='None', marker='x', markersize=5.0, markeredgewidth=1.0, color=(0.5, 0, 0), alpha=1.0, label='LG Controller Means')
             
             # Trajectory Samples (Green)
             traj_samples = traj_sample_lists[m].get_samples()
