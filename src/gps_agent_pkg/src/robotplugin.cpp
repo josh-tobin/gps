@@ -391,12 +391,13 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         gps_agent_pkg::CaffeParams params = msg->controller.caffe;
         trial_controller_.reset(new CaffeNNController());
         std::string net_param = params.net_param;
+
+        // TODO(chelsea/zoe): put this somewhere else.
         int dim_bias = params.dim_bias;
         Eigen::MatrixXd scale;
         scale.resize(dim_bias, dim_bias);
         Eigen::VectorXd bias;
         bias.resize(dim_bias);
-        //assert(dims[0] == dims[1]*dims[1]);
 
         int idx = 0;
         // Unpack the scale matrix
