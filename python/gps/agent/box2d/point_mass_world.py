@@ -1,7 +1,7 @@
 """ This file defines an environment for the Box2D PointMass simulator. """
+import numpy as np
 import Box2D as b2
 from framework import Framework
-import numpy as np
 from gps.proto.gps_pb2 import POSITION, LINEAR_VELOCITY
 
 class PointMassWorld(Framework):
@@ -12,8 +12,8 @@ class PointMassWorld(Framework):
         self.world.gravity = (0.0, 0.0)
         self.initial_position = (x0[0], x0[1])
         self.initial_angle = b2.b2_pi
-        self.initial_linearVelocity = (x0[2], x0[3])
-        self.initial_angularVelocity = 0
+        self.initial_linear_velocity = (x0[2], x0[3])
+        self.initial_angular_velocity = 0
 
         # The boundaries
         ground = self.world.CreateBody(position=(0, 20))
@@ -36,8 +36,8 @@ class PointMassWorld(Framework):
         self.body = self.world.CreateDynamicBody(
             position=self.initial_position,
             angle=self.initial_angle,
-            linearVelocity=self.initial_linearVelocity,
-            angularVelocity=self.initial_angularVelocity,
+            linearVelocity=self.initial_linear_velocity,
+            angularVelocity=self.initial_angular_velocity,
             angularDamping=5,
             linearDamping=0.1,
             shapes=[b2.b2PolygonShape(vertices=[xf1*(-1, 0),
@@ -67,8 +67,8 @@ class PointMassWorld(Framework):
         self.world.ClearForces()
         self.body.position = self.initial_position
         self.body.angle = self.initial_angle
-        self.body.angularVelocity = self.initial_angularVelocity
-        self.body.linearVelocity = self.initial_linearVelocity
+        self.body.angularVelocity = self.initial_angular_velocity
+        self.body.linearVelocity = self.initial_linear_velocity
 
     def get_state(self):
         """ This retrieves the state of the point mass"""
