@@ -30,6 +30,9 @@ class ThreeDPlotter:
             for item in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
                 item.set_fontsize(10)
 
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
+
     def set_title(self, i, title):
         self._axarr[i].set_title(title)
         self._axarr[i].title.set_fontsize(10)

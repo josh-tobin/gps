@@ -74,6 +74,7 @@ class ImageVisualizer(object):
         self._overlay_plot_target  = self._ax_image.imshow(self._target_image , alpha=self._target_alpha)
 
         self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
         # ROS subscriber for PS3 controller
         if rostopic is not None:
@@ -169,7 +170,6 @@ class ImageVisualizer(object):
         self._ax_image.draw_artist(self._overlay_plot_initial)
         self._ax_image.draw_artist(self._overlay_plot_target)
         self._fig.canvas.update()
-        # self._fig.canvas.draw()
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 if __name__ == "__main__":

@@ -18,10 +18,8 @@ class OutputAxis:
                 va='top', ha='left', transform=self._ax.transAxes, family=font_family)
         self._text_arr = []
         self._max_display_size = max_display_size
-        self._bgcolor = bgcolor
-        self._bgalpha = bgalpha
+        self.set_bgcolor(bgcolor, bgalpha)
 
-        self.cc = ColorConverter()
         self._ax.set_xticks([])
         self._ax.set_yticks([])
         if not border_on:
@@ -30,11 +28,13 @@ class OutputAxis:
             self._ax.spines['bottom'].set_visible(False)
             self._ax.spines['left'].set_visible(False)
 
-        self.draw()
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
     #TODO: Add docstrings here.
     def set_text(self, text):
         self._text_arr = [text]
+        self._text_box.set_text('\n'.join(self._text_arr))
         self.log_text(text)
         self.draw()
 
@@ -42,6 +42,7 @@ class OutputAxis:
         self._text_arr.append(text)
         if len(self._text_arr) > self._max_display_size:
             self._text_arr = self._text_arr[-self._max_display_size:]
+        self._text_box.set_text('\n'.join(self._text_arr))
         self.log_text(text)
         self.draw()
 
@@ -51,14 +52,12 @@ class OutputAxis:
                 f.write(text + '\n')
 
     def set_bgcolor(self, color, alpha=1.0):
-        self._bgcolor = color
-        self._bgalpha = alpha
+        self._ax.set_axis_bgcolor(ColorConverter().to_rgba(color, alpha))
         self.draw()
 
     def draw(self):
-        self._text_box.set_text('\n'.join(self._text_arr))
-        self._ax.set_axis_bgcolor(self.cc.to_rgba(self._bgcolor, self._bgalpha))
         self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ class RealTimePlotter(object):
         if self._labels:
             self.init(len(self._labels))
 
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
+
     def init(self, data_len):
         """ Initialize plots. """
         self._t = 0
@@ -74,7 +77,11 @@ class RealTimePlotter(object):
         )
         self._ax.set_ylim(y_range_rounded)
 
+        self.draw()
+
+    def draw(self):
         self._ax.figure.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":

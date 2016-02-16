@@ -30,6 +30,9 @@ class MeanPlotter:
 
         self._init = False
 
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
+
     def init(self, data_len):
         """ Initialize plots. """
         self._t = 0
@@ -73,7 +76,11 @@ class MeanPlotter:
 
         self._ax.set_xlim(0, max(self._t, self._min_itr))
         self._ax.set_ylim(y_range_rounded)
+        self.draw()
+
+    def draw(self):
         self._ax.figure.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":
