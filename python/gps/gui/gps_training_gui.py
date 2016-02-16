@@ -102,7 +102,7 @@ class GPSTrainingGUI(object):
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
         self._action_output = OutputAxis(self._fig, self._gs_action_output, border_on=True)
         self._status_output = OutputAxis(self._fig, self._gs_status_output, border_on=False)
-        self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=10,
+        self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=15,
                 log_filename=self._log_filename, fontsize=10, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
         self._traj_visualizer = ThreeDPlotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
@@ -208,11 +208,15 @@ class GPSTrainingGUI(object):
         # Setup iteration data column titles and 3D visualization plot titles and legend
         if self._first_update:
             self.set_output_text(self._hyperparams['experiment_name'])
-            itr_data_fields = '%3s | %8s' % ('itr', 'avg_cost')
+            condition_titles = '%3s | %8s' % ('', '')
+            itr_data_fields  = '%3s | %8s' % ('itr', 'avg_cost')
             for m in range(algorithm.M):
-                itr_data_fields += ' | %8s %8s %8s' % ('  cost  ', '  step  ', 'entropy ')
+                condition_titles += ' | %8s %9s %-7d' % ('', 'condition', m)
+                itr_data_fields  += ' | %8s %8s %8s' % ('  cost  ', '  step  ', 'entropy ')
                 if algorithm.prev[0].pol_info is not None:
-                    itr_data_fields += ' %8s %8s' % ('kl_div_i', 'kl_div_f')
+                    condition_titles += ' %8s %8s' % ('', '')
+                    itr_data_fields  += ' %8s %8s' % ('kl_div_i', 'kl_div_f')
+            self.append_output_text(condition_titles)
             self.append_output_text(itr_data_fields)
 
             # WARNING: Make sure the legend values below match how the corresponding points are actually plotted
