@@ -1,11 +1,12 @@
-*****
+
 Guided Policy Search
 ===
-*****
 
 This codebase implements the code of several research papers involving guided policy search. It includes a complete robot controller and sensor interface
 for the PR2 robot via ROS, and an interface for simulated agents in Box2D and Mujoco.
 Source code is available on [GitHub](https://github.com/cbfinn/gps).
+
+*****
 
 ## What does it do?
 This code is the base of several research papers:
