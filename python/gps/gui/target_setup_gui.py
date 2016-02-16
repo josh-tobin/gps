@@ -25,6 +25,7 @@ Image Visualizer
 import copy
 import imp
 import os.path
+import subprocess
 
 import numpy as np
 
@@ -72,6 +73,7 @@ class TargetSetupGUI(object):
         self._target_position  = ('unknown', 'unknown', 'unknown')
         self._initial_image = None
         self._target_image  = None
+        self._mannequin_mode = False
         
         # Actions.
         actions_arr = [
@@ -235,7 +237,12 @@ class TargetSetupGUI(object):
         self.set_action_text('relax_controller: %s' % (self._actuator_name))
 
     def mannequin_mode(self, event=None):
-        self.set_action_text('mannequin_mode: NOT IMPLEMENTED')
+        if self._mannequin_mode:
+            subprocess.call(['roslaunch', 'pr2_mannequin_mode', 'pr2_mannequin_mode.launch'])
+            self.set_action_text('mannequin_mode: toggled on')
+        else:
+            subprocess.call(['roslaunch', 'gps_agent_pkg', 'pr2_real.launch'])
+            self.set_action_text('mannequin_mode: toggled off')
 
     # GUI functions.
     def update_target_text(self):

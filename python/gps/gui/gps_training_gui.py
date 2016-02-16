@@ -298,3 +298,6 @@ class GPSTrainingGUI(object):
             self._traj_visualizer.draw()
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
+
+    def save_figure(self, filename):
+        self._fig.savefig(filename)

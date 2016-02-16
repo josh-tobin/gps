@@ -175,6 +175,9 @@ class GPSMain(object):
             self.gui.set_status_text('Logging data and updating GUI.')
             self.gui.update(itr, self.algorithm, self.agent,
                 traj_sample_lists, pol_sample_lists)
+            self.gui.save_figure(
+                self._data_files_dir + ('figure_itr_%02d.png' % itr)
+            )
         self.data_logger.pickle(
             self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr),
             copy.copy(self.algorithm)
