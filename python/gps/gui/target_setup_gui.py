@@ -237,12 +237,14 @@ class TargetSetupGUI(object):
         self.set_action_text('relax_controller: %s' % (self._actuator_name))
 
     def mannequin_mode(self, event=None):
-        if self._mannequin_mode:
+        if not self._mannequin_mode:
             subprocess.call(['roslaunch', 'pr2_mannequin_mode', 'pr2_mannequin_mode.launch'])
             self.set_action_text('mannequin_mode: toggled on')
+            self._mannequin_mode = True
         else:
             subprocess.call(['roslaunch', 'gps_agent_pkg', 'pr2_real.launch'])
             self.set_action_text('mannequin_mode: toggled off')
+            self._mannequin_mode = False
 
     # GUI functions.
     def update_target_text(self):
