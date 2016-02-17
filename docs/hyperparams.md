@@ -2,7 +2,7 @@ Configuration & Hyperparameters
 ===
 All of the configuration settings are stored in a             config.py file in the relevant code directory. All             hyperparameters can be changed from the default value             in the hyperparams.py file for a particular  experiment.
 
-This page contains all of the config settings that are exposed                via the experiment hyperparams file. See the                corresponding config files for a more detailed comments                on each variable.
+This page contains all of the config settings that are exposed                via the experiment hyperparams file. See the                corresponding config files for more detailed comments                on each variable.
 *****
 #### Algorithm and Optimization
 

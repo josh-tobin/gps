@@ -16,7 +16,7 @@ overview = "All of the configuration settings are stored in a \
 
 description = "This page contains all of the config settings that are exposed \
                via the experiment hyperparams file. See the \
-               corresponding config files for a more detailed comments \
+               corresponding config files for more detailed comments \
                on each variable."
 
 f = open('hyperparams.md','w')
