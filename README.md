@@ -43,9 +43,9 @@ Follow the following steps to get set up
     ./compile_proto.sh
     ```
 
-**Box 2D SetUp**
+**Box 2D Setup**
 
-[Pybox2D](https://github.com/pybox2d/pybox2d) requires python 2.
+[Pybox2D](https://github.com/pybox2d/pybox2d) requires python 2.x.
 
 1. Install Swig and Pygame:
 
