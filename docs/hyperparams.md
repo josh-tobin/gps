@@ -1,8 +1,12 @@
-Experiment configuration
+Configuration & Hyperparameters
 ===
-This page contains all of the settings that are available to                change in the experiment hyperparams file.
+All of the configuration settings are stored in a             config.py file in the relevant code directory. All             hyperparameters can be changed from the default value             in the hyperparams.py file for a particular  experiment.
+
+This page contains all of the config settings that are exposed                via the experiment hyperparams file. See the                corresponding config files for a more detailed comments                on each variable.
 *****
-### Algorithm
+### Algorithm and Optimization
+
+**Algorithm base class**
 * initial_state_var
 * sample_decrease_var
 * kl_step
@@ -15,7 +19,8 @@ This page contains all of the settings that are available to                chan
 * min_eta
 * max_step_mult
 * traj_opt
-### Algorithm BADMM
+
+**BADMM Algorithm**
 * fixed_lg_step
 * exp_step_decrease
 * init_pol_wt
@@ -29,7 +34,81 @@ This page contains all of the settings that are available to                chan
 * lg_step_schedule
 * policy_dual_rate_covar
 * ent_reg_schedule
-### Traj Opt LQR
+
+**LQR Traj Opt**
 * del0
 * eta_error_threshold
 * min_eta
+
+**Caffe Policy Optimization**
+
+**Policy Prior & GMM**
+* strength
+* keep_samples
+* max_clusters
+* strength
+* min_samples_per_cluster
+* max_samples
+### Dynamics
+
+**Dynamics GMM Prior**
+* max_clusters
+* strength
+* min_samples_per_cluster
+* max_samples
+### Cost Function
+
+**State cost**
+* wp_final_multiplier
+* ramp_option
+* l2
+* data_types
+* l1
+* alpha
+
+**Forward kinematics cost**
+* evalnorm
+* wp_final_multiplier
+* alpha
+* target_end_effector
+* l2
+* ramp_option
+* env_target
+* wp
+* l1
+
+**Action cost**
+* wu
+
+**Sum of costs**
+* costs
+* weights
+### Initialization
+
+**Initial Trajectory Distribution**
+* init_stiffness_vel
+* init_acc
+* init_stiffness
+* init_action_offset
+* init_gains
+* init_final_weight
+* init_var
+### Agent Interfaces
+
+**Agent base class**
+* noisy_body_var
+* x0var
+* dH
+* noisy_body_idx
+* smooth_noise_renormalize
+* smooth_noise
+* smooth_noise_var
+* pos_body_offset
+* pos_body_idx
+
+**Box2D agent**
+
+**Mujoco agent**
+* substeps
+
+**ROS agent**

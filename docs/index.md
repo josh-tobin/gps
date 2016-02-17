@@ -9,11 +9,16 @@ Source code is available on [GitHub](https://github.com/cbfinn/gps).
 *****
 
 ## What does it do?
-This code is the base of several research papers:
-* TODO
+This code is the base of several research papers involving guided policy search, including:
+* Sergey Levine\*, Chelsea Finn\*, Trevor Darrell, Pieter Abbeel. *End-to-End Training of Deep Visuomotor Policies*. 2015. arxiv 1504.00702. [[pdf](http://arxiv.org/pdf/1504.00702.pdf)]
+* Marvin Zhang, Zoe McCarthy, Chelsea Finn, Sergey Levine, Pieter Abbeel. *Learning Deep Neural Network Policies with Continuous Memory States*. ICRA 2016. [[pdf](http://arxiv.org/pdf/1507.01273.pdf)]
+* Chelsea Finn, Xin Yu Tan, Yan Duan, Trevor Darrell, Sergey Levine, Pieter Abbeel. *Deep Spatial Autoencoders for Visuomotor Learning*. ICRA 2016.  [[pdf](http://arxiv.org/pdf/1509.06113.pdf)]
+* Justin Fu, Sergey Levine, Pieter Abbeel. *One-shot Learning of Manipulation Skills with Online Dynamics Adaptation and Neural Network Priors*. 2016. arxiv 1509.06841.  [[pdf](http://arxiv.org/pdf/1509.06841.pdf)]
 
 Please cite the relevant paper(s) above and the following if the codebase is helpful for your research:
 * TODO
+
+To faciliate applying the method to alternative platforms, this codebase also includes complete interfaces to three robot/simulation platforms: Box2D, Mujoco, and ROS.
 
 ## Installation
 
