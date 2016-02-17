@@ -1,1 +1,1 @@
-For deploying onto website, run "make html", then the contents of _static/html/ to the server.
+For deploying onto website, run "make html", then copy the contents of _static/html/ to the server.

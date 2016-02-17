@@ -55,8 +55,10 @@ try:
         ]),
     }
 except ImportError as e:
+    AGENT_ROS = {}
     LOGGER.debug('No ROS enabled: %s', e)
 except rospkg.common.ResourceNotFound as e:
+    AGENT_ROS = {}
     LOGGER.debug('No gps_agent_pkg: %s', e)
 
 
