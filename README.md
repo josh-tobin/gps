@@ -12,7 +12,7 @@ One of the following neural network libraries is required for the full guided po
 * Caffe (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
 * TensorFlow (coming soon)
 
-Optional agent interfaces
+One or more of the following agent interfaces
 * ROS
 * Mujoco
 * Box2D
