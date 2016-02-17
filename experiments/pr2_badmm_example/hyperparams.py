@@ -10,7 +10,7 @@ from gps import __file__ as gps_filepath
 from gps.agent.ros.agent_ros import AgentROS
 from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_fk import CostFK
-from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
@@ -145,7 +145,7 @@ algorithm['init_traj_distr'] = {
 }
 
 torque_cost = {
-    'type': CostTorque,
+    'type': CostAction,
     'wu': 5e-3 / PR2_GAINS,
 }
 

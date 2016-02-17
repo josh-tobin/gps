@@ -10,7 +10,7 @@ from gps import __file__ as gps_filepath
 from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_fk import CostFK
-from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
@@ -83,7 +83,7 @@ algorithm['init_traj_distr'] = {
 }
 
 torque_cost = {
-    'type': CostTorque,
+    'type': CostAction,
     'wu': 5e-5 / PR2_GAINS,
 }
 

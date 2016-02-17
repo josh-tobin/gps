@@ -41,7 +41,7 @@ COST_SUM = {
 }
 
 
-# CostTorque
-COST_TORQUE = {
+# CostAction
+COST_ACTION = {
     'wu': np.array([]),  # Torque penalties, must be 1 x dU numpy array.
 }
