@@ -42,7 +42,27 @@ Follow the following steps to get set up
     cd $GPS_PATH
     ./compile_proto.sh
     ```
+**Box 2D SetUp**
 
+Pybox2d requires python2 is running.
+
+1. Install Swig and pygame:
+
+    ```sh
+    sudo apt-get install build-essential python-dev swig python-pygame subversion
+    ```
+2. Check out the Pybox2d SVN
+
+    ```sh
+    svn checkout http://pybox2d.googlecode.com/svn/trunk/ pybox2d
+    ```
+
+3. Build and Install the Library:
+
+    ```sh
+    python setup.py build
+    sudo python setup.py install
+    ```
 **Mujoco Setup**
 
 In addition to the dependencies listed above, OpenSceneGraph is also needed.
