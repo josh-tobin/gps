@@ -3,14 +3,14 @@ import copy
 
 import numpy as np
 
-from gps.algorithm.cost.config import COST_TORQUE
+from gps.algorithm.cost.config import COST_ACTION
 from gps.algorithm.cost.cost import Cost
 
 
-class CostTorque(Cost):
+class CostAction(Cost):
     """ Computes torque penalties. """
     def __init__(self, hyperparams):
-        config = copy.deepcopy(COST_TORQUE)
+        config = copy.deepcopy(COST_ACTION)
         config.update(hyperparams)
         Cost.__init__(self, config)
 

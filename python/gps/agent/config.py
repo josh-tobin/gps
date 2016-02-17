@@ -66,3 +66,6 @@ except rospkg.common.ResourceNotFound as e:
 AGENT_MUJOCO = {
     'substeps': 1,
 }
+
+AGENT_BOX2D = {
+}

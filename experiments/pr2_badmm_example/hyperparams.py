@@ -10,7 +10,7 @@ from gps import __file__ as gps_filepath
 from gps.agent.ros.agent_ros import AgentROS
 from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 from gps.algorithm.cost.cost_fk import CostFK
-from gps.algorithm.cost.cost_torque import CostTorque
+from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
@@ -49,7 +49,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2,
+    'conditions': 1, # TODO - this should be changed to 2 or 4, with targets set on the robot.
 }
 
 x0s = []
@@ -115,15 +115,22 @@ algorithm = {
     'type': AlgorithmBADMM,
     'conditions': common['conditions'],
     'iterations': 10,
-    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
-    'policy_dual_rate': 0.2,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-1]),
+    'policy_dual_rate': 0.1,
     'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
     'fixed_lg_step': 3,
     'kl_step': 5.0,
+    'init_pol_wt': 0.01,
     'min_step_mult': 0.01,
     'max_step_mult': 1.0,
     'sample_decrease_var': 0.05,
     'sample_increase_var': 0.1,
+    'exp_step_increase': 2.0,
+    'exp_step_decrease': 0.5,
+    'exp_step_upper': 0.5,
+    'exp_step_lower': 1.0,
+    'max_policy_samples': 6,
+    'policy_sample_mode': 'add',
 }
 
 algorithm['init_traj_distr'] = {
@@ -138,7 +145,7 @@ algorithm['init_traj_distr'] = {
 }
 
 torque_cost = {
-    'type': CostTorque,
+    'type': CostAction,
     'wu': 5e-3 / PR2_GAINS,
 }
 
@@ -188,13 +195,14 @@ algorithm['traj_opt'] = {
 algorithm['policy_opt'] = {
     'type': PolicyOptCaffe,
     'weights_file_prefix': EXP_DIR + 'policy',
+    'iterations': 3000,
 }
 
 algorithm['policy_prior'] = {
     'type': PolicyPriorGMM,
     'max_clusters': 20,
     'min_samples_per_cluster': 40,
-    'max_samples': 20,
+    'max_samples': 40,
 }
 
 config = {

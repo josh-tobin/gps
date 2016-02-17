@@ -5,9 +5,6 @@ using namespace gps_control;
 // Construct network from prototxt file
 NeuralNetworkCaffe::NeuralNetworkCaffe(const char *model_file, Phase phase)
 {
-    scale_bias_set_ = false;
-    weights_set_ = false;
-
     ROS_INFO("Constructing Caffe net from file %f", model_file);
     net_.reset(new Net<float>(model_file, phase));
 
@@ -21,9 +18,6 @@ NeuralNetworkCaffe::NeuralNetworkCaffe(const char *model_file, Phase phase)
 // Construct network from model specs.
 NeuralNetworkCaffe::NeuralNetworkCaffe(NetParameter& model_param)
 {
-    scale_bias_set_ = false;
-    weights_set_ = false;
-
     ROS_INFO("Constructing Caffe net from net param");
     net_.reset(new Net<float>(model_param));
     // If we're not in CPU_ONLY mode, use the GPU.
@@ -71,10 +65,14 @@ void NeuralNetworkCaffe::forward(const Eigen::VectorXd &input, Eigen::VectorXd &
     // Transform the input by scale and bias.
     // Note that this assumes that all state information that we don't want to feed to the network is stored at the end of the state vector.
     assert(x.rows() >= input_scaled_.rows());
-    input_scaled_ = scale_*input.segment(0, input_scaled_.rows()) + bias_;
+    input_scaled_ = scale_ * input.segment(0, input_scaled_.rows()) + bias_;
 
     Blob<float>* input_blob = net_->bottom_vecs()[1][0];
-    caffe::caffe_copy(input_scaled_.rows(), (float*)input_scaled_.data(), input_blob->mutable_cpu_data());
+
+    float* blob_data = input_blob->mutable_cpu_data();
+    for (int i = 0; i < input_scaled_.rows(); ++i) {
+      blob_data[i] = (float) input_scaled_(i);
+    }
 
     // Call net forward.
     net_->ForwardFrom(1);
@@ -106,5 +104,4 @@ void NeuralNetworkCaffe::set_weights(NetParameter& net_param)
 {
     net_->CopyTrainedLayersFrom(net_param);
     ROS_INFO("NN weights set successfully");
-    weights_set_ = true;
 }

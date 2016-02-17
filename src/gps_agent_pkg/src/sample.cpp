@@ -77,7 +77,6 @@ void Sample::set_meta_data(gps::SampleType type, int data_size, SampleDataFormat
 
 void Sample::set_meta_data(gps::SampleType type, int data_size_rows, int data_size_cols, SampleDataFormat data_format, OptionsMap meta_data)
 {
-    //ROS_INFO("Setting metadata for type %i size %i, %i", (int)type, data_size_cols, data_size_rows);
     int type_key = (int) type;
     internal_data_size_[type_key] = data_size_rows * data_size_cols;
     internal_data_format_[type_key] = data_format;
@@ -207,7 +206,6 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 		}else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
 			Eigen::MatrixXd sensor_data = boost::get<Eigen::MatrixXd>(sample_variant).transpose();
             Eigen::VectorXd flattened_mat(Eigen::Map<Eigen::VectorXd>(sensor_data.data(), sensor_data.size()));
-      //ROS_ERROR("Note that the code for retrieving matrix in get_data is incorrect (uses resize instead of reshape) and extremely inefficient.");
 			flattened_mat.resize(sensor_data.cols()*sensor_data.rows(), 1);
 			data.segment(current_idx, size) = flattened_mat;
 			current_idx += size;

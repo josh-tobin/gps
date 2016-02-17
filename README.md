@@ -9,9 +9,8 @@ The following are required
 * protobuf
 
 One of the following neural network libraries is required for the full guided policy search algorithm
-* Caffe (master branch as of 11/2015 or later, with pycaffe compiled and python layer enabled)
-* Theano & Lasagne (coming soon)
-* CGT & Lasagne (coming soon)
+* Caffe (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
+* TensorFlow (coming soon)
 
 Optional agent interfaces
 * ROS
