@@ -15,7 +15,7 @@ One of the following neural network libraries is required for the full guided po
 Optional agent interfaces
 * ROS
 * Mujoco
-* Box2D (coming soon)
+* Box2D
 
 ## Setup
 Follow the following steps to get set up
@@ -40,6 +40,28 @@ Follow the following steps to get set up
     ```sh
     cd $GPS_PATH
     ./compile_proto.sh
+    ```
+
+**Box 2D Setup**
+
+[Pybox2D](https://github.com/pybox2d/pybox2d) requires python 2.x.
+
+1. Install Swig and Pygame:
+
+    ```sh
+    sudo apt-get install build-essential python-dev swig python-pygame subversion
+    ```
+2. Check out the Pybox2d code via the SVN
+
+    ```sh
+    svn checkout http://pybox2d.googlecode.com/svn/trunk/ pybox2d
+    ```
+
+3. Build and install the library:
+
+    ```sh
+    python setup.py build
+    sudo python setup.py install
     ```
 
 **Mujoco Setup**
