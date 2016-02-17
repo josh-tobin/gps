@@ -31,7 +31,7 @@ For bibtex, see [this page](bibtex.html).
 **Dependencies**
 
 The following are required
-* Python 2.7, Numpy
+* Python 2.7, Numpy, matplotlib
 * [Boost](http://www.boost.org/), boost-python
 * protobuf
 
