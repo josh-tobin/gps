@@ -44,14 +44,14 @@ Follow the following steps to get set up
 
 **Box 2D Setup**
 
-[Pybox2D](https://github.com/pybox2d/pybox2d) requires python 2.x.
+Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/pybox2d).
 
 1. Install Swig and Pygame:
 
     ```sh
     sudo apt-get install build-essential python-dev swig python-pygame subversion
     ```
-2. Check out the Pybox2d code via the SVN
+2. Check out the Pybox2d code via SVN
 
     ```sh
     svn checkout http://pybox2d.googlecode.com/svn/trunk/ pybox2d
