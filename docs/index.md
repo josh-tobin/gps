@@ -36,13 +36,13 @@ The following are required
 * protobuf
 
 One of the following neural network libraries is required for the full guided policy search algorithm
-* Caffe (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
-* TensorFlow (coming soon)
+* [Caffe](http://caffe.berkeleyvision.org/) (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
+* [TensorFlow](tensorflow.org) (coming soon)
 
 One or more of the following agent interfaces
-* Box2D
-* ROS
-* Mujoco
+* [Box2D](https://github.com/pybox2d/pybox2d)
+* [ROS](ros.org)
+* [Mujoco](https://www.roboti.us/)
 
 #### Setup
 
