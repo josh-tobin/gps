@@ -70,7 +70,7 @@ algorithm['init_traj_distr'] = {
     'T': agent['T'],
 }
 
-torque_cost = {
+action_cost = {
     'type': CostAction,
     'wu': np.array([5e-5, 5e-5])
 }
@@ -87,7 +87,7 @@ state_cost = {
 
 algorithm['cost'] = {
     'type': CostSum,
-    'costs': [torque_cost, state_cost],
+    'costs': [action_cost, state_cost],
     'weights': [1.0, 1.0],
 }
 
