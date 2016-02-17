@@ -32,7 +32,7 @@ For bibtex, see [this page](bibtex.html).
 
 The following are required
 * Python 2.7, Numpy
-* Boost, boost-python
+* [Boost](http://www.boost.org/), boost-python
 * protobuf
 
 One of the following neural network libraries is required for the full guided policy search algorithm
