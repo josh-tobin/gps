@@ -184,7 +184,7 @@ def main():
     exp_name = args.experiment
     resume_training_itr = args.resume
 
-    exp_dir = './experiments/' + exp_name + '/'
+    exp_dir = 'experiments/' + exp_name + '/'
     hyperparams_file = exp_dir + 'hyperparams.py'
 
     if args.new:
