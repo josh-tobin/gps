@@ -37,6 +37,7 @@ class AlgorithmBADMM(Algorithm):
     def iteration(self, sample_lists):
         """
         Run iteration of BADMM-based guided policy search.
+
         Args:
             sample_lists: List of SampleList objects for each condition.
         """
