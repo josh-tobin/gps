@@ -28,17 +28,10 @@ Follow the following steps to get set up
     git clone https://github.com/cbfinn/gps.git
     ```
 
-3. Set up paths:
+3. Compile protobuffer:
 
     ```sh
-    export GPS_PATH=/path/to/gps
-    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/python
-    ```
-
-4. Compile protobuffer:
-
-    ```sh
-    cd $GPS_PATH
+    cd gps
     ./compile_proto.sh
     ```
 
@@ -68,19 +61,19 @@ Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/py
 
 In addition to the dependencies listed above, OpenSceneGraph is also needed.
 
-1. [Install Mujoco](https://www.roboti.us/) and place the downloaded `mjpro` directory into `$GPS_PATH/src/3rdparty`. Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjpro` directory.
+1. [Install Mujoco](https://www.roboti.us/) and place the downloaded `mjpro` directory into `gps/src/3rdparty`. Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjpro` directory.
 
-2. Build `$GPS_PATH/src/3rdparty`. Run:
+2. Build `gps/src/3rdparty`. Run:
     ```sh
-    cd $GPS_PATH && mkdir build && cd build
+    cd gps && mkdir build && cd build
     cmake ../src/3rdparty
     make -j
     ```
 
 3. Set up paths:
     ```sh
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GPS_PATH/build/lib
-    export PYTHONPATH=$PYTHONPATH:$GPS_PATH/build/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/gps/build/lib
+    export PYTHONPATH=$PYTHONPATH:/path/to/gps/build/lib
     ```
 
 
@@ -91,7 +84,7 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
 2. Set up paths:
 
     ```sh
-    export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$GPS_PATH:$GPS_PATH/src/gps_agent_pkg
+    export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:/path/to/gps:/path/to/gps/src/gps_agent_pkg
     ```
 3. Compilation:
 
@@ -126,7 +119,7 @@ This is required if you intend to run neural network policies with the ROS agent
 
 3. Run the following:
     ```sh
-    cd GPS_PATH
+    cd gps
     python python/gps/gps_main.py my_experiment
     ```
 
