@@ -31,18 +31,18 @@ For bibtex, see [this page](bibtex.html).
 **Dependencies**
 
 The following are required
-* Python 2.7, Numpy
-* Boost, boost-python
+* Python 2.7, Numpy, matplotlib
+* [Boost](http://www.boost.org/), boost-python
 * protobuf
 
 One of the following neural network libraries is required for the full guided policy search algorithm
-* Caffe (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
-* TensorFlow (coming soon)
+* [Caffe](http://caffe.berkeleyvision.org/) (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
+* [TensorFlow](tensorflow.org) (coming soon)
 
 One or more of the following agent interfaces
-* Box2D
-* ROS
-* Mujoco
+* [Box2D](https://github.com/pybox2d/pybox2d)
+* [ROS](ros.org)
+* [Mujoco](https://www.roboti.us/)
 
 #### Setup
 
