@@ -46,7 +46,7 @@ Follow the following steps to get set up
 
 Pybox2d requires python2 is running.
 
-1. Install Swig and pygame:
+1. Install Swig and Pygame:
 
     ```sh
     sudo apt-get install build-essential python-dev swig python-pygame subversion
@@ -57,7 +57,7 @@ Pybox2d requires python2 is running.
     svn checkout http://pybox2d.googlecode.com/svn/trunk/ pybox2d
     ```
 
-3. Build and Install the Library:
+3. Build and install the library:
 
     ```sh
     python setup.py build
