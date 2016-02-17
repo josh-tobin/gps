@@ -72,7 +72,25 @@ Follow the following steps to get set up:
 
 **Box2D Setup**
 
-1. TODO
+Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/pybox2d).
+
+1. Install Swig and Pygame:
+
+    ```sh
+    sudo apt-get install build-essential python-dev swig python-pygame subversion
+    ```
+2. Check out the Pybox2d code via SVN
+
+    ```sh
+    svn checkout http://pybox2d.googlecode.com/svn/trunk/ pybox2d
+    ```
+
+3. Build and install the library:
+
+    ```sh
+    python setup.py build
+    sudo python setup.py install
+    ```
 
 **Mujoco Setup**
 
