@@ -1,1 +1,3 @@
 For deploying onto website, run "make html", then copy the contents of _static/html/ to the server.
+
+If you wish to update the hyperparams page, be sure to first run the autogenerate python script before running "make html".

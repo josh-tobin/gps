@@ -4,7 +4,7 @@ All of the configuration settings are stored in a             config.py file in 
 
 This page contains all of the config settings that are exposed                via the experiment hyperparams file. See the                corresponding config files for a more detailed comments                on each variable.
 *****
-### Algorithm and Optimization
+#### Algorithm and Optimization
 
 **Algorithm base class**
 * initial_state_var
@@ -49,14 +49,14 @@ This page contains all of the config settings that are exposed                vi
 * strength
 * min_samples_per_cluster
 * max_samples
-### Dynamics
+#### Dynamics
 
 **Dynamics GMM Prior**
 * max_clusters
 * strength
 * min_samples_per_cluster
 * max_samples
-### Cost Function
+#### Cost Function
 
 **State cost**
 * wp_final_multiplier
@@ -83,7 +83,7 @@ This page contains all of the config settings that are exposed                vi
 **Sum of costs**
 * costs
 * weights
-### Initialization
+#### Initialization
 
 **Initial Trajectory Distribution**
 * init_stiffness_vel
@@ -93,7 +93,7 @@ This page contains all of the config settings that are exposed                vi
 * init_gains
 * init_final_weight
 * init_var
-### Agent Interfaces
+#### Agent Interfaces
 
 **Agent base class**
 * noisy_body_var

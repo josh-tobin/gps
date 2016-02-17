@@ -22,7 +22,7 @@ description = "This page contains all of the config settings that are exposed \
 f = open('hyperparams.md','w')
 f.write(header + '\n' + '===\n' + overview + description + '\n*****\n')
 
-f.write('### Algorithm and Optimization\n')
+f.write('#### Algorithm and Optimization\n')
 
 f.write('\n**Algorithm base class**\n')
 for key in ALG.keys():
@@ -46,13 +46,13 @@ for key in POLICY_PRIOR.keys():
 for key in POLICY_PRIOR_GMM.keys():
   f.write('* ' + key + '\n')
 
-f.write('### Dynamics\n')
+f.write('#### Dynamics\n')
 
 f.write('\n**Dynamics GMM Prior**\n')
 for key in DYN_PRIOR_GMM.keys():
   f.write('* ' + key + '\n')
 
-f.write('### Cost Function\n')
+f.write('#### Cost Function\n')
 
 f.write('\n**State cost**\n')
 for key in COST_STATE.keys():
@@ -70,13 +70,13 @@ f.write('\n**Sum of costs**\n')
 for key in COST_SUM.keys():
   f.write('* ' + key + '\n')
 
-f.write('### Initialization\n')
+f.write('#### Initialization\n')
 
 f.write('\n**Initial Trajectory Distribution**\n')
 for key in INIT_LG.keys():
   f.write('* ' + key + '\n')
 
-f.write('### Agent Interfaces\n')
+f.write('#### Agent Interfaces\n')
 
 f.write('\n**Agent base class**\n')
 for key in AGENT.keys():
