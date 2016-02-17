@@ -25,8 +25,8 @@ SENSOR_DIMS = {
     ACTION: 2,
 }
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/mjc_pointmass_example/'
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
+EXP_DIR = BASE_DIR + '/../experiments/mjc_pointmass_example/'
 
 
 common = {

@@ -10,9 +10,10 @@ import argparse
 import threading
 import time
 
+# Add gps/python to path so that imports work.
+sys.path.append('/'.join(str.split(__file__, '/')[:-2]))
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
-
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
@@ -194,7 +195,6 @@ def main():
         open(hyperparams_file, 'w')
         sys.exit("Experiment '%s' created.\nhyperparams file: '%s'." %
                  (exp_name, hyperparams_file))
-
     if not os.path.exists(hyperparams_file):
         sys.exit("Experiment '%s' does not exist.\nDid you create '%s'?" %
                  (exp_name, hyperparams_file))
