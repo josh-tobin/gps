@@ -40,23 +40,8 @@ void NeuralNetworkCaffe::forward(const Eigen::VectorXd &input, std::vector<float
     assert(x.rows() >= input_scaled_.rows());
     input_scaled_ = scale_*input.segment(0, input_scaled_.rows()) + bias_;
 
-    vector<float*> inputs;
-    inputs.push_back(feat_input.data());
-    inputs.push_back((float*) input_scaled_.data());
-
-    // Put input blobs into network.
-    shared_ptr<MemoryDataLayer<float> > md_layer =
-      boost::dynamic_pointer_cast<MemoryDataLayer<float> >(net_->layers()[0]);
-    md_layer->Reset(inputs, 1);  // Batch size of 1
-
-    // Call net forward.
-    float initial_loss;
-    const vector<Blob<float>*>& output_blobs = net_->ForwardPrefilled(&initial_loss);
-
-    // Copy output blob to u.
-    for (int i = 0; i < output.rows(); ++i) {
-        output[i] = (double) output_blobs[0]->cpu_data()[i];
-    }
+    ROS_FATAL("Forward with >1 input not implemented!");
+    // TODO implement, will be very similar to forward with one input
 }
 
 // Run forward pass of network with passed in input, and fill in output.
