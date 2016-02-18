@@ -28,21 +28,21 @@ For bibtex, see [this page](bibtex.html).
 
 ## Installation
 
-**Dependencies**
+#### Dependencies
 
 The following are required
-* Python 2.7, Numpy, matplotlib
-* [Boost](http://www.boost.org/), boost-python
-* protobuf
+* [python 2.7](https://www.python.org/download/releases/2.7/), [numpy](http://www.numpy.org), [matplotlib](http://matplotlib.org)
+* [boost](http://www.boost.org/), including boost-python
+* [protobuf](https://developers.google.com/protocol-buffers/docs/downloads)
+
+One or more of the following agent interfaces is required. Set up instructions for each are below.
+* [Box2D](https://github.com/pybox2d/pybox2d)
+* [ROS](http://ros.org)
+* [Mujoco](https://www.roboti.us/)
 
 One of the following neural network libraries is required for the full guided policy search algorithm
 * [Caffe](http://caffe.berkeleyvision.org/) (master branch as of 11/2015, with pycaffe compiled, python layer enabled, PYTHONPATH configured)
-* [TensorFlow](tensorflow.org) (coming soon)
-
-One or more of the following agent interfaces
-* [Box2D](https://github.com/pybox2d/pybox2d)
-* [ROS](ros.org)
-* [Mujoco](https://www.roboti.us/)
+* [TensorFlow](http://tensorflow.org) (coming soon)
 
 #### Setup
 
@@ -50,7 +50,7 @@ Follow the following steps to get set up:
 
 1. Install necessary dependencies above.
 
-2. Clone this repo:
+2. Clone the repo:
 
     ```sh
     git clone https://github.com/cbfinn/gps.git
@@ -63,7 +63,7 @@ Follow the following steps to get set up:
     ./compile_proto.sh
     ```
 
-**Box2D Setup**
+**Box2D Setup** (optional)
 
 Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/pybox2d).
 
@@ -85,7 +85,7 @@ Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/py
     sudo python setup.py install
     ```
 
-**Mujoco Setup**
+**Mujoco Setup** (optional)
 
 In addition to the dependencies listed above, OpenSceneGraph is also needed.
 
@@ -98,21 +98,23 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
     make -j
     ```
 
-3. Set up paths:
+3. Set up paths by adding the following to your `~/.bashrc` file:
     ```sh
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:gps/build/lib
     export PYTHONPATH=$PYTHONPATH:gps/build/lib
     ```
+    Don't forget to run `source ~/.bashrc` afterward.
 
-**ROS Setup**
+**ROS Setup** (optional)
 
 1. Install ROS.
 
-2. Set up paths:
+2. Set up paths by adding the following to your `~/.bashrc` file:
 
     ```sh
     export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:/path/to/gps:/path/to/gps/src/gps_agent_pkg
     ```
+    Don't forget to run `source ~/.bashrc` afterward.
 3. Compilation:
 
     ```sh
@@ -121,7 +123,7 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
     make -j
     ```
 
-**ROS Setup with Caffe**
+**ROS Setup with Caffe** (optional)
 
 This is required if you intend to run neural network policies with the ROS agent.
 
@@ -144,18 +146,43 @@ This is required if you intend to run neural network policies with the ROS agent
 
 #### Box2D example
 
-Start by following the above setup for the code repo and box2d.
+There are two examples of running trajectory optimizaiton using a simple 2D agent in Box2D. Before proceeding, be sure to [set up Box2D](#setup).
 
-Then, TODO
+The first is a point mass learning to move to goal position. To try it out, run the following from the base directory of the repo:
+```
+python python/gps/gps_main.py box2d_pointmass_example
+```
+
+The second example is a 2-link arm learning to move to goal state. To try it out, run this:
+```
+python python/gps/gps_main.py box2d_arm_example
+```
+
+Both examples start with a random controller and learn though experience how to reach the goal! All settings for these examples are located in `experiments/box2d_[name]_example/hyperparams.py`,
+which can be modified to input different target positions, bring up a GUI that displays learning progress, and change various hyperparameters of the algorihtm.
 
 #### Mujoco example
 
-Start by following the above setup for the code repo and mujoco.
+To run the mujoco example, be sure to first [set up Mujoco](#setup).
+
+The first example is using trajectory optimizing for peg insertion. To try it, run the following:
+```
+python python/gps/gps_main.py mjc_example
+```
+Here the robot starts with a random initial controller and learns to insert the peg into the hole.
+
+Now let's learn to generalize to different positions of the hole. For this, run the guided policy search algorithm:
+```
+python python/gps/gps_main.py mjc_badmm_example
+```
+
+The robot learns a neural network policy for inserting the peg under varying initial conditions.
+
+To tinker with the hyperparameters and input, take a look at `experiments/mjc_badmm_example/hyperparams.py`.
 
 #### PR2 example
 
 Start by following the above setup for the code repo and ROS.
-TODO
 
 #### Running a new experiment
 1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
@@ -182,4 +209,5 @@ In addition to the inline docstrings and comments, see the following pages for a
 The code was written to be modular, to make it easy to hook up your own robot. To do so, either use one of the existing agent interfaces (e.g. AgentROS), or write your own.
 
 ## Reporting bugs and getting help
-You can post your queries on this email group list. If you want to contribute, post on this discussion group, then make a pull request on github.
+You can post questions on [gps-help](https://groups.google.com/forum/#!forum/gps-help). If you want to contribute,
+please post on [gps-dev](https://groups.google.com/forum/#!forum/gps-dev). When your contribution is ready, make a pull request on [GitHub](https://github.com/cbfinn/gps).
