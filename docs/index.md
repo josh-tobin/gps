@@ -33,7 +33,7 @@ For bibtex, see [this page](bibtex.html).
 The following are required
 * [python 2.7](https://www.python.org/download/releases/2.7/), [numpy](http://www.numpy.org), [matplotlib](http://matplotlib.org)
 * [boost](http://www.boost.org/), including boost-python
-* [protobuf](https://developers.google.com/protocol-buffers/docs/downloads)
+* [protobuf](https://developers.google.com/protocol-buffers/)
 
 One or more of the following agent interfaces is required. Set up instructions for each are below.
 * [Box2D](https://github.com/pybox2d/pybox2d)
