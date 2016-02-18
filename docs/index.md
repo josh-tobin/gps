@@ -182,7 +182,7 @@ To tinker with the hyperparameters and input, take a look at `experiments/mjc_ba
 
 #### PR2 example
 
-Start by following the above setup for the code repo and ROS.
+TODO - Zoe fill this in, including code for launching pr2_real/pr2_sim, code for running gps_main, note on different versions of ROS, note on how to set new targets on the pr2 via targetsetup, with a link to the [gui documentation](gui.html).
 
 #### Running a new experiment
 1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
