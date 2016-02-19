@@ -29,7 +29,7 @@ from gps.gui.config import gps_training as gps_training_config
 from gps.gui.action_axis import Action, ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.mean_plotter import MeanPlotter
-from gps.gui.three_d_plotter import ThreeDPlotter
+from gps.gui.three_d_plotter import Plotter3D
 from gps.gui.image_visualizer import ImageVisualizer
 
 from gps.gui.target_setup_gui import load_data_from_npz

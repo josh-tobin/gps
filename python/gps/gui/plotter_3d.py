@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
-class ThreeDPlotter:
+class Plotter3D:
     def __init__(self, fig, gs, num_plots, rows=None, cols=None):
         if cols is None:
             cols = int(np.floor(np.sqrt(num_plots)))
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     plt.ion()
     fig = plt.figure()
     gs = gridspec.GridSpec(1, 1)
-    plotter = ThreeDPlotter(fig, gs[0], num_plots=5, rows=2, cols=3)
+    plotter = Plotter3D(fig, gs[0], num_plots=5, rows=2, cols=3)
 
     xyzs = np.zeros((3, 1))
     while True:
