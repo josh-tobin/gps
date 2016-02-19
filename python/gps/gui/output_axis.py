@@ -8,7 +8,7 @@ from matplotlib.colors import ColorConverter
 
 class OutputAxis:
     def __init__(self, fig, gs, log_filename=None, max_display_size=10, border_on=False,
-            bgcolor='white', bgalpha=0.0, fontsize=12, font_family='sans-serif'):
+            bgcolor='white', bgalpha=1.0, fontsize=12, font_family='sans-serif'):
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
         self._ax = plt.subplot(self._gs[0])
@@ -34,7 +34,7 @@ class OutputAxis:
     #TODO: Add docstrings here.
     def set_text(self, text):
         self._text_arr = [text]
-        self.update_text()
+        self._text_box.set_text('\n'.join(self._text_arr))
         self.log_text(text)
         self.draw()
 
@@ -42,13 +42,9 @@ class OutputAxis:
         self._text_arr.append(text)
         if len(self._text_arr) > self._max_display_size:
             self._text_arr = self._text_arr[-self._max_display_size:]
-        self.update_text()
+        self._text_box.set_text('\n'.join(self._text_arr))
         self.log_text(text)
         self.draw()
-
-    def update_text(self):
-        self._text_box.set_text('\n'.join(self._text_arr))
-        self._fig.canvas.draw() # TODO Fix Me
 
     def log_text(self, text):
         if self._log_filename is not None:
