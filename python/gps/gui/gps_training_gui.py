@@ -295,7 +295,7 @@ class GPSTrainingGUI(object):
                         self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='blue', label='Policy Samples')
 
             # Draw new plots  
-            self._traj_visualizer.draw()
+            self._traj_visualizer.draw()    # this must be called explicitly
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
 
