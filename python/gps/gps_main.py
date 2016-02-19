@@ -147,7 +147,7 @@ class GPSMain(object):
             for i in range(self._hyperparams['verbose_policy_trials']):
                 pol_samples[cond][i] = self.agent.sample(
                     self.algorithm.policy_opt.policy, cond,
-                    verbos=True, save=False)
+                    verbose=True, save=False)
         return [SampleList(samples) for samples in pol_samples]
 
     def _log_data(self, itr, traj_sample_lists, pol_sample_lists=None):
