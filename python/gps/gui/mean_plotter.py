@@ -85,6 +85,14 @@ class MeanPlotter:
         self._fig.canvas.update()
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
+    def draw_ticklabels(self):
+        """
+        Redraws the ticklabels, for use when ticklabels are being drawn outside of the axis
+        and need to be redrawn, since something else is drawing over them.
+        """
+        [self._ax.draw_artist(item) for item in self._ax.get_xticklabels() + self._ax.get_yticklabels()]
+        self._fig.canvas.update()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 if __name__ == "__main__":
     import matplotlib.gridspec as gridspec

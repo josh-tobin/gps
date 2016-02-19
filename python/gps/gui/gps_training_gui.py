@@ -110,10 +110,16 @@ class GPSTrainingGUI(object):
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
-        for line in self._hyperparams['info'].split('\n'):
-            self.append_output_text(line)
+        self.set_output_text(self._hyperparams['info'])
+        self.wait_mode()
 
-        self.run_mode()
+        # WARNING: Make sure the legend values in UPDATE match the below linestyles/markers and colors
+        [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(self._hyperparams['conditions'])]
+        self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
+        self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
+        self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LG Controller Means')
+        self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='red',       label='LG Controller Distributions')
+
         self._fig.canvas.draw()
 
     # GPS Training Functions.
@@ -172,20 +178,25 @@ class GPSTrainingGUI(object):
         self.set_action_text('estop: NOT IMPLEMENTED')
 
     # GUI functions.
-    def set_status_text(self, text):
-        self._status_output.set_text(text)
-
-    def set_output_text(self, text):
-        self._algthm_output.set_text(text)
-
-    def append_output_text(self, text):
-        self._algthm_output.append_text(text)
-
     def set_action_text(self, text):
         self._action_output.set_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
 
     def set_action_bgcolor(self, color, alpha=1.0):
         self._action_output.set_bgcolor(color, alpha)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
+
+    def set_status_text(self, text):
+        self._status_output.set_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
+
+    def set_output_text(self, text):
+        self._algthm_output.set_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
+
+    def append_output_text(self, text):
+        self._algthm_output.append_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
 
     def set_image_overlays(self, condition):
         initial_image = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
@@ -218,13 +229,6 @@ class GPSTrainingGUI(object):
                     itr_data_fields  += ' %8s %8s' % ('kl_div_i', 'kl_div_f')
             self.append_output_text(condition_titles)
             self.append_output_text(itr_data_fields)
-
-            # WARNING: Make sure the legend values below match how the corresponding points are actually plotted
-            [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(algorithm.M)]
-            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
-            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
-            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='red',       label='LG Controller Distributions')
-            self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LG Controller Means')
 
             self._first_update = False
 
@@ -294,8 +298,7 @@ class GPSTrainingGUI(object):
                         ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
                         self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='blue', label='Policy Samples')
 
-            # Draw new plots  
-            self._traj_visualizer.draw()    # this must be called explicitly
+        self._traj_visualizer.draw()    # this must be called explicitly
         self._fig.canvas.draw()
         self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
 

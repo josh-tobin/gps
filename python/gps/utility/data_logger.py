@@ -28,4 +28,4 @@ class DataLogger(object):
             return pickle.load(open(filename, 'rb'))
         except IOError:
             LOGGER.debug('Unpickle error. Cannot find file: %s', filename)
-        sys.exit()
+            return None
