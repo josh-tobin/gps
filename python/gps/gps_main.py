@@ -189,15 +189,15 @@ class GPSMain(object):
 
 def main():
     """ Main function to be run. """
-    parser = argparse.ArgumentParser(description='GPSMain ArgumentParser')
+    parser = argparse.ArgumentParser(description='Run the Guided Policy Search algorithm.')
     parser.add_argument('experiment', type=str,
-                        help='Experiment name (and directory name).')
+                        help='experiment name')
     parser.add_argument('-n', '--new', action='store_true',
-                        help='Create new experiment.')
+                        help='create new experiment')
     parser.add_argument('-t', '--targetsetup', action='store_true',
-                        help='Run target setup.')
+                        help='run target setup')
     parser.add_argument('-r', '--resume', metavar='N', type=int,
-                        help='Resume training from iter N.')
+                        help='resume training from iter N')
     args = parser.parse_args()
 
     exp_name = args.experiment
@@ -212,13 +212,14 @@ def main():
                      (exp_name, exp_dir))
         os.makedirs(exp_dir)
         open(hyperparams_file, 'w')
-        sys.exit("Experiment '%s' created.\nhyperparams file: '%s'." %
+        sys.exit("Experiment '%s' created.\nhyperparams file: '%s'" %
                  (exp_name, hyperparams_file))
+    
     if not os.path.exists(hyperparams_file):
         sys.exit("Experiment '%s' does not exist.\nDid you create '%s'?" %
                  (exp_name, hyperparams_file))
-    hyperparams = imp.load_source('hyperparams', hyperparams_file)
 
+    hyperparams = imp.load_source('hyperparams', hyperparams_file)
     if args.targetsetup:
         try:
             import matplotlib.pyplot as plt
