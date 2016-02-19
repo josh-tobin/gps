@@ -9,8 +9,11 @@ import matplotlib.pylab as plt
 
 class RealTimePlotter(object):
     """ Real time plotter class. """
-    def __init__(self, axis, time_window=500, labels=None, alphas=None):
-        self._ax = axis
+    def __init__(self, fig, gs, time_window=500, labels=None, alphas=None):
+        self._fig = fig
+        self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
+        self._ax = plt.subplot(self._gs[0])
+
         self._time_window = time_window
         self._labels = labels
         self._alphas = alphas
@@ -18,6 +21,9 @@ class RealTimePlotter(object):
 
         if self._labels:
             self.init(len(self._labels))
+
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
     def init(self, data_len):
         """ Initialize plots. """
@@ -74,14 +80,25 @@ class RealTimePlotter(object):
         )
         self._ax.set_ylim(y_range_rounded)
 
-        self._ax.figure.canvas.draw()
+        self.draw()
+
+    def draw(self):
+        self._ax.draw_artist(self._ax.patch)
+        [self._ax.draw_artist(plot) for plot in self._plots]
+        self._fig.canvas.update()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":
+    import matplotlib.gridspec as gridspec
+
+
     plt.ion()
-    fig, ax = plt.subplots()
-    plotter = RealTimePlotter(ax, labels=['i', 'j', 'i+j', 'i-j', 'mean'],
-                              alphas=[0.15, 0.15, 0.15, 0.15, 1.0])
+    fig = plt.figure()
+    gs = gridspec.GridSpec(1, 1)
+    plotter = RealTimePlotter(fig, gs[0], 
+        labels=['i', 'j', 'i+j', 'i-j', 'mean'],
+        alphas=[0.15, 0.15, 0.15, 0.15, 1.0])
 
     i, j = 0, 0
     while True:

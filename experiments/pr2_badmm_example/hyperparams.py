@@ -211,7 +211,7 @@ config = {
     'verbose_trials': 0,
     'verbose_policy_trials': 1,
     'agent': agent,
-    'gui': True,
+    'gui_on': True,
     'algorithm': algorithm,
     'num_samples': 5,
 }

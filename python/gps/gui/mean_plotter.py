@@ -5,13 +5,15 @@ import time
 import numpy as np
 
 import matplotlib.pylab as plt
+import matplotlib.gridspec as gridspec
 
 
-class MeanPlotter(object):
-    """ Mean data plotter class. """
-    def __init__(self, axis, label='mean', color='black', alpha=1.0,
-                 min_itr=10):
-        self._ax = axis
+class MeanPlotter:
+    def __init__(self, fig, gs, label='mean', color='black', alpha=1.0, min_itr=10):
+        self._fig = fig
+        self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
+        self._ax = plt.subplot(self._gs[0])
+
         self._label = label
         self._color = color
         self._alpha = alpha
@@ -27,6 +29,9 @@ class MeanPlotter(object):
         self._ax.legend(loc='upper right', bbox_to_anchor=(1, 1))
 
         self._init = False
+
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
     def init(self, data_len):
         """ Initialize plots. """
@@ -71,13 +76,25 @@ class MeanPlotter(object):
 
         self._ax.set_xlim(0, max(self._t, self._min_itr))
         self._ax.set_ylim(y_range_rounded)
-        self._ax.figure.canvas.draw()
+        self.draw()
+
+    def draw(self):
+        self._ax.draw_artist(self._ax.patch)
+        [self._ax.draw_artist(plot) for plot in self._plots]
+        self._ax.draw_artist(self._plots_mean)
+        self._fig.canvas.update()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":
+    import matplotlib.gridspec as gridspec
+
+
     plt.ion()
-    fig, ax = plt.subplots()
-    plotter = MeanPlotter(ax, alpha=0.15)
+    fig = plt.figure()
+    gs = gridspec.GridSpec(1, 1)
+
+    plotter = MeanPlotter(fig, gs[0])
 
     i, j = 0, 0
     while True:
