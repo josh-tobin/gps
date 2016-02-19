@@ -43,9 +43,16 @@ class GPSMain(object):
         itr_start = self._initialize(itr_load)
 
         for itr in range(itr_start, self._hyperparams['iterations']):
-            traj_sample_lists = self._draw_trajectory_samples(itr)
+            for cond in range(self._conditions):
+                for i in range(self._hyperparams['num_samples']):
+                    self._take_sample(itr, cond, i)
+            
+            traj_sample_lists = [
+                self.agent.get_samples(cond, -self._hyperparams['num_samples'])
+                for cond in range(self._conditions)
+            ]
             self._take_iteration(itr, traj_sample_lists)
-            pol_sample_lists = self._draw_policy_samples()
+            pol_sample_lists = self._take_policy_samples()
             self._log_data(itr, traj_sample_lists, pol_sample_lists)
 
         self._end()
@@ -70,24 +77,7 @@ class GPSMain(object):
             return itr_load + 1
         return 0
 
-    def _draw_trajectory_samples(self, itr):
-        """
-        Draw trajectory samples from the agent.
-        Args:
-            itr: Iteration number.
-        Returns: None
-        """
-        for cond in range(self._conditions):
-            for i in range(self._hyperparams['num_samples']):
-                self._draw_sample(itr, cond, i)
-        traj_sample_lists = [
-            self.agent.get_samples(cond, -self._hyperparams['num_samples'])
-            for cond in range(self._conditions)
-        ]
-        return traj_sample_lists
-
-
-    def _draw_sample(self, itr, cond, i):
+    def _take_sample(self, itr, cond, i):
         """
         Collect a sample from the agent.
         Args:
@@ -146,20 +136,17 @@ class GPSMain(object):
             self.gui.set_status_text('Calculating.')
         self.algorithm.iteration(sample_lists)
 
-    def _draw_policy_samples(self):
+    def _take_policy_samples(self):
         """ Take samples from the policy to see how it's doing. """
         if 'verbose_policy_trials' not in self._hyperparams:
             return None
-        pol_samples = [[None for _ in range(self._hyperparams['num_samples'])]
+        pol_samples = [[None for _ in range(self._hyperparams['verbose_policy_trials'])]
                 for _ in range(self._conditions)]
         for cond in range(self._conditions):
-            for i in range(self._hyperparams['num_samples']):
+            for i in range(self._hyperparams['verbose_policy_trials']):
                 pol_samples[cond][i] = self.agent.sample(
-                    self.algorithm.policy_opt.policy,
-                    cond,
-                    verbose=(i < self._hyperparams['verbose_policy_trials']), 
-                    save=False
-                )
+                    self.algorithm.policy_opt.policy, cond,
+                    verbos=True, save=False)
         return [SampleList(samples) for samples in pol_samples]
 
     def _log_data(self, itr, traj_sample_lists, pol_sample_lists=None):
