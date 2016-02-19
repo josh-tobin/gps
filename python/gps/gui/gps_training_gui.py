@@ -29,7 +29,7 @@ from gps.gui.config import gps_training as gps_training_config
 from gps.gui.action_axis import Action, ActionAxis
 from gps.gui.output_axis import OutputAxis
 from gps.gui.mean_plotter import MeanPlotter
-from gps.gui.three_d_plotter import Plotter3D
+from gps.gui.plotter_3d import Plotter3D
 from gps.gui.image_visualizer import ImageVisualizer
 
 from gps.gui.target_setup_gui import load_data_from_npz
@@ -105,7 +105,7 @@ class GPSTrainingGUI(object):
         self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=15,
                 log_filename=self._log_filename, fontsize=10, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
-        self._traj_visualizer = ThreeDPlotter(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
+        self._traj_visualizer = Plotter3D(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
         self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
