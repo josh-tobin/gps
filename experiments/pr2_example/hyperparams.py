@@ -57,6 +57,7 @@ common = {
     'conditions': 2,
 }
 
+# TODO(chelsea/zoe) : this needs to be cleaned
 # Set up each condition.
 for i in xrange(common['conditions']):
 
