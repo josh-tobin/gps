@@ -1,7 +1,9 @@
 """ This file defines the data logger. """
 import logging
-import pickle
-import sys
+try:
+   import cPickle as pickle
+except:
+   import pickle
 
 
 LOGGER = logging.getLogger(__name__)

@@ -126,7 +126,7 @@ class TargetSetupGUI(object):
                 ps3_button=self._hyperparams['ps3_button'],
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
         self._target_output = OutputAxis(self._fig, self._gs_target_output,
-                log_filename=self._log_filename)
+                log_filename=self._log_filename, fontsize=10)
         self._initial_image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_initial_image_visualizer)
         self._target_image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_target_image_visualizer)
         self._action_output = OutputAxis(self._fig, self._gs_action_output)
@@ -248,13 +248,22 @@ class TargetSetupGUI(object):
 
     # GUI functions.
     def update_target_text(self):
+        ja_ini, ee_pos_ini, ee_rot_ini = self._initial_position
+        ja_tgt, ee_pos_tgt, ee_rot_tgt = self._target_position
+        np.set_printoptions(precision=3)
         text = (
             'target number = %s\n' % (str(self._target_number)) +
             'actuator name = %s\n' % (str(self._actuator_name)) +
-            'initial position\n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' %
-            self._initial_position +
-            'target position \n\tja = %s\n\tee_pos = %s\n\tee_rot = %s\n' %
-            self._target_position
+            '\n' +
+            'initial position\n' +
+            'joint angles =\n%s\n'           % ja_ini +
+            'end effector positions =\n%s\n' % ee_pos_ini + 
+            'end effector rotations =\n%s\n' % ee_rot_ini +
+            '\n' +
+            'target position\n' +
+            'joint angles =\n%s\n'           % ja_tgt +
+            'end effector positions =\n%s\n' % ee_pos_tgt + 
+            'end effector rotations =\n%s\n' % ee_rot_tgt
         )
         self._target_output.set_text(text)
 

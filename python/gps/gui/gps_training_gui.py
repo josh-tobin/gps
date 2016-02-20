@@ -297,10 +297,7 @@ class GPSTrainingGUI(object):
                     for i in range(ee_pt.shape[1]/3):
                         ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
                         self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='blue', label='Policy Samples')
-
         self._traj_visualizer.draw()    # this must be called explicitly
-        self._fig.canvas.draw()
-        self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
 
     def save_figure(self, filename):
         self._fig.savefig(filename)
