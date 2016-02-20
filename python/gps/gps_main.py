@@ -155,7 +155,7 @@ class GPSMain(object):
         if 'verbose_policy_trials' not in self._hyperparams:
             return None
         if self.gui:
-            self.gui.set_status_text('Taking Policy Samples.')
+            self.gui.set_status_text('Taking policy samples.')
         pol_samples = [[None for _ in range(self._hyperparams['verbose_policy_trials'])]
                 for _ in range(self._conditions)]
         for cond in range(self._conditions):

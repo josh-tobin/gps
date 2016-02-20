@@ -110,6 +110,7 @@ class GPSTrainingGUI(object):
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
+        self._algthm_output.log_text('\n')
         self.set_output_text(self._hyperparams['info'])
         self.wait_mode()
 
@@ -214,7 +215,7 @@ class GPSTrainingGUI(object):
         else:
             # Update plot with each condition's mean sample cost (summed over time).
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
-        self._cost_plotter.update(costs)
+        self._cost_plotter.update(costs, t=itr)
 
         # Setup iteration data column titles and 3D visualization plot titles and legend
         if self._first_update:
@@ -298,6 +299,8 @@ class GPSTrainingGUI(object):
                         ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
                         self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='blue', label='Policy Samples')
         self._traj_visualizer.draw()    # this must be called explicitly
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events() # Fixes bug in Qt4Agg backend
 
     def save_figure(self, filename):
         self._fig.savefig(filename)
