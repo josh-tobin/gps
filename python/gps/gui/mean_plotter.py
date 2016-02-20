@@ -65,17 +65,12 @@ class MeanPlotter:
         self._plots_mean.set_data(np.arange(0, self._t), self._data_mean[0, :])
 
         y_min, y_max = np.amin(self._data), np.amax(self._data)
-        y_mid, y_dif = (y_min + y_max) / 2.0, (y_max - y_min) / 2.0
-        if y_dif == 0:
-            y_dif = 1   # Make sure y_range does not have size 0.
-        y_range = y_mid - 1.25 * y_dif, y_mid + 1.25 * y_dif
-        y_range_rounded = np.around(
-            (y_range),
-            -int(np.floor(np.log10(np.amax(np.abs(y_range) + 1e-100)))) + 1
-        )
+        precision = np.power(10, np.floor(np.log10(np.amax(np.abs((y_min, y_max)) + 1e-100))) - 1)
+        y_lim_min = np.floor(y_min/precision) * precision
+        y_lim_max = np.ceil(y_max/precision) * precision
 
         self._ax.set_xlim(0, max(self._t, self._min_itr))
-        self._ax.set_ylim(y_range_rounded)
+        self._ax.set_ylim((y_lim_min, y_lim_max))
         self.draw()
 
     def draw(self):
