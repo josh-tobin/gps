@@ -64,7 +64,7 @@ algorithm = {
 algorithm['init_traj_distr'] = {
     'type': init_pd,
     'init_var': 5.0,
-    'init_stiffness': 0.0,
+    'pos_gains': 0.0,
     'dQ': SENSOR_DIMS[ACTION],
     'dt': agent['dt'],
     'T': agent['T'],
@@ -108,7 +108,18 @@ config = {
     'common': common,
     'verbose_trials': 0,
     'agent': agent,
-    'gui': False,
+    'gui': True,
     'algorithm': algorithm,
-    'dQ': 2
+    'dQ': algorithm['init_traj_distr']['dQ'],
 }
+
+# Info for GUI
+common['info'] = (
+    'exp_name: ' + str(common['experiment_name'])              + '\n'
+    'alg_type: ' + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  ' + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: ' + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)

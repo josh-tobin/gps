@@ -57,6 +57,7 @@ common = {
     'conditions': 2,
 }
 
+# TODO(chelsea/zoe) : Move this code to a utility function
 # Set up each condition.
 for i in xrange(common['conditions']):
 
@@ -129,8 +130,8 @@ algorithm['init_traj_distr'] = {
     'init_gains':  1.0 / PR2_GAINS,
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
-    'init_stiffness': 1.0,
-    'init_stiffness_vel': 0.5,
+    'stiffness': 1.0,
+    'stiffness_vel': 0.5,
     'dt': agent['dt'],
     'T': agent['T'],
 }

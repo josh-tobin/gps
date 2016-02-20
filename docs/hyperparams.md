@@ -85,14 +85,19 @@ This page contains all of the config settings that are exposed                vi
 * weights
 #### Initialization
 
-**Initial Trajectory Distribution**
-* init_stiffness_vel
-* init_acc
-* init_stiffness
+**Initial Trajectory Distribution - PD initializer**
 * init_action_offset
-* init_gains
-* init_final_weight
+* pos_gains
 * init_var
+* vel_gains_mult
+
+**Initial Trajectory Distribution - LQR initializer**
+* init_acc
+* stiffness
+* init_gains
+* init_var
+* stiffness_vel
+* final_weight
 #### Agent Interfaces
 
 **Agent base class**

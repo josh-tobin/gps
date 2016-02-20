@@ -33,7 +33,6 @@ common = {
             datetime.strftime(datetime.now(), '%m-%d-%y_%H-%M'),
     'experiment_dir': EXP_DIR,
     'data_files_dir': EXP_DIR + 'data_files/',
-    'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
     'conditions': 1,
 }
@@ -43,9 +42,11 @@ if not os.path.exists(common['data_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    'target_state' : np.array([1.75*np.pi, 0.5*np.pi]),
+    #'target_state' : np.array([1.75*np.pi, 0.5*np.pi]),
+    'target_state' : np.array([0, 0]),
+    #'target_state' : np.array([0.75*np.pi, 0]),
     "world" : ArmWorld,
-    'x0': np.array([0, 0, 0, 0]),
+    'x0': np.array([0.75*np.pi, 0.5*np.pi, 0, 0]),
     'rk': 0,
     'dt': 0.05,
     'substeps': 1,
@@ -67,22 +68,22 @@ algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'init_gains': np.zeros(SENSOR_DIMS[ACTION]),
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
-    'init_var': 1.0,
-    'init_stiffness': 0,
+    'init_var': 0.1,
+    'stiffness': 0.01,
     'dt': agent['dt'],
     'T': agent['T'],
 }
 
 action_cost = {
     'type': CostAction,
-    'wu': np.array([5e-5, 5e-5])
+    'wu': np.array([1, 1])
 }
 
 state_cost = {
     'type': CostState,
     'data_types' : {
         JOINT_ANGLES: {
-            'wp': np.array([0.1, 1]),
+            'wp': np.array([1, 1]),
             'target_state': agent["target_state"],
         },
     },
@@ -91,7 +92,7 @@ state_cost = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [action_cost, state_cost],
-    'weights': [1.0, 1.0],
+    'weights': [1e-5, 1.0],
 }
 
 algorithm['dynamics'] = {
@@ -114,9 +115,20 @@ algorithm['policy_opt'] = {}
 config = {
     'iterations': 10,
     'num_samples': 5,
-    'verbose_trials': 0,
+    'verbose_trials': 5,
     'common': common,
     'agent': agent,
-    'gui': False,
+    'gui': True,
     'algorithm': algorithm,
 }
+
+# Info for GUI
+common['info'] = (
+    'exp_name: ' + str(common['experiment_name'])              + '\n'
+    'alg_type: ' + str(algorithm['type'].__name__)             + '\n'
+    'alg_dyn:  ' + str(algorithm['dynamics']['type'].__name__) + '\n'
+    'alg_cost: ' + str(algorithm['cost']['type'].__name__)     + '\n'
+    'iterations: ' + str(config['iterations'])                   + '\n'
+    'conditions: ' + str(algorithm['conditions'])                + '\n'
+    'samples:    ' + str(config['num_samples'])                  + '\n'
+)

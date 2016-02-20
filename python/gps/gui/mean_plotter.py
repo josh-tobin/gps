@@ -23,7 +23,7 @@ class MeanPlotter:
         self._plots_mean = self._ax.plot([], [], '-', color=self._color,
                                          alpha=1.0, label=self._label)[0]
 
-        self._ax.set_xlim(0, self._min_itr)
+        self._ax.set_xlim(-0.2, self._min_itr)
         self._ax.set_ylim(0, 1)
         self._ax.minorticks_on()
         self._ax.legend(loc='upper right', bbox_to_anchor=(1, 1))
@@ -74,7 +74,7 @@ class MeanPlotter:
             -int(np.floor(np.log10(np.amax(np.abs(y_range) + 1e-100)))) + 1
         )
 
-        self._ax.set_xlim(0, max(self._t, self._min_itr))
+        self._ax.set_xlim(-0.2, max(self._t, self._min_itr))
         self._ax.set_ylim(y_range_rounded)
         self.draw()
 
