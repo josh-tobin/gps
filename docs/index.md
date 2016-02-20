@@ -26,6 +26,8 @@ If the codebase is helpful for your research, please cite any relevant paper(s) 
 
 For bibtex, see [this page](bibtex.html).
 
+*****
+
 ## Installation
 
 #### Dependencies
@@ -147,6 +149,7 @@ This is required if you intend to run neural network policies with the ROS agent
 
     To compile with GPU, also include the option `-DUSE_CAFFE_GPU=1`.
 
+*****
 
 ## Examples
 
@@ -198,20 +201,73 @@ To tinker with the hyperparameters and input, take a look at `experiments/mjc_ba
 
 #### PR2 example
 
-TODO - Zoe fill this in, including code for launching pr2_real/pr2_sim, code for running gps_main, note on different versions of ROS, note on how to set new targets on the pr2 via targetsetup, with a link to the [gui documentation](gui.html).
+To run the code on a real or simulated PR2, be sure to first follow the instructions above for ROS setup.
+
+###### 1. Start the controller
+
+**Real-world PR2**
+
+On the PR2 computer, run:
+
+```sh
+roslaunch gps_agent_pkg pr2_real.launch
+```
+
+This will stop the default arm controllers and spawn the PR2Plugin.
+
+**Simulated PR2**
+
+Note: If you are running ROS hydro or later _and_ using the simulated example, open the launch file pr2_gazebo_no_controller.launch and change the include line as specified.
+
+```sh
+roslaunch gps_agent_pkg pr2_gazebo.launch
+```
+
+This will launch gazebo and the PR2Plugin.
+
+###### 2. Run the code
+
+Now you're ready to run the examples via gps_main. This can be done on any machine as long as the ROS environment variables are set appropriately.
+
+The first example starts from a random initial controller and learns to move the gripper to a specified location.
+
+```sh
+python python/gps/gps_main.py pr2_example
+```
+
+The second example trains a neural network policy to reach a goal pose from different starting positions, using guided policy search:
+
+```sh
+python python/gps/gps_main.py pr2_badmm_example
+```
+
+To learn how to make your own experiment and/or set your own initial and target positions, see [the next section](#running-a-new-experiment)
 
 #### Running a new experiment
-1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
-
-2. Add a hyperparams.py file to your directory. See [pr2_example](https://github.com/cbfinn/gps/blob/master/experiments/pr2_example/hyperparams.py) and [mjc_example](https://github.com/cbfinn/gps/blob/master/experiments/mjc_example/hyperparams.py) for examples.
-
-3. Run the following:
+1. Set up a new experiment directory by running:
     ```sh
-    cd gps
+    python python/gps/gps_main.py my_experiment -n
+    ```
+    This will create a new directory called my_experiment/ in the experiments directory, with a blank hyperparams.py file.
+
+2. Fill in a hyperparams.py file in your experiment. See [pr2_example](https://github.com/cbfinn/gps/blob/master/experiments/pr2_example/hyperparams.py) and [mjc_example](https://github.com/cbfinn/gps/blob/master/experiments/mjc_example/hyperparams.py) for examples.
+
+3. If you wish to set the initial and/or target positions for the pr2 robot agent, run target setup:
+
+    ```sh
+    python python/gps/gps_main.py my_experiment -t
+    ```
+
+    See the [GUI documentation](gui.html) for details on using the GUI.
+
+4. Finally, run your experiment
+    ```sh
     python python/gps/gps_main.py my_experiment
     ```
 
 All of the output logs and data will be routed to your experiment directory.
+
+*****
 
 ## Documentation
 
@@ -221,12 +277,18 @@ In addition to the inline docstrings and comments, see the following pages for a
 * [Configuration and Hyperparameters](hyperparams.html)
 * [FAQ](faq.html)
 
+*****
+
 ## Learning with your own robot
 The code was written to be modular, to make it easy to hook up your own robot. To do so, either use one of the existing agent interfaces (e.g. AgentROS), or write your own.
+
+*****
 
 ## Reporting bugs and getting help
 You can post questions on [gps-help](https://groups.google.com/forum/#!forum/gps-help). If you want to contribute,
 please post on [gps-dev](https://groups.google.com/forum/#!forum/gps-dev). When your contribution is ready, make a pull request on [GitHub](https://github.com/cbfinn/gps).
+
+*****
 
 ## Licensing
 ![license](cclicense.png) This codebase is released under the [CC BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.
