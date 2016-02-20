@@ -171,6 +171,8 @@ python python/gps/gps_main.py mjc_example
 ```
 Here the robot starts with a random initial controller and learns to insert the peg into the hole.
 
+![mjc0](mjc0.png)  ![mjc99](mjc99.png)
+
 Now let's learn to generalize to different positions of the hole. For this, run the guided policy search algorithm:
 ```
 python python/gps/gps_main.py mjc_badmm_example
