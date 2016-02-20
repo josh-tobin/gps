@@ -58,12 +58,13 @@ Follow the following steps to get set up:
     git clone https://github.com/cbfinn/gps.git
     ```
 
-4. Compile protobuffer:
+3. Compile protobuffer:
 
     ```sh
     cd gps
     ./compile_proto.sh
     ```
+4. Set up one or more agents below.
 
 **Box2D Setup** (optional)
 
