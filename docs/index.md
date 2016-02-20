@@ -154,12 +154,20 @@ This is required if you intend to run neural network policies with the ROS agent
 
 There are two examples of running trajectory optimizaiton using a simple 2D agent in Box2D. Before proceeding, be sure to [set up Box2D](#setup).
 
-The first is a point mass learning to move to goal position. To try it out, run the following from the base directory of the repo:
+The first is a point mass learning to move to goal position.
+
+![pm0](pointmass0.png)  ![pm100](pointmass100.png)
+
+To try it out, run the following from the base directory of the repo:
 ```
 python python/gps/gps_main.py box2d_pointmass_example
 ```
 
-The second example is a 2-link arm learning to move to goal state. To try it out, run this:
+The second example is a 2-link arm learning to move to goal state.
+
+![box2d0](box2d0.png)  ![box2d100](box2d100.png)
+
+To try it out, run this:
 ```
 python python/gps/gps_main.py box2d_arm_example
 ```
