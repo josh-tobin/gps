@@ -123,6 +123,12 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
     make -j
     ```
 
+
+![brokenrobot](brokenrobot.png) ![warning](warning.png)
+
+
+[//]: # (<font color='red'> **WARNING** - Our controller directly commands torques on the <br/> PR2 robot with no safety measures. Closely supervise the </br> robot at all times, especially when running code for the first time.</font>)
+
 **ROS Setup with Caffe** (optional)
 
 This is required if you intend to run neural network policies with the ROS agent.
