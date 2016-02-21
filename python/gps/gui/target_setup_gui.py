@@ -136,46 +136,60 @@ class TargetSetupGUI(object):
         # Setup GUI components.
         self.reload_positions()
         self.update_target_text()
+        self.set_action_text('Press an action to begin.')
+        self.set_action_bgcolor('white')
+
         self._fig.canvas.draw()
 
     # Target Setup Functions.
     # TODO: Add docstrings to these methods.
     def prev_target_number(self, event=None):
+        self.set_action_status_message('prev_target_number', 'requested')
         self._target_number = (self._target_number - 1) % self._num_targets
         self.reload_positions()
         self.update_target_text()
         self.set_action_text()
+        self.set_action_status_message('prev_target_number', 'completed',
+                message='target number = %d' % self._target_number)
 
     def next_target_number(self, event=None):
+        self.set_action_status_message('next_target_number', 'requested')
         self._target_number = (self._target_number + 1) % self._num_targets
         self.reload_positions()
         self.update_target_text()
         self.set_action_text()
+        self.set_action_status_message('next_target_number', 'completed',
+                message='target number = %d' % self._target_number)
 
     def prev_actuator_type(self, event=None):
+        self.set_action_status_message('prev_actuator_type', 'requested')
         self._actuator_number = (self._actuator_number-1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
         self.update_target_text()
         self.set_action_text()
+        self.set_action_status_message('prev_actuator_type', 'completed',
+                message='actuator name = %s' % self._actuator_name)
 
     def next_actuator_type(self, event=None):
+        self.set_action_status_message('next_actuator_type', 'requested')
         self._actuator_number = (self._actuator_number+1) % self._num_actuators
         self._actuator_type = self._actuator_types[self._actuator_number]
         self._actuator_name = self._actuator_names[self._actuator_number]
         self.reload_positions()
         self.update_target_text()
         self.set_action_text()
+        self.set_action_status_message('next_actuator_type', 'completed',
+                message='actuator name = %s' % self._actuator_name)
 
     def set_initial_position(self, event=None):
-        self.set_action_text('set_initial_position: requested')
-        self.set_action_bgcolor('green', alpha=0.2)
+        self.set_action_status_message('set_initial_position', 'requested')
         try:
             sample = self._agent.get_data(arm=self._actuator_type)
         except TimeoutException as e:
-            self.set_action_text('set_initial_position: failure (TimeoutException while retrieving sample)')
-            self.set_action_bgcolor('red', alpha=1.0)
+            self.set_action_status_message('set_initial_position', 'failed',
+                    message='TimeoutException while retrieving sample')
             return
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
@@ -183,95 +197,104 @@ class TargetSetupGUI(object):
         self._initial_position = (ja, ee_pos, ee_rot)
         save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
                 'initial', self._initial_position)
+
         self.update_target_text()
-        self.set_action_text('set_initial_position: sucess')
-        self.set_action_bgcolor('green', alpha=1.0)
+        self.set_action_status_message('set_initial_position', 'completed',
+                message='initial position =\n %s' % self.position_to_str(self._initial_position))
 
     def set_target_position(self, event=None):
-        self.set_action_text('set_target_position: requested')
+        self.set_action_status_message('set_target_position', 'requested')
         self.set_action_bgcolor('green', alpha=0.2)
         try:
             sample = self._agent.get_data(arm=self._actuator_type)
         except TimeoutException as e:
-            self.set_action_text('set_target_position: failure (TimeoutException while retrieving sample)')
-            self.set_action_bgcolor('red', alpha=1.0)
+            self.set_action_status_message('set_target_position', 'failed',
+                    message='TimeoutException while retrieving sample')
             return
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
         ee_rot = sample.get(END_EFFECTOR_ROTATIONS)
         self._target_position = (ja, ee_pos, ee_rot)
-        save_pose_to_npz(self._target_filename, self._actuator_name,
-                         str(self._target_number), 'target',
-                         self._target_position)
+        save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
+                'target', self._target_position)
 
         self.update_target_text()
-        self.set_action_text('set_target_position: success')
-        self.set_action_bgcolor('green', alpha=1.0)
+        self.set_action_status_message('set_target_position', 'completed',
+                message='target position =\n %s' % self.position_to_str(self._target_position))
 
     def set_initial_image(self, event=None):
+        self.set_action_status_message('set_initial_image', 'requested')
         self._initial_image = self._image_visualizer.get_current_image()
         if self._initial_image is None:
-            self.set_action_text('set_initial_image: failure (no image available)')
+            self.set_action_status_message('set_initial_image', 'failed',
+                    message='no image available')
             return
         save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
                 'initial', 'image', self._initial_image)
 
         self.update_target_text()
-        self.set_action_text('set_initial_image: success')
+        self.set_action_status_message('set_initial_image', 'completed',
+                message='initial image =\n %s' % str(self._initial_image))
 
     def set_target_image(self, event=None):
+        self.set_action_status_message('set_target_image', 'requested')
         self._target_image = self._image_visualizer.get_current_image()
         if self._target_image is None:
-            self.set_action_text('set_target_image: failure (no image available)')
+            self.set_action_status_message('set_target_image', 'failed',
+                    message='no image available')
             return
         save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
                 'target', 'image', self._target_image)
 
         self.update_target_text()
-        self.set_action_text('set_target_image: success')
+        self.set_action_status_message('set_target_image', 'completed',
+                message='target image =\n %s' % str(self._target_image))
 
     def move_to_initial(self, event=None):
         ja = self._initial_position[0]
+        self.set_action_status_message('move_to_initial', 'requested')
         self._agent.reset_arm(self._actuator_type, JOINT_SPACE, ja)
-        self.set_action_text('move_to_initial: %s' % (str(ja.T)))
+        self.set_action_status_message('move_to_initial', 'completed',
+                message='initial position: %s' % str(ja))
 
     def move_to_target(self, event=None):
         ja = self._target_position[0]
+        self.set_action_status_message('move_to_target', 'requested')
         self._agent.reset_arm(self._actuator_type, JOINT_SPACE, ja)
-        self.set_action_text('move_to_target: %s' % (str(ja.T)))
+        self.set_action_status_message('move_to_target', 'completed',
+                message='target position: %s' % str(ja))
 
     def relax_controller(self, event=None):
+        self.set_action_status_message('relax_controller', 'requested')
         self._agent.relax_arm(self._actuator_type)
-        self.set_action_text('relax_controller: %s' % (self._actuator_name))
+        self.set_action_status_message('relax_controller', 'completed',
+                message='actuator name: %s' % self._actuator_name)
 
     def mannequin_mode(self, event=None):
         if not self._mannequin_mode:
+            self.set_action_status_message('mannequin_mode', 'requested')
             subprocess.call(['roslaunch', 'pr2_mannequin_mode', 'pr2_mannequin_mode.launch'])
-            self.set_action_text('mannequin_mode: toggled on')
             self._mannequin_mode = True
+            self.set_action_status_message('mannequin_mode', 'completed',
+                    message='mannequin mode toggled on')
         else:
+            self.set_action_status_message('mannequin_mode', 'requested')
             subprocess.call(['roslaunch', 'gps_agent_pkg', 'pr2_real.launch'])
-            self.set_action_text('mannequin_mode: toggled off')
             self._mannequin_mode = False
+            self.set_action_status_message('mannequin_mode', 'completed',
+                    message='mannequin mode toggled off')
 
     # GUI functions.
     def update_target_text(self):
-        ja_ini, ee_pos_ini, ee_rot_ini = self._initial_position
-        ja_tgt, ee_pos_tgt, ee_rot_tgt = self._target_position
-        np.set_printoptions(precision=3, suppress=True)
         text = (
             'target number = %s\n' % (str(self._target_number)) +
             'actuator name = %s\n' % (str(self._actuator_name)) +
             '\n' +
             'initial position\n' +
-            'joint angles =\n%s\n'           % ja_ini +
-            'end effector positions =\n%s\n' % ee_pos_ini + 
-            'end effector rotations =\n%s\n' % ee_rot_ini +
+            self.position_to_str(self._initial_position) +
             '\n' +
             'target position\n' +
-            'joint angles =\n%s\n'           % ja_tgt +
-            'end effector positions =\n%s\n' % ee_pos_tgt + 
-            'end effector rotations =\n%s\n' % ee_rot_tgt
+            self.position_to_str(self._target_position)
         )
         self._target_output.set_text(text)
 
@@ -279,6 +302,25 @@ class TargetSetupGUI(object):
         self._target_image_visualizer.update(self._target_image)
         self._image_visualizer.set_initial_image(self._initial_image, alpha=0.3)
         self._image_visualizer.set_target_image(self._target_image, alpha=0.3)
+
+    def position_to_str(self, position):
+        ja, ee_pos, ee_rot = position
+        np.set_printoptions(precision=3, suppress=True)
+        return ('joint angles =\n%s\n'           % ja +
+                'end effector positions =\n%s\n' % ee_pos + 
+                'end effector rotations =\n%s\n' % ee_rot)
+
+    def set_action_status_message(self, action, status, message=None):
+        text = action + ': ' + status
+        if message:
+            text += '\n\n' + message
+        self.set_action_text(text)
+        if status == 'requested':
+            self.set_action_bgcolor('yellow')
+        elif status == 'completed':
+            self.set_action_bgcolor('green')
+        elif status == 'failed':
+            self.set_action_bgcolor('red')
 
     def set_action_text(self, text=''):
         self._action_output.set_text(text)
@@ -292,9 +334,9 @@ class TargetSetupGUI(object):
         self._target_position  = load_pose_from_npz(self._target_filename, self._actuator_name,
                 str(self._target_number), 'target')
         self._initial_image    = load_data_from_npz(self._target_filename, self._actuator_name,
-                str(self._target_number), 'initial', 'image', default=np.zeros((1,1,3)))
+                str(self._target_number), 'initial', 'image', default=None)
         self._target_image     = load_data_from_npz(self._target_filename, self._actuator_name,
-                str(self._target_number), 'target',  'image', default=np.zeros((1,1,3)))
+                str(self._target_number), 'target',  'image', default=None)
 
 
 def save_pose_to_npz(filename, actuator_name, target_number, data_time, values):

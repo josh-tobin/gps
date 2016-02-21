@@ -88,6 +88,8 @@ class ImageVisualizer(object):
 
     def update(self, image):
         """ Update images. """
+        if image is None:
+            return
         image = np.array(image, dtype=float)
         if self._crop_size:
             h, w = image.shape[0], image.shape[1]
@@ -113,10 +115,14 @@ class ImageVisualizer(object):
         return self._data[-1]
 
     def set_initial_image(self, image, alpha=0.3):
+        if image is None:
+            return
         self._initial_image = np.array(image, dtype=float)
         self._initial_alpha = alpha
 
     def set_target_image(self, image, alpha=0.3):
+        if image is None:
+            return
         self._target_image = np.array(image, dtype=float)
         self._target_alpha = alpha
 
