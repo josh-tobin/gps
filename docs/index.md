@@ -26,6 +26,8 @@ If the codebase is helpful for your research, please cite any relevant paper(s) 
 
 For bibtex, see [this page](bibtex.html).
 
+*****
+
 ## Installation
 
 #### Dependencies
@@ -56,12 +58,13 @@ Follow the following steps to get set up:
     git clone https://github.com/cbfinn/gps.git
     ```
 
-4. Compile protobuffer:
+3. Compile protobuffer:
 
     ```sh
     cd gps
     ./compile_proto.sh
     ```
+4. Set up one or more agents below.
 
 **Box2D Setup** (optional)
 
@@ -123,6 +126,12 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
     make -j
     ```
 
+
+![brokenrobot](imgs/brokenrobot.png) ![warning](imgs/warning.png)
+
+
+[//]: # (<font color='red'> **WARNING** - Our controller directly commands torques on the <br/> PR2 robot with no safety measures. Closely supervise the </br> robot at all times, especially when running code for the first time.</font>)
+
 **ROS Setup with Caffe** (optional)
 
 This is required if you intend to run neural network policies with the ROS agent.
@@ -141,6 +150,7 @@ This is required if you intend to run neural network policies with the ROS agent
 
     To compile with GPU, also include the option `-DUSE_CAFFE_GPU=1`.
 
+*****
 
 ## Examples
 
@@ -148,18 +158,28 @@ This is required if you intend to run neural network policies with the ROS agent
 
 There are two examples of running trajectory optimizaiton using a simple 2D agent in Box2D. Before proceeding, be sure to [set up Box2D](#setup).
 
-The first is a point mass learning to move to goal position. To try it out, run the following from the base directory of the repo:
+The first is a point mass learning to move to goal position.
+
+![pm0](imgs/pointmass0.png)  ![pm100](imgs/pointmass100.png)
+
+To try it out, run the following from the base directory of the repo:
 ```
 python python/gps/gps_main.py box2d_pointmass_example
 ```
 
-The second example is a 2-link arm learning to move to goal state. To try it out, run this:
+The second example is a 2-link arm learning to move to goal state.
+
+![box2d0](imgs/box2d0.png)  ![box2d100](imgs/box2d100.png)
+
+To try it out, run this:
 ```
 python python/gps/gps_main.py box2d_arm_example
 ```
 
-Both examples start with a random controller and learn though experience how to reach the goal! All settings for these examples are located in `experiments/box2d_[name]_example/hyperparams.py`,
-which can be modified to input different target positions, bring up a GUI that displays learning progress, and change various hyperparameters of the algorihtm.
+Both examples start with a random controller and learn though experience how to reach the goal!
+The progress of the algorithm is displayed on the [GUI](gui.html).
+All settings for these examples are located in `experiments/box2d_[name]_example/hyperparams.py`,
+which can be modified to input different target positions and change various hyperparameters of the algorihtm.
 
 #### Mujoco example
 
@@ -170,6 +190,9 @@ The first example is using trajectory optimizing for peg insertion. To try it, r
 python python/gps/gps_main.py mjc_example
 ```
 Here the robot starts with a random initial controller and learns to insert the peg into the hole.
+The progress of the algorithm is displayed on the [GUI](gui.html).
+
+![mjc0](imgs/mjc0.png)  ![mjc99](imgs/mjc99.png)
 
 Now let's learn to generalize to different positions of the hole. For this, run the guided policy search algorithm:
 ```
@@ -182,20 +205,73 @@ To tinker with the hyperparameters and input, take a look at `experiments/mjc_ba
 
 #### PR2 example
 
-TODO - Zoe fill this in, including code for launching pr2_real/pr2_sim, code for running gps_main, note on different versions of ROS, note on how to set new targets on the pr2 via targetsetup, with a link to the [gui documentation](gui.html).
+To run the code on a real or simulated PR2, be sure to first follow the instructions above for ROS setup.
+
+###### 1. Start the controller
+
+**Real-world PR2**
+
+On the PR2 computer, run:
+
+```sh
+roslaunch gps_agent_pkg pr2_real.launch
+```
+
+This will stop the default arm controllers and spawn the PR2Plugin.
+
+**Simulated PR2**
+
+Note: If you are running ROS hydro or later, open the launch file pr2_gazebo_no_controller.launch and change the include line as specified.
+
+Launch gazebo and the PR2Plugin:
+
+```sh
+roslaunch gps_agent_pkg pr2_gazebo.launch
+```
+
+###### 2. Run the code
+
+Now you're ready to run the examples via gps_main. This can be done on any machine as long as the ROS environment variables are set appropriately.
+
+The first example starts from a random initial controller and learns to move the gripper to a specified location.
+
+```sh
+python python/gps/gps_main.py pr2_example
+```
+
+The second example trains a neural network policy to reach a goal pose from different starting positions, using guided policy search:
+
+```sh
+python python/gps/gps_main.py pr2_badmm_example
+```
+
+To learn how to make your own experiment and/or set your own initial and target positions, see [the next section](#running-a-new-experiment)
 
 #### Running a new experiment
-1. Make a new directory for your experiment in the experiments/ directory (e.g. `mkdir ./experiments/my_experiment`)
-
-2. Add a hyperparams.py file to your directory. See [pr2_example](https://github.com/cbfinn/gps/blob/master/experiments/pr2_example/hyperparams.py) and [mjc_example](https://github.com/cbfinn/gps/blob/master/experiments/mjc_example/hyperparams.py) for examples.
-
-3. Run the following:
+1. Set up a new experiment directory by running:
     ```sh
-    cd gps
+    python python/gps/gps_main.py my_experiment -n
+    ```
+    This will create a new directory called my_experiment/ in the experiments directory, with a blank hyperparams.py file.
+
+2. Fill in a hyperparams.py file in your experiment. See [pr2_example](https://github.com/cbfinn/gps/blob/master/experiments/pr2_example/hyperparams.py) and [mjc_example](https://github.com/cbfinn/gps/blob/master/experiments/mjc_example/hyperparams.py) for examples.
+
+3. If you wish to set the initial and/or target positions for the pr2 robot agent, run target setup:
+
+    ```sh
+    python python/gps/gps_main.py my_experiment -t
+    ```
+
+    See the [GUI documentation](gui.html) for details on using the GUI.
+
+4. Finally, run your experiment
+    ```sh
     python python/gps/gps_main.py my_experiment
     ```
 
 All of the output logs and data will be routed to your experiment directory.
+
+*****
 
 ## Documentation
 
@@ -205,12 +281,18 @@ In addition to the inline docstrings and comments, see the following pages for a
 * [Configuration and Hyperparameters](hyperparams.html)
 * [FAQ](faq.html)
 
+*****
+
 ## Learning with your own robot
 The code was written to be modular, to make it easy to hook up your own robot. To do so, either use one of the existing agent interfaces (e.g. AgentROS), or write your own.
+
+*****
 
 ## Reporting bugs and getting help
 You can post questions on [gps-help](https://groups.google.com/forum/#!forum/gps-help). If you want to contribute,
 please post on [gps-dev](https://groups.google.com/forum/#!forum/gps-dev). When your contribution is ready, make a pull request on [GitHub](https://github.com/cbfinn/gps).
 
+*****
+
 ## Licensing
-![license](cclicense.png) This codebase is released under the [CC BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.
+![license](imgs/cclicense.png) This codebase is released under the [CC BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.
