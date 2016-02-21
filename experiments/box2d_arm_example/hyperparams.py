@@ -42,9 +42,7 @@ if not os.path.exists(common['data_files_dir']):
 
 agent = {
     'type': AgentBox2D,
-    #'target_state' : np.array([1.75*np.pi, 0.5*np.pi]),
     'target_state' : np.array([0, 0]),
-    #'target_state' : np.array([0.75*np.pi, 0]),
     "world" : ArmWorld,
     'x0': np.array([0.75*np.pi, 0.5*np.pi, 0, 0]),
     'rk': 0,
@@ -118,7 +116,7 @@ config = {
     'verbose_trials': 5,
     'common': common,
     'agent': agent,
-    'gui': True,
+    'gui_on': False,
     'algorithm': algorithm,
 }
 

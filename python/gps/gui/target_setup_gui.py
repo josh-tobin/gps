@@ -31,9 +31,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import rospy
 
-from gps.agent.ros.agent_ros import AgentROS
 from gps.gui.config import common as common_config
 from gps.gui.config import target_setup as target_setup_config
 from gps.gui.action_axis import Action, ActionAxis
@@ -45,8 +43,10 @@ from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, \
 from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
 try:
     from gps.agent.ros.ros_utils import TimeoutException
+    import rospy
+    from gps.agent.ros.agent_ros import AgentROS
 except ImportError as e:
-    print('Cannot import TimeoutException because ROS is not installed.')
+    print('ROS is not installed.')
 
 class TargetSetupGUI(object):
     """ Target setup GUI class. """
@@ -74,7 +74,7 @@ class TargetSetupGUI(object):
         self._initial_image = None
         self._target_image  = None
         self._mannequin_mode = False
-        
+
         # Actions.
         actions_arr = [
             Action('ptn', 'prev_target_number', self.prev_target_number, axis_pos=0),
@@ -109,7 +109,7 @@ class TargetSetupGUI(object):
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
-        
+
         # Assign GUI component locations.
         self._gs = gridspec.GridSpec(4, 4)
         self._gs_action_axis                = self._gs[0:1, 0:4]
@@ -130,7 +130,7 @@ class TargetSetupGUI(object):
         self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
         self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
         self._action_output = OutputAxis(self._fig, self._gs_action_output)
-        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, 
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer,
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
@@ -229,7 +229,7 @@ class TargetSetupGUI(object):
             self.set_action_status_message('set_initial_image', 'failed',
                     message='no image available')
             return
-        save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
+        save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
                 'initial', 'image', self._initial_image)
 
         self.update_target_text()
@@ -243,7 +243,7 @@ class TargetSetupGUI(object):
             self.set_action_status_message('set_target_image', 'failed',
                     message='no image available')
             return
-        save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number), 
+        save_data_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
                 'target', 'image', self._target_image)
 
         self.update_target_text()
@@ -306,7 +306,7 @@ class TargetSetupGUI(object):
         np.set_printoptions(precision=3, suppress=True)
         ja, ee_pos, ee_rot = position
         return ('joint angles =\n%s\n'           % ja +
-                'end effector positions =\n%s\n' % ee_pos + 
+                'end effector positions =\n%s\n' % ee_pos +
                 'end effector rotations =\n%s\n' % ee_rot)
 
     def set_action_status_message(self, action, status, message=None):

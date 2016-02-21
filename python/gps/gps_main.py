@@ -47,7 +47,7 @@ class GPSMain(object):
             for cond in range(self._conditions):
                 for i in range(self._hyperparams['num_samples']):
                     self._take_sample(itr, cond, i)
-            
+
             traj_sample_lists = [
                 self.agent.get_samples(cond, -self._hyperparams['num_samples'])
                 for cond in range(self._conditions)
@@ -86,7 +86,7 @@ class GPSMain(object):
                 self.gui.update(itr_load, self.algorithm, self.agent,
                     traj_sample_lists, pol_sample_lists)
                 self.gui.set_status_text(
-                    ('Resuming training from algorithm state at iteration %d.\n' + 
+                    ('Resuming training from algorithm state at iteration %d.\n' +
                     'Press \'go\' to begin.') % itr_load)
             return itr_load + 1
 
@@ -119,7 +119,7 @@ class GPSMain(object):
                     self.gui.process_mode()  # Complete request.
 
                 self.gui.set_status_text(
-                    'Sampling: iteration %d, condition %d, sample %d.' % 
+                    'Sampling: iteration %d, condition %d, sample %d.' %
                     (itr, cond, i)
                 )
                 self.agent.sample(
@@ -229,7 +229,7 @@ def main():
         open(hyperparams_file, 'w')
         sys.exit("Experiment '%s' created.\nhyperparams file: '%s'" %
                  (exp_name, hyperparams_file))
-    
+
     if not os.path.exists(hyperparams_file):
         sys.exit("Experiment '%s' does not exist.\nDid you create '%s'?" %
                  (exp_name, hyperparams_file))

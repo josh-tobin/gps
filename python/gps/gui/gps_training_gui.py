@@ -43,7 +43,10 @@ class GPSTrainingGUI(object):
         self._hyperparams.update(hyperparams)
 
         self._log_filename = self._hyperparams['log_filename']
-        self._target_filename = self._hyperparams['target_filename']
+        if 'target_filename' in self._hyperparams:
+            self._target_filename = self._hyperparams['target_filename']
+        else:
+            self._target_filename = ''
 
         # GPS Training Status.
         self.mode = 'run'  # Modes: run, wait, end, request, process.
@@ -83,7 +86,7 @@ class GPSTrainingGUI(object):
 
         self._fig = plt.figure(figsize=(12, 12))
         self._fig.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0, hspace=0)
-        
+
         # Assign GUI component locations.
         self._gs = gridspec.GridSpec(16, 8)
         self._gs_action_axis        = self._gs[0:2,  0:8]
@@ -106,7 +109,7 @@ class GPSTrainingGUI(object):
                 log_filename=self._log_filename, fontsize=10, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, color='blue', label='mean cost')
         self._traj_visualizer = Plotter3D(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
-        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, 
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer,
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
@@ -200,13 +203,15 @@ class GPSTrainingGUI(object):
         self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
 
     def set_image_overlays(self, condition):
-        initial_image = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
+        if len(self._target_filename) == 0:
+            return
+        initial_image = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition),
                 'initial', 'image', default=np.zeros((1,1,3)))
-        target_image  = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
+        target_image  = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition),
                 'target',  'image', default=np.zeros((1,1,3)))
         self._image_visualizer.set_initial_image(initial_image, alpha=0.3)
         self._image_visualizer.set_target_image(target_image, alpha=0.3)
-        
+
     def update(self, itr, algorithm, agent, traj_sample_lists, pol_sample_lists):
         # Plot Costs
         if algorithm.M == 1:
@@ -247,6 +252,8 @@ class GPSTrainingGUI(object):
                 itr_data += ' %8.2f %8.2f' % (kl_div_i, kl_div_f)
         self.append_output_text(itr_data)
 
+        # TODO(xinyutan) - this assumes that END_EFFECTOR_POINTS are in the
+        # sample, which is not true for box2d
         # Calculate xlim, ylim, zlim for 3D visualizations from traj_sample_lists and pol_sample_lists
         # (this clips off LQG means/distributions that are not in the area of interest)
         all_eept = np.empty((0, 3))
@@ -266,7 +273,7 @@ class GPSTrainingGUI(object):
             # Clear previous plots
             self._traj_visualizer.clear(m)
             self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
-            
+
             # Linear Gaussian Controller Distributions (Red)
             mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
             eept_idx = agent.get_idx_x(END_EFFECTOR_POINTS)
@@ -281,7 +288,7 @@ class GPSTrainingGUI(object):
             for i in range(mu_eept.shape[1]/3):
                 mu = mu_eept[:, 3*i+0:3*i+3]
                 self._traj_visualizer.plot_3d_points(i=m, points=mu, linestyle='None', marker='x', markersize=5.0, markeredgewidth=1.0, color=(0.5, 0, 0), alpha=1.0, label='LG Controller Means')
-            
+
             # Trajectory Samples (Green)
             traj_samples = traj_sample_lists[m].get_samples()
             for sample in traj_samples:
@@ -289,7 +296,7 @@ class GPSTrainingGUI(object):
                 for i in range(ee_pt.shape[1]/3):
                     ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
                     self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='green', label='Trajectory Samples')
-            
+
             # Policy Samples (Blue)
             if pol_sample_lists is not None:
                 pol_samples = pol_sample_lists[m].get_samples()
