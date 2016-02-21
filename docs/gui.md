@@ -50,7 +50,7 @@ Resumes the guided policy search algorithm, loading the algorithm state from ite
 # Target Setup GUI (for ROS only)
 `python python/gps/gps_main.py <EXPERIMENT_NAME> -t`
 
-![alt text](https://github.com/cbfinn/gps/tree/master/docs/imgs/target_setup_gui.png)
+![alt text](imgs/target_setup_gui.png)
 
 The Target Setup GUI is composed of four parts: the Action Panel, the Action Status TextBox, the Targets TextBox, and the Image Visualizer.
 #### The Action Panel
@@ -88,7 +88,7 @@ Displays the real-time images outputted by the PR2's on-board Kinect. Has option
 # GPS Training GUI
 `python python/gps/gps_main.py <EXPERIMENT_NAME>`
 
-![alt text](https://github.com/cbfinn/gps/tree/master/docs/imgs/gps_training_gui.png)
+![alt text](imgs/gps_training_gui.png)
 
 The GPS Training GUI is composed of seven parts: the Action Panel, the Action Status TextBox, the Algorithm Status TextBox, the Cost Plot, the Algorithm Output TextBox, the 3D Trajectory Visualizer, and the Image Visualizer.
 #### The Action Panel
