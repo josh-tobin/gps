@@ -127,7 +127,7 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
     ```
 
 
-![brokenrobot](brokenrobot.png) ![warning](warning.png)
+![brokenrobot](imgs/brokenrobot.png) ![warning](imgs/warning.png)
 
 
 [//]: # (<font color='red'> **WARNING** - Our controller directly commands torques on the <br/> PR2 robot with no safety measures. Closely supervise the </br> robot at all times, especially when running code for the first time.</font>)
@@ -160,7 +160,7 @@ There are two examples of running trajectory optimizaiton using a simple 2D agen
 
 The first is a point mass learning to move to goal position.
 
-![pm0](pointmass0.png)  ![pm100](pointmass100.png)
+![pm0](imgs/pointmass0.png)  ![pm100](imgs/pointmass100.png)
 
 To try it out, run the following from the base directory of the repo:
 ```
@@ -169,7 +169,7 @@ python python/gps/gps_main.py box2d_pointmass_example
 
 The second example is a 2-link arm learning to move to goal state.
 
-![box2d0](box2d0.png)  ![box2d100](box2d100.png)
+![box2d0](imgs/box2d0.png)  ![box2d100](imgs/box2d100.png)
 
 To try it out, run this:
 ```
@@ -192,7 +192,7 @@ python python/gps/gps_main.py mjc_example
 Here the robot starts with a random initial controller and learns to insert the peg into the hole.
 The progress of the algorithm is displayed on the [GUI](gui.html).
 
-![mjc0](mjc0.png)  ![mjc99](mjc99.png)
+![mjc0](imgs/mjc0.png)  ![mjc99](imgs/mjc99.png)
 
 Now let's learn to generalize to different positions of the hole. For this, run the guided policy search algorithm:
 ```
@@ -295,4 +295,4 @@ please post on [gps-dev](https://groups.google.com/forum/#!forum/gps-dev). When 
 *****
 
 ## Licensing
-![license](cclicense.png) This codebase is released under the [CC BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.
+![license](imgs/cclicense.png) This codebase is released under the [CC BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) license.
