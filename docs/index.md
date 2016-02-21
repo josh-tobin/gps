@@ -176,8 +176,10 @@ To try it out, run this:
 python python/gps/gps_main.py box2d_arm_example
 ```
 
-Both examples start with a random controller and learn though experience how to reach the goal! All settings for these examples are located in `experiments/box2d_[name]_example/hyperparams.py`,
-which can be modified to input different target positions, bring up a GUI that displays learning progress, and change various hyperparameters of the algorihtm.
+Both examples start with a random controller and learn though experience how to reach the goal!
+The progress of the algorithm is displayed on the [GUI](gui.html).
+All settings for these examples are located in `experiments/box2d_[name]_example/hyperparams.py`,
+which can be modified to input different target positions and change various hyperparameters of the algorihtm.
 
 #### Mujoco example
 
@@ -188,6 +190,7 @@ The first example is using trajectory optimizing for peg insertion. To try it, r
 python python/gps/gps_main.py mjc_example
 ```
 Here the robot starts with a random initial controller and learns to insert the peg into the hole.
+The progress of the algorithm is displayed on the [GUI](gui.html).
 
 ![mjc0](mjc0.png)  ![mjc99](mjc99.png)
 
