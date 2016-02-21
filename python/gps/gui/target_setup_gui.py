@@ -127,10 +127,10 @@ class TargetSetupGUI(object):
                 inverted_ps3_button=self._hyperparams['inverted_ps3_button'])
         self._target_output = OutputAxis(self._fig, self._gs_target_output,
                 log_filename=self._log_filename, fontsize=10)
-        self._initial_image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_initial_image_visualizer)
-        self._target_image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_target_image_visualizer)
+        self._initial_image_visualizer = ImageVisualizer(self._fig, self._gs_initial_image_visualizer)
+        self._target_image_visualizer = ImageVisualizer(self._fig, self._gs_target_image_visualizer)
         self._action_output = OutputAxis(self._fig, self._gs_action_output)
-        self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, 
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
@@ -169,10 +169,13 @@ class TargetSetupGUI(object):
         self.set_action_text()
 
     def set_initial_position(self, event=None):
+        self.set_action_text('set_initial_position: requested')
+        self.set_action_bgcolor('green', alpha=0.2)
         try:
             sample = self._agent.get_data(arm=self._actuator_type)
         except TimeoutException as e:
             self.set_action_text('set_initial_position: failure (TimeoutException while retrieving sample)')
+            self.set_action_bgcolor('red', alpha=1.0)
             return
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
@@ -181,13 +184,17 @@ class TargetSetupGUI(object):
         save_pose_to_npz(self._target_filename, self._actuator_name, str(self._target_number),
                 'initial', self._initial_position)
         self.update_target_text()
-        self.set_action_text('set_initial_position: success')
+        self.set_action_text('set_initial_position: sucess')
+        self.set_action_bgcolor('green', alpha=1.0)
 
     def set_target_position(self, event=None):
+        self.set_action_text('set_target_position: requested')
+        self.set_action_bgcolor('green', alpha=0.2)
         try:
             sample = self._agent.get_data(arm=self._actuator_type)
         except TimeoutException as e:
             self.set_action_text('set_target_position: failure (TimeoutException while retrieving sample)')
+            self.set_action_bgcolor('red', alpha=1.0)
             return
         ja = sample.get(JOINT_ANGLES)
         ee_pos = sample.get(END_EFFECTOR_POSITIONS)
@@ -199,6 +206,7 @@ class TargetSetupGUI(object):
 
         self.update_target_text()
         self.set_action_text('set_target_position: success')
+        self.set_action_bgcolor('green', alpha=1.0)
 
     def set_initial_image(self, event=None):
         self._initial_image = self._image_visualizer.get_current_image()
@@ -250,7 +258,7 @@ class TargetSetupGUI(object):
     def update_target_text(self):
         ja_ini, ee_pos_ini, ee_rot_ini = self._initial_position
         ja_tgt, ee_pos_tgt, ee_rot_tgt = self._target_position
-        np.set_printoptions(precision=3)
+        np.set_printoptions(precision=3, suppress=True)
         text = (
             'target number = %s\n' % (str(self._target_number)) +
             'actuator name = %s\n' % (str(self._actuator_name)) +
@@ -274,6 +282,9 @@ class TargetSetupGUI(object):
 
     def set_action_text(self, text=''):
         self._action_output.set_text(text)
+
+    def set_action_bgcolor(self, color, alpha=1.0):
+        self._action_output.set_bgcolor(color, alpha)
 
     def reload_positions(self):
         self._initial_position = load_pose_from_npz(self._target_filename, self._actuator_name,

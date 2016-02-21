@@ -106,7 +106,7 @@ class GPSTrainingGUI(object):
                 log_filename=self._log_filename, fontsize=10, font_family='monospace')
         self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
         self._traj_visualizer = Plotter3D(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
-        self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, 
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
