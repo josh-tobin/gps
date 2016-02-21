@@ -69,12 +69,12 @@ The Action Panel consists 12 actions which can be performed, either by clicking 
 The Action Status Textbox indicates whether or not the actions were performed successfully or failed.
 #### The Targets TextBox
 The Targets TextBox displays the target values for the current target number and actuator type, including:
-* `target number` | the current target number |
-| `actuator type` | the current actuator type |
-| `initial pose` | the initial poses' `joint angles`, `end effector points`, and `end effector rotations` |
-| `target pose` | the target poses' `joint angles`, `end effector points`, and `end effector rotations` |
-| `initial image` | the initial image associated with the initial pose, displayed on the bottom left |
-| `target image` | the target image associated with the target pose, displayed on the bottom right |
+* `target number` - the current target number
+* `actuator type` - the current actuator type
+* `initial pose` - the initial poses' `joint angles`, `end effector points`, and `end effector rotations`
+* `target pose` - the target poses' `joint angles`, `end effector points`, and `end effector rotations`
+* `initial image` - the initial image associated with the initial pose, displayed on the bottom left
+* `target image` - the target image associated with the target pose, displayed on the bottom right
 #### The Image Visualizer
 Displays the real-time images outputted by the PR2's on-board Kinect. Has options to overlay the initial image and the target image.
 
