@@ -286,15 +286,14 @@ class TargetSetupGUI(object):
 
     # GUI functions.
     def update_target_text(self):
+        np.set_printoptions(precision=3, suppress=True)
         text = (
-            'target number = %s\n' % (str(self._target_number)) +
-            'actuator name = %s\n' % (str(self._actuator_name)) +
-            '\n' +
-            'initial position\n' +
-            self.position_to_str(self._initial_position) +
-            '\n' +
-            'target position\n' +
-            self.position_to_str(self._target_position)
+            'target number = %s\n' % str(self._target_number) +
+            'actuator name = %s\n' % str(self._actuator_name) +
+            '\ninitial position\n%s' % self.position_to_str(self._initial_position) +
+            '\ntarget position\n%s' % self.position_to_str(self._target_position) +
+            '\ninitial image (left) =\n%s\n' % str(self._initial_image) +
+            '\ntarget image (right) =\n%s\n' % str(self._target_image)
         )
         self._target_output.set_text(text)
 
@@ -304,8 +303,8 @@ class TargetSetupGUI(object):
         self._image_visualizer.set_target_image(self._target_image, alpha=0.3)
 
     def position_to_str(self, position):
-        ja, ee_pos, ee_rot = position
         np.set_printoptions(precision=3, suppress=True)
+        ja, ee_pos, ee_rot = position
         return ('joint angles =\n%s\n'           % ja +
                 'end effector positions =\n%s\n' % ee_pos + 
                 'end effector rotations =\n%s\n' % ee_rot)
