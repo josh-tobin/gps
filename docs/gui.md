@@ -28,7 +28,7 @@ Opens the Target Setup GUI, for target setup when using ROS. See the [Target Set
 
 3. `python python/gps/gps_main.py <EXPERIMENT_NAME>` 
 
-Opens the GPS Training GUI and runs the guided policy search algorithm for your specific experiment hyperparams. Press the 'go' button (keyboard shortcut 'g') to begin the experiment. See the [GPS Training GUI](#GPS Training GUI) section below.
+Opens the GPS Training GUI and runs the guided policy search algorithm for your specific experiment hyperparams. See the [GPS Training GUI](#GPS Training GUI) section below.
 
 4. `python python/gps/gps_main.py <EXPERIMENT_NAME> -r N`
 

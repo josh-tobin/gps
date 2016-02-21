@@ -104,7 +104,7 @@ class GPSTrainingGUI(object):
         self._status_output = OutputAxis(self._fig, self._gs_status_output, border_on=False)
         self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=15,
                 log_filename=self._log_filename, fontsize=10, font_family='monospace')
-        self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
+        self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, color='blue', label='mean cost')
         self._traj_visualizer = Plotter3D(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
         self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, 
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
@@ -112,7 +112,7 @@ class GPSTrainingGUI(object):
         # Setup GUI components.
         self._algthm_output.log_text('\n')
         self.set_output_text(self._hyperparams['info'])
-        self.wait_mode()
+        self.run_mode()
 
         # WARNING: Make sure the legend values in UPDATE match the below linestyles/markers and colors
         [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(self._hyperparams['conditions'])]
@@ -265,7 +265,7 @@ class GPSTrainingGUI(object):
         for m in range(algorithm.M):
             # Clear previous plots
             self._traj_visualizer.clear(m)
-            # self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
+            self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
             
             # Linear Gaussian Controller Distributions (Red)
             mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)

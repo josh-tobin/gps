@@ -128,16 +128,16 @@ class ImageVisualizer(object):
 
     def toggle_initial_image_overlay(self, event=None):
         self._initial_image_overlay_on = not self._initial_image_overlay_on
-        image = self._initial_image if (self._initial_image and self._initial_image_overlay_on) else self._default_image
-        alpha = self._initial_alpha if (self._initial_alpha and self._initial_image_overlay_on) else self._default_alpha
+        image = self._initial_image if (self._initial_image is not None and self._initial_image_overlay_on) else self._default_image
+        alpha = self._initial_alpha if (self._initial_alpha is not None and self._initial_image_overlay_on) else self._default_alpha
         self._overlay_plot_initial.set_array(image)
         self._overlay_plot_initial.set_alpha(alpha)
         self.draw()
 
     def toggle_target_image_overlay(self, event=None):
         self._target_image_overlay_on = not self._target_image_overlay_on
-        image = self._target_image if (self._target_image and self._target_image_overlay_on) else self._default_image
-        alpha = self._target_alpha if (self._target_alpha and self._target_image_overlay_on) else self._default_alpha
+        image = self._target_image if (self._target_image is not None and self._target_image_overlay_on) else self._default_image
+        alpha = self._target_alpha if (self._target_alpha is not None and self._target_image_overlay_on) else self._default_alpha
         self._overlay_plot_target.set_array(image)
         self._overlay_plot_target.set_alpha(alpha)
         self.draw()
