@@ -95,10 +95,10 @@ The GPS Training GUI is composed of seven parts: the Action Panel, the Action St
 The Action Panel consists 4 actions which can be performed, either by clicking the button, pressing the keyboard shortcut, or using the PS3 Controller shortcut:
 | Action | Description |
 |---|---|
-| `stop` | stop the robot from collecting samples (after the current sample has completed) |
-| `reset` | reset the robot to the initial position (after the current sample has completed), used to reposition objects that displaced by the previous sample collection |
-| `go` | start/restart the robot to collect samples (after using `stop`, `reset`, or `fail`) |
-| `fail` | fail the current sample being collected (after the current sample has completed), and recollect that sample |
+| `stop` | stop the robot from collecting samples (after the current sample has completed), used to perform a manual reset of the robot's arms |
+| `reset` | reset the robot to the initial position (after the current sample has completed), used to perform a manual reset of the objects in the scene |
+| `go` | start/restart the robot to collect samples (after using `stop`, `reset`, or `fail`), used to resume training after stop, reset or fail |
+| `fail` | fail the current sample being collected and recollect that sample (after the current sample has completed), used to recollect a sample that was conducted under faulty conditions |
 #### The Action Status TextBox
 The Action Status Textbox indicates whether or not the actions were performed successfully or failed.
 #### The Algorithm Status TextBox
