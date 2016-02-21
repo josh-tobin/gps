@@ -223,11 +223,11 @@ This will stop the default arm controllers and spawn the PR2Plugin.
 
 Note: If you are running ROS hydro or later, open the launch file pr2_gazebo_no_controller.launch and change the include line as specified.
 
+Launch gazebo and the PR2Plugin:
+
 ```sh
 roslaunch gps_agent_pkg pr2_gazebo.launch
 ```
-
-This will launch gazebo and the PR2Plugin.
 
 ###### 2. Run the code
 
