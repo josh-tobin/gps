@@ -104,16 +104,23 @@ class GPSTrainingGUI(object):
         self._status_output = OutputAxis(self._fig, self._gs_status_output, border_on=False)
         self._algthm_output = OutputAxis(self._fig, self._gs_algthm_output, max_display_size=15,
                 log_filename=self._log_filename, fontsize=10, font_family='monospace')
-        self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, label='cost')
+        self._cost_plotter = MeanPlotter(self._fig, self._gs_cost_plotter, color='blue', label='mean cost')
         self._traj_visualizer = Plotter3D(self._fig, self._gs_traj_visualizer, num_plots=self._hyperparams['conditions'])
-        self._image_visualizer = ImageVisualizer(self._hyperparams, self._fig, self._gs_image_visualizer, 
+        self._image_visualizer = ImageVisualizer(self._fig, self._gs_image_visualizer, 
                 cropsize=(240, 240), rostopic=self._hyperparams['image_topic'], show_overlay_buttons=True)
 
         # Setup GUI components.
-        for line in self._hyperparams['info'].split('\n'):
-            self.append_output_text(line)
-
+        self._algthm_output.log_text('\n')
+        self.set_output_text(self._hyperparams['info'])
         self.run_mode()
+
+        # WARNING: Make sure the legend values in UPDATE match the below linestyles/markers and colors
+        [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(self._hyperparams['conditions'])]
+        self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
+        self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
+        self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LG Controller Means')
+        self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='red',       label='LG Controller Distributions')
+
         self._fig.canvas.draw()
 
     # GPS Training Functions.
@@ -172,20 +179,25 @@ class GPSTrainingGUI(object):
         self.set_action_text('estop: NOT IMPLEMENTED')
 
     # GUI functions.
-    def set_status_text(self, text):
-        self._status_output.set_text(text)
-
-    def set_output_text(self, text):
-        self._algthm_output.set_text(text)
-
-    def append_output_text(self, text):
-        self._algthm_output.append_text(text)
-
     def set_action_text(self, text):
         self._action_output.set_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
 
     def set_action_bgcolor(self, color, alpha=1.0):
         self._action_output.set_bgcolor(color, alpha)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
+
+    def set_status_text(self, text):
+        self._status_output.set_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
+
+    def set_output_text(self, text):
+        self._algthm_output.set_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
+
+    def append_output_text(self, text):
+        self._algthm_output.append_text(text)
+        self._cost_plotter.draw_ticklabels()    # redraw overflow ticklabels
 
     def set_image_overlays(self, condition):
         initial_image = load_data_from_npz(self._target_filename, self._hyperparams['image_actuator'], str(condition), 
@@ -203,7 +215,7 @@ class GPSTrainingGUI(object):
         else:
             # Update plot with each condition's mean sample cost (summed over time).
             costs = [np.mean(np.sum(algorithm.prev[m].cs, axis=1)) for m in range(algorithm.M)]
-        self._cost_plotter.update(costs)
+        self._cost_plotter.update(costs, t=itr)
 
         # Setup iteration data column titles and 3D visualization plot titles and legend
         if self._first_update:
@@ -218,13 +230,6 @@ class GPSTrainingGUI(object):
                     itr_data_fields  += ' %8s %8s' % ('kl_div_i', 'kl_div_f')
             self.append_output_text(condition_titles)
             self.append_output_text(itr_data_fields)
-
-            # WARNING: Make sure the legend values below match how the corresponding points are actually plotted
-            [self._traj_visualizer.set_title(m, 'Condition %d' % (m)) for m in range(algorithm.M)]
-            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='green',     label='Trajectory Samples')
-            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='blue',      label='Policy Samples')
-            self._traj_visualizer.add_legend(linestyle='-',    marker='None', color='red',       label='LG Controller Distributions')
-            self._traj_visualizer.add_legend(linestyle='None', marker='x',    color=(0.5, 0, 0), label='LG Controller Means')
 
             self._first_update = False
 
@@ -260,7 +265,7 @@ class GPSTrainingGUI(object):
         for m in range(algorithm.M):
             # Clear previous plots
             self._traj_visualizer.clear(m)
-            # self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
+            self._traj_visualizer.set_lim(i=m, xlim=xlim, ylim=ylim, zlim=zlim)
             
             # Linear Gaussian Controller Distributions (Red)
             mu, sigma = algorithm.traj_opt.forward(algorithm.prev[m].traj_distr, algorithm.prev[m].traj_info)
@@ -293,11 +298,9 @@ class GPSTrainingGUI(object):
                     for i in range(ee_pt.shape[1]/3):
                         ee_pt_i = ee_pt[:, 3*i+0:3*i+3]
                         self._traj_visualizer.plot_3d_points(m, ee_pt_i, color='blue', label='Policy Samples')
-
-            # Draw new plots  
-            self._traj_visualizer.draw()    # this must be called explicitly
+        self._traj_visualizer.draw()    # this must be called explicitly
         self._fig.canvas.draw()
-        self._fig.canvas.flush_events() # Fixes bug with Qt4Agg backend
+        self._fig.canvas.flush_events() # Fixes bug in Qt4Agg backend
 
     def save_figure(self, filename):
         self._fig.savefig(filename)

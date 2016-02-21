@@ -67,16 +67,28 @@ class GPSMain(object):
         Returns:
             itr_start: Iteration to start from.
         """
-        if itr_load is not None:
-            self.algorithm = self.data_logger.unpickle(
-                self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr_load))
+        if itr_load is None:
             if self.gui:
+                self.gui.set_status_text('Press \'go\' to begin.')
+            return 0
+        else:
+            algorithm_file = self._data_files_dir + 'algorithm_itr_%02d.pkl' % itr_load
+            self.algorithm = self.data_logger.unpickle(algorithm_file)
+            if self.algorithm is None:
+                print("Error: cannot find '%s.'" % algorithm_file)
+                os._exit(1) # called instead of sys.exit(), since this is in a thread
+
+            if self.gui:
+                traj_sample_lists = self.data_logger.unpickle(self._data_files_dir +
+                    ('traj_sample_itr_%02d.pkl' % itr_load))
+                pol_sample_lists = self.data_logger.unpickle(self._data_files_dir +
+                    ('pol_sample_itr_%02d.pkl' % itr_load))
+                self.gui.update(itr_load, self.algorithm, self.agent,
+                    traj_sample_lists, pol_sample_lists)
                 self.gui.set_status_text(
-                    'Resuming training from algorithm state at iter %02d.' %
-                    itr_load)
-                self.gui.update(self.algorithm, itr_load)
+                    ('Resuming training from algorithm state at iteration %d.\n' + 
+                    'Press \'go\' to begin.') % itr_load)
             return itr_load + 1
-        return 0
 
     def _take_sample(self, itr, cond, i):
         """
@@ -89,9 +101,6 @@ class GPSMain(object):
         """
         pol = self.algorithm.cur[cond].traj_distr
         if self.gui:
-            self.gui.set_status_text(
-                'Sampling: iteration %d, condition %d, sample %d.' % 
-                (itr, cond, i))
             self.gui.set_image_overlays(cond)   # Must call for each new cond.
             redo = True
             while redo:
@@ -109,6 +118,10 @@ class GPSMain(object):
                         self.gui.err_msg = 'Cannot fail before sampling.'
                     self.gui.process_mode()  # Complete request.
 
+                self.gui.set_status_text(
+                    'Sampling: iteration %d, condition %d, sample %d.' % 
+                    (itr, cond, i)
+                )
                 self.agent.sample(
                     pol, cond,
                     verbose=(i < self._hyperparams['verbose_trials'])
@@ -141,6 +154,8 @@ class GPSMain(object):
         """ Take samples from the policy to see how it's doing. """
         if 'verbose_policy_trials' not in self._hyperparams:
             return None
+        if self.gui:
+            self.gui.set_status_text('Taking policy samples.')
         pol_samples = [[None for _ in range(self._hyperparams['verbose_policy_trials'])]
                 for _ in range(self._conditions)]
         for cond in range(self._conditions):
@@ -189,15 +204,15 @@ class GPSMain(object):
 
 def main():
     """ Main function to be run. """
-    parser = argparse.ArgumentParser(description='GPSMain ArgumentParser')
+    parser = argparse.ArgumentParser(description='Run the Guided Policy Search algorithm.')
     parser.add_argument('experiment', type=str,
-                        help='Experiment name (and directory name).')
+                        help='experiment name')
     parser.add_argument('-n', '--new', action='store_true',
-                        help='Create new experiment.')
+                        help='create new experiment')
     parser.add_argument('-t', '--targetsetup', action='store_true',
-                        help='Run target setup.')
+                        help='run target setup')
     parser.add_argument('-r', '--resume', metavar='N', type=int,
-                        help='Resume training from iter N.')
+                        help='resume training from iter N')
     args = parser.parse_args()
 
     exp_name = args.experiment
@@ -212,13 +227,14 @@ def main():
                      (exp_name, exp_dir))
         os.makedirs(exp_dir)
         open(hyperparams_file, 'w')
-        sys.exit("Experiment '%s' created.\nhyperparams file: '%s'." %
+        sys.exit("Experiment '%s' created.\nhyperparams file: '%s'" %
                  (exp_name, hyperparams_file))
+    
     if not os.path.exists(hyperparams_file):
         sys.exit("Experiment '%s' does not exist.\nDid you create '%s'?" %
                  (exp_name, hyperparams_file))
-    hyperparams = imp.load_source('hyperparams', hyperparams_file)
 
+    hyperparams = imp.load_source('hyperparams', hyperparams_file)
     if args.targetsetup:
         try:
             import matplotlib.pyplot as plt

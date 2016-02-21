@@ -1,14 +1,16 @@
 """ This file defines the output axis. """
 import time
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import ColorConverter
 
 
 class OutputAxis:
-    def __init__(self, fig, gs, log_filename=None, max_display_size=10, border_on=False,
-            bgcolor='white', bgalpha=0.0, fontsize=12, font_family='sans-serif'):
+    def __init__(self, fig, gs, log_filename=None, max_display_size=10,
+        border_on=False, bgcolor=mpl.rcParams['figure.facecolor'], bgalpha=1.0,
+        fontsize=12, font_family='sans-serif'):
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
         self._ax = plt.subplot(self._gs[0])
@@ -56,7 +58,14 @@ class OutputAxis:
         self.draw()
 
     def draw(self):
-        self._fig.canvas.draw()
+        color, alpha = self._ax.get_axis_bgcolor(), self._ax.get_alpha()
+        self._ax.set_axis_bgcolor(mpl.rcParams['figure.facecolor'])
+        self._ax.draw_artist(self._ax.patch)
+        self._ax.set_axis_bgcolor(ColorConverter().to_rgba(color, alpha))
+
+        self._ax.draw_artist(self._ax.patch)
+        self._ax.draw_artist(self._text_box)
+        self._fig.canvas.update()
         self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 

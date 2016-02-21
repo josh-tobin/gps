@@ -9,7 +9,7 @@ class Plotter3D:
             cols = int(np.floor(np.sqrt(num_plots)))
         if rows is None:
             rows = int(np.ceil(float(num_plots)/cols))
-        assert(num_plots <= rows*cols, 'Too many plots to put into gridspec.')
+        assert num_plots <= rows*cols, 'Too many plots to put into gridspec.'
 
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(8, 1, subplot_spec=gs)
@@ -26,6 +26,7 @@ class Plotter3D:
         self._plots = [[] for i in range(num_plots)]
 
         for ax in self._axarr:
+            ax.tick_params(pad=0)
             ax.locator_params(nbins=5)
             for item in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
                 item.set_fontsize(10)
