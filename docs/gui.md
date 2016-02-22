@@ -1,7 +1,7 @@
 GUI Docs
 ========
 
-# GPS Training GUI
+## GPS Training GUI
 `python python/gps/gps_main.py <EXPERIMENT_NAME>`
 
 ![alt text](imgs/gps_training_gui.png)
@@ -32,7 +32,7 @@ To change what is printed, see the `update` method of `gps_training_gui.py`.
 
 
 
-# Target Setup GUI (for ROS only)
+## Target Setup GUI (for ROS only)
 `python python/gps/gps_main.py <EXPERIMENT_NAME> -t`
 
 ![alt text](imgs/target_setup_gui.png)
@@ -64,7 +64,7 @@ The Target Setup GUI is composed of four parts:
 
 **The Image Visualizer**: Displays the real-time images outputted by the PR2's on-board Kinect (defaults to the topic /camera/rgb/image_color). Has options to overlay the initial image and the target image.
 
-# GUI FAQ
+## GUI FAQ
 
 **1. How do I turn off the GPS Training GUI?**
 

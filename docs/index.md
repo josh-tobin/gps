@@ -90,7 +90,7 @@ Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/py
 
 **Mujoco Setup** (optional)
 
-In addition to the dependencies listed above, [OpenSceneGraph](http://www.openscenegraph.org/) is also needed.
+In addition to the dependencies listed above, [OpenSceneGraph](http://www.openscenegraph.org/)(v3.0.1+) is also needed.
 
 1. [Install Mujoco](https://www.roboti.us/) (v1.22+) and place the downloaded `mjpro` directory into `gps/src/3rdparty`.
 Mujoco is a high-quality physics engine and requires requires a license.
@@ -164,7 +164,7 @@ The first is a point mass learning to move to goal position.
 
 ![pm0](imgs/pointmass0.png)  ![pm100](imgs/pointmass100.png)
 
-To try it out, run the following from the base directory of the repo:
+To try it out, run the following from the gps directory:
 ```
 python python/gps/gps_main.py box2d_pointmass_example
 ```
@@ -187,7 +187,7 @@ which can be modified to input different target positions and change various hyp
 
 To run the mujoco example, be sure to first [set up Mujoco](#setup).
 
-The first example is using trajectory optimizing for peg insertion. To try it, run the following:
+The first example is using trajectory optimizing for peg insertion. To try it, run the following from the gps directory:
 ```
 python python/gps/gps_main.py mjc_example
 ```
@@ -237,6 +237,8 @@ Now you're ready to run the examples via gps_main. This can be done on any machi
 
 The first example starts from a random initial controller and learns to move the gripper to a specified location.
 
+Run the following from the gps directory:
+
 ```sh
 python python/gps/gps_main.py pr2_example
 ```
@@ -277,8 +279,9 @@ All of the output logs and data will be routed to your experiment directory.
 
 ## Documentation
 
-In addition to the inline docstrings and comments, see the following pages for additional documentation:
+In addition to the inline docstrings and comments, see the following pages for more detailed documentation:
 
+* [Intended Usage](usage.html)
 * [GUI for visualization and target setup](gui.html)
 * [Configuration and Hyperparameters](hyperparams.html)
 * [FAQ](faq.html)
