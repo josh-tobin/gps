@@ -34,16 +34,6 @@ Chelsea Finn, Xin Yu Tan, Yan Duan, Trevor Darrell, Sergey Levine, Pieter Abbeel
 }
 ```
 
-Justin Fu, Sergey Levine, Pieter Abbeel. *One-shot Learning of Manipulation Skills with Online Dynamics Adaptation and Neural Network Priors*. 2016. arxiv 1509.06841.  [[pdf](http://arxiv.org/pdf/1509.06841.pdf)]
-```
-@article{fla-odannp-15,
-  author  = {J. Fu and S. Levine and P. Abbeel},
-  title   = {One-shot Learning of Manipulation Skills with Online Dynamics Adaption and Neural Network Priors},
-  journal = {arXiv preprint arXiv:1509.06841},
-  year    = {2015},
-}
-```
-
 Sergey Levine, Nolan Wagener, Pieter Abbeel. *Learning Contact-Rich Manipulation Skills with Guided Policy Search*. ICRA 2015. [[pdf](http://rll.berkeley.edu/icra2015gps/robotgps.pdf)]
 ```
 @inproceedings{lwa-crmgps-15,

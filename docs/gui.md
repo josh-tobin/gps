@@ -1,6 +1,10 @@
 GUI Docs
 ========
 
+There are two GUI interfaces which are useful for interacting with and visualizing experiments, documented below.
+
+*****
+
 ## GPS Training GUI
 `python python/gps/gps_main.py <EXPERIMENT_NAME>`
 
@@ -30,7 +34,7 @@ To change what is printed, see the `update` method of `gps_training_gui.py`.
 * `overlay_initial_image` - overlays the initial image set by the Target Setup GUI (press `reset` at the end of sampling to reset the robot to the initial position and check if the image matches the initial image set by the Target Setup GUI
 * `overlay_target_image` - overlays the target image set by the Target Setup GUI (press `stop` at the end of sampling to stop the robot at the target position and check if the image matches the target image set by the Target Setup GUI
 
-
+*****
 
 ## Target Setup GUI (for ROS only)
 `python python/gps/gps_main.py <EXPERIMENT_NAME> -t`
@@ -63,6 +67,8 @@ The Target Setup GUI is composed of four parts:
 * `target image` - the target image associated with the target pose, displayed on the bottom right
 
 **The Image Visualizer**: Displays the real-time images outputted by the PR2's on-board Kinect (defaults to the topic /camera/rgb/image_color). Has options to overlay the initial image and the target image.
+
+*****
 
 ## GUI FAQ
 
