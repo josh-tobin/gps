@@ -33,7 +33,7 @@ For bibtex, see [this page](bibtex.html).
 #### Dependencies
 
 The following are required
-* [python 2.7](https://www.python.org/download/releases/2.7/), [numpy](http://www.numpy.org), [matplotlib](http://matplotlib.org)
+* [python 2.7](https://www.python.org/download/releases/2.7/), [numpy](http://www.numpy.org) (v1.7.0+), [matplotlib](http://matplotlib.org) (v1.5.0+), [scipy](http://scipy.org) (v0.11.0+)
 * [boost](http://www.boost.org/), including boost-python
 * [protobuf](https://developers.google.com/protocol-buffers/)
 
@@ -90,13 +90,15 @@ Here are the instructions for setting up [Pybox2D](https://github.com/pybox2d/py
 
 **Mujoco Setup** (optional)
 
-In addition to the dependencies listed above, OpenSceneGraph is also needed.
+In addition to the dependencies listed above, [OpenSceneGraph](http://www.openscenegraph.org/) is also needed.
 
-1. [Install Mujoco](https://www.roboti.us/) and place the downloaded `mjpro` directory into `gps/src/3rdparty`. Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjpro` directory.
+1. [Install Mujoco](https://www.roboti.us/) (v1.22+) and place the downloaded `mjpro` directory into `gps/src/3rdparty`.
+Mujoco is a high-quality physics engine and requires requires a license.
+Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjpro` directory.
 
 2. Build `gps/src/3rdparty` by running:
     ```sh
-    cd gps && mkdir build && cd build
+    cd gps/build
     cmake ../src/3rdparty
     make -j
     ```
@@ -110,7 +112,7 @@ In addition to the dependencies listed above, OpenSceneGraph is also needed.
 
 **ROS Setup** (optional)
 
-1. Install ROS.
+1. Install [ROS](http://ros.org), including the standard PR2 packages (e.g. [pr2-common](http://wiki.ros.org/pr2_common)).
 
 2. Set up paths by adding the following to your `~/.bashrc` file:
 
