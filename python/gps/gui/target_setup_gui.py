@@ -41,10 +41,11 @@ from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, \
         JOINT_ANGLES, JOINT_SPACE
 
 from gps.proto.gps_pb2 import END_EFFECTOR_POSITIONS, END_EFFECTOR_ROTATIONS, JOINT_ANGLES, TRIAL_ARM, AUXILIARY_ARM, TASK_SPACE, JOINT_SPACE
+
 try:
-    from gps.agent.ros.ros_utils import TimeoutException
     import rospy
     from gps.agent.ros.agent_ros import AgentROS
+    from gps.agent.ros.ros_utils import TimeoutException
 except ImportError as e:
     print('ROS is not installed.')
 

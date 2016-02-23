@@ -305,7 +305,6 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     for(int i=0; i<pd_gains.rows(); i++){
         for(int j=0; j<4; j++){
             pd_gains(i, j) = msg->pd_gains[i * 4 + j];
-            ROS_INFO("pd_gain[%f]", pd_gains(i, j));
         }
     }
     params["pd_gains"] = pd_gains;
