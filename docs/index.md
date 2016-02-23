@@ -110,7 +110,7 @@ Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjp
 
 **ROS Setup** (optional)
 
-1. Install [ROS](http://ros.org), including the standard PR2 packages (e.g. [pr2-common](http://wiki.ros.org/pr2_common)).
+1. Install [ROS](http://ros.org), including the standard [PR2 packages](http://wiki.ros.org/Robots/PR2)
 
 2. Set up paths by adding the following to your `~/.bashrc` file:
 
