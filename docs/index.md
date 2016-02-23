@@ -246,7 +246,7 @@ Run the following from the gps directory:
 python python/gps/gps_main.py pr2_example
 ```
 
-The PR2 should reach the position shown below, and reach a cost of around -600 before the end of 10 iterations.
+The PR2 should reach the position shown on the right below, and reach a cost of around -600 before the end of 10 iterations.
 
 ![pr20](imgs/gazebo_start.png)  ![pr2end](imgs/gazebo_end.png)
 
@@ -280,7 +280,7 @@ To learn how to make your own experiment and/or set your own initial and target 
     python python/gps/gps_main.py my_experiment
     ```
 
-All of the output logs and data will be routed to your experiment directory.
+All of the output logs and data will be routed to your experiment directory. For more details, see [intended usage](usage.html).
 
 *****
 
