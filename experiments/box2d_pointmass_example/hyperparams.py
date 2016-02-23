@@ -108,7 +108,7 @@ config = {
     'common': common,
     'verbose_trials': 0,
     'agent': agent,
-    'gui_on': False,
+    'gui_on': True,
     'algorithm': algorithm,
     'dQ': algorithm['init_traj_distr']['dQ'],
 }

@@ -252,8 +252,17 @@ class GPSTrainingGUI(object):
                 itr_data += ' %8.2f %8.2f' % (kl_div_i, kl_div_f)
         self.append_output_text(itr_data)
 
+        if END_EFFECTOR_POINTS not in agent.x_data_types:
+            # Skip plotting samples.
+            self._traj_visualizer.draw()    # this must be called explicitly
+            self._fig.canvas.draw()
+            self._fig.canvas.flush_events() # Fixes bug in Qt4Agg backend
+            return
+
+
+
         # TODO(xinyutan) - this assumes that END_EFFECTOR_POINTS are in the
-        # sample, which is not true for box2d
+        # sample, which is not true for box2d. quick fix is above.
         # Calculate xlim, ylim, zlim for 3D visualizations from traj_sample_lists and pol_sample_lists
         # (this clips off LQG means/distributions that are not in the area of interest)
         all_eept = np.empty((0, 3))
