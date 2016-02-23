@@ -246,6 +246,8 @@ Run the following from the gps directory:
 python python/gps/gps_main.py pr2_example
 ```
 
+The PR2 should reach the position shown below, and reach a cost of around -600 before the end of 10 iterations.
+
 ![pr20](imgs/gazebo_start.png)  ![pr2end](imgs/gazebo_end.png)
 
 The second example trains a neural network policy to reach a goal pose from different starting positions, using guided policy search:
