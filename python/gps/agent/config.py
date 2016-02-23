@@ -67,5 +67,5 @@ AGENT_MUJOCO = {
     'substeps': 1,
 }
 
-AGEND_BOX2D = {
+AGENT_BOX2D = {
 }

@@ -41,6 +41,20 @@ This page contains all of the config settings that are exposed                vi
 * min_eta
 
 **Caffe Policy Optimization**
+* gpu_id
+* batch_size
+* iterations
+* weights_file_prefix
+* weight_decay
+* init_var
+* use_gpu
+* ent_reg
+* lr
+* network_model
+* network_arch_params
+* lr_policy
+* momentum
+* solver_type
 
 **Policy Prior & GMM**
 * strength
