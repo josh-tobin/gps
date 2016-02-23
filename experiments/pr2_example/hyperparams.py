@@ -51,7 +51,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2,
+    'conditions': 1,
 }
 
 # TODO(chelsea/zoe) : Move this code to a utility function
