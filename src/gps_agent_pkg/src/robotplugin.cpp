@@ -425,7 +425,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }
 #endif
     else{
-        ROS_ERROR("Unknown trial controller arm type");
+        ROS_ERROR("Unknown trial controller arm type and/or USE_CAFFE=0");
     }
 
     // Configure sensor for trial
