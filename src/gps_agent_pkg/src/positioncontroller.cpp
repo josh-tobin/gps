@@ -136,7 +136,6 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
 // Configure the controller.
 void PositionController::configure_controller(OptionsMap &options)
 {
-    // TODO: implement!
     // This sets the target position.
     // This sets the mode
     ROS_INFO_STREAM("Received controller configuration");
@@ -164,7 +163,6 @@ void PositionController::configure_controller(OptionsMap &options)
 bool PositionController::is_finished() const
 {
     // Check whether we are close enough to the current target.
-    // TODO: implement.
     if (mode_ == gps::JOINT_SPACE){
         double epspos = 0.185;
         double epsvel = 0.01;

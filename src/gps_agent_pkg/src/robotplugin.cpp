@@ -305,7 +305,6 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     for(int i=0; i<pd_gains.rows(); i++){
         for(int j=0; j<4; j++){
             pd_gains(i, j) = msg->pd_gains[i * 4 + j];
-            ROS_INFO("pd_gain[%f]", pd_gains(i, j));
         }
     }
     params["pd_gains"] = pd_gains;
@@ -426,7 +425,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }
 #endif
     else{
-        ROS_ERROR("Unknown trial controller arm type");
+        ROS_ERROR("Unknown trial controller arm type and/or USE_CAFFE=0");
     }
 
     // Configure sensor for trial
