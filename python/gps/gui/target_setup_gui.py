@@ -46,7 +46,7 @@ try:
     import rospy
     from gps.agent.ros.agent_ros import AgentROS
 except ImportError as e:
-    print('ROS is not installed.')
+    print('Skipping ROS imports.')
 
 class TargetSetupGUI(object):
     """ Target setup GUI class. """

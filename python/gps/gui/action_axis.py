@@ -33,7 +33,7 @@ class ActionAxis:
         Each action can have: axis_pos, keyboard_binding, ps3_binding.
         """
         assert(len(actions) <= rows*cols, 'Too many actions to put into gridspec.')
-        
+
         self._fig = fig
         self._gs = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=gs)
         self._axarr = [plt.subplot(self._gs[i]) for i in range(len(actions))]
