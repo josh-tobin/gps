@@ -46,7 +46,3 @@ public:
 };
 
 }
-
-/*
-TODO: figure out how commands are passed to the controllers.
-*/

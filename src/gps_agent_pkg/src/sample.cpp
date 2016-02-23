@@ -11,7 +11,7 @@ Sample::Sample(int T)
 	internal_data_size_.resize((int)gps::TOTAL_DATA_TYPES);
 	internal_data_format_.resize((int)gps::TOTAL_DATA_TYPES);
 	meta_data_.resize((int)gps::TOTAL_DATA_TYPES);
-	//Fill in all possible sample types
+	// Fill in all possible sample types
 	for(int i=0; i<gps::TOTAL_DATA_TYPES; i++){
 		internal_data_[(gps::SampleType)i].resize(T);
 		internal_data_size_[i] = -1; //initialize to -1
@@ -130,7 +130,7 @@ void Sample::get_data_all_timesteps(Eigen::VectorXd &data, gps::SampleType datat
 	Eigen::VectorXd tmp_data;
 	for(int t=0; t<T_; t++){
 		get_data(t, tmp_data, dtype_vector);
-		//Fill in original data
+		// Fill in original data
 		for(int i=0; i<size; i++){
 			data[t*size+i] = tmp_data[i];
 		}
@@ -146,7 +146,7 @@ void Sample::get_data(int T, Eigen::VectorXd &data, gps::SampleType datatype){
 	Eigen::VectorXd tmp_data;
 	for(int t=0; t<T; t++){
 		get_data(t, tmp_data, dtype_vector);
-		//Fill in original data
+		// Fill in original data
 		for(int i=0; i<size; i++){
 			data[t*size+i] = tmp_data[i];
 		}
@@ -161,8 +161,7 @@ void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
     if(internal_data_format_[dtype] == SampleDataFormatEigenVector){
         shape.push_back(size);
     }else if (internal_data_format_[dtype] == SampleDataFormatEigenMatrix){
-        //TODO: Maybe specify shape in the metadata, instead of relying on the T=0 sample
-        //Grab shape from first entry at T=0
+        // Grab shape from first entry at T=0
         Eigen::MatrixXd &sensor_data = boost::get<Eigen::MatrixXd>(internal_data_[sample_type][0]);
         shape.push_back(sensor_data.rows());
         shape.push_back(sensor_data.cols());
@@ -172,7 +171,7 @@ void Sample::get_shape(gps::SampleType sample_type, std::vector<int> &shape)
 void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType> datatypes)
 {
 	if(t >= T_) ROS_ERROR("Out of bounds t: %d/%d", t, T_);
-    //Calculate size
+    // Calculate size
     int total_size = 0;
 	for(int i=0; i<datatypes.size(); i++){
 		int dtype = (int)datatypes[i];
@@ -186,7 +185,7 @@ void Sample::get_data(int t, Eigen::VectorXd &data, std::vector<gps::SampleType>
 	data.resize(total_size);
 	data.fill(0.0);
 
-    //Fill in data
+    // Fill in data
     int current_idx = 0;
 	for(int i=0; i<datatypes.size(); i++){
 		int dtype = (int)datatypes[i];

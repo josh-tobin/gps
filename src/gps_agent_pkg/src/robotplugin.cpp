@@ -77,7 +77,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 
     // Create all sensors.
     for (int i = 0; i < 1; i++)
-    // TODO: ZDM: readd this when more sensors work
+    // TODO: ZDM: read this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
@@ -124,7 +124,7 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
     // configure auxiliary sensors
     for (int i = 0; i < aux_sensors_.size(); i++)
     {
-        aux_sensors_[i]->configure_sensor(opts); // TODO: ZDM: make sure this is right!
+        aux_sensors_[i]->configure_sensor(opts);
         aux_sensors_[i]->set_sample_data_format(aux_current_time_step_sample_);
     }
     sensors_initialized_ = true;
@@ -169,9 +169,7 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample, gps::Actu
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
     if (!sensors_initialized_) return; // Don't try to use sensors until initialization finishes.
-    //if(!is_controller_step){ //TODO: Remove this
-        //return;
-    //}
+
     // Update all of the sensors and fill in the sample.
     for (int sensor = 0; sensor < sensors_.size(); sensor++)
     {
@@ -250,8 +248,6 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
         }
     }
 
-    /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
-    /* publish message when finished */
 }
 
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample, int T /*=1*/){
@@ -332,9 +328,6 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
                 T, MAX_TRIAL_LENGTH);
     }
 
-    // TODO - it seems like the below could cause a race condition seg fault,
-    // but I haven't seen one happen yet...
-    // Sergey: I have...
     initialize_sample(current_time_step_sample_, gps::TRIAL_ARM);
 
     float frequency = msg->frequency;  // Controller frequency
@@ -380,7 +373,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             for(int u=0; u<dU; u++){
                 k(u) = lingauss.k_t[u+t*dU];
             }
-            controller_params["K_"+to_string(t)] = K; //TODO: Does this copy or will all values be the same?
+            controller_params["K_"+to_string(t)] = K;
             controller_params["k_"+to_string(t)] = k;
         }
         trial_controller_->configure_controller(controller_params);
@@ -524,7 +517,6 @@ Sensor *RobotPlugin::get_sensor(SensorType sensor, gps::ActuatorType actuator_ty
 // Get forward kinematics solver.
 void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm)
 {
-    //TODO: compile errors related to boost::scoped_ptr
     if (arm == gps::AUXILIARY_ARM)
     {
         fk_solver = passive_arm_fk_solver_;

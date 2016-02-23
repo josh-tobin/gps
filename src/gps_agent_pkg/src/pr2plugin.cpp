@@ -31,7 +31,6 @@ bool GPSPR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle&
 
     // Create FK solvers.
     // Get the name of the root.
-    // TODO: uncomment this and set up params in launch file.
     if(!n.getParam("root_name", root_name)) {
         ROS_ERROR("Property root_name not found in namespace: '%s'", n.getNamespace().c_str());
         return false;
@@ -189,8 +188,6 @@ void GPSPR2Plugin::update()
 
     // Update the sensors and fill in the current step sample.
     update_sensors(last_update_time_,is_controller_step);
-
-    // TODO: zero out torques /
 
     // Update the controllers.
     update_controllers(last_update_time_,is_controller_step);
