@@ -68,7 +68,6 @@ for i in xrange(common['conditions']):
         common['target_filename'], 'trial_arm', str(i), 'target'
     )
 
-    # TODO - Construct this somewhere else?
     x0 = np.zeros(32)
     x0[:7] = ja_x0
     x0[14:(14+3*EE_POINTS.shape[0])] = np.ndarray.flatten(
@@ -127,8 +126,9 @@ algorithm['init_traj_distr'] = {
     'init_gains':  1.0 / PR2_GAINS,
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
-    'stiffness': 1.0,
-    'stiffness_vel': 0.5,
+    'stiffness': 0.5,
+    'stiffness_vel': 0.25,
+    'final_weight': 50,
     'dt': agent['dt'],
     'T': agent['T'],
 }
@@ -149,7 +149,6 @@ fk_cost1 = {
     'ramp_option': RAMP_LINEAR,
 }
 
-# TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': np.zeros(3 * EE_POINTS.shape[0]),
