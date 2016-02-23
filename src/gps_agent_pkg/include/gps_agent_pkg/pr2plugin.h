@@ -21,7 +21,7 @@ This is the PR2-specific version of the robot plugin.
 namespace gps_control
 {
 
-class PR2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
+class GPSPR2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
 {
 private:
     // PR2-specific chain object necessary to construct the KDL chain.
@@ -44,9 +44,9 @@ private:
     int controller_step_length_;
 public:
     // Constructor (this should do nothing).
-    PR2Plugin();
+    GPSPR2Plugin();
     // Destructor.
-    virtual ~PR2Plugin();
+    virtual ~GPSPR2Plugin();
     // Functions inherited from superclass.
     // This called by the superclass to allow us to initialize all the PR2-specific stuff.
     /* IMPORTANT: note that some sensors require a KDL chain to do FK, which we need the RobotState to get... */

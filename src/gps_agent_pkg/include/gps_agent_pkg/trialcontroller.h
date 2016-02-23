@@ -62,7 +62,7 @@ public:
     // Called when controller is turned on
     virtual void reset(ros::Time update_time);
 
-    bool is_configured(){
+    const bool is_configured(){
         return is_configured_;
     }
 

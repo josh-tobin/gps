@@ -174,16 +174,6 @@ bool PositionController::is_finished() const
         return true;
     }
 }
-/*
-
-// Ask the controller to return the sample collected from its latest execution.
-*/
-boost::scoped_ptr<Sample>* PositionController::get_sample() const
-{
-    // Return the sample that has been recorded so far.
-    // TODO: implement.
-    return NULL;
-}
 
 // Reset the controller -- this is typically called when the controller is turned on.
 void PositionController::reset(ros::Time time)

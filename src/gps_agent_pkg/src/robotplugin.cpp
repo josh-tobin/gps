@@ -389,7 +389,6 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     else if (msg->controller.controller_to_execute == gps::CAFFE_CONTROLLER) {
         gps_agent_pkg::CaffeParams params = msg->controller.caffe;
         trial_controller_.reset(new CaffeNNController());
-        std::string net_param = params.net_param;
 
         // TODO(chelsea/zoe): put this somewhere else.
         int dim_bias = params.dim_bias;
@@ -417,7 +416,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             idx++;
         }
 
-        controller_params["net_param"] = net_param;
+        controller_params["net_param"] = params.net_param;
         controller_params["scale"] = scale;
         controller_params["bias"] = bias;
         controller_params["T"] = (int)msg->T;

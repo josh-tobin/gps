@@ -12,3 +12,5 @@ touch $PY_PROTO_BUILD_DIR/__init__.py
 mkdir -p "$CPP_OUT_DIR"
 protoc -I=$PROTO_SRC_DIR --cpp_out=$CPP_OUT_DIR $PROTO_SRC_DIR/gps.proto
 protoc -I=$PROTO_SRC_DIR --python_out=$PY_PROTO_BUILD_DIR $PROTO_SRC_DIR/gps.proto
+
+echo "Done"

@@ -41,8 +41,6 @@ public:
     virtual double get_update_delay();
     // Check if controller is finished with its current task.
     virtual bool is_finished() const = 0;
-    // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample>* get_sample() const = 0;
     // Reset the controller -- this is typically called when the controller is turned on.
     virtual void reset(ros::Time update_time);
 };

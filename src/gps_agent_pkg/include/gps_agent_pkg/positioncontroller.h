@@ -64,8 +64,6 @@ public:
     virtual void configure_controller(OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
-    // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Reset the controller -- this is typically called when the controller is turned on.
     virtual void reset(ros::Time update_time);
     // Should this report when position achieved?

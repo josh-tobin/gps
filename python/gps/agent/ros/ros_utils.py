@@ -62,7 +62,7 @@ def policy_to_msg(policy, noise):
 class TimeoutException(Exception):
     """ Exception thrown on timeouts. """
     def __init__(self, sec_waited):
-        Exception.__init__("Timed out after %f seconds", sec_waited)
+        Exception.__init__(self, "Timed out after %f seconds", sec_waited)
 
 
 class ServiceEmulator(object):
