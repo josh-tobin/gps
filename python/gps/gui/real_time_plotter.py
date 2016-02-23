@@ -95,7 +95,7 @@ if __name__ == "__main__":
     plt.ion()
     fig = plt.figure()
     gs = gridspec.GridSpec(1, 1)
-    plotter = RealTimePlotter(fig, gs[0], 
+    plotter = RealTimePlotter(fig, gs[0],
         labels=['i', 'j', 'i+j', 'i-j', 'mean'],
         alphas=[0.15, 0.15, 0.15, 0.15, 1.0])
 

@@ -93,7 +93,8 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // each feature point.
 
         // Compute jacobian
-        unsigned n_actuator = previous_angles_.size(); //TODO: Assuming we are using all joints
+        // TODO - This assumes we are using all joints.
+        unsigned n_actuator = previous_angles_.size();
 
         for(int i=0; i<n_points_; i++){
             unsigned site_start = i*3;

@@ -59,7 +59,7 @@ class Plotter3D:
 
     def plot_3d_gaussian(self, i, mu, sigma, edges=100, linestyle='-.', linewidth=1.0, color='black', alpha=0.1, label=''):
         """
-        Plots ellipses in the xy plane representing the Gaussian distributions specified by mu and sigma. 
+        Plots ellipses in the xy plane representing the Gaussian distributions specified by mu and sigma.
         Args:
             mu    - Tx3 mean vector for (x, y, z)
             sigma - Tx3x3 covariance matrix for (x, y, z)
@@ -68,7 +68,7 @@ class Plotter3D:
         p = np.linspace(0, 2*np.pi, edges)
         xy_ellipse = np.c_[np.cos(p), np.sin(p)]
         T = mu.shape[0]
-        
+
         mu_xy, sigma_xy = mu[:,0:2], sigma[:,0:2,0:2]
         u, s, v = np.linalg.svd(sigma_xy)
         mu_xyz = np.repeat(mu.reshape((T, 1, 3)), edges, axis=1)

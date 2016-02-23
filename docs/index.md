@@ -33,7 +33,7 @@ For bibtex, see [this page](bibtex.html).
 The following are required
 * [python 2.7](https://www.python.org/download/releases/2.7/), [numpy](http://www.numpy.org) (v1.7.0+), [matplotlib](http://matplotlib.org) (v1.5.0+), [scipy](http://scipy.org) (v0.11.0+)
 * [boost](http://www.boost.org/), including boost-python
-* [protobuf](https://developers.google.com/protocol-buffers/)
+* [protobuf](https://developers.google.com/protocol-buffers/) (apt-get packages libprotobuf-dev and protobuf-compiler)
 
 One or more of the following agent interfaces is required. Set up instructions for each are below.
 * [Box2D](https://github.com/pybox2d/pybox2d)
@@ -110,7 +110,7 @@ Obtain a key, which should be named `mjkey.txt`, and place the key into the `mjp
 
 **ROS Setup** (optional)
 
-1. Install [ROS](http://ros.org), including the standard PR2 packages (e.g. [pr2-common](http://wiki.ros.org/pr2_common)).
+1. Install [ROS](http://ros.org), including the standard [PR2 packages](http://wiki.ros.org/Robots/PR2)
 
 2. Set up paths by adding the following to your `~/.bashrc` file:
 
@@ -158,6 +158,8 @@ This is required if you intend to run neural network policies with the ROS agent
 
 There are two examples of running trajectory optimizaiton using a simple 2D agent in Box2D. Before proceeding, be sure to [set up Box2D](#setup).
 
+Each example starts from a random controller and learns through experience to minimize cost.
+
 The first is a point mass learning to move to goal position.
 
 ![pm0](imgs/pointmass0.png)  ![pm100](imgs/pointmass100.png)
@@ -166,6 +168,9 @@ To try it out, run the following from the gps directory:
 ```
 python python/gps/gps_main.py box2d_pointmass_example
 ```
+
+The progress of the algorithm is displayed on the [GUI](gui.html).
+The point mass should start reaching the visualized goal by around the 4th iteration.
 
 The second example is a 2-link arm learning to move to goal state.
 
@@ -176,8 +181,8 @@ To try it out, run this:
 python python/gps/gps_main.py box2d_arm_example
 ```
 
-Both examples start with a random controller and learn though experience how to reach the goal!
-The progress of the algorithm is displayed on the [GUI](gui.html).
+The arm should start reaching the visualized goal after around 6 iterations.
+
 All settings for these examples are located in `experiments/box2d_[name]_example/hyperparams.py`,
 which can be modified to input different target positions and change various hyperparameters of the algorihtm.
 
@@ -217,13 +222,13 @@ On the PR2 computer, run:
 roslaunch gps_agent_pkg pr2_real.launch
 ```
 
-This will stop the default arm controllers and spawn the PR2Plugin.
+This will stop the default arm controllers and spawn the GPSPR2Plugin.
 
 **Simulated PR2**
 
 Note: If you are running ROS hydro or later, open the launch file pr2_gazebo_no_controller.launch and change the include line as specified.
 
-Launch gazebo and the PR2Plugin:
+Launch gazebo and the GPSPR2Plugin:
 
 ```sh
 roslaunch gps_agent_pkg pr2_gazebo.launch
@@ -240,6 +245,10 @@ Run the following from the gps directory:
 ```sh
 python python/gps/gps_main.py pr2_example
 ```
+
+The PR2 should reach the position shown on the right below, and reach a cost of around -600 before the end of 10 iterations.
+
+![pr20](imgs/gazebo_start.png)  ![pr2end](imgs/gazebo_end.png)
 
 The second example trains a neural network policy to reach a goal pose from different starting positions, using guided policy search:
 
@@ -271,7 +280,7 @@ To learn how to make your own experiment and/or set your own initial and target 
     python python/gps/gps_main.py my_experiment
     ```
 
-All of the output logs and data will be routed to your experiment directory.
+All of the output logs and data will be routed to your experiment directory. For more details, see [intended usage](usage.html).
 
 *****
 

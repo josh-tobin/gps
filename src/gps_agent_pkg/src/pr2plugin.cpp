@@ -7,7 +7,7 @@
 namespace gps_control {
 
 // Plugin constructor.
-PR2Plugin::PR2Plugin()
+GPSPR2Plugin::GPSPR2Plugin()
 {
     // Some basic variable initialization.
     controller_counter_ = 0;
@@ -15,13 +15,13 @@ PR2Plugin::PR2Plugin()
 }
 
 // Destructor.
-PR2Plugin::~PR2Plugin()
+GPSPR2Plugin::~GPSPR2Plugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
 
 // Initialize the object and store the robot state.
-bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
+bool GPSPR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 {
     // Variables.
     std::string root_name, active_tip_name, passive_tip_name;
@@ -31,7 +31,6 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 
     // Create FK solvers.
     // Get the name of the root.
-    // TODO: uncomment this and set up params in launch file.
     if(!n.getParam("root_name", root_name)) {
         ROS_ERROR("Property root_name not found in namespace: '%s'", n.getNamespace().c_str());
         return false;
@@ -148,7 +147,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 }
 
 // This is called by the controller manager before starting the controller.
-void PR2Plugin::starting()
+void GPSPR2Plugin::starting()
 {
     // Get current time.
     last_update_time_ = robot_->getTime();
@@ -171,13 +170,13 @@ void PR2Plugin::starting()
 }
 
 // This is called by the controller manager before stopping the controller.
-void PR2Plugin::stopping()
+void GPSPR2Plugin::stopping()
 {
     // Nothing to do here.
 }
 
 // This is the main update function called by the realtime thread when the controller is running.
-void PR2Plugin::update()
+void GPSPR2Plugin::update()
 {
     // Get current time.
     last_update_time_ = robot_->getTime();
@@ -189,8 +188,6 @@ void PR2Plugin::update()
 
     // Update the sensors and fill in the current step sample.
     update_sensors(last_update_time_,is_controller_step);
-
-    // TODO: zero out torques /
 
     // Update the controllers.
     update_controllers(last_update_time_,is_controller_step);
@@ -204,13 +201,13 @@ void PR2Plugin::update()
 }
 
 // Get current time.
-ros::Time PR2Plugin::get_current_time() const
+ros::Time GPSPR2Plugin::get_current_time() const
 {
     return last_update_time_;
 }
 
 // Get current encoder readings (robot-dependent).
-void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const
+void GPSPR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const
 {
     if (arm == gps::AUXILIARY_ARM)
     {
@@ -235,7 +232,7 @@ void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, gps::Actuato
 }
 
 // Register controller to pluginlib
-PLUGINLIB_DECLARE_CLASS(gps_agent_pkg, PR2Plugin,
-						gps_control::PR2Plugin,
+PLUGINLIB_DECLARE_CLASS(gps_agent_pkg, GPSPR2Plugin,
+						gps_control::GPSPR2Plugin,
 						pr2_controller_interface::Controller)
 

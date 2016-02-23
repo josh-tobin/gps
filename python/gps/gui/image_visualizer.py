@@ -60,7 +60,7 @@ class ImageVisualizer(object):
                     ps3_topic=common_config['ps3_topic'],
                     ps3_button=common_config['ps3_button'],
                     inverted_ps3_button=common_config['inverted_ps3_button'])
-        
+
         self._ax_image = plt.subplot(self._gs_image_axis)
         self._ax_image.set_axis_off()
         self._plot = self._ax_image.imshow(self._default_image)

@@ -34,9 +34,6 @@ PositionController::PositionController(ros::NodeHandle& n, gps::ActuatorType arm
     // Initialize joints temporary storage.
     temp_angles_.resize(size);
 
-    // Initialize torques. TODO: DO WE NEED THIS?
-    // torques_.resize(size);
-
     // Initialize Jacobian temporary storage.
     temp_jacobian_.resize(6,size);
 
@@ -86,11 +83,10 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     {
         ROS_ERROR("Not implemented!");
 
-        // Get current end effector position.
         // TODO: implement.
+        // Get current end effector position.
 
         // Get current Jacobian.
-        // TODO: implement.
 
         // TODO: should also try Jacobian pseudoinverse, it may work a little better.
         // Compute desired joint angle offset using Jacobian transpose method.
@@ -117,7 +113,6 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         }
 
         // Compute torques.
-        // TODO: look at PR2 PD controller implementation and make sure our version matches!
         torques = -((pd_gains_p_.array() * temp_angles_.array()) +
                     (pd_gains_d_.array() * current_angle_velocities_.array()) +
                     (pd_gains_i_.array() * pd_integral_.array())).matrix();
@@ -127,10 +122,6 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         torques = Eigen::VectorXd::Zero(torques.rows());
     }
 
-    // TODO: shall we update the stored sample somewhere?
-    // TODO: need to decide how we'll deal with samples
-    // TODO: shall we just always return the latest sample, or actually accumulate?
-    // TODO: might be better to just return the latest one...
 }
 
 // Configure the controller.
@@ -173,16 +164,6 @@ bool PositionController::is_finished() const
     else if (mode_ == gps::NO_CONTROL){
         return true;
     }
-}
-/*
-
-// Ask the controller to return the sample collected from its latest execution.
-*/
-boost::scoped_ptr<Sample>* PositionController::get_sample() const
-{
-    // Return the sample that has been recorded so far.
-    // TODO: implement.
-    return NULL;
 }
 
 // Reset the controller -- this is typically called when the controller is turned on.

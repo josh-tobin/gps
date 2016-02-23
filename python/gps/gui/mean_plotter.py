@@ -52,7 +52,7 @@ class MeanPlotter:
 
         if not self._init:
             self.init(x.shape[0])
-  
+
         if not t:
             t = self._t
 

@@ -47,7 +47,6 @@ class PositionCommand;
 class TrialCommand;
 class RelaxCommand;
 
-/* TODO: at some point, need to go through and convert all std::vector<double> to VectorXd! */
 
 class RobotPlugin
 {

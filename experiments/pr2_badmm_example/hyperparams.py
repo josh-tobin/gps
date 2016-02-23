@@ -49,7 +49,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 1, # TODO - this should be changed to 2 or 4, with targets set on the robot.
+    'conditions': 2,
 }
 
 x0s = []
@@ -62,11 +62,13 @@ for i in xrange(common['conditions']):
     ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'initial'
     )
+    ja_aux, _, _ = load_pose_from_npz(
+        common['target_filename'], 'auxiliary_arm', str(i), 'initial'
+    )
     _, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'target'
     )
 
-    # TODO - Construct this somewhere else?
     x0 = np.zeros(32)
     x0[:7] = ja_x0
     x0[14:(14+9)] = np.ndarray.flatten(
@@ -84,7 +86,7 @@ for i in xrange(common['conditions']):
         },
         AUXILIARY_ARM: {
             'mode': JOINT_SPACE,
-            'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
+            'data': aux_x0,
         },
     }
 
@@ -138,8 +140,9 @@ algorithm['init_traj_distr'] = {
     'init_gains':  1.0 / PR2_GAINS,
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
-    'stiffness': 1.0,
-    'stiffness_vel': 0.5,
+    'stiffness': 0.5,
+    'stiffness_vel': 0.25,
+    'final_weight': 50,
     'dt': agent['dt'],
     'T': agent['T'],
 }
@@ -160,7 +163,6 @@ fk_cost1 = {
     'ramp_option': RAMP_LINEAR,
 }
 
-# TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': np.zeros(3 * EE_POINTS.shape[0]),

@@ -72,14 +72,6 @@ bool TrialController::is_finished() const
     return step_counter_ >= trial_end_step_;
 }
 
-// Ask the controller to return the sample collected from its latest execution.
-boost::scoped_ptr<Sample>* TrialController::get_sample() const
-{
-    // Return the sample that has been recorded so far.
-    // TODO: implement.
-    return NULL;
-}
-
 int TrialController::get_step_counter(){
     return step_counter_;
 }

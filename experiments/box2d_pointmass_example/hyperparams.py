@@ -12,7 +12,8 @@ from gps.algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from gps.algorithm.cost.cost_state import CostState
 from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
-from gps.algorithm.dynamics.dynamics_lr import DynamicsLR
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_pd
 from gps.proto.gps_pb2 import POSITION, LINEAR_VELOCITY, ACTION
@@ -92,8 +93,14 @@ algorithm['cost'] = {
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLR,
+    'type': DynamicsLRPrior,
     'regularization': 1e-6,
+    'prior': {
+        'type': DynamicsPriorGMM,
+        'max_clusters': 20,
+        'min_samples_per_cluster': 40,
+        'max_samples': 20,
+    },
 }
 
 algorithm['traj_opt'] = {
@@ -104,7 +111,7 @@ algorithm['policy_opt'] = {}
 
 config = {
     'iterations': 10,
-    'num_samples': 20,
+    'num_samples': 5,
     'common': common,
     'verbose_trials': 0,
     'agent': agent,

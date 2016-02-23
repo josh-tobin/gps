@@ -5,7 +5,7 @@ from gps.algorithm.traj_opt.config import TRAJ_OPT_LQR
 from gps.algorithm.policy.config import INIT_LG_LQR, INIT_LG_PD, POLICY_PRIOR, POLICY_PRIOR_GMM
 from gps.algorithm.cost.config import COST_FK, COST_STATE, COST_SUM, COST_ACTION
 from gps.algorithm.dynamics.config import DYN_PRIOR_GMM
-#from gps.algorithm.policy_opt.config import POLICY_OPT_CAFFE
+from gps.algorithm.policy_opt.config import POLICY_OPT_CAFFE
 
 header = "Configuration & Hyperparameters"
 
@@ -37,8 +37,8 @@ for key in TRAJ_OPT_LQR.keys():
   f.write('* ' + key + '\n')
 
 f.write('\n**Caffe Policy Optimization**\n')
-#for key in POLICY_OPT_CAFFE.keys():
-  #f.write('* ' + key + '\n')
+for key in POLICY_OPT_CAFFE.keys():
+  f.write('* ' + key + '\n')
 
 f.write('\n**Policy Prior & GMM**\n')
 for key in POLICY_PRIOR.keys():

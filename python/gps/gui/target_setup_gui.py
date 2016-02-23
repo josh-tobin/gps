@@ -47,7 +47,7 @@ try:
     from gps.agent.ros.agent_ros import AgentROS
     from gps.agent.ros.ros_utils import TimeoutException
 except ImportError as e:
-    print('ROS is not installed.')
+    print('Skipping ROS imports.')
 
 class TargetSetupGUI(object):
     """ Target setup GUI class. """
