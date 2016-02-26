@@ -57,6 +57,11 @@ public:
     virtual int get_step_counter();
     // Return length of trial.
     virtual int get_trial_length();
+<<<<<<< HEAD
+=======
+    // Ask the controller to return the sample collected from its latest execution.
+    virtual boost::scoped_ptr<Sample>* get_sample() const;
+>>>>>>> 3e242bfcfd9f188692c382844af7d463feceb8ea
     // Called when controller is turned on
     virtual void reset(ros::Time update_time);
 
