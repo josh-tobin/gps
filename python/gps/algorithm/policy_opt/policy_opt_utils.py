@@ -41,6 +41,7 @@ def construct_fc_network(n_layers=3, dim_hidden=None, dim_input=27,
                       {'dim': (batch_size, dim_output)},
                       {'dim': (batch_size, dim_output, dim_output)}]
         })
+        print data_layer_info
 
         [net_input, action, precision] = L.Python(
             ntop=3, python_param=dict(

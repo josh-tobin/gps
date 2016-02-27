@@ -19,7 +19,7 @@ class AgentBox2D(Agent):
         Agent.__init__(self, config)
 
         self._setup_conditions()
-        self._setup_world(hyperparams["world"], hyperparams["target_state"])
+        self._setup_world(hyperparams["world"], 0, hyperparams["target_state"])
 
     def _setup_conditions(self):
         """
@@ -27,16 +27,29 @@ class AgentBox2D(Agent):
         condition.
         """
         conds = self._hyperparams['conditions']
-        for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset', \
+        # 2/25: removed x0 from fields
+        for field in ('x0var', 'pos_body_idx', 'pos_body_offset', \
                 'noisy_body_idx', 'noisy_body_var'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
-
-    def _setup_world(self, world, target):
+        # Temporary fix to not working with box example: setup x0 hyperparam
+        if not isinstance(self._hyperparams['x0'], list):
+            self._hyperparams['x0'] = setup(self._hyperparams['x0'], conds)
+    def _setup_world(self, world, condition, target):
         """
         Helper method for handling setup of the Box2D world.
+        2/25: added condition number. Added robot_config. Updated x0 to
+        include robot_config
         """
-        self.x0 = self._hyperparams["x0"]
-        self._world = world(self.x0[0], target)
+        #self.x0 = self._hyperparams["x0"]
+        if "robot_config" in self._hyperparams:
+            self.x0 = [np.append(x0, rbt_cfg) for x0, rbt_cfg in zip(self._hyperparams["x0"], self._hyperparams["robot_config"])]
+            self.robot_config = self._hyperparams["robot_config"]
+        
+            self._world = world(self.x0[condition], target, self.robot_config[condition])
+        else:
+            self.x0 = self._hyperparams["x0"]
+            self.robot_config = None        
+            self._world = world(self.x0[condition], target)
         self._world.run()
 
     def sample(self, policy, condition, verbose=False, save=True):
@@ -49,7 +62,11 @@ class AgentBox2D(Agent):
             condition (int): Which condition setup to run.
             verbose (boolean): whether or not to plot the trial (not used here)
         """
-        self._world.reset_world()
+        robotconf = self.robot_config[condition] if self.robot_config is not None else None
+        if robotconf is not None:
+            self._setup_world(self._hyperparams["world"], condition, self._hyperparams["target_state"])
+        else:
+            self._world.reset_world(self.x0[condition])
         b2d_X = self._world.get_state()
         new_sample = self._init_sample(b2d_X)
         U = np.zeros([self.T, self.dU])

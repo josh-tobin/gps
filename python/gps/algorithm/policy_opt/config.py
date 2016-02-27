@@ -20,6 +20,6 @@ POLICY_OPT_CAFFE = {
     'network_model': construct_fc_network,  # Either a filename string
                                             # or a function to call to
                                             # create NetParameter.
-    'network_arch_params': {},  # Arguments to pass to method above.
+    'network_arch_params': {'dim_input': 4, 'dim_output': 2},  # Arguments to pass to method above.
     'weights_file_prefix': '',
 }

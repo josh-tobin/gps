@@ -58,6 +58,10 @@ class GMM(object):
         Di = data.shape[1]
         N = data.shape[0]
 
+        #print "estep constants are: %i, %i, %i" % (K, Di, N)
+        #print "sigma is"
+        #print self.sigma
+
         # Compute probabilities.
         data = data.T
         mu = self.mu[:, 0:Di].T

@@ -20,6 +20,7 @@ enum SampleType {
   TOTAL_DATA_TYPES = 13;
   POSITION = 14;
   LINEAR_VELOCITY = 15;
+  ROBOT_CONFIGURATION = 16;
 }
 
 // Message containing the data for a single sample.
@@ -29,6 +30,7 @@ message Sample {
   optional uint32 dX = 2;  // dimension of state X
   optional uint32 dU = 3;  // dimension of action U
   optional uint32 dO = 4;  // dimension of observation
+  optional uint32 dC = 8; // dimension of robot configuration
 
   // Data arrays holding X, U, and obs.
   repeated float X = 5 [packed = true];

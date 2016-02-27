@@ -2,22 +2,80 @@
 import Box2D as b2
 import numpy as np
 from framework import Framework
-from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES
+from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, ROBOT_CONFIGURATION
 
 class ArmWorld(Framework):
     """ This class defines the 2 Link Arm and its environment."""
     name = "2 Link Arm"
-    def __init__(self, x0, target):
+    def __init__(self, x0, target, robot_config=(5,0.5)):
         super(ArmWorld, self).__init__()
 
         self.world.gravity = (0.0, 0.0)
 
-        fixture_length = 5
+        self.fixture_length = robot_config[0]
+        self.fixture_density = robot_config[1]
         self.x0 = x0
+        self.target = target
+        self._setup_world(x0, target, self.fixture_length, self.fixture_density)
+
+    def set_joint_angles(self, body1, body2, angle1, angle2):
+        """ Converts the given absolute angle of the arms to joint angles"""
+        pos = self.base.GetWorldPoint((0, 0))
+        body1.angle = angle1 + np.pi
+        new_pos = body1.GetWorldPoint((0, 5))
+        body1.position += pos - new_pos
+        body2.angle = angle2 + body1.angle
+        pos = body1.GetWorldPoint((0, -4.5))
+        new_pos = body2.GetWorldPoint((0, 4.5))
+        body2.position += pos - new_pos
+
+    def Step(self, settings, action):
+        """Moves forward in time one step."""
+        self.joint1.motorSpeed = action[0]
+        self.joint2.motorSpeed = action[1]
+
+        super(ArmWorld, self).Step(settings)
+
+    def reset_world(self, x0=None, robot_config=None, target=None):
+        """Returns the world to its intial state"""
+        self.world.ClearForces()
+        self.joint1.motorSpeed = 0
+        self.joint2.motorSpeed = 0
+        self.body1.linearVelocity = (0, 0)
+        self.body1.angularVelocity = 0
+        self.body2.linearVelocity = (0, 0)
+        self.body2.angularVelocity = 0
+        if x0 is not None:
+            self.x0 = x0
+        
+        if target is not None:
+            self.target = target        
+
+        #if robot_config is not None:
+        #    fixture_length = robot_config[0]
+        #    fixture_density = robot_config[1]
+
+        #    self.world.DestroyBody(self.body1)
+        #    self.world.DestroyBody(self.body2)
+        #    self.world.DestroyBody(self.target1)
+        #    self.world.DestroyBody(self.target2)
+        #    self.world.DestroyJoint(self.joint1)
+        #    self.world.DestroyJoint(self.joint2)
+        #    self._setup_world(self.x0, self.target, fixture_length, fixture_density)
+            #self.body1.fixtures = rectangle_fixture
+            #self.body2.fixtures = rectangle_fixture
+            #self.target1.fixtures = rectangle_fixture
+            #self.target2.fixtures = rectangle_fixture
+            #self.joint1.localAnchorA = (0, fixture_length)
+            #self.joint2.localAnchorA = (0, -(fixture_length - 0.5))
+            #self.joint2.localAnchorB = (0, (fixture_length - 0.5))
+
+    
+    def _setup_world(self, x0, target, fixture_length, fixture_density):
 
         rectangle_fixture = b2.b2FixtureDef(
             shape=b2.b2PolygonShape(box=(.5, fixture_length)),
-            density=.5,
+            density=fixture_density,
             friction=1,
         )
         square_fixture = b2.b2FixtureDef(
@@ -80,42 +138,13 @@ class ArmWorld(Framework):
         self.joint1.motorSpeed = x0[2]
         self.joint2.motorSpeed = x0[3]
 
-    def set_joint_angles(self, body1, body2, angle1, angle2):
-        """ Converts the given absolute angle of the arms to joint angles"""
-        pos = self.base.GetWorldPoint((0, 0))
-        body1.angle = angle1 + np.pi
-        new_pos = body1.GetWorldPoint((0, 5))
-        body1.position += pos - new_pos
-        body2.angle = angle2 + body1.angle
-        pos = body1.GetWorldPoint((0, -4.5))
-        new_pos = body2.GetWorldPoint((0, 4.5))
-        body2.position += pos - new_pos
-
-    def Step(self, settings, action):
-        """Moves forward in time one step."""
-        self.joint1.motorSpeed = action[0]
-        self.joint2.motorSpeed = action[1]
-
-        super(ArmWorld, self).Step(settings)
-
-    def reset_world(self):
-        """Returns the world to its intial state"""
-        self.world.ClearForces()
-        self.joint1.motorSpeed = 0
-        self.joint2.motorSpeed = 0
-        self.body1.linearVelocity = (0, 0)
-        self.body1.angularVelocity = 0
-        self.body2.linearVelocity = (0, 0)
-        self.body2.angularVelocity = 0
-        self.set_joint_angles(self.body1, self.body2, self.x0[0], self.x0[1])
-
-
     def get_state(self):
         """Retrieves the state of the point mass"""
         state = {JOINT_ANGLES: np.array([self.joint1.angle,
                                          self.joint2.angle]),
                  JOINT_VELOCITIES: np.array([self.joint1.speed,
-                                             self.joint2.speed])}
+                                             self.joint2.speed]),
+                 ROBOT_CONFIGURATION: np.array([self.fixture_length, self.fixture_density])}
 
         return state
 
