@@ -540,3 +540,4 @@ class AlgorithmBADMM(Algorithm):
                          PKLv[t, :] * wt) / (eta + wt)
 
         return fCm, fcv
+

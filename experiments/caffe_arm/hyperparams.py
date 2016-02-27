@@ -18,7 +18,7 @@ from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, ACTION, ROBOT_CONFIGURATION
 from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
-from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
+from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe, RNNPolicyOptCaffe
 from gps.algorithm.algorithm_badmm import AlgorithmBADMM
 
 
@@ -40,7 +40,7 @@ common = {
     'experiment_dir': EXP_DIR,
     'data_files_dir': EXP_DIR + 'data_files/',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2 # 4,
+    'conditions': 1 # 4,
 }
 
 if not os.path.exists(common['data_files_dir']):
@@ -52,13 +52,14 @@ agent = {
     "world" : ArmWorld,
     'x0': [np.array([0.75*np.pi, 0.5*np.pi, 0, 0]),
            #np.array([0.5*np.pi, 0.75*np.pi,0,0])],
-           np.array([0.75*np.pi, 0.5*np.pi, 0,0]),
+           #np.array([0.75*np.pi, 0.5*np.pi, 0,0]),
            #np.array([-0.5*np.pi, -0.75*np.pi, 0, 0])
           ],
     'robot_config': [np.array([5, 0.5]),
-                     np.array([5, 0.6])],
+                    # np.array([5, 0.6])],
                     # np.array([5, 0.5]),
                     # np.array([5, 0.5])],
+                    ],
     'rk': 0,
     'dt': 0.1,
     'substeps': 1,
@@ -88,6 +89,7 @@ algorithm = {
     'max_step_mult': 1.0,
     'sample_decrease_var': 0.05,
     'sample_increase_var': 0.1,
+    #'dC': SENSOR_DIMS[ROBOT_CONFIGURATION],
 }
 
 algorithm['init_traj_distr'] = {
@@ -137,9 +139,10 @@ algorithm['traj_opt'] = {
 }
 
 algorithm['policy_opt'] = {
-    'type': PolicyOptCaffe,
+    'type': RNNPolicyOptCaffe,
     'weights_file_prefix': EXP_DIR + 'policy',
     'use_gpu': False,
+    'dC': SENSOR_DIMS[ROBOT_CONFIGURATION],
 }
 #algorithm['policy_opt'] = {}
 
