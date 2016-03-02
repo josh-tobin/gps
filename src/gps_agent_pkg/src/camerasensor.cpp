@@ -17,7 +17,6 @@ CameraSensor::CameraSensor(ros::NodeHandle& n, RobotPlugin *plugin): Sensor(n, p
       depth_subscriber_ = n.subscribe(depth_topic_name_, 1, &CameraSensor::update_depth_image, this);
 
     // Initialize image config specs - image_width_init_, image_width_, etc.
-    // TODO - Better way to get default values and specified values?
     if (!n.getParam("image_width",image_width_))
       image_width_ = IMAGE_WIDTH;
     if (!n.getParam("image_height",image_height_))
@@ -48,7 +47,6 @@ CameraSensor::~CameraSensor()
 // Callback from camera sensor. Crops and updates the stored rgb image
 void CameraSensor::update_rgb_image(const sensor_msgs::Image::ConstPtr& msg) {
     latest_rgb_time_ = msg->header.stamp;
-    //ROS_INFO("Received %d x %d rgb image, time %f", msg->width,msg->height,msg->header.stamp.toSec());
     if (latest_rgb_image_.empty()) {
         latest_rgb_image_.resize(3*image_size_);
     } else { // better way to make this assertion? (error message?)
@@ -83,7 +81,6 @@ void CameraSensor::update_rgb_image(const sensor_msgs::Image::ConstPtr& msg) {
 // Callback from camera sensor. Crops and updates the stored depth image
 void CameraSensor::update_depth_image(const sensor_msgs::Image::ConstPtr& msg) {
     latest_depth_time_ = msg->header.stamp;
-    //ROS_INFO("Received %d x %d rgb image, time %f", msg->width,msg->height,msg->header.stamp.toSec());
     if (latest_depth_image_.empty()) {
         latest_depth_image_.resize(image_size_);
     } else { // better way to make this assertion? (error message?)

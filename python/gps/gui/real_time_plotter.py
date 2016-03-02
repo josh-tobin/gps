@@ -9,8 +9,11 @@ import matplotlib.pylab as plt
 
 class RealTimePlotter(object):
     """ Real time plotter class. """
-    def __init__(self, axis, time_window=500, labels=None, alphas=None):
-        self._ax = axis
+    def __init__(self, fig, gs, time_window=500, labels=None, alphas=None):
+        self._fig = fig
+        self._gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs)
+        self._ax = plt.subplot(self._gs[0])
+
         self._time_window = time_window
         self._labels = labels
         self._alphas = alphas
@@ -18,6 +21,9 @@ class RealTimePlotter(object):
 
         if self._labels:
             self.init(len(self._labels))
+
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
     def init(self, data_len):
         """ Initialize plots. """
@@ -62,26 +68,36 @@ class RealTimePlotter(object):
         x_range = (0, tw) if t < tw else (t - tw, t)
         self._ax.set_xlim(x_range)
 
-        y_min = np.amin(self._data[t0:tf, :])
-        y_max = np.amax(self._data[t0:tf, :])
+        y_min, y_max = np.amin(self._data[t0:tf, :]), np.amax(self._data[t0:tf, :])
         y_mid, y_dif = (y_min + y_max) / 2.0, (y_max - y_min) / 2.0
         if y_dif == 0:
             y_dif = 1  # Make sure y_range does not have size 0.
-        y_range = y_mid - 1.25 * y_dif, y_mid + 1.25 * y_dif
-        y_range_rounded = np.around(
-            y_range,
-            -int(np.floor(np.log10(np.amax(np.abs(y_range) + 1e-100)))) + 1
-        )
-        self._ax.set_ylim(y_range_rounded)
+        y_min, y_max = y_mid - 1.25 * y_dif, y_mid + 1.25 * y_dif
+        precision = np.power(10, np.floor(np.log10(np.amax(np.abs((y_min, y_max)) + 1e-100))) - 1)
+        y_lim_min = np.floor(y_min/precision) * precision
+        y_lim_max = np.ceil(y_max/precision) * precision
 
-        self._ax.figure.canvas.draw()
+        self._ax.set_ylim((y_lim_min, y_lim_max))
+
+        self.draw()
+
+    def draw(self):
+        self._ax.draw_artist(self._ax.patch)
+        [self._ax.draw_artist(plot) for plot in self._plots]
+        self._fig.canvas.update()
+        self._fig.canvas.flush_events()   # Fixes bug with Qt4Agg backend
 
 
 if __name__ == "__main__":
+    import matplotlib.gridspec as gridspec
+
+
     plt.ion()
-    fig, ax = plt.subplots()
-    plotter = RealTimePlotter(ax, labels=['i', 'j', 'i+j', 'i-j', 'mean'],
-                              alphas=[0.15, 0.15, 0.15, 0.15, 1.0])
+    fig = plt.figure()
+    gs = gridspec.GridSpec(1, 1)
+    plotter = RealTimePlotter(fig, gs[0],
+        labels=['i', 'j', 'i+j', 'i-j', 'mean'],
+        alphas=[0.15, 0.15, 0.15, 0.15, 1.0])
 
     i, j = 0, 0
     while True:

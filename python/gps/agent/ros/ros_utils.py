@@ -50,6 +50,10 @@ def policy_to_msg(policy, noise):
         msg.controller_to_execute = CAFFE_CONTROLLER
         msg.caffe = CaffeParams()
         msg.caffe.net_param = policy.get_net_param()
+        msg.caffe.bias = policy.bias.tolist()
+        scale_shape = policy.scale.shape
+        msg.caffe.scale = policy.scale.reshape(scale_shape[0] * scale_shape[1]).tolist()
+        msg.caffe.dim_bias = scale_shape[0]
     else:
         raise NotImplementedError("Caffe not imported or Unknown policy object: %s" % policy)
     return msg
@@ -58,7 +62,7 @@ def policy_to_msg(policy, noise):
 class TimeoutException(Exception):
     """ Exception thrown on timeouts. """
     def __init__(self, sec_waited):
-        Exception.__init__("Timed out after %f seconds", sec_waited)
+        Exception.__init__(self, "Timed out after %f seconds", sec_waited)
 
 
 class ServiceEmulator(object):

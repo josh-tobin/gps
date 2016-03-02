@@ -37,15 +37,12 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
+EXP_DIR = BASE_DIR + '/../experiments/pr2_example/'
 
 x0s = []
 ee_tgts = []
 reset_conditions = []
-
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/pr2_example/'
 
 common = {
     'experiment_name': 'my_experiment' + '_' + \
@@ -54,9 +51,10 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2,
+    'conditions': 1,
 }
 
+# TODO(chelsea/zoe) : Move this code to a utility function
 # Set up each condition.
 for i in xrange(common['conditions']):
 
@@ -70,7 +68,6 @@ for i in xrange(common['conditions']):
         common['target_filename'], 'trial_arm', str(i), 'target'
     )
 
-    # TODO - Construct this somewhere else?
     x0 = np.zeros(32)
     x0[:7] = ja_x0
     x0[14:(14+3*EE_POINTS.shape[0])] = np.ndarray.flatten(
@@ -129,8 +126,9 @@ algorithm['init_traj_distr'] = {
     'init_gains':  1.0 / PR2_GAINS,
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
-    'init_stiffness': 1.0,
-    'init_stiffness_vel': 0.5,
+    'stiffness': 0.5,
+    'stiffness_vel': 0.25,
+    'final_weight': 50,
     'dt': agent['dt'],
     'T': agent['T'],
 }
@@ -151,7 +149,6 @@ fk_cost1 = {
     'ramp_option': RAMP_LINEAR,
 }
 
-# TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': np.zeros(3 * EE_POINTS.shape[0]),
@@ -190,7 +187,7 @@ config = {
     'common': common,
     'verbose_trials': 0,
     'agent': agent,
-    'gui': True,
+    'gui_on': True,
     'algorithm': algorithm,
     'num_samples': 5,
 }

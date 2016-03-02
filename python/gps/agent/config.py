@@ -45,18 +45,20 @@ try:
         #TODO: Actually pass in low gains and high gains and use both
         #      for the position controller.
         'pid_params': np.array([
-            60, 200, 10, 4,
-            600, 500, 10, 4,
-            1000, 600, 6, 4,
-            700, 450, 4, 4,
-            300, 300, 6, 2,
-            300, 300, 4, 2,
-            300, 300, 4, 2
+            2400.0, 0.0, 18.0, 4.0,
+            1200.0, 0.0, 20.0, 4.0,
+            1000.0, 0.0, 6.0, 4.0,
+            700.0, 0.0, 4.0, 4.0,
+            300.0, 0.0, 6.0, 2.0,
+            300.0, 0.0, 4.0, 2.0,
+            300.0, 0.0, 2.0, 2.0
         ]),
     }
 except ImportError as e:
+    AGENT_ROS = {}
     LOGGER.debug('No ROS enabled: %s', e)
 except rospkg.common.ResourceNotFound as e:
+    AGENT_ROS = {}
     LOGGER.debug('No gps_agent_pkg: %s', e)
 
 

@@ -77,7 +77,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 
     // Create all sensors.
     for (int i = 0; i < 1; i++)
-    // TODO: ZDM: readd this when more sensors work
+    // TODO: ZDM: read this when more sensors work
     //for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
@@ -124,7 +124,7 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
     // configure auxiliary sensors
     for (int i = 0; i < aux_sensors_.size(); i++)
     {
-        aux_sensors_[i]->configure_sensor(opts); // TODO: ZDM: make sure this is right!
+        aux_sensors_[i]->configure_sensor(opts);
         aux_sensors_[i]->set_sample_data_format(aux_current_time_step_sample_);
     }
     sensors_initialized_ = true;
@@ -169,9 +169,7 @@ void RobotPlugin::initialize_sample(boost::scoped_ptr<Sample>& sample, gps::Actu
 void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step)
 {
     if (!sensors_initialized_) return; // Don't try to use sensors until initialization finishes.
-    //if(!is_controller_step){ //TODO: Remove this
-        //return;
-    //}
+
     // Update all of the sensors and fill in the sample.
     for (int sensor = 0; sensor < sensors_.size(); sensor++)
     {
@@ -184,7 +182,7 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
             sensors_[sensor]->set_sample_data(current_time_step_sample_, 0);
         }
     }
-    
+
     // Update all of the auxiliary sensors and fill in the sample.
     for (int sensor = 0; sensor < aux_sensors_.size(); sensor++)
     {
@@ -250,8 +248,6 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
         }
     }
 
-    /* TODO: check is_finished for passive_arm_controller and active_arm_controller */
-    /* publish message when finished */
 }
 
 void RobotPlugin::publish_sample_report(boost::scoped_ptr<Sample>& sample, int T /*=1*/){
@@ -305,7 +301,6 @@ void RobotPlugin::position_subscriber_callback(const gps_agent_pkg::PositionComm
     for(int i=0; i<pd_gains.rows(); i++){
         for(int j=0; j<4; j++){
             pd_gains(i, j) = msg->pd_gains[i * 4 + j];
-            ROS_INFO("pd_gain[%f]", pd_gains(i, j));
         }
     }
     params["pd_gains"] = pd_gains;
@@ -333,9 +328,6 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
                 T, MAX_TRIAL_LENGTH);
     }
 
-    // TODO - it seems like the below could cause a race condition seg fault,
-    // but I haven't seen one happen yet...
-    // Sergey: I have...
     initialize_sample(current_time_step_sample_, gps::TRIAL_ARM);
 
     float frequency = msg->frequency;  // Controller frequency
@@ -381,7 +373,7 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
             for(int u=0; u<dU; u++){
                 k(u) = lingauss.k_t[u+t*dU];
             }
-            controller_params["K_"+to_string(t)] = K; //TODO: Does this copy or will all values be the same?
+            controller_params["K_"+to_string(t)] = K;
             controller_params["k_"+to_string(t)] = k;
         }
         trial_controller_->configure_controller(controller_params);
@@ -390,14 +382,42 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     else if (msg->controller.controller_to_execute == gps::CAFFE_CONTROLLER) {
         gps_agent_pkg::CaffeParams params = msg->controller.caffe;
         trial_controller_.reset(new CaffeNNController());
-        std::string net_param = params.net_param;
-        controller_params["net_param"] = net_param;
+
+        // TODO(chelsea/zoe): put this somewhere else.
+        int dim_bias = params.dim_bias;
+        Eigen::MatrixXd scale;
+        scale.resize(dim_bias, dim_bias);
+        Eigen::VectorXd bias;
+        bias.resize(dim_bias);
+
+        int idx = 0;
+        // Unpack the scale matrix
+        for (int j = 0; j < dim_bias; ++j)
+        {
+            for (int i = 0; i < dim_bias; ++i)
+            {
+                scale(i,j) = params.scale[idx];
+                idx++;
+            }
+        }
+
+        idx = 0;
+        // Unpack the bias vector
+        for (int i = 0; i < dim_bias; ++i)
+        {
+            bias(i) = params.bias[idx];
+            idx++;
+        }
+
+        controller_params["net_param"] = params.net_param;
+        controller_params["scale"] = scale;
+        controller_params["bias"] = bias;
         controller_params["T"] = (int)msg->T;
         trial_controller_->configure_controller(controller_params);
     }
 #endif
     else{
-        ROS_ERROR("Unknown trial controller arm type");
+        ROS_ERROR("Unknown trial controller arm type and/or USE_CAFFE=0");
     }
 
     // Configure sensor for trial
@@ -472,7 +492,7 @@ void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequ
             aux_data_request_waiting_ = true;
         }
     }
-    else 
+    else
     {
         ROS_INFO("Data request arm type not valid: %d", arm);
     }
@@ -497,7 +517,6 @@ Sensor *RobotPlugin::get_sensor(SensorType sensor, gps::ActuatorType actuator_ty
 // Get forward kinematics solver.
 void RobotPlugin::get_fk_solver(boost::shared_ptr<KDL::ChainFkSolverPos> &fk_solver, boost::shared_ptr<KDL::ChainJntToJacSolver> &jac_solver, gps::ActuatorType arm)
 {
-    //TODO: compile errors related to boost::scoped_ptr
     if (arm == gps::AUXILIARY_ARM)
     {
         fk_solver = passive_arm_fk_solver_;

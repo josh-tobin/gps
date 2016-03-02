@@ -32,8 +32,8 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/mjc_badmm_example/'
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
+EXP_DIR = BASE_DIR + '/../experiments/mjc_badmm_example/'
 
 
 common = {
@@ -88,8 +88,8 @@ algorithm['init_traj_distr'] = {
     'init_gains':  1.0 / PR2_GAINS,
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
-    'init_stiffness': 1.0,
-    'init_stiffness_vel': 0.5,
+    'stiffness': 1.0,
+    'stiffness_vel': 0.5,
     'dt': agent['dt'],
     'T': agent['T'],
 }
@@ -148,7 +148,7 @@ config = {
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui': True,
+    'gui_on': True,
     'algorithm': algorithm,
 }
 

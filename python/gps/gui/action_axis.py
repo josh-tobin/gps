@@ -4,6 +4,7 @@ import logging
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib.widgets import Button
 
 from gps.gui.action import Action
@@ -13,19 +14,31 @@ from gps.gui.config import common as gui_config_common
 LOGGER = logging.getLogger(__name__)
 
 
-class ActionAxis(object):
-    """ Action axis class. """
-    def __init__(self, actions, axarr, ps3_process_rate=20, ps3_topic='joy',
-                 inverted_ps3_button=None):
+class Action:
+    def __init__(self, key, name, func, axis_pos=None, keyboard_binding=None, ps3_binding=None):
+        self._key = key
+        self._name = name
+        self._func = func
+        self._axis_pos = axis_pos
+        self._kb = keyboard_binding
+        self._pb = ps3_binding
+
+class ActionAxis:
+    def __init__(self, fig, gs, rows, cols, actions, ps3_process_rate=20, ps3_topic='joy',
+            ps3_button=None, inverted_ps3_button=None):
         """
         Constructs an ActionAxis assuming actions is a dictionary of
         fully initialized actions.
         Each action must have: key, name, func.
         Each action can have: axis_pos, keyboard_binding, ps3_binding.
         """
+        assert(len(actions) <= rows*cols, 'Too many actions to put into gridspec.')
+
+        self._fig = fig
+        self._gs = gridspec.GridSpecFromSubplotSpec(rows, cols, subplot_spec=gs)
+        self._axarr = [plt.subplot(self._gs[i]) for i in range(len(actions))]
         self._actions = actions
-        self._axarr = axarr
-        self._fig = axarr[0].get_figure()
+        self.inverted_ps3_button = inverted_ps3_button
 
         # Try to import ROS.
         ros_enabled = False
@@ -72,6 +85,8 @@ class ActionAxis(object):
 
         # PS3 Input using ROS.
         if ros_enabled:
+            self._ps3_button = ps3_button
+            self._inverted_ps3_button = inverted_ps3_button
             self._ps3_bindings = {}
             for key, action in self._actions.iteritems():
                 if action._pb is not None:
@@ -100,15 +115,11 @@ class ActionAxis(object):
         if buttons_pressed in self._ps3_bindings:
             self._actions[self._ps3_bindings[buttons_pressed]]._func()
         else:
-            #TODO: Where are (inverted_)ps3_button defined?
-            if not (len(buttons_pressed) == 0 or
-                    (len(buttons_pressed) == 1 and
-                     (buttons_pressed[0] == ps3_button['rear_right_1'] or
-                      buttons_pressed[0] == ps3_button['rear_right_2']))):
+            if not (len(buttons_pressed) == 0 or (len(buttons_pressed) == 1 and
+                    (buttons_pressed[0] == self._ps3_button['rear_right_1'] or
+                    buttons_pressed[0] == self._ps3_button['rear_right_2']))):
                 LOGGER.debug('Unrecognized ps3 controller input:\n%s',
-                             str([inverted_ps3_button[b]
-                                  for b in buttons_pressed]))
-
+                        str([self.inverted_ps3_button[b] for b in buttons_pressed]))
 
 if __name__ == "__main__":
     number = 0

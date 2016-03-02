@@ -47,7 +47,7 @@ class AgentBox2D(Agent):
         Args:
             policy: policy to to used in the trial
             condition (int): Which condition setup to run.
-            verbose (boolean): whether or not to plot the trial
+            verbose (boolean): whether or not to plot the trial (not used here)
         """
         self._world.reset_world()
         b2d_X = self._world.get_state()

@@ -19,8 +19,6 @@ protected:
     Eigen::VectorXd bias_;
 
 public:
-    // Whether or not scale/bias and weights have been set
-    bool scale_bias_set_, weights_set_;
     // Pre-allocated scaled input data
     Eigen::VectorXd input_scaled_;
 
@@ -32,7 +30,7 @@ public:
 
     // Set the scales and biases, also preallocate any internal temporaries for fast evaluation.
     // This is implemented in neuralnetwork.cpp.
-    virtual void set_scalebias(const std::vector<double> data, const std::vector<int> dims);
+    virtual void set_scalebias(const Eigen::MatrixXd& scale, const Eigen::VectorXd& bias);
 
     // Set the weights of the neural network.
     // Should be implemented in the subclass.

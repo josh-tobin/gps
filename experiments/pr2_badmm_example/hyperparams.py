@@ -39,8 +39,8 @@ SENSOR_DIMS = {
 
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/pr2_badmm_example/'
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
+EXP_DIR = BASE_DIR + '/../experiments/pr2_badmm_example/'
 
 common = {
     'experiment_name': 'my_experiment' + '_' + \
@@ -62,11 +62,13 @@ for i in xrange(common['conditions']):
     ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'initial'
     )
+    ja_aux, _, _ = load_pose_from_npz(
+        common['target_filename'], 'auxiliary_arm', str(i), 'initial'
+    )
     _, ee_pos_tgt, ee_rot_tgt = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'target'
     )
 
-    # TODO - Construct this somewhere else?
     x0 = np.zeros(32)
     x0[:7] = ja_x0
     x0[14:(14+9)] = np.ndarray.flatten(
@@ -77,6 +79,9 @@ for i in xrange(common['conditions']):
         get_ee_points(EE_POINTS, ee_pos_tgt, ee_rot_tgt).T
     )
 
+    aux_x0 = np.zeros(7)
+    aux_x0[:] = ja_aux
+
     reset_condition = {
         TRIAL_ARM: {
             'mode': JOINT_SPACE,
@@ -84,7 +89,7 @@ for i in xrange(common['conditions']):
         },
         AUXILIARY_ARM: {
             'mode': JOINT_SPACE,
-            'data': np.array([-0.5, 0, 0, 0, 0, 0, 0]),
+            'data': aux_x0,
         },
     }
 
@@ -115,15 +120,22 @@ algorithm = {
     'type': AlgorithmBADMM,
     'conditions': common['conditions'],
     'iterations': 10,
-    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-2]),
-    'policy_dual_rate': 0.2,
+    'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-1]),
+    'policy_dual_rate': 0.1,
     'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
     'fixed_lg_step': 3,
     'kl_step': 5.0,
+    'init_pol_wt': 0.01,
     'min_step_mult': 0.01,
     'max_step_mult': 1.0,
     'sample_decrease_var': 0.05,
     'sample_increase_var': 0.1,
+    'exp_step_increase': 2.0,
+    'exp_step_decrease': 0.5,
+    'exp_step_upper': 0.5,
+    'exp_step_lower': 1.0,
+    'max_policy_samples': 6,
+    'policy_sample_mode': 'add',
 }
 
 algorithm['init_traj_distr'] = {
@@ -131,8 +143,9 @@ algorithm['init_traj_distr'] = {
     'init_gains':  1.0 / PR2_GAINS,
     'init_acc': np.zeros(SENSOR_DIMS[ACTION]),
     'init_var': 1.0,
-    'init_stiffness': 1.0,
-    'init_stiffness_vel': 0.5,
+    'stiffness': 0.5,
+    'stiffness_vel': 0.25,
+    'final_weight': 50,
     'dt': agent['dt'],
     'T': agent['T'],
 }
@@ -153,7 +166,6 @@ fk_cost1 = {
     'ramp_option': RAMP_LINEAR,
 }
 
-# TODO - This isn't quite right.
 fk_cost2 = {
     'type': CostFK,
     'target_end_effector': np.zeros(3 * EE_POINTS.shape[0]),
@@ -188,13 +200,14 @@ algorithm['traj_opt'] = {
 algorithm['policy_opt'] = {
     'type': PolicyOptCaffe,
     'weights_file_prefix': EXP_DIR + 'policy',
+    'iterations': 3000,
 }
 
 algorithm['policy_prior'] = {
     'type': PolicyPriorGMM,
     'max_clusters': 20,
     'min_samples_per_cluster': 40,
-    'max_samples': 20,
+    'max_samples': 40,
 }
 
 config = {

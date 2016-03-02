@@ -1,7 +1,9 @@
 """ This file defines the data logger. """
 import logging
-import pickle
-import sys
+try:
+   import cPickle as pickle
+except:
+   import pickle
 
 
 LOGGER = logging.getLogger(__name__)
@@ -28,4 +30,4 @@ class DataLogger(object):
             return pickle.load(open(filename, 'rb'))
         except IOError:
             LOGGER.debug('Unpickle error. Cannot find file: %s', filename)
-        sys.exit()
+            return None

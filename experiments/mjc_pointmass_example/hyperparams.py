@@ -25,8 +25,8 @@ SENSOR_DIMS = {
     ACTION: 2,
 }
 
-BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-3])
-EXP_DIR = BASE_DIR + '/experiments/mjc_pointmass_example/'
+BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
+EXP_DIR = BASE_DIR + '/../experiments/mjc_pointmass_example/'
 
 
 common = {
@@ -50,8 +50,6 @@ agent = {
     'dt': 0.05,
     'substeps': 5,
     'conditions': common['conditions'],
-    'pos_body_idx': np.array([]),
-    'pos_body_offset': np.array([]),
     'T': 100,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES],
@@ -75,8 +73,8 @@ algorithm = {
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'init_var': 1.0,
-    'init_stiffness': 10.0,
-    'init_stiffness_vel': 10.0,
+    'stiffness': 10.0,
+    'stiffness_vel': 10.0,
     'dt': agent['dt'],
     'T': agent['T'],
 }
@@ -127,7 +125,7 @@ config = {
     'verbose_policy_trials': 1,
     'common': common,
     'agent': agent,
-    'gui': True,
+    'gui_on': True,
     'algorithm': algorithm,
 }
 

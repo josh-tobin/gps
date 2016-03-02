@@ -62,8 +62,8 @@ keyboard_bindings = {
 
     'sip': 'j',
     'stp': 'k',
-    'sif': 'l',
-    'stf': ';',
+    'sii': 'l',
+    'sti': ';',
 
     'mti': 'u',
     'mtt': 'i',
@@ -71,10 +71,14 @@ keyboard_bindings = {
     'mm': 'p',
 
     # GPS Training.
-    'stop': 's',
+    'stop' : 's',
     'reset': 'r',
-    'go': 'g',
-    'fail': 'f',
+    'go'   : 'g',
+    'fail' : 'f',
+
+    # Image Visualizer
+    'oii'  : 'i',
+    'oti'  : 't',
 }
 inverted_keyboard_bindings = {value: key
                               for key, value in keyboard_bindings.iteritems()}
@@ -89,19 +93,23 @@ ps3_bindings = {
 
     'sip': (ps3_button['rear_right_1'], ps3_button['action_square']),
     'stp': (ps3_button['rear_right_1'], ps3_button['action_circle']),
-    'sif': (ps3_button['rear_right_1'], ps3_button['action_cross']),
-    'stf': (ps3_button['rear_right_1'], ps3_button['action_triangle']),
+    'sii': (ps3_button['rear_right_1'], ps3_button['action_cross']),
+    'sti': (ps3_button['rear_right_1'], ps3_button['action_triangle']),
 
     'mti': (ps3_button['rear_right_2'], ps3_button['cross_left']),
     'mtt': (ps3_button['rear_right_2'], ps3_button['cross_right']),
-    'rc': (ps3_button['rear_right_2'], ps3_button['cross_down']),
-    'mm': (ps3_button['rear_right_2'], ps3_button['cross_up']),
+    'rc' : (ps3_button['rear_right_2'], ps3_button['cross_down']),
+    'mm' : (ps3_button['rear_right_2'], ps3_button['cross_up']),
 
     # GPS Training
-    'stop': (ps3_button['rear_right_2'], ps3_button['action_square']),
+    'stop' : (ps3_button['rear_right_2'], ps3_button['action_square']),
     'reset': (ps3_button['rear_right_2'], ps3_button['action_triangle']),
-    'go': (ps3_button['rear_right_2'], ps3_button['action_circle']),
-    'fail': (ps3_button['rear_right_2'], ps3_button['action_cross']),
+    'go'   : (ps3_button['rear_right_2'], ps3_button['action_circle']),
+    'fail' : (ps3_button['rear_right_2'], ps3_button['action_cross']),
+
+    # Image Visualizer
+    'oii'  : (ps3_button['cross_up']    ,),
+    'oti'  : (ps3_button['cross_down']  ,),
 }
 inverted_ps3_bindings = {value: key for key, value in ps3_bindings.iteritems()}
 
@@ -119,7 +127,7 @@ common = {
     'ps3_topic': 'joy',
     'ps3_process_rate': 20,  # Only process 1/20 of PS3 messages.
 
-    'image_topic': '/camera/image/rgb_color',
+    'image_topic': '/camera/rgb/image_color',
 }
 
 target_setup = {
@@ -132,4 +140,5 @@ target_setup = {
 
 gps_training = {
     'gps_training_log_filename': 'gps_training_log.txt',
+    'image_actuator': target_setup['actuator_names'][0],    # which actuator to get initial and target images from
 }

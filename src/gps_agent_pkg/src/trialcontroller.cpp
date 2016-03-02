@@ -25,7 +25,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     }
     Eigen::VectorXd X, obs;
     sample->get_data(step_counter_, X, state_datatypes_);
-    //sample->get_obs(step_counter_, obs); //TODO: Fill obs
+    sample->get_data(step_counter_, obs, obs_datatypes_);
 
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
@@ -70,14 +70,6 @@ void TrialController::configure_controller(OptionsMap &options)
 bool TrialController::is_finished() const
 {
     return step_counter_ >= trial_end_step_;
-}
-
-// Ask the controller to return the sample collected from its latest execution.
-boost::scoped_ptr<Sample>* TrialController::get_sample() const
-{
-    // Return the sample that has been recorded so far.
-    // TODO: implement.
-    return NULL;
 }
 
 int TrialController::get_step_counter(){

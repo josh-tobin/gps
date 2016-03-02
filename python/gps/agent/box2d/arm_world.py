@@ -10,9 +10,9 @@ class ArmWorld(Framework):
     def __init__(self, x0, target):
         super(ArmWorld, self).__init__()
 
-        self.world.gravity = [0, 0]
+        self.world.gravity = (0.0, 0.0)
 
-        fixture_length = 3
+        fixture_length = 5
         self.x0 = x0
 
         rectangle_fixture = b2.b2FixtureDef(
@@ -22,11 +22,11 @@ class ArmWorld(Framework):
         )
         square_fixture = b2.b2FixtureDef(
             shape=b2.b2PolygonShape(box=(1, 1)),
-            density=1.5,
+            density=100.0,
             friction=1,
         )
         self.base = self.world.CreateBody(
-            position=(0, 7),
+            position=(0, 15),
             fixtures=square_fixture,
         )
 
@@ -84,11 +84,11 @@ class ArmWorld(Framework):
         """ Converts the given absolute angle of the arms to joint angles"""
         pos = self.base.GetWorldPoint((0, 0))
         body1.angle = angle1 + np.pi
-        new_pos = body1.GetWorldPoint((0, 3))
+        new_pos = body1.GetWorldPoint((0, 5))
         body1.position += pos - new_pos
         body2.angle = angle2 + body1.angle
-        pos = body1.GetWorldPoint((0, -2.5))
-        new_pos = body2.GetWorldPoint((0, 2.5))
+        pos = body1.GetWorldPoint((0, -4.5))
+        new_pos = body2.GetWorldPoint((0, 4.5))
         body2.position += pos - new_pos
 
     def Step(self, settings, action):
@@ -112,8 +112,8 @@ class ArmWorld(Framework):
 
     def get_state(self):
         """Retrieves the state of the point mass"""
-        state = {JOINT_ANGLES: np.array([self.joint1.angle%(2*np.pi),
-                                         self.joint2.angle%(2*np.pi)]),
+        state = {JOINT_ANGLES: np.array([self.joint1.angle,
+                                         self.joint2.angle]),
                  JOINT_VELOCITIES: np.array([self.joint1.speed,
                                              self.joint2.speed])}
 

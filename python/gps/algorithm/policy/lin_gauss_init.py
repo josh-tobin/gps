@@ -1,12 +1,11 @@
 """ Initializations for linear Gaussian controllers. """
 import copy
-
 import numpy as np
 import scipy as sp
 
 from gps.algorithm.dynamics.dynamics_utils import guess_dynamics
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
-from gps.algorithm.policy.config import INIT_LG
+from gps.algorithm.policy.config import INIT_LG_PD, INIT_LG_LQR
 
 
 def init_lqr(hyperparams):
@@ -14,7 +13,7 @@ def init_lqr(hyperparams):
     Return initial gains for a time-varying linear Gaussian controller
     that tries to hold the initial position.
     """
-    config = copy.deepcopy(INIT_LG)
+    config = copy.deepcopy(INIT_LG_LQR)
     config.update(hyperparams)
 
     x0, dX, dU = config['x0'], config['dX'], config['dU']
@@ -50,8 +49,8 @@ def init_lqr(hyperparams):
     # Ltt = (dX+dU) by (dX+dU) - Hessian of loss with respect to
     # trajectory at a single timestep.
     Ltt = np.diag(np.hstack([
-        config['init_stiffness'] * np.ones(dU),
-        config['init_stiffness'] * config['init_stiffness_vel'] * np.ones(dU),
+        config['stiffness'] * np.ones(dU),
+        config['stiffness'] * config['stiffness_vel'] * np.ones(dU),
         np.zeros(dX - dU*2), np.ones(dU)
     ]))
     Ltt = Ltt / config['init_var']  # Cost function - quadratic term.
@@ -71,8 +70,8 @@ def init_lqr(hyperparams):
     for t in range(T - 1, -1, -1):
         # Compute Q function at this step.
         if t == (T - 1):
-            Ltt_t = config['init_final_weight'] * Ltt
-            lt_t = config['init_final_weight'] * lt
+            Ltt_t = config['final_weight'] * Ltt
+            lt_t = config['final_weight'] * lt
         else:
             Ltt_t = Ltt
             lt_t = lt
@@ -105,13 +104,15 @@ def init_lqr(hyperparams):
     return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)
 
 
-#TODO: Has this been tested? And is the docstring accurate?
+#TODO: Fix docstring
 def init_pd(hyperparams):
     """
-    Return initial gains for a time-varying linear Gaussian controller
-    that tries to hold the initial position.
+    This function initializes the linear-Gaussian controller as a
+    proportional-derivative (PD) controller with Gaussian noise. The
+    position gains are controlled by the variable pos_gains, velocity
+    gains are controlled by pos_gains*vel_gans_mult.
     """
-    config = copy.deepcopy(INIT_LG)
+    config = copy.deepcopy(INIT_LG_PD)
     config.update(hyperparams)
 
     dU, dQ, dX = config['dU'], config['dQ'], config['dX']
@@ -119,15 +120,15 @@ def init_pd(hyperparams):
 
     # Choose initialization mode.
     Kp = 1.0
-    Kv = config['init_stiffness_vel']
+    Kv = config['vel_gains_mult']
     if dU < dQ:
-        K = -config['init_stiffness'] * np.tile(
+        K = -config['pos_gains'] * np.tile(
             [np.eye(dU) * Kp, np.zeros((dU, dQ-dU)),
              np.eye(dU) * Kv, np.zeros((dU, dQ-dU))],
             [T, 1, 1]
         )
     else:
-        K = -config['init_stiffness'] * np.tile(
+        K = -config['pos_gains'] * np.tile(
             np.hstack([
                 np.eye(dU) * Kp, np.eye(dU) * Kv,
                 np.zeros((dU, dX - dU*2))
