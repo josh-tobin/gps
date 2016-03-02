@@ -67,7 +67,7 @@ agent = {
 algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
-    'iterations': 10,
+    'iterations': 50,
 }
 
 algorithm['init_traj_distr'] = {
@@ -103,7 +103,7 @@ algorithm['cost'] = {
 
 algorithm['dynamics'] = {
     'type': DynamicsLRPrior,
-    'regularization': 1e-6,
+    'regularization': 1e-5,
     'prior': {
         'type': DynamicsPriorGMM,
         'max_clusters': 20,
