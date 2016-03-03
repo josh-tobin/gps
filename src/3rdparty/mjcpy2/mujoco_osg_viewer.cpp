@@ -284,7 +284,7 @@ MujocoOSGViewer::MujocoOSGViewer()
     m_viewer.realize();
 
     osg::ref_ptr<osgGA::TrackballManipulator> man = new osgGA::TrackballManipulator;
-    man->setHomePosition(osg::Vec3(2, 3, 2), osg::Vec3(0, 0, 0), osg::Vec3(-1, -1.5, 2));
+    man->setHomePosition(osg::Vec3(0.5, -1.5, 5), osg::Vec3(0.5, -1.5, 0), osg::Vec3(-1, -1.5, 2));
     m_viewer.setCameraManipulator(man);
 
     m_handler = new EventHandler(this);
