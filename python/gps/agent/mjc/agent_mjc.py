@@ -10,7 +10,7 @@ from gps.agent.agent_utils import generate_noise, setup
 from gps.agent.config import AGENT_MUJOCO
 from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
         END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES, \
-        END_EFFECTOR_POINT_JACOBIANS, ACTION
+        END_EFFECTOR_POINT_JACOBIANS, ACTION, RGB_IMAGE
 from gps.sample.sample import Sample
 
 
@@ -114,6 +114,7 @@ class AgentMuJoCo(Agent):
                 for _ in range(self._hyperparams['substeps']):
                     mj_X, _ = self._world.step(mj_X, mj_U)
                 #TODO: Some hidden state stuff will go here.
+                obs = self._world.get_image()
                 self._data = self._world.get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
         new_sample.set(ACTION, U)

@@ -63,7 +63,7 @@ public:
     void SetModel(bp::dict d);
     bp::dict GetData();
     void SetData(bp::dict d);
-    bn::ndarray GetImage(const bn::ndarray& x);
+    bp::dict GetImage();
     void SetNumSteps(int n) {m_numSteps=n;}
 
     ~PyMJCWorld2();
@@ -281,6 +281,23 @@ void PyMJCWorld2::SetData(bp::dict d) {
 
 }
 
+bp::dict PyMJCWorld2::GetImage() {
+    bp::dict out;
+    const unsigned char* tmp = static_cast<const unsigned char*>(m_viewer->m_image->getDataPointer());
+    //out["pixel_data"] = toNdarray1<unsigned char>(tmp, m_viewer->m_image->getTotalDataSize ());
+    out["num_pixels"] = m_viewer->m_image->getTotalDataSize();
+    out["width"] = m_viewer->m_image->s();
+    out["height"] = m_viewer->m_image->t();
+    int num_channels = 0;
+    if (m_viewer->m_image->getTotalDataSize () > 0)
+    {
+        num_channels = m_viewer->m_image->getTotalDataSize() / m_viewer->m_image->s() / m_viewer->m_image->t();
+    }
+    out["img"] = toNdarray3<unsigned char>(tmp, m_viewer->m_image->t(), m_viewer->m_image->s(), num_channels);
+    out["num_channels"] = num_channels;
+    return out;
+}
+
 
 BOOST_PYTHON_MODULE(mjcpy) {
     bn::initialize();
@@ -305,7 +322,7 @@ BOOST_PYTHON_MODULE(mjcpy) {
         .def("get_jac_site",&PyMJCWorld2::GetJacSite)
         .def("kinematics",&PyMJCWorld2::Kinematics)
         // .def("SetModel",&PyMJCWorld::SetModel)
-        // .def("GetImage",&PyMJCWorld::GetImage)
+        .def("get_image",&PyMJCWorld2::GetImage)
         .def("set_num_steps",&PyMJCWorld2::SetNumSteps)
         ;
 

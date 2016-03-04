@@ -22,6 +22,7 @@ public:
   mjData* m_data;  
   const mjModel* m_model;
   osg::ref_ptr<osg::Group> m_root, m_robot;
+  osg::ref_ptr<osg::Image> m_image;
   osgViewer::Viewer m_viewer;
   std::vector<osg::MatrixTransform*> m_geomTFs, m_axTFs;
   osg::ref_ptr<osgGA::GUIEventHandler> m_handler;
