@@ -54,7 +54,8 @@ public:
 
     PyMJCWorld2(const std::string& loadfile);
     bp::object Step(const bn::ndarray& x, const bn::ndarray& u);
-    void Plot(const bn::ndarray& x);    
+    void Plot(const bn::ndarray& x);
+    void InitCam(float cx,float cy,float cz,float px,float py,float pz);
     void Idle(const bn::ndarray& x);
     bn::ndarray GetCOMMulti(const bn::ndarray& x);
     bn::ndarray GetJacSite(int site);
@@ -65,12 +66,14 @@ public:
     void SetData(bp::dict d);
     bp::dict GetImage();
     void SetNumSteps(int n) {m_numSteps=n;}
+    void SetCamera(float x, float y, float z, float px, float py, float pz);
 
     ~PyMJCWorld2();
 private:
     // PyMJCWorld(const PyMJCWorld&) {}
 
     void _PlotInit();
+    void _PlotInit(float x, float y, float z, float px, float py, float pz);
 
     // void _SetState(const mjtNum* xdata) {mju_copy(m_data->qpos, (xdata), NQ); mju_copy(m_data->qvel, (xdata)+NQ, NV); }
     // void _SetControl(const mjtNum* udata) {for (int i=0; i < m_actuatedDims.size(); ++i) m_u[m_actuatedDims[i]] = (udata)[i];}
@@ -213,12 +216,23 @@ void PyMJCWorld2::_PlotInit() {
     }
 }
 
+void PyMJCWorld2::_PlotInit(float x, float y, float z, float px, float py, float pz) {
+    if (m_viewer == NULL) {
+        m_viewer = new MujocoOSGViewer(osg::Vec3(x, y, z),osg::Vec3(px, py, pz));
+        m_viewer->SetModel(m_model);
+    }
+}
+
 void PyMJCWorld2::Plot(const bn::ndarray& x) {
     FAIL_IF_FALSE(x.get_dtype() == MJTNUM_DTYPE && x.get_nd() == 1 && x.get_flags() & bn::ndarray::C_CONTIGUOUS);
     _PlotInit();
     SetState(reinterpret_cast<const mjtNum*>(x.get_data()),m_model,m_data);
 	m_viewer->SetData(m_data);
 	m_viewer->RenderOnce();
+}
+
+void PyMJCWorld2::InitCam(float cx, float cy, float cz, float px, float py, float pz) {
+    _PlotInit(cx, cy, cz, px, py, pz);
 }
 
 void PyMJCWorld2::Idle(const bn::ndarray& x) {
@@ -298,6 +312,10 @@ bp::dict PyMJCWorld2::GetImage() {
     return out;
 }
 
+void PyMJCWorld2::SetCamera(float x, float y, float z, float px, float py, float pz){
+    // place camera at (x,y,z) pointing to (px,py,pz)
+    m_viewer->SetCamera(x,y,z,px,py,pz);
+}
 
 BOOST_PYTHON_MODULE(mjcpy) {
     bn::initialize();
@@ -317,6 +335,7 @@ BOOST_PYTHON_MODULE(mjcpy) {
         .def("get_data",&PyMJCWorld2::GetData)
         .def("set_data",&PyMJCWorld2::SetData)
         .def("plot",&PyMJCWorld2::Plot)
+        .def("init_cam",&PyMJCWorld2::InitCam)
         .def("idle",&PyMJCWorld2::Idle)
         .def("get_COM_multi",&PyMJCWorld2::GetCOMMulti)
         .def("get_jac_site",&PyMJCWorld2::GetJacSite)
@@ -324,6 +343,7 @@ BOOST_PYTHON_MODULE(mjcpy) {
         // .def("SetModel",&PyMJCWorld::SetModel)
         .def("get_image",&PyMJCWorld2::GetImage)
         .def("set_num_steps",&PyMJCWorld2::SetNumSteps)
+        .def("set_camera",&PyMJCWorld2::SetCamera)
         ;
 
 

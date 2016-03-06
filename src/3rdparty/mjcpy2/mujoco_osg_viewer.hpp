@@ -9,6 +9,7 @@
 class MujocoOSGViewer {
 public:
 	MujocoOSGViewer();
+	MujocoOSGViewer(osg::Vec3, osg::Vec3);
 	void Idle(); // Block and draw in a loop until the 'p' key is pressed
 	void RenderOnce();
 	void HandleInput();
@@ -16,7 +17,8 @@ public:
 	void StopAsyncRendering(); // 
 	void SetModel(const mjModel*);
 	void SetData(const mjData*);
-	void _UpdateTransforms();  
+	void _UpdateTransforms();
+	void SetCamera(float x, float y, float z, float px, float py, float pz);
 
   // osg::ref_ptr<EventHandler> m_handler;
   mjData* m_data;  
