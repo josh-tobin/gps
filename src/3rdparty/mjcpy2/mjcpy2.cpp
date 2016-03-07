@@ -296,6 +296,7 @@ void PyMJCWorld2::SetData(bp::dict d) {
 }
 
 bp::dict PyMJCWorld2::GetImage() {
+    m_viewer->RenderOnce();
     bp::dict out;
     const unsigned char* tmp = static_cast<const unsigned char*>(m_viewer->m_image->getDataPointer());
     //out["pixel_data"] = toNdarray1<unsigned char>(tmp, m_viewer->m_image->getTotalDataSize ());
@@ -303,7 +304,7 @@ bp::dict PyMJCWorld2::GetImage() {
     out["width"] = m_viewer->m_image->s();
     out["height"] = m_viewer->m_image->t();
     int num_channels = 0;
-    if (m_viewer->m_image->getTotalDataSize () > 0)
+    if (m_viewer->m_image->getTotalDataSize() > 0)
     {
         num_channels = m_viewer->m_image->getTotalDataSize() / m_viewer->m_image->s() / m_viewer->m_image->t();
     }
