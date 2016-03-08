@@ -103,7 +103,7 @@ algorithm['cost'] = {
 
 algorithm['dynamics'] = {
     'type': DynamicsLRPrior,
-    'regularization': 1e-5,
+    'regularization': 1e-6,
     'prior': {
         'type': DynamicsPriorGMM,
         'max_clusters': 20,
