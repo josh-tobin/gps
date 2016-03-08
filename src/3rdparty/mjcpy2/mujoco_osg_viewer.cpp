@@ -315,7 +315,7 @@ MujocoOSGViewer::MujocoOSGViewer()
     m_viewer.realize();
 
     osg::ref_ptr<osgGA::TrackballManipulator> man = new osgGA::TrackballManipulator;
-    man->setHomePosition(osg::Vec3(0.5, -1.5, 5), osg::Vec3(0.5, -1.5, 0), osg::Vec3(-1, -1.5, 2));
+    man->setHomePosition(osg::Vec3(2, 3, 2), osg::Vec3(0, 0, 0), osg::Vec3(-1, -1.5, 2));
     m_viewer.setCameraManipulator(man);
 
     m_handler = new EventHandler(this);
@@ -347,7 +347,7 @@ MujocoOSGViewer::MujocoOSGViewer(osg::Vec3 cam_pos, osg::Vec3 cam_target)
 
 void MujocoOSGViewer::SetCamera(float x, float y, float z, float px, float py, float pz){
     // place camera at (x,y,z) pointing to (px,py,pz)
-    m_viewer.getCameraManipulator()->setHomePosition(osg::Vec3(0.5, -1.5, 5), osg::Vec3(0.5, -1.5, 0), osg::Vec3(-1, -1.5, 2),false);
+    m_viewer.getCameraManipulator()->setHomePosition(osg::Vec3(x, y, z), osg::Vec3(px, py, pz), osg::Vec3(-1, -1.5, 2),false);
     //osg::ref_ptr<osgGA::CameraManipulator> man = m_viewer.getCameraManipulator();
     //man->setHomePosition(osg::Vec3(0.5, -1.5, 5), osg::Vec3(0.5, -1.5, 0), osg::Vec3(-1, -1.5, 2));
     //m_viewer.setCameraManipulator(man);
