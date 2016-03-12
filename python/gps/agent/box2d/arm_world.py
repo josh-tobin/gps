@@ -17,7 +17,6 @@ class ArmWorld(Framework):
 
         self.world.gravity = (0.0, 0.0)
 
-
         fixture_length = 5
         self.x0 = x0
 
@@ -99,7 +98,7 @@ class ArmWorld(Framework):
 
 
     def run(self):
-        """Initiates the first time step.git status
+        """Initiates the first time step
         """
         if self.render:
             super(ArmWorld, self).run()

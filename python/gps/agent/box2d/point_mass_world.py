@@ -2,6 +2,7 @@
 import numpy as np
 import Box2D as b2
 from framework import Framework
+
 from gps.agent.box2d.settings import fwSettings
 from gps.proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES
 class PointMassWorld(Framework):
@@ -57,8 +58,9 @@ class PointMassWorld(Framework):
                                                 xf2*(0, .5)])],
         )
         self.target.active = False
+
     def run(self):
-        """Initiates the first time step.git status
+        """Initiates the first time step
         """
         if self.render:
             super(PointMassWorld, self).run()
