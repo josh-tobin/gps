@@ -15,7 +15,7 @@ from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
-from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe
+from gps.algorithm.policy_opt.policy_opt_tf import PolicyOptTf
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
@@ -40,7 +40,7 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
-EXP_DIR = BASE_DIR + '/../experiments/pr2_badmm_example/'
+EXP_DIR = BASE_DIR + '/../experiments/pr2_tensorflow_example/'
 
 common = {
     'experiment_name': 'my_experiment' + '_' + \
@@ -198,7 +198,7 @@ algorithm['traj_opt'] = {
 }
 
 algorithm['policy_opt'] = {
-    'type': PolicyOptCaffe,
+    'type': PolicyOptTf,
     'weights_file_prefix': EXP_DIR + 'policy',
     'iterations': 3000,
 }

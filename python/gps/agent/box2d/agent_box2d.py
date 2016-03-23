@@ -44,13 +44,16 @@ class AgentBox2D(Agent):
         if "robot_config" in self._hyperparams:
             self.x0 = [np.append(x0, rbt_cfg) for x0, rbt_cfg in zip(self._hyperparams["x0"], self._hyperparams["robot_config"])]
             self.robot_config = self._hyperparams["robot_config"]
-        
-            self._world = world(self.x0[condition], target, self.robot_config[condition])
+       
+            self._worlds = [world(self.x0[i], target, 
+			    self.robot_config[i]) 
+			    for i in range
+				(self._hyperparams['conditions'])]
         else:
             self.x0 = self._hyperparams["x0"]
             self.robot_config = None        
-            self._world = world(self.x0[condition], target)
-        self._world.run()
+            self._worlds = [world(self.x0[i], target)
+			    for i in range(self._hyperparams['conditions'])]
 
     def sample(self, policy, condition, verbose=False, save=True):
         """
@@ -63,11 +66,9 @@ class AgentBox2D(Agent):
             verbose (boolean): whether or not to plot the trial (not used here)
         """
         robotconf = self.robot_config[condition] if self.robot_config is not None else None
-        if robotconf is not None:
-            self._setup_world(self._hyperparams["world"], condition, self._hyperparams["target_state"])
-        else:
-            self._world.reset_world(self.x0[condition])
-        b2d_X = self._world.get_state()
+        self._worlds[condition].run()
+        self._worlds[condition].reset_world()
+        b2d_X = self._worlds[condition].get_state()
         new_sample = self._init_sample(b2d_X)
         U = np.zeros([self.T, self.dU])
         noise = generate_noise(self.T, self.dU, self._hyperparams)
@@ -77,8 +78,8 @@ class AgentBox2D(Agent):
             U[t, :] = policy.act(X_t, obs_t, t, noise[t, :])
             if (t+1) < self.T:
                 for _ in range(self._hyperparams['substeps']):
-                    self._world.run_next(U[t, :])
-                b2d_X = self._world.get_state()
+                    self._worlds[condition].run_next(U[t, :])
+                b2d_X = self._worlds[condition].get_state()
                 self._set_sample(new_sample, b2d_X, t)
         new_sample.set(ACTION, U)
         if save:
