@@ -3,7 +3,7 @@
     <arg name="world_name" value="$(find gps_agent_pkg)/worlds/pr2_grip_world.world" />  
   </include>
   <include file="$(find gps_agent_pkg)/launch/pr2_gazebo_no_controller_altpose.launch">
-    <arg name="x" value="-0.5" />
+    <arg name="x" value="-0.3" />
   </include>
   <include file="$(find gps_agent_pkg)/launch/pr2_only_controller.launch"/>
 </launch>

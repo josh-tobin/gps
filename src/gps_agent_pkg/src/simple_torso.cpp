@@ -30,8 +30,8 @@ public:
 
     pr2_controllers_msgs::SingleJointPositionGoal up;
     up.position = 0.195;  //all the way up is 0.2
-    up.min_duration = ros::Duration(2.0);
-    up.max_velocity = 1.0;
+    up.min_duration = ros::Duration(0.5);
+    up.max_velocity = 5.0;
     
     ROS_INFO("Sending up goal");
     torso_client_->sendGoal(up);
@@ -43,8 +43,8 @@ public:
 
     pr2_controllers_msgs::SingleJointPositionGoal down;
     down.position = 0.0;
-    down.min_duration = ros::Duration(2.0);
-    down.max_velocity = 1.0;
+    down.min_duration = ros::Duration(0.5);
+    down.max_velocity = 5.0;
 
     ROS_INFO("Sending down goal");
     torso_client_->sendGoal(down);
@@ -58,7 +58,7 @@ int main(int argc, char** argv){
   Torso torso;
   
   torso.up();
-  torso.down();
+  //torso.down();
 
   return 0;
 }

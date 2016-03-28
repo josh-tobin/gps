@@ -97,7 +97,7 @@ rosbuild_add_library(gps_agent_lib ${DDP_FILES})
 #rosbuild_add_executable(point_head src/point_head.cpp)
 #rosbuild_add_executable(torso src/torso.cpp)
 rosbuild_add_executable(simple_torso src/simple_torso.cpp)
-
+rosbuild_add_executable(simple_gripper src/simple_gripper.cpp)
 # Include Caffe in controller
 if (USE_CAFFE)
     target_link_libraries(gps_agent_lib caffe protobuf)
