@@ -16,6 +16,7 @@ Sample::Sample(int T)
 		internal_data_[(gps::SampleType)i].resize(T);
 		internal_data_size_[i] = -1; //initialize to -1
 	}
+  ROS_INFO("TOTAL_DATA_TYPES is %d", (int)gps::TOTAL_DATA_TYPES);
   ROS_INFO("done sample constructor");
 }
 

@@ -47,7 +47,7 @@ public:
   void close(){
     pr2_controllers_msgs::Pr2GripperCommandGoal squeeze;
     squeeze.command.position = 0.0;
-    squeeze.command.max_effort = 100.0;  // 50.0 Close gently
+    squeeze.command.max_effort = 1000.0;  // 50.0 Close gently
     
     ROS_INFO("Sending squeeze goal");
     gripper_client_->sendGoal(squeeze);

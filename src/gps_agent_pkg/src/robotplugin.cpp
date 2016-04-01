@@ -82,12 +82,13 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     sensors_.clear();
 
     // Create all sensors.
-    for (int i = 0; i < 1; i++)
+    //for (int i = 0; i < 1; i++)
     // TODO: ZDM: read this when more sensors work
-    //for (int i = 0; i < TotalSensorTypes; i++)
+    for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
         boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM));
+        ROS_INFO_STREAM("successfully created sensor: " + to_string(i));
         sensors_.push_back(sensor);
     }
 

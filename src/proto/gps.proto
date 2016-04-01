@@ -17,10 +17,12 @@ enum SampleType {
   END_EFFECTOR_HESSIANS = 10;
   RGB_IMAGE = 11;
   DEPTH_IMAGE = 12;
-  TOTAL_DATA_TYPES = 13;
-  POSITION = 14;
-  LINEAR_VELOCITY = 15;
-  ROBOT_CONFIGURATION = 16;
+  
+  ENV_CONF = 13;
+  ROBOT_CONF = 14;
+  TOTAL_DATA_TYPES = 15;
+  POSITION = 16;
+  LINEAR_VELOCITY = 17;
 }
 
 // Message containing the data for a single sample.
@@ -30,7 +32,8 @@ message Sample {
   optional uint32 dX = 2;  // dimension of state X
   optional uint32 dU = 3;  // dimension of action U
   optional uint32 dO = 4;  // dimension of observation
-  optional uint32 dC = 8; // dimension of robot configuration
+  optional uint32 dE = 8; // dimension of environment configuration
+  optional uint32 dR = 9; // dimension of robot configuration
 
   // Data arrays holding X, U, and obs.
   repeated float X = 5 [packed = true];

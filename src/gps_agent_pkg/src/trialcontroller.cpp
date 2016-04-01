@@ -25,7 +25,6 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     Eigen::VectorXd X, obs;
     sample->get_data(step_counter_, X, state_datatypes_);
     sample->get_data(step_counter_, obs, obs_datatypes_);
-
     //publish the observation for consumption. Can be implemented in subclass if you want
     //the observations published to a ros node. Used for async controllers like the tf_controller.
     publish_obs(obs, plugin);

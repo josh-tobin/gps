@@ -54,6 +54,8 @@ set(DDP_FILES src/robotplugin.cpp
               src/trialcontroller.cpp
               src/encodersensor.cpp
               src/encoderfilter.cpp
+              src/objectconfigsensor.cpp
+              src/objectconfigsensor2.cpp
               src/util.cpp)
 
 # Include Caffe

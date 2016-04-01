@@ -261,7 +261,11 @@ class RNNPolicyOptCaffe(PolicyOptCaffe):
         Extended to take a recurrent neural network """
     def __init__(self, hyperparams, dO, dU):
         PolicyOptCaffe.__init__(self, hyperparams, dO, dU)
-        self._dC = hyperparams['dC']
+        self._dC = 0
+        if 'dE' in hyperparams:
+            self._dC += hyperparams['dE']
+        if 'dR' in hyperparams:
+            self._dC += hyperparams['dR']
 
     def update(self, obs, tgt_mu, tgt_prc, tgt_wt, itr, inner_itr):
         """

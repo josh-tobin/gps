@@ -15,7 +15,7 @@ hyperparams_file = 'experiments/pr2_example/hyperparams.py'
 hyperparams = imp.load_source('hyperparams', hyperparams_file)
 agent = AgentROS(hyperparams.config['agent'])
 condition_data = agent._hyperparams['reset_conditions'][0]
-target_position = np.array([0,0.0,0,0,0,0,0])
+target_position = np.array([0, 0.075,0,0,0,0,0]) #0.075
 print "The condition data target position is " + str(condition_data[TRIAL_ARM]['data'])
 print "and the target_position is " + str(target_position)
 agent.reset_arm(TRIAL_ARM, condition_data[TRIAL_ARM]['mode'], target_position)

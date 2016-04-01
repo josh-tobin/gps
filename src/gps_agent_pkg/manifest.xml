@@ -20,6 +20,7 @@
   <depend package="geometry_msgs"/>
   <depend package="tf"/>
   <depend package="pr2_controller_manager"/>
+  <depend package="gazebo_msgs"/>
 
   <rosdep name="eigen" />
 

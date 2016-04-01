@@ -1,6 +1,7 @@
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/encodersensor.h"
-
+#include "gps_agent_pkg/objectconfigsensor.h"
+#include "gps_agent_pkg/objectconfigsensor2.h"
 using namespace gps_control;
 
 // Factory function.
@@ -9,7 +10,12 @@ Sensor* Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *
     switch (type)
     {
     case EncoderSensorType:
+
         return (Sensor *) (new EncoderSensor(n,plugin,actuator_type));
+    case ObjectConfigSensorType:
+        // To-do: let us choose which object name 
+        return (Sensor *) (new ObjectConfigSensor(n,plugin,(std::string)"simple_object::base_link"));
+        
     /*
     case CameraSensorType:
         return CameraSensor(n,plugin);
