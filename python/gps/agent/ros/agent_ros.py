@@ -12,13 +12,11 @@ from gps.agent.ros.ros_utils import ServiceEmulator, msg_to_sample, \
         policy_to_msg, tf_policy_to_action_msg, tf_obs_msg_to_numpy
 from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
 from gps_agent_pkg.msg import TrialCommand, SampleResult, PositionCommand, \
-        RelaxCommand, DataRequest, TfActionCommand, TfObsData
+        RelaxCommand, DataRequest, TfActionCommand, TfObsData, EnvConfigCommand
 try:
     from gps.algorithm.policy.tf_policy import TfPolicy
 except ImportError:  # user does not have tf installed.
     TfPolicy = None
-
-
 
 class AgentROS(Agent):
     """
@@ -71,6 +69,13 @@ class AgentROS(Agent):
             self._hyperparams['data_request_topic'], DataRequest,
             self._hyperparams['sample_result_topic'], SampleResult
         )
+        if 'is_crl' in self._hyperparams and self._hyperparams['is_crl']:
+            print "Setting up reset object service"
+            self._reset_object_service = ServiceEmulator(
+                self._hyperparams['reset_object_command_topic'], 
+                EnvConfigCommand,
+                self._hyperparams['sample_result_topic'], SampleResult
+            )
 
     def _get_next_seq_id(self):
         self._seq_id = (self._seq_id + 1) % (2 ** 32)
@@ -105,7 +110,29 @@ class AgentROS(Agent):
         relax_command.stamp = rospy.get_rostime()
         relax_command.arm = arm
         self._relax_service.publish_and_wait(relax_command)
+    
+    def change_obj_config(self, obj, **data):
+        """
+        Issues a command to change object 
+        Args:
+            obj: the name of the ros model.
+            data: An array of floats.
+        """
+        if not self._hyperparams['is_crl']:
+            print "Change_obj_conf only supported when crl is enabled"
+            return;
 
+        reset_command = EnvConfigCommand()
+        reset_command.id = self._get_next_seq_id()
+        
+        for key, value in data.iteritems():
+            try:
+                attr = getattr(reset_command, key)
+                attr = value
+            except AttributeError:
+                print "Sorry, attribute " + key + " not supported"
+        timeout = self._hyperparams['trial_timeout']
+        self._reset_object_service.publish_and_wait(reset_command, timeout)
     def reset_arm(self, arm, mode, data):
         """
         Issues a position command to an arm.
@@ -135,7 +162,11 @@ class AgentROS(Agent):
                        condition_data[TRIAL_ARM]['data'])
         self.reset_arm(AUXILIARY_ARM, condition_data[AUXILIARY_ARM]['mode'],
                        condition_data[AUXILIARY_ARM]['data'])
-
+        if 'is_crl' in self._hyperparams and self._hyperparams['is_crl']:
+            # Need to make this more robust
+            mass = self._hyperparams['masses'][condition]
+            self.change_obj_config('simple_object', mass=mass)
+        
     def sample(self, policy, condition, verbose=True, save=True):
         """
         Reset and execute a policy and collect a sample.

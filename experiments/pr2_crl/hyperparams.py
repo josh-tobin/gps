@@ -25,6 +25,7 @@ from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
         TRIAL_ARM, AUXILIARY_ARM, JOINT_SPACE, ENV_CONF
 from gps.utility.general_utils import get_ee_points
 
+is_crl = True
 
 EE_POINTS = np.array([[0.02, -0.025, 0.05], [0.02, -0.025, 0.05],
                       [0.02, 0.05, 0.0]])
@@ -50,15 +51,16 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 1,
+    'conditions': 4,
 }
 
 x0s = []
-ee_tgts = []
-reset_conditions = []
+#ee_tgts = []
+#reset_conditions = []
 
 # Set up each condition.
-for i in xrange(common['conditions']):
+#for i in xrange(common['conditions']):
+for i in xrange(1): # Just a single starting pos for now
 
     ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'initial'
@@ -96,10 +98,17 @@ for i in xrange(common['conditions']):
     }
     
     # Hard coded mass for right now. To fix.
-    x0[-1] = 0.1
-    x0s.append(x0)
-    ee_tgts.append(ee_tgt)
-    reset_conditions.append(reset_condition)
+    #x0[-1] = 0.1
+    #x0s.append(x0)
+    #ee_tgts.append(ee_tgt)
+    ee_tgts = ee_tgt.copy()
+    #reset_conditions.append(reset_condition)
+    reset_conditions = reset_condition.copy()
+masses = [0.1, 0.2, 0.4, 0.6]
+
+for i in xrange(common['conditions']):
+    x0[-1] = masses[i]
+    x0s.append(x0.copy())
 
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
@@ -107,11 +116,13 @@ if not os.path.exists(common['data_files_dir']):
 agent = {
     'type': AgentROS,
     'dt': 0.05,
+    'is_crl': is_crl,
     'conditions': common['conditions'],
     'T': 100,
     'x0': x0s,
     'ee_points_tgt': ee_tgts,
     'reset_conditions': reset_conditions,
+    'masses': masses,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
                       END_EFFECTOR_POINT_VELOCITIES, ENV_CONF],

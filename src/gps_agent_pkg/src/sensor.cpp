@@ -1,7 +1,6 @@
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/encodersensor.h"
 #include "gps_agent_pkg/objectconfigsensor.h"
-#include "gps_agent_pkg/objectconfigsensor2.h"
 using namespace gps_control;
 
 // Factory function.

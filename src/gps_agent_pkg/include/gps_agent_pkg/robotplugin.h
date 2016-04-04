@@ -22,12 +22,16 @@ with the robot.
 #include "gps_agent_pkg/SampleResult.h"
 #include "gps_agent_pkg/DataRequest.h"
 #include "gps_agent_pkg/TfActionCommand.h"
+#include "gps_agent_pkg/EnvConfigCommand.h"
 #include "gps_agent_pkg/TfObsData.h"
 #include "gps_agent_pkg/TfParams.h"
 #include "gps_agent_pkg/sensor.h"
 #include "gps_agent_pkg/controller.h"
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps/proto/gps.pb.h"
+#include "gazebo_msgs/DeleteModel.h"
+#include "gazebo_msgs/SpawnModel.h"
+#include "std_srvs/Empty.h"
 
 // Convenience defines.
 #define ros_publisher_ptr(X) boost::scoped_ptr<realtime_tools::RealtimePublisher<X> >
@@ -89,9 +93,18 @@ protected:
     ros::Subscriber relax_subscriber_;
     // Subscriber for current state report request.
     ros::Subscriber data_request_subscriber_;
+    //ros::Subscriber object_pos_subscriber_;
+    ros::Subscriber reset_object_subscriber_;  
     // Publishers.
     // Publish result of a trial, completion of position command, or just a report.
     ros_publisher_ptr(gps_agent_pkg::SampleResult) report_publisher_;
+    // Service clients
+    // Request the position/orientation of an object in the scene
+    ros::ServiceClient object_pos_client_;
+    ros::ServiceClient pause_physics_client_;
+    ros::ServiceClient unpause_physics_client_;
+    ros::ServiceClient delete_model_client_;
+    ros::ServiceClient spawn_model_client_;
     // Is a trial arm data request pending?
     bool trial_data_request_waiting_;
     // Is a auxiliary data request pending?
@@ -139,7 +152,8 @@ public:
     virtual void data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg);
     //tf callback
     virtual void tf_robot_action_command_callback(const gps_agent_pkg::TfActionCommand::ConstPtr& msg);
-
+    // reset object callback.
+    virtual void reset_object_subscriber_callback(const gps_agent_pkg::EnvConfigCommand::ConstPtr& msg);
     // Update functions.
     // Update the sensors at each time step.
     virtual void update_sensors(ros::Time current_time, bool is_controller_step);

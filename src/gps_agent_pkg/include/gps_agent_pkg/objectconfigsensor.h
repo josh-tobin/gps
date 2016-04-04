@@ -26,16 +26,16 @@ private:
     //double *mass_;
     Eigen::VectorXd mass_;
     std::string object_name_;
-    //ros::NodeHandle n;
-    //ros::ServiceClient client;
-   // gazebo_msgs::GetLinkProperties link_id;
+    ros::NodeHandle n;
+    ros::ServiceClient client;
+    gazebo_msgs::GetLinkProperties link_id;
 public:
     // Constructor
     ObjectConfigSensor(ros::NodeHandle& n, RobotPlugin *plugin, std::string object_name);
     // Destructor 
     virtual ~ObjectConfigSensor();
     // Update the sensor (called every tick).
-    virtual void update(ros::Time current_time, bool is_controller_step);
+    virtual void update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step);
     // Configure the sensor (needed?)
     virtual void configure_sensor(OptionsMap &options);
     // Set data format and meta data on the provided sample.

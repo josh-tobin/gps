@@ -6,11 +6,12 @@ using namespace gps_control;
 
 // Constructor.
 ObjectConfigSensor::ObjectConfigSensor(ros::NodeHandle& n, RobotPlugin *plugin, std::string object_name): Sensor(n, plugin)
-{
-    
+{ 
     mass_.resize(1,1);
-    mass_.fill(0.1);
-    object_name_ = object_name;
+    mass_.fill(-1); // Mass is -1 if we haven't observed it yet
+    object_name_ = object_name; 
+    client = n.serviceClient<gazebo_msgs::GetLinkProperties>("/gazebo/get_link_properties"); 
+    link_id.request.link_name = object_name_;
 }
 
 ObjectConfigSensor::~ObjectConfigSensor()
@@ -19,20 +20,16 @@ ObjectConfigSensor::~ObjectConfigSensor()
 }
 
 // Update the sensor (called every tick).
-void ObjectConfigSensor::update(ros::Time current_time, bool is_controller_step)
+void ObjectConfigSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
 {
-    mass_.fill(0.1);   
-    if(is_controller_step) {
-        mass_.fill(0.1);
-    }
-    /*       
-    client = n.serviceClient<gazebo_msgs::GetLinkProperties>("/gazebo/get_link_properties");
-    link_id.request.link_name = object_name_;
-    printf("Calling client service\n");
+
+    //mass_.fill(0.1);   
+    //if(is_controller_step) {
+    //    mass_.fill(0.1);
+    //}
+           
     client.call(link_id);
-    *mass_ = link_id.response.mass;
-    printf("Received mass of %f\n", (float)*mass_);
-    */
+    mass_.fill(link_id.response.mass);
 }
 
 void ObjectConfigSensor::configure_sensor(OptionsMap &options)

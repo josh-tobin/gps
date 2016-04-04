@@ -27,6 +27,14 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     sample->get_data(step_counter_, obs, obs_datatypes_);
     //publish the observation for consumption. Can be implemented in subclass if you want
     //the observations published to a ros node. Used for async controllers like the tf_controller.
+    
+    // Output the observation. For debugging.
+    //printf("OBS: ");
+   // for (int i = 0; i < obs.size(); i++) {
+   //    printf("%f, ", (float)obs[i]);
+   // }
+    //printf("\n");
+    //ROS_INFO("Last obs: %d",(float)obs[-1]);
     publish_obs(obs, plugin);
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
@@ -37,7 +45,7 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     // Update last update time.
     last_update_time_ = current_time;
     step_counter_++;
-    ROS_INFO("Step counter: %d", step_counter_);
+    //ROS_INFO("Step counter: %d", step_counter_);
 }
 
 void TrialController::configure_controller(OptionsMap &options)
