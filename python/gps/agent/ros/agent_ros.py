@@ -51,7 +51,8 @@ class AgentROS(Agent):
 
         self.use_tf = False
         self.observations_stale = True
-
+        ns = rospy.get_namespace()
+        print ">>> FINISHED INITIALIZING AGENT_ROS"
     def _init_pubs_and_subs(self):
         self._trial_service = ServiceEmulator(
             self._hyperparams['trial_command_topic'], TrialCommand,
@@ -110,7 +111,7 @@ class AgentROS(Agent):
         relax_command.stamp = rospy.get_rostime()
         relax_command.arm = arm
         self._relax_service.publish_and_wait(relax_command)
-    
+    '''    
     def change_obj_config(self, obj, **data):
         """
         Issues a command to change object 
@@ -133,6 +134,14 @@ class AgentROS(Agent):
                 print "Sorry, attribute " + key + " not supported"
         timeout = self._hyperparams['trial_timeout']
         self._reset_object_service.publish_and_wait(reset_command, timeout)
+    '''
+    def switch_objects(self, condition):
+        switch_command = EnvConfigCommand()
+        switch_command.id = self._get_next_seq_id()
+        switch_command.condition = condition
+        switch_command.num_conditions = self._hyperparams['conditions']
+        timeout = self._hyperparams['trial_timeout']
+        self._reset_object_service.publish(switch_command)
     def reset_arm(self, arm, mode, data):
         """
         Issues a position command to an arm.
@@ -164,9 +173,9 @@ class AgentROS(Agent):
                        condition_data[AUXILIARY_ARM]['data'])
         if 'is_crl' in self._hyperparams and self._hyperparams['is_crl']:
             # Need to make this more robust
-            mass = self._hyperparams['masses'][condition]
-            self.change_obj_config('simple_object', mass=mass)
-        
+            #mass = self._hyperparams['masses'][condition]
+            #self.change_obj_config('simple_object', mass=mass)
+            self.switch_objects(condition)
     def sample(self, policy, condition, verbose=True, save=True):
         """
         Reset and execute a policy and collect a sample.
@@ -201,9 +210,11 @@ class AgentROS(Agent):
         trial_command.obs_datatypes = self._hyperparams['state_include']
 
         if self.use_tf is False:
+            print ">>> trial: not using tf"
             sample_msg = self._trial_service.publish_and_wait(
                 trial_command, timeout=self._hyperparams['trial_timeout']
             )
+            print ">>> trial: trial service pub and wait worked"
             sample = msg_to_sample(sample_msg, self)
             if save:
                 self._samples[condition].append(sample)

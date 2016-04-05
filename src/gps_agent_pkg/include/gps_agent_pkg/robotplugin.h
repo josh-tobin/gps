@@ -31,6 +31,7 @@ with the robot.
 #include "gps/proto/gps.pb.h"
 #include "gazebo_msgs/DeleteModel.h"
 #include "gazebo_msgs/SpawnModel.h"
+#include "gazebo_msgs/SetModelState.h"
 #include "std_srvs/Empty.h"
 
 // Convenience defines.
@@ -103,6 +104,7 @@ protected:
     ros::ServiceClient object_pos_client_;
     ros::ServiceClient pause_physics_client_;
     ros::ServiceClient unpause_physics_client_;
+    ros::ServiceClient move_model_client_;
     ros::ServiceClient delete_model_client_;
     ros::ServiceClient spawn_model_client_;
     // Is a trial arm data request pending?

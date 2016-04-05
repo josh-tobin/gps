@@ -11,13 +11,16 @@ ObjectConfigSensor::ObjectConfigSensor(ros::NodeHandle& n, RobotPlugin *plugin, 
     mass_.fill(-1); // Mass is -1 if we haven't observed it yet
     object_name_ = object_name; 
     client = n.serviceClient<gazebo_msgs::GetLinkProperties>("/gazebo/get_link_properties"); 
-    link_id.request.link_name = object_name_;
+    link_id.request.link_name = object_name_ + "0::base_link";
 }
+
 
 ObjectConfigSensor::~ObjectConfigSensor()
 {
     // Nothing to do here.
 }
+
+
 
 // Update the sensor (called every tick).
 void ObjectConfigSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_controller_step)
@@ -34,7 +37,10 @@ void ObjectConfigSensor::update(RobotPlugin *plugin, ros::Time current_time, boo
 
 void ObjectConfigSensor::configure_sensor(OptionsMap &options)
 {
-    // Nothing to do here.
+    if (options.find("condition") != options.end()) {
+        int cond = boost::get<int>(options["condition"]);
+        link_id.request.link_name = object_name_ + boost::lexical_cast<std::string>(cond) + "::base_link";
+    }
 }
 
 void ObjectConfigSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)

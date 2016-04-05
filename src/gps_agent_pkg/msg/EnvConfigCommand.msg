@@ -1,8 +1,3 @@
 int32 id
-float64 mass
-float64 ixx
-float64 ixy
-float64 ixz
-float64 iyy
-float64 iyz
-float64 izz
+int32 condition
+int32 num_conditions

@@ -156,8 +156,9 @@ bool PositionController::is_finished() const
     // Check whether we are close enough to the current target.
     if (mode_ == gps::JOINT_SPACE){
         //double epspos = 0.185;
-        double epspos = 0.20;
-        double epsvel = 0.01;
+        double epspos = 0.4;
+        //double epsvel = 0.01;
+        double epsvel = 0.02;
         double error = (current_angles_ - target_angles_).norm();
         double vel = current_angle_velocities_.norm();
         return (error < epspos && vel < epsvel);

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+  <robot name="simple_object">
+    <link name="base_link">
+      <visual>
+        <geometry>
+          <cylinder length="0.06" radius = "0.02" />
+        </geometry>
+        <material name="blue">
+          <color rgba="0 0 0.8 1"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder length="0.06" radius="0.02"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.6"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+  </robot>

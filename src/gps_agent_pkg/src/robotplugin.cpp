@@ -78,12 +78,16 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     pause_physics_client_ = n.serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
     unpause_physics_client_ = n.serviceClient<std_srvs::Empty>("/gazebo/unpause_physics");
     object_pos_client_ = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
+    move_model_client_ = n.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
     delete_model_client_ = n.serviceClient<gazebo_msgs::DeleteModel>("/gazebo/delete_model");
     spawn_model_client_ = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_model");
-    //object_pos_subscriber_ = n.subscribe("/gazebo/model_states", 1, &RobotPlugin::object_pos_subscriber_callback, this);
     //for async tf controller.
     action_subscriber_tf_ = n.subscribe("/gps_controller_sent_robot_action_tf", 1, &RobotPlugin::tf_robot_action_command_callback, this);
     tf_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::TfObsData>(n, "/gps_obs_tf", 1));
+    
+    // What is the namespace?
+    std::string ns = ros::this_node::getNamespace();
+    ROS_INFO_STREAM("This namespace is: " + ns);
 }
 
 // Initialize all sensors.
@@ -98,7 +102,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
-        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM));
+        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM, (std::string)"simple_object"));
         ROS_INFO_STREAM("successfully created sensor: " + to_string(i));
         sensors_.push_back(sensor);
     }
@@ -112,7 +116,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     for (int i = 0; i < 1; i++)
     {
         ROS_INFO_STREAM("creating auxiliary sensor: " + to_string(i));
-        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::AUXILIARY_ARM));
+        boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::AUXILIARY_ARM, (std::string)"simple_object"));
         aux_sensors_.push_back(sensor);
     }
 
@@ -127,6 +131,7 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
 // Helper method to configure all sensors
 void RobotPlugin::configure_sensors(OptionsMap &opts)
 {
+    // TO-DO: set object name using this instead of object creation
     ROS_INFO("configure sensors");
     sensors_initialized_ = false;
     for (int i = 0; i < sensors_.size(); i++)
@@ -134,6 +139,7 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
         sensors_[i]->configure_sensor(opts);
         sensors_[i]->set_sample_data_format(current_time_step_sample_);
     }
+    ROS_INFO("Configured primary sensors");
     // Set sample data format on the actions, which are not handled by any sensor.
     OptionsMap sample_metadata;
     current_time_step_sample_->set_meta_data(
@@ -146,6 +152,7 @@ void RobotPlugin::configure_sensors(OptionsMap &opts)
         aux_sensors_[i]->set_sample_data_format(aux_current_time_step_sample_);
     }
     sensors_initialized_ = true;
+    ROS_INFO("Finished initializing sensors");
 }
 
 // Initialize position controllers.
@@ -157,6 +164,7 @@ void RobotPlugin::initialize_position_controllers(ros::NodeHandle& n)
 
     // Create active arm position controller.
     active_arm_controller_.reset(new PositionController(n, gps::TRIAL_ARM, 7));
+ROS_INFO("finished initailizing position controllers");
 }
 
 // Helper function to initialize a sample from the current sensors.
@@ -477,9 +485,9 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         }
     }
     sensor_params["ee_points_tgt"] = ee_points_tgt;
-
+    sensor_params["condition"] = 0;
     configure_sensors(sensor_params);
-
+    ROS_INFO_STREAM("Made it out of sensor config");
     controller_initialized_ = true;
 }
 
@@ -505,17 +513,53 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
 
 void RobotPlugin::reset_object_subscriber_callback(const gps_agent_pkg::EnvConfigCommand::ConstPtr& msg) {
     ROS_INFO_STREAM("received object reset command");
+   
+    //std_srvs::Empty empty_msg;
+    //pause_physics_client_.call(empty_msg);
+    //ROS_INFO_STREAM("successfully paused physics");
     OptionsMap params;
+    int prev_condition = ( (msg->condition + msg->num_conditions - 1)
+                             % msg->num_conditions );
+    int next_condition = msg->condition;
+
     // Only support this one object for now
-    std::string object = "simple_object";
-    // Get position of object 
-    gazebo_msgs::GetModelState object_state;
-    object_state.request.model_name = object;
-    object_pos_client_.call(object_state);
+    std::string base_object = "simple_object";
+    std::string prev_obj = base_object + boost::lexical_cast<std::string>(prev_condition);
+    std::string next_obj = base_object + boost::lexical_cast<std::string>(next_condition);
+    ROS_INFO_STREAM("ready to get object positions. prev_obj is " + prev_obj + " and next_obj is " + next_obj);
+    // Get position of object  
+    gazebo_msgs::GetModelState prev_obj_state, next_obj_state;
+    prev_obj_state.request.model_name = prev_obj;
+    next_obj_state.request.model_name = next_obj;
+    object_pos_client_.call(prev_obj_state);
+    ROS_INFO_STREAM("successfully got position of prev obj");
+    object_pos_client_.call(next_obj_state);
+    ROS_INFO_STREAM("successfully got positions of next obj");
+    
+    // Reset object config sensor
+    OptionsMap options;
+    options["condition"] = msg->condition;
+    sensors_[ObjectConfigSensorType]->configure_sensor(options);
+    ROS_INFO_STREAM("successfully reset object config sensor");  
     // Pause physics while we delete object(s)
-    std_srvs::Empty empty_msg;
-    pause_physics_client_.call(empty_msg);
-    ROS_INFO_STREAM("successfully paused physics"); 
+
+    //std_srvs::Empty empty_msg;
+    //pause_physics_client_.call(empty_msg);
+    //ROS_INFO_STREAM("successfully paused physics");
+    // Move the previous object to its starting position
+    // y position unique for each object
+    next_obj_state.response.pose.position.y = msg->condition;
+    gazebo_msgs::SetModelState set_prev_obj_state, set_next_obj_state;  
+    set_prev_obj_state.request.model_state.model_name = prev_obj;
+    set_prev_obj_state.request.model_state.pose = next_obj_state.response.pose;
+    set_prev_obj_state.request.model_state.twist = next_obj_state.response.twist;
+    set_next_obj_state.request.model_state.model_name = next_obj;
+    set_next_obj_state.request.model_state.pose = prev_obj_state.response.pose;
+    set_next_obj_state.request.model_state.twist = prev_obj_state.response.twist;
+    move_model_client_.call(set_prev_obj_state);
+    move_model_client_.call(set_next_obj_state);
+    ROS_INFO_STREAM("Successfully switched model locations");
+    /* 
     // Delete the object
     gazebo_msgs::DeleteModel model_id;
     model_id.request.model_name = object;
@@ -524,6 +568,7 @@ void RobotPlugin::reset_object_subscriber_callback(const gps_agent_pkg::EnvConfi
     // Rebuild the object
     gazebo_msgs::SpawnModel model_to_spawn;
     model_to_spawn.request.model_name = object;
+    
     // TO-DO: MAKE THIS MORE GENERAL/IN CONFIG FILE
     std::string urdf_path = "../urdf/";
     //std::ifstream ifs(urdf_path + object + (std::string)".urdf");
@@ -534,9 +579,10 @@ void RobotPlugin::reset_object_subscriber_callback(const gps_agent_pkg::EnvConfi
     model_to_spawn.request.initial_pose = object_state.response.pose; 
     spawn_model_client_.call(model_to_spawn); 
     ROS_INFO_STREAM("successfully spawned new object");
+    */
     // Unpause physics
-    unpause_physics_client_.call(empty_msg);
-    ROS_INFO_STREAM("successfully unpaused physics");
+    //unpause_physics_client_.call(empty_msg);
+    //ROS_INFO_STREAM("successfully unpaused physics");
 }
 
 void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {

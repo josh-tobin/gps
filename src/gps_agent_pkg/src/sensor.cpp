@@ -4,7 +4,7 @@
 using namespace gps_control;
 
 // Factory function.
-Sensor* Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType actuator_type)
+Sensor* Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType actuator_type, std::string object_name="")
 {
     switch (type)
     {
@@ -13,7 +13,7 @@ Sensor* Sensor::create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *
         return (Sensor *) (new EncoderSensor(n,plugin,actuator_type));
     case ObjectConfigSensorType:
         // To-do: let us choose which object name 
-        return (Sensor *) (new ObjectConfigSensor(n,plugin,(std::string)"simple_object::base_link"));
+        return (Sensor *) (new ObjectConfigSensor(n,plugin,object_name));
         
     /*
     case CameraSensorType:

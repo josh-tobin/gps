@@ -1,0 +1,13 @@
+[  0%] [  0%] Built target rosbuild_premsgsrvgen
+Built target rospack_genmsg_libexe
+[ 21%] Built target ROSBUILD_genmsg_lisp
+[ 42%] Built target ROSBUILD_genmsg_cpp
+[ 66%] Built target ROSBUILD_genmsg_py
+[ 66%] Built target rospack_genmsg
+[ 66%] [ 66%] Built target rosbuild_precompile
+Built target rospack_genmsg_all
+[ 67%] Built target simple_torso
+[ 69%] Built target simple_gripper
+[ 73%] [ 73%] [ 75%] Building CXX object CMakeFiles/gps_agent_lib.dir/src/pr2plugin.cpp.o
+Building CXX object CMakeFiles/gps_agent_lib.dir/src/objectconfigsensor.cpp.o
+Building CXX object CMakeFiles/gps_agent_lib.dir/src/sensor.cpp.o

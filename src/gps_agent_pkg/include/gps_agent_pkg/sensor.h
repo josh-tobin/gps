@@ -39,7 +39,7 @@ protected:
     double sensor_step_length_;
 public:
     // Factory function.
-    static Sensor* create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType);
+    static Sensor* create_sensor(SensorType type, ros::NodeHandle& n, RobotPlugin *plugin, gps::ActuatorType, std::string object_name);
     // Constructor.
     Sensor(ros::NodeHandle& n, RobotPlugin *plugin);
     // Destructor.

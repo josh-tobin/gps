@@ -51,7 +51,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 4,
+    'conditions': 2,
 }
 
 x0s = []
@@ -104,7 +104,7 @@ for i in xrange(1): # Just a single starting pos for now
     ee_tgts = ee_tgt.copy()
     #reset_conditions.append(reset_condition)
     reset_conditions = reset_condition.copy()
-masses = [0.1, 0.2, 0.4, 0.6]
+masses = [0.1, 0.2]
 
 for i in xrange(common['conditions']):
     x0[-1] = masses[i]
