@@ -18,9 +18,12 @@ enum SampleType {
   RGB_IMAGE = 11;
   DEPTH_IMAGE = 12;
   TOTAL_DATA_TYPES = 13;
+<<<<<<< HEAD
   POSITION = 14;
   LINEAR_VELOCITY = 15;
   ROBOT_CONFIGURATION = 16;
+=======
+>>>>>>> upstream/master
 }
 
 // Message containing the data for a single sample.
