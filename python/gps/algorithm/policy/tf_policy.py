@@ -18,7 +18,8 @@ class TfPolicy(Policy):
         sess: tf session.
         device_string: tf device string for running on either gpu or cpu.
     """
-    def __init__(self, dU, obs_tensor, act_op, var, sess, device_string):
+    def __init__(self, dU, obs_tensor, act_op, var, sess, device_string,
+                 hidden_state_tensor=None, initial_hidden_state_tensor=None):
         Policy.__init__(self)
         self.dU = dU
         self.obs_tensor = obs_tensor
@@ -28,7 +29,16 @@ class TfPolicy(Policy):
         self.chol_pol_covar = np.diag(np.sqrt(var))
         self.scale = None  # must be set from elsewhere based on observations
         self.bias = None
-
+        self.hidden_state_tensor = hidden_state_tensor
+        self.initial_hidden_state_tensor = initial_hidden_state_tensor
+        self.recurrent = False
+        if self.hidden_state_tensor is not None:
+            self.recurrent = True
+            self.hidden_dim = self.initial_hidden_state_tensor.get_shape().\
+                                                               as_list()[-1]
+            self.hidden_state = np.zeros([1, self.hidden_dim])
+    
+    
     def act(self, x, obs, t, noise):
         """
         Return an action for a state.
@@ -40,13 +50,32 @@ class TfPolicy(Policy):
         """
         # Normalize obs.
         obs = obs.dot(self.scale) + self.bias
-        with tf.device(self.device_string):
-            action_mean = self.sess.run(self.act_op, feed_dict={self.obs_tensor: np.expand_dims(obs, 0)})
+        if self.recurrent:
+            fd = {self.obs_tensor: obs[np.newaxis, np.newaxis,:],
+                         self.initial_hidden_state_tensor: self.hidden_state}
+            with tf.device(self.device_string):
+                action_mean, new_hidden  = self.sess.run([self.act_op,
+                                                self.hidden_state_tensor],
+                                                        feed_dict=fd)
+                self.hidden_state = new_hidden
+        else:
+            feed_dict = {self.obs_tensor: np.expand_dims(obs, 0)}
+            with tf.device(self.device_string):
+                action_mean = self.sess.run(self.act_op, feed_dict=feed_dict)
         if noise is None:
             u = action_mean
         else:
             u = action_mean + self.chol_pol_covar.T.dot(noise)
-        return u[0]  # this algorithm is batched by default. But here, we run with a batch size of one.
+        if self.recurrent:
+            u_out = u[0,0,:]
+        else:
+            u_out = u[0]
+        return u_out  # this algorithm is batched by default. But here, we run with a batch size of one.
+
+    def reset(self):
+        if self.recurrent:
+            print "RESETTING"
+            self.hidden_state = np.zeros([1, self.hidden_dim])
 
     def pickle_policy(self, deg_obs, deg_action, checkpoint_path):
         """

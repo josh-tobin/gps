@@ -1,0 +1,11 @@
+<launch>
+    <param name="GPSPR2Plugin/type" value="gps_agent_pkg/GPSPR2Plugin" />
+    <rosparam command="load" file = "$(find gps_agent_pkg)/launch/pr2_left_controller.yaml" />
+    <param name="GPSPR2Plugin/root_name" value="torso_lift_link" />
+    <param name="GPSPR2Plugin/active_tip_name" value="l_gripper_tool_frame" />
+    <param name="GPSPR2Plugin/passive_tip_name" value="r_gripper_tool_frame" />
+    <!--node name="TEST_NODE" pkg="pr2_controller_manager" type="pr2_controller_manager" output="screen" args="spawn GPSPR2Plugin" /-->
+    <group ns="GPSPR2Plugin">
+        <node name="pr2_plugin" pkg="pr2_controller_manager" type="pr2_controller_manager" output="screen" args="spawn GPSPR2Plugin" />
+    </group>
+</launch>

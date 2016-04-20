@@ -11,7 +11,7 @@ ObjectConfigSensor::ObjectConfigSensor(ros::NodeHandle& n, RobotPlugin *plugin, 
     mass_.fill(-1); // Mass is -1 if we haven't observed it yet
     object_name_ = object_name; 
     client = n.serviceClient<gazebo_msgs::GetLinkProperties>("/gazebo/get_link_properties"); 
-    link_id.request.link_name = object_name_ + "0::base_link";
+    link_id.request.link_name = object_name_ + "::base_link";
 }
 
 
@@ -37,17 +37,15 @@ void ObjectConfigSensor::update(RobotPlugin *plugin, ros::Time current_time, boo
 
 void ObjectConfigSensor::configure_sensor(OptionsMap &options)
 {
-    if (options.find("condition") != options.end()) {
-        int cond = boost::get<int>(options["condition"]);
-        link_id.request.link_name = object_name_ + boost::lexical_cast<std::string>(cond) + "::base_link";
-    }
+    // Nothing to do here
 }
 
 void ObjectConfigSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 {
     OptionsMap envconf_metadata;
     // Hard code size for now.
-    sample->set_meta_data(gps::ENV_CONF, 1, SampleDataFormatEigenVector, envconf_metadata);
+    sample->set_meta_data(gps::ENV_CONF, 1, SampleDataFormatEigenVector, 
+                          envconf_metadata);
 }
 
 void ObjectConfigSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)

@@ -69,25 +69,25 @@ void RobotPlugin::initialize_ros(ros::NodeHandle& n)
     test_sub_ = n.subscribe("/test_sub", 1, &RobotPlugin::test_callback, this);
     relax_subscriber_ = n.subscribe("/gps_controller_relax_command", 1, &RobotPlugin::relax_subscriber_callback, this);
     data_request_subscriber_ = n.subscribe("/gps_controller_data_request", 1, &RobotPlugin::data_request_subscriber_callback, this);
-    reset_object_subscriber_ = n.subscribe("/gps_object_reset", 1, &RobotPlugin::reset_object_subscriber_callback, this);    
+    //reset_object_subscriber_ = n.subscribe("/gps_object_reset", 1, &RobotPlugin::reset_object_subscriber_callback, this);    
 
     // Create publishers.
     report_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::SampleResult>(n, "/gps_controller_report", 1));
     
     // Create clients to subscribe to positions of objects in the scene.
-    pause_physics_client_ = n.serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
-    unpause_physics_client_ = n.serviceClient<std_srvs::Empty>("/gazebo/unpause_physics");
-    object_pos_client_ = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
-    move_model_client_ = n.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
-    delete_model_client_ = n.serviceClient<gazebo_msgs::DeleteModel>("/gazebo/delete_model");
-    spawn_model_client_ = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_model");
+    //pause_physics_client_ = n.serviceClient<std_srvs::Empty>("/gazebo/pause_physics");
+    //unpause_physics_client_ = n.serviceClient<std_srvs::Empty>("/gazebo/unpause_physics");
+    //object_pos_client_ = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
+    //move_model_client_ = n.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    //delete_model_client_ = n.serviceClient<gazebo_msgs::DeleteModel>("/gazebo/delete_model");
+    //spawn_model_client_ = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_model");
     //for async tf controller.
     action_subscriber_tf_ = n.subscribe("/gps_controller_sent_robot_action_tf", 1, &RobotPlugin::tf_robot_action_command_callback, this);
     tf_publisher_.reset(new realtime_tools::RealtimePublisher<gps_agent_pkg::TfObsData>(n, "/gps_obs_tf", 1));
     
     // What is the namespace?
-    std::string ns = ros::this_node::getNamespace();
-    ROS_INFO_STREAM("This namespace is: " + ns);
+    //std::string ns = ros::this_node::getNamespace();
+    //ROS_INFO_STREAM("This namespace is: " + ns);
 }
 
 // Initialize all sensors.
@@ -100,7 +100,8 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     //for (int i = 0; i < 1; i++)
     // TODO: ZDM: read this when more sensors work
     for (int i = 0; i < TotalSensorTypes; i++)
-    {
+    {   
+        // TO-DO: Make this work for other objects
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
         boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM, (std::string)"simple_object"));
         ROS_INFO_STREAM("successfully created sensor: " + to_string(i));
@@ -510,10 +511,11 @@ void RobotPlugin::relax_subscriber_callback(const gps_agent_pkg::RelaxCommand::C
         ROS_ERROR("Unknown position controller arm type");
     }
 }
-
+/*
 void RobotPlugin::reset_object_subscriber_callback(const gps_agent_pkg::EnvConfigCommand::ConstPtr& msg) {
     ROS_INFO_STREAM("received object reset command");
-   
+    // Kill the  
+
     //std_srvs::Empty empty_msg;
     //pause_physics_client_.call(empty_msg);
     //ROS_INFO_STREAM("successfully paused physics");
@@ -559,7 +561,7 @@ void RobotPlugin::reset_object_subscriber_callback(const gps_agent_pkg::EnvConfi
     move_model_client_.call(set_prev_obj_state);
     move_model_client_.call(set_next_obj_state);
     ROS_INFO_STREAM("Successfully switched model locations");
-    /* 
+    
     // Delete the object
     gazebo_msgs::DeleteModel model_id;
     model_id.request.model_name = object;
@@ -579,12 +581,12 @@ void RobotPlugin::reset_object_subscriber_callback(const gps_agent_pkg::EnvConfi
     model_to_spawn.request.initial_pose = object_state.response.pose; 
     spawn_model_client_.call(model_to_spawn); 
     ROS_INFO_STREAM("successfully spawned new object");
-    */
+   
     // Unpause physics
     //unpause_physics_client_.call(empty_msg);
     //ROS_INFO_STREAM("successfully unpaused physics");
 }
-
+*/
 void RobotPlugin::data_request_subscriber_callback(const gps_agent_pkg::DataRequest::ConstPtr& msg) {
     ROS_INFO_STREAM("received data request");
     OptionsMap params;
@@ -649,18 +651,27 @@ void RobotPlugin::tf_robot_action_command_callback(const gps_agent_pkg::TfAction
         // Unpack the action vector
         int idx = 0;
         int dU = (int)msg->dU;
-        Eigen::VectorXd latest_action_command;
-        latest_action_command.resize(dU);
+        //Eigen::VectorXd latest_action_command;
+        latest_action_command_.resize(dU);
         for (int i = 0; i < dU; ++i)
         {
-            latest_action_command[i] = msg->action[i];
+            latest_action_command_[i] = msg->action[i];
             idx++;
         }
         int last_command_id_received = msg ->id;
-        trial_controller_->update_action_command(last_command_id_received, latest_action_command);
+        trial_controller_->update_action_command(last_command_id_received, 
+                                                 latest_action_command_);
 
     }
 
+}
+
+Eigen::VectorXd RobotPlugin::latest_action_command(){
+    return latest_action_command_;
+}
+
+Eigen::VectorXd RobotPlugin::active_arm_torques(){
+    return active_arm_torques_;
 }
 
 void RobotPlugin::tf_publish_obs(Eigen::VectorXd obs){

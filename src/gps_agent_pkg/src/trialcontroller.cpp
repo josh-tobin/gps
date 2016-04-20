@@ -29,12 +29,12 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     //the observations published to a ros node. Used for async controllers like the tf_controller.
     
     // Output the observation. For debugging.
-    //printf("OBS: ");
-   // for (int i = 0; i < obs.size(); i++) {
-   //    printf("%f, ", (float)obs[i]);
-   // }
-    //printf("\n");
-    //ROS_INFO("Last obs: %d",(float)obs[-1]);
+    printf("OBS: ");
+    for (int i = 0; i < obs.size(); i++) {
+       printf("%f, ", (float)obs[i]);
+    }
+    printf("\n");
+    ROS_INFO("Last obs had size %d",obs.size());
     publish_obs(obs, plugin);
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
@@ -50,7 +50,6 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
 
 void TrialController::configure_controller(OptionsMap &options)
 {
-    ROS_INFO_STREAM(">TrialController::configure_controller");
     if(!is_finished()){
         // TODO(chelsea/sergey/zoe) This error happens every time...
         ROS_ERROR("Cannot configure controller while a trial is in progress");

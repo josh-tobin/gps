@@ -162,7 +162,8 @@ class GPSMain(object):
         pol_samples = [[None for _ in range(self._hyperparams['verbose_policy_trials'])]
                 for _ in range(self._conditions)]
         for cond in range(self._conditions):
-            for i in range(self._hyperparams['verbose_policy_trials']):
+            for i in range(self._hyperparams['verbose_policy_trials']): 
+                self.algorithm.policy_opt.policy.reset()
                 pol_samples[cond][i] = self.agent.sample(
                     self.algorithm.policy_opt.policy, cond,
                     verbose=True, save=False)

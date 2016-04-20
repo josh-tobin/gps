@@ -113,7 +113,7 @@ class ServiceEmulator(object):
         """ Publish a message without waiting for response. """
         self._pub.publish(pub_msg)
 
-    def publish_and_wait(self, pub_msg, timeout=5.0, poll_delay=0.01,
+    def publish_and_wait(self, pub_msg, timeout=10.0, poll_delay=0.01,
                          check_id=False):
         """
         Publish a message and wait for the response.

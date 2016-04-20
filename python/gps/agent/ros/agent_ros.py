@@ -2,6 +2,8 @@
 import copy
 import time
 import numpy as np
+import os.path
+import sys
 
 import rospy
 
@@ -11,8 +13,10 @@ from gps.agent.config import AGENT_ROS
 from gps.agent.ros.ros_utils import ServiceEmulator, msg_to_sample, \
         policy_to_msg, tf_policy_to_action_msg, tf_obs_msg_to_numpy
 from gps.proto.gps_pb2 import TRIAL_ARM, AUXILIARY_ARM
-from gps_agent_pkg.msg import TrialCommand, SampleResult, PositionCommand, \
-        RelaxCommand, DataRequest, TfActionCommand, TfObsData, EnvConfigCommand
+from gps_agent_pkg.msg import TrialCommand, SampleResult, PositionCommand
+from gps_agent_pkg.msg import RelaxCommand, DataRequest, TfActionCommand 
+from gps_agent_pkg.msg import TfObsData, SetSceneConfig, SetModelConfig
+
 try:
     from gps.algorithm.policy.tf_policy import TfPolicy
 except ImportError:  # user does not have tf installed.
@@ -35,6 +39,15 @@ class AgentROS(Agent):
         Agent.__init__(self, config)
         if init_node:
             rospy.init_node('gps_agent_ros_node')
+
+        # If we are doing CRL, we will want to keep track of the scene objects
+        # that are changing
+        self.is_crl = False
+        if ('scene_objects' in self._hyperparams 
+            and self._hyperparams['scene_objects']):
+            self.is_crl = True
+            self.scene_objects = self._hyperparams['scene_objects']
+        
         self._init_pubs_and_subs()
         self._seq_id = 0  # Used for setting seq in ROS commands.
 
@@ -44,7 +57,7 @@ class AgentROS(Agent):
         for field in ('x0', 'ee_points_tgt', 'reset_conditions'):
             self._hyperparams[field] = setup(self._hyperparams[field],
                                              conditions)
-        self.x0 = self._hyperparams['x0']
+        self.x0 = self._hyperparams['x0'] 
 
         r = rospy.Rate(1)
         r.sleep()
@@ -52,7 +65,6 @@ class AgentROS(Agent):
         self.use_tf = False
         self.observations_stale = True
         ns = rospy.get_namespace()
-        print ">>> FINISHED INITIALIZING AGENT_ROS"
     def _init_pubs_and_subs(self):
         self._trial_service = ServiceEmulator(
             self._hyperparams['trial_command_topic'], TrialCommand,
@@ -70,11 +82,10 @@ class AgentROS(Agent):
             self._hyperparams['data_request_topic'], DataRequest,
             self._hyperparams['sample_result_topic'], SampleResult
         )
-        if 'is_crl' in self._hyperparams and self._hyperparams['is_crl']:
-            print "Setting up reset object service"
-            self._reset_object_service = ServiceEmulator(
-                self._hyperparams['reset_object_command_topic'], 
-                EnvConfigCommand,
+        if self.is_crl:
+            self._reset_scene_service = ServiceEmulator(
+                self._hyperparams['reset_scene_command_topic'], 
+                SetSceneConfig,
                 self._hyperparams['sample_result_topic'], SampleResult
             )
 
@@ -134,7 +145,7 @@ class AgentROS(Agent):
                 print "Sorry, attribute " + key + " not supported"
         timeout = self._hyperparams['trial_timeout']
         self._reset_object_service.publish_and_wait(reset_command, timeout)
-    '''
+    
     def switch_objects(self, condition):
         switch_command = EnvConfigCommand()
         switch_command.id = self._get_next_seq_id()
@@ -142,6 +153,23 @@ class AgentROS(Agent):
         switch_command.num_conditions = self._hyperparams['conditions']
         timeout = self._hyperparams['trial_timeout']
         self._reset_object_service.publish(switch_command)
+    '''
+    def reset_scene(self, condition):
+        if not self.is_crl:
+            printf("Sorry, reset object is only for crl!")
+            return;
+        
+        # Build the message to be sent to the reset object service
+        model_configs = []
+        urdf_path = ('/home/jt/gps/src/gps_agent_pkg/urdf/');
+        for obj in self.scene_objects:
+            # urdf should be in urdf package and formatted as model_name + cond
+            model_urdf = urdf_path + obj + str(condition) + '.urdf'
+            model_configs.append(SetModelConfig(model_name=obj, 
+                                                new_model_urdf=model_urdf))
+        # Publish the message
+        # to-do: move to publish and wait?
+        self._reset_scene_service.publish(model_configs)
     def reset_arm(self, arm, mode, data):
         """
         Issues a position command to an arm.
@@ -165,17 +193,14 @@ class AgentROS(Agent):
         Reset the agent for a particular experiment condition.
         Args:
             condition: An index into hyperparams['reset_conditions'].
-        """
+        """ 
+        if self.is_crl:
+            self.reset_scene(condition)
         condition_data = self._hyperparams['reset_conditions'][condition]
         self.reset_arm(TRIAL_ARM, condition_data[TRIAL_ARM]['mode'],
                        condition_data[TRIAL_ARM]['data'])
         self.reset_arm(AUXILIARY_ARM, condition_data[AUXILIARY_ARM]['mode'],
                        condition_data[AUXILIARY_ARM]['data'])
-        if 'is_crl' in self._hyperparams and self._hyperparams['is_crl']:
-            # Need to make this more robust
-            #mass = self._hyperparams['masses'][condition]
-            #self.change_obj_config('simple_object', mass=mass)
-            self.switch_objects(condition)
     def sample(self, policy, condition, verbose=True, save=True):
         """
         Reset and execute a policy and collect a sample.

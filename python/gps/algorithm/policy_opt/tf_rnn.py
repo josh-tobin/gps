@@ -1,0 +1,148 @@
+import tensorflow as tf
+from tensorflow.python.framework import ops
+from gps.algorithm.policy_opt.tf_utils import TfMap
+from gps.algorithm.policy_opt.tf_model_example import get_loss_layer, \
+                                            batched_matrix_vector_multiply
+import numpy as np
+
+def time_distributed_euclidean_loss_layer2(a, b, precision, output_shape):
+    u = tf.reshape(a-b, [-1, output_shape])
+    uP = tf.matmul(u, precision)
+    uPu = tf.matmul(uP, u)
+    loss = tf.reduce_mean(tf.diag_part(uPu))
+    return loss
+def time_distributed_euclidean_loss_layer(a, b, precision):
+    ''' return the average of uPu, i.e., (a-b)'*precision*(a-b), avgd over
+        timesteps and batches '''
+    # first, make u (batch_size, n_steps, 1, dim_output)-shaped
+    u_left_expand = tf.expand_dims(a-b, -2)
+    uP = tf.batch_matmul(u_left_expand, precision)
+    # next, we want u to be (batch_size, n_steps, dim_output, 1)-shaped
+    u_right_expand = tf.expand_dims(a-b, -1)
+    uPu = tf.reduce_mean(tf.batch_matmul(uP, u_right_expand))
+    return uPu
+
+def time_distributed_multi_input_dense_layer(x1, x2, x1_dim, x2_dim,
+                                             output_dim, activation=tf.nn.relu,
+                                             name=None):
+    x_dim = tf.shape(x1[:,:,0]) # assume the first 2 dims are the same
+    target_shape = tf.concat(0, [x_dim, (output_dim,)])
+    n = x1_dim + x2_dim
+    init_W1 = np.random.randn(x1_dim, output_dim)*np.sqrt(2.0/n)
+    init_W2 = np.random.randn(x2_dim, output_dim)*np.sqrt(2.0/n)
+    init_b = np.zeros([output_dim,])
+    init_W1 = init_W1.astype(np.float32)
+    init_W2 = init_W2.astype(np.float32)
+    init_b = init_b.astype(np.float32)
+    W1 = tf.Variable(init_W1)
+    W2 = tf.Variable(init_W2)
+    b = tf.Variable(init_b)
+
+    with ops.op_scope([x1, x2, W1, W2, b], name, 'td_mi_layer') as name:
+        x1 = ops.convert_to_tensor(x1, name='x1')
+        x2 = ops.convert_to_tensor(x2, name='x2')
+        W1 = ops.convert_to_tensor(W1, name='W1')
+        W2 = ops.convert_to_tensor(W2, name='W2')
+        b = ops.convert_to_tensor(b, name='b')
+
+        x1W1 = tf.matmul(tf.reshape(x1, [-1, x1_dim]), W1)
+        x2W2 = tf.matmul(tf.reshape(x2, [-1, x2_dim]), W2)
+        xW = x1W1 + x2W2
+        xW_plus_b = tf.nn.bias_add(xW, b)
+        xW_plus_b = tf.reshape(xW_plus_b, target_shape)
+        if activation == None or activation == 'linear':
+            out = xW_plus_b
+        else:
+            out = activation(xW_plus_b)
+        return out
+
+def time_distributed_dense_layer(x, input_dim, output_dim, 
+                                 activation=tf.nn.relu, 
+                                 name=None):
+    ''' Apply the same dense layer for each time timension of an
+        input sequence. Used after a recurrent layer.'''
+    print "BUILDING TDDL with input_dim %d, output_dim %d"%(input_dim, output_dim)
+    initial_weights = (np.random.randn(input_dim, output_dim)
+                       *np.sqrt(2.0/input_dim)).astype(np.float32)
+    initial_bias = np.zeros([output_dim,]).astype(np.float32)
+    W = tf.Variable(initial_weights)
+    b = tf.Variable(initial_bias)
+    
+    with ops.op_scope([x, W, b], name, 'td_layer') as name:
+        x = ops.convert_to_tensor(x, name='x')
+        W = ops.convert_to_tensor(W, name='W')
+        b = ops.convert_to_tensor(b, name='b')
+        original_shape = tf.shape(x[:,:,0])
+        new_shape = tf.concat(0, [original_shape, (output_dim,)])
+        xw_plus_b = tf.nn.bias_add(tf.matmul(tf.reshape(x,[-1,input_dim]), 
+                                             W), b)
+        xw_plus_b = tf.reshape(xw_plus_b, new_shape)
+        if activation == None or activation == 'linear':
+            out = xw_plus_b
+        else:
+            out = activation(xw_plus_b)
+        return out
+
+def build_rnn_inputs(dim_input, dim_output):
+    nn_input = tf.placeholder(tf.float32, shape=(None, None, dim_input),
+                              name='nn_input')
+    action = tf.placeholder(tf.float32, shape=(None, None, dim_output),
+                            name='action')
+    precision = tf.placeholder(tf.float32,
+                               shape=(None, None, dim_output, dim_output),
+                               name='precision')
+    return nn_input, action, precision
+
+def build_rnn(input_tensor, dim_input, dim_output):
+    initial_state = tf.placeholder(tf.float32, shape=(None, 2*dim_output))
+    lstm_cell = tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input)
+    y, states = tf.nn.dynamic_rnn(lstm_cell, input_tensor, 
+                                  initial_state=initial_state, 
+                                  dtype='float32')
+    return y, states, initial_state
+
+def build_crl_ff_layers(rnn_output, nn_input, rnn_output_dim, nn_input_dim,
+                        nn_output_dim, hidden_dim=64, n_layers=3):
+    first_out = time_distributed_multi_input_dense_layer(
+                    rnn_output, nn_input, rnn_output_dim, nn_input_dim, 
+                    hidden_dim)
+    prev_out = first_out
+    for _ in range(n_layers - 2):
+        prev_out = time_distributed_dense_layer(prev_out, hidden_dim, 
+                                                hidden_dim)
+
+    final_out = time_distributed_dense_layer(prev_out, hidden_dim, 
+                                             nn_output_dim, activation=None)
+    return final_out
+def build_loss(rnn_out, action, precision, output_dim):
+    return time_distributed_euclidean_loss_layer(action, rnn_out, precision)
+
+def example_rnn_network(dim_input=32, dim_output=7, batch_size=10):
+    # The simplest possible rnn: a single cell
+    n_steps = 100
+
+    nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
+    rnn_out, rnn_states, rnn_initial_state = build_rnn(nn_input, dim_input,
+                                                       dim_output)
+    loss_out = build_loss(rnn_out, action, precision)
+    
+    return TfMap.init_from_lists([nn_input, action, precision],
+                                 [rnn_out, rnn_states, rnn_initial_state],
+                                 [loss_out], recurrent=True)
+
+def crl_rnn_network(dim_input=32, dim_output=7, batch_size=5,
+                    n_steps=100, rnn_output_dim=16, hidden_dim=64,
+                    n_feedforward=3):
+    ''' Implements the RNN architecture we plan to use for CRL
+        :first layer: RNN. Estimates system parameters.
+        :remaining layers: Feed forward. Map state + params -> action '''
+    nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
+    rnn_out, rnn_states, rnn_initial_state = build_rnn(nn_input, dim_input,
+                                                       rnn_output_dim)
+    nn_out = build_crl_ff_layers(rnn_out, nn_input, rnn_output_dim, dim_input,
+                                dim_output, 
+                                hidden_dim=hidden_dim, n_layers=n_feedforward)
+    loss_out = build_loss(nn_out, action, precision, dim_output)
+    return TfMap.init_from_lists([nn_input, action, precision],
+                                 [nn_out, rnn_states, rnn_initial_state],
+                                 [loss_out], recurrent=True)

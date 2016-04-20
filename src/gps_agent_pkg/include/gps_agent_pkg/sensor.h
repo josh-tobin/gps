@@ -24,8 +24,9 @@ enum SensorType
 {
     EncoderSensorType = 0,
     ObjectConfigSensorType = 1,
+    ActionSensorType = 2,
     CameraSensorType,
-    TotalSensorTypes = 2,
+    TotalSensorTypes = 3,
 };
 
 // Forward declarations.

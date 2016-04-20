@@ -20,19 +20,24 @@ class AlgorithmBADMM(Algorithm):
     BADMM-based guided policy search algorithm.
     """
     def __init__(self, hyperparams):
+        print "initializing"
         config = copy.deepcopy(ALG_BADMM)
         config.update(hyperparams)
         Algorithm.__init__(self, config)
-
+        print "done initializing algo"
         for m in range(self.M):
             self.cur[m].pol_info = PolicyInfo(self._hyperparams)
             policy_prior = self._hyperparams['policy_prior']
             self.cur[m].pol_info.policy_prior = \
                     policy_prior['type'](policy_prior)
-
+        print "about to initialize policy"
         self.policy_opt = self._hyperparams['policy_opt']['type'](
             self._hyperparams['policy_opt'], self.dO, self.dU
         )
+
+        if 'recurrent' in self._hyperparams and self._hyperparams['recurrent']:
+            print 'policy is recurrent'
+            self.recurrent = True
 
     def iteration(self, sample_lists):
         """

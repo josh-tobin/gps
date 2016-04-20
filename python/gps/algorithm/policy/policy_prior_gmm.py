@@ -68,6 +68,10 @@ class PolicyPriorGMM(object):
             Upol = policy_opt.prob(self.obs.copy())[0]
             # Create dataset.
             N = self.X.shape[0]
+            print "SHAPES AT ERROR"
+            print("X", self.X.shape)
+            print ("Upol", Upol.shape)
+            print ("T, N, d", T, N, dO)
             XU = np.reshape(np.concatenate([self.X, Upol], axis=2), [T * N, dO])
         else:
             # Simply use the dataset that is already there.

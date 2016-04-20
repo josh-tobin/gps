@@ -15,7 +15,8 @@ from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.cost.cost_utils import RAMP_LINEAR, RAMP_FINAL_ONLY
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
-from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe, RNNPolicyOptCaffe
+from gps.algorithm.policy_opt.policy_opt_caffe import PolicyOptCaffe, \
+                                                      RNNPolicyOptCaffe
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.algorithm.policy.policy_prior_gmm import PolicyPriorGMM
@@ -25,7 +26,6 @@ from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
         TRIAL_ARM, AUXILIARY_ARM, JOINT_SPACE, ENV_CONF
 from gps.utility.general_utils import get_ee_points
 
-is_crl = True
 
 EE_POINTS = np.array([[0.02, -0.025, 0.05], [0.02, -0.025, 0.05],
                       [0.02, 0.05, 0.0]])
@@ -36,7 +36,7 @@ SENSOR_DIMS = {
     END_EFFECTOR_POINTS: 3 * EE_POINTS.shape[0],
     END_EFFECTOR_POINT_VELOCITIES: 3 * EE_POINTS.shape[0],
     ACTION: 7,
-    ENV_CONF: 1,
+    #ENV_CONF: 1,
 }
 
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
@@ -51,7 +51,7 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2,
+    'conditions': 1,
 }
 
 x0s = []
@@ -104,11 +104,11 @@ for i in xrange(1): # Just a single starting pos for now
     ee_tgts = ee_tgt.copy()
     #reset_conditions.append(reset_condition)
     reset_conditions = reset_condition.copy()
-masses = [0.1, 0.2]
+masses = [0.1, 0.2, 0.4, 0.6]
 
-for i in xrange(common['conditions']):
-    x0[-1] = masses[i]
-    x0s.append(x0.copy())
+#for i in xrange(common['conditions']):
+#    x0[-1] = masses[i]
+#    x0s.append(x0.copy())
 
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
@@ -116,19 +116,19 @@ if not os.path.exists(common['data_files_dir']):
 agent = {
     'type': AgentROS,
     'dt': 0.05,
-    'is_crl': is_crl,
+    'scene_objects': ['simple_object'],
     'conditions': common['conditions'],
     'T': 100,
     'x0': x0s,
     'ee_points_tgt': ee_tgts,
     'reset_conditions': reset_conditions,
-    'masses': masses,
+    #'masses': masses,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
-                      END_EFFECTOR_POINT_VELOCITIES, ENV_CONF],
+                      END_EFFECTOR_POINT_VELOCITIES],# ENV_CONF],
     'end_effector_points': EE_POINTS,
     'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
-                    END_EFFECTOR_POINT_VELOCITIES, ENV_CONF],
+                    END_EFFECTOR_POINT_VELOCITIES],# ENV_CONF], 
 }
 
 algorithm = {
@@ -213,11 +213,11 @@ algorithm['traj_opt'] = {
 }
 
 algorithm['policy_opt'] = {
-    'type': RNNPolicyOptCaffe,
-    #'type': PolicyOptCaffe,
+    #'type': RNNPolicyOptCaffe,
+    'type': PolicyOptCaffe,
     'weights_file_prefix': EXP_DIR + 'policy',
     'iterations': 3000,
-    'dE': SENSOR_DIMS[ENV_CONF],
+    #'dE': SENSOR_DIMS[ENV_CONF],
 }
 
 algorithm['policy_prior'] = {

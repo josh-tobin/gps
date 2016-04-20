@@ -1,15 +1,30 @@
 """ Default configuration for policy optimization. """
-try:
-    from gps.algorithm.policy_opt.policy_opt_utils import construct_fc_network
-except ImportError:
-    construct_fc_network = None
+import os
+# Somehow I broke caffe... disabling for now
+#try:
+#    from gps.algorithm.policy_opt.policy_opt_utils import construct_fc_network
+#except ImportError:
+construct_fc_network = None
 
 try:
     from gps.algorithm.policy_opt.tf_model_example import example_tf_network
 except ImportError:
     example_tf_network = None
 
-import os
+try:
+    from gps.algorithm.policy_opt.keras_network import example_keras_network
+except ImportError:
+    example_tf_network = None
+
+try:
+    from gps.algorithm.policy_opt.tf_rnn import example_rnn_network
+except ImportError:
+    example_rnn_network = None
+
+try:
+    from gps.algorithm.policy_opt.tf_rnn import crl_rnn_network
+except ImportError:
+    crl_rnn_network = None
 
 # config options shared by both caffe and tf.
 GENERIC_CONFIG = {
@@ -51,3 +66,22 @@ POLICY_OPT_TF = {
 }
 
 POLICY_OPT_TF.update(GENERIC_CONFIG)
+
+rnn_checkpoint_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+            '..', 'policy_opt/tf_rnn_checkpoint/policy_checkpoint.ckpt'))
+
+POLICY_OPT_KERAS = {
+    'network_model': example_keras_network,
+    'checkpoint_prefix': checkpoint_path,
+    }
+
+POLICY_OPT_KERAS.update(GENERIC_CONFIG)
+
+POLICY_OPT_RNN = {
+    'network_model': crl_rnn_network,
+    'checkpoint_prefix': rnn_checkpoint_path,
+    }
+
+POLICY_OPT_RNN.update(GENERIC_CONFIG)
+POLICY_OPT_RNN['batch_size'] = 5 # change
+POLICY_OPT_RNN['iterations'] = 500 #change

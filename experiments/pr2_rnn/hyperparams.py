@@ -40,7 +40,7 @@ SENSOR_DIMS = {
 PR2_GAINS = np.array([3.09, 1.08, 0.393, 0.674, 0.111, 0.152, 0.098])
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
-EXP_DIR = BASE_DIR + '/../experiments/pr2_tensorflow_example/'
+EXP_DIR = BASE_DIR + '/../experiments/pr2_rnn/'
 
 common = {
     'experiment_name': 'my_experiment' + '_' + \
@@ -49,15 +49,15 @@ common = {
     'data_files_dir': EXP_DIR + 'data_files/',
     'target_filename': EXP_DIR + 'target.npz',
     'log_filename': EXP_DIR + 'log.txt',
-    'conditions': 2,
+    'conditions': 1,
 }
 
 x0s = []
-ee_tgts = []
-reset_conditions = []
+#ee_tgts = []
+#reset_conditions = []
 
 # Set up each condition.
-for i in xrange(common['conditions']):
+for i in xrange(1): # Just a single starting pos for now
 
     ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(
         common['target_filename'], 'trial_arm', str(i), 'initial'
@@ -69,7 +69,7 @@ for i in xrange(common['conditions']):
         common['target_filename'], 'trial_arm', str(i), 'target'
     )
 
-    x0 = np.zeros(32)
+    x0 = np.zeros(39)
     x0[:7] = ja_x0
     x0[14:(14+9)] = np.ndarray.flatten(
         get_ee_points(EE_POINTS, ee_pos_x0, ee_rot_x0).T
@@ -93,10 +93,16 @@ for i in xrange(common['conditions']):
         },
     }
 
-    x0s.append(x0)
-    ee_tgts.append(ee_tgt)
-    reset_conditions.append(reset_condition)
+    #x0s.append(x0)
+    #ee_tgts.append(ee_tgt)
+    #reset_conditions.append(reset_condition)
+    ee_tgts = ee_tgt.copy()
+    reset_conditions = reset_condition.copy()
 
+masses = [0.1, 0.2, 0.4, 0.6]
+
+for i in xrange(common['conditions']):
+    x0s.append(x0.copy())
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
 
@@ -110,16 +116,16 @@ agent = {
     'reset_conditions': reset_conditions,
     'sensor_dims': SENSOR_DIMS,
     'state_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
-                      END_EFFECTOR_POINT_VELOCITIES],
+                      END_EFFECTOR_POINT_VELOCITIES, ACTION],
     'end_effector_points': EE_POINTS,
     'obs_include': [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS,
-                    END_EFFECTOR_POINT_VELOCITIES],
+                    END_EFFECTOR_POINT_VELOCITIES, ACTION],
 }
 
 algorithm = {
     'type': AlgorithmBADMM,
     'conditions': common['conditions'],
-    'iterations': 10,
+    'iterations': 5,
     'lg_step_schedule': np.array([1e-4, 1e-3, 1e-2, 1e-1]),
     'policy_dual_rate': 0.1,
     'ent_reg_schedule': np.array([1e-3, 1e-3, 1e-2, 1e-1]),
@@ -179,7 +185,7 @@ fk_cost2 = {
 algorithm['cost'] = {
     'type': CostSum,
     'costs': [torque_cost, fk_cost1, fk_cost2],
-    'weights': [0.1, 1.0, 1.0],
+    'weights': [0.01, 1.0, 1.0],
 }
 
 algorithm['dynamics'] = {
@@ -201,6 +207,7 @@ algorithm['policy_opt'] = {
     'type': PolicyOptTf,
     'weights_file_prefix': EXP_DIR + 'policy',
     'iterations': 3000,
+    'recurrent': True,
 }
 
 algorithm['policy_prior'] = {
@@ -214,11 +221,11 @@ config = {
     'iterations': algorithm['iterations'],
     'common': common,
     'verbose_trials': 0,
-    'verbose_policy_trials': 1,
+    'verbose_policy_trials': 2,
     'agent': agent,
     'gui_on': True,
     'algorithm': algorithm,
-    'num_samples': 5,
+    'num_samples': 10,
 }
 
 common['info'] = (

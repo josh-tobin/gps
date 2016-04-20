@@ -43,6 +43,7 @@ rosbuild_add_boost_directories()
 
 set(DDP_FILES src/robotplugin.cpp
               src/pr2plugin.cpp
+              src/sceneplugin.cpp
               src/sample.cpp
               src/sensor.cpp
               src/neuralnetwork.cpp
@@ -55,6 +56,7 @@ set(DDP_FILES src/robotplugin.cpp
               src/encodersensor.cpp
               src/encoderfilter.cpp
               src/objectconfigsensor.cpp
+              src/actionsensor.cpp
               src/util.cpp)
 
 # Include Caffe
@@ -97,6 +99,7 @@ rosbuild_add_library(gps_agent_lib ${DDP_FILES})
 
 #rosbuild_add_executable(point_head src/point_head.cpp)
 #rosbuild_add_executable(torso src/torso.cpp)
+rosbuild_add_executable(scene_plugin src/sceneplugin.cpp)
 rosbuild_add_executable(simple_torso src/simple_torso.cpp)
 rosbuild_add_executable(simple_gripper src/simple_gripper.cpp)
 # Include Caffe in controller

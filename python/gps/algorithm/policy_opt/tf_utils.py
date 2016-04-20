@@ -11,21 +11,29 @@ class TfMap:
     """ a container for inputs, outputs, and loss in a tf graph. This object exists only
     to make well-defined the tf inputs, outputs, and losses used in the policy_opt_tf class."""
 
-    def __init__(self, input_tensor, target_output_tensor, precision_tensor, output_op, loss_op):
+    def __init__(self, input_tensor, target_output_tensor, precision_tensor, output_op, loss_op, recurrent=False, rnn_states=None, rnn_initial_state=None):
         self.input_tensor = input_tensor
         self.target_output_tensor = target_output_tensor
         self.precision_tensor = precision_tensor
         self.output_op = output_op
         self.loss_op = loss_op
+        self.recurrent = recurrent
+        self.rnn_states = rnn_states
+        self.rnn_initial_state = rnn_initial_state
 
     @classmethod
-    def init_from_lists(cls, inputs, outputs, loss):
+    def init_from_lists(cls, inputs, outputs, loss, recurrent=False,
+                        recurrent_reset_states=None):
         inputs = check_list_and_convert(inputs)
         outputs = check_list_and_convert(outputs)
         loss = check_list_and_convert(loss)
         if len(inputs) < 3:  # pad for the constructor if needed.
             inputs += [None]*(3 - len(inputs))
-        return cls(inputs[0], inputs[1], inputs[2], outputs[0], loss[0])
+        if len(outputs) < 3: 
+            outputs += [None]*(3 - len(outputs))
+        return cls(inputs[0], inputs[1], inputs[2], outputs[0], loss[0],
+                   recurrent=recurrent, rnn_states=outputs[1],
+                   rnn_initial_state=outputs[2])
 
     def get_input_tensor(self):
         return self.input_tensor
@@ -57,6 +65,14 @@ class TfMap:
     def set_loss_op(self, loss_op):
         self.loss_op = loss_op
 
+    def is_recurrent(self):
+        return self.recurrent
+
+    def get_rnn_states(self):
+        return self.rnn_states
+
+    def get_rnn_initial_state(self):
+        return self.rnn_initial_state
 
 class TfSolver:
     """ A container for holding solver hyperparams in tensorflow. Used to execute backwards pass. """

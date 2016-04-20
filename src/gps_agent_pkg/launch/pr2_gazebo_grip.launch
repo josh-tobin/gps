@@ -8,12 +8,10 @@
   </include>
   <include file="$(find gps_agent_pkg)/launch/pr2_only_controller.launch"/>
 
-  <node name="spawn_urdf1" pkg="gazebo_ros" type="spawn_model" output="screen" args="-file $(find gps_agent_pkg)/urdf/simple_object1.urdf -urdf -x 0.925 -z 0.805 -y .20 -model simple_object1" />
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen" args="-file $(find gps_agent_pkg)/urdf/simple_object0.urdf -urdf -x 0.925 -z 0.805 -y .20 -model simple_object" />
 
-  <node name="spawn_urdf0" pkg="gazebo_ros" type="spawn_model" output="screen" args="-file $(find gps_agent_pkg)/urdf/simple_object0.urdf -urdf -x 5 -z 0 -y 1 -model simple_object0" />
-  
-  <!--node name="spawn_urdf2" pkg="gazebo_ros" type="spawn_model" output="screen" args="-file $(find gps_agent_pkg)/urdf/simple_object2.urdf -urdf -x 5 -z 0 -y 2 -model simple_object2" /-->
-  
-  <!--node name="spawn_urdf3" pkg="gazebo_ros" type="spawn_model" output="screen" args="-file $(find gps_agent_pkg)/urdf/simple_object0.urdf -urdf -x 5 -z 0 -y 0 -model simple_object0" /-->
+  <node name="scene_plugin" pkg="gps_agent_pkg" type="scene_plugin" output="screen" respawn="true" />
+
+ 
 </launch>
 
