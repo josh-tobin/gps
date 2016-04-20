@@ -35,6 +35,9 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+src/gps_agent_pkg/catkin/catkin_generated/version/*
+src/gps_agent_pkg/catkin_generated/*
+src/gps_agent_pkg/devel/*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
