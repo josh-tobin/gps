@@ -4,6 +4,9 @@ include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/Boost.NumPy")
 include_directories(SYSTEM 
     "${CMAKE_SOURCE_DIR}/mjpro"
 )
+include_directories(SYSTEM
+    "${CMAKE_SOURCE_DIR}/mjpro/include"
+)
 # boost_python_module(mjcpy2 mjcpy2.cpp mjosgviewer.cpp)
 # target_link_libraries(mjcpy mjc boost_numpy)
 
@@ -46,4 +49,5 @@ message("osg includes: ${OSG_INCLUDE_DIR}")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/Boost.NumPy")
 boost_python_module(mjcpy mjcpy2.cpp  mujoco_osg_viewer.cpp)
-target_link_libraries(mjcpy "${CMAKE_SOURCE_DIR}/mjpro/libmujoco.so" ${OSG_LIBRARIES} boost_numpy)
+#target_link_libraries(mjcpy "${CMAKE_SOURCE_DIR}/mjpro/libmujoco.so" ${OSG_LIBRARIES} boost_numpy)
+target_link_libraries(mjcpy "${CMAKE_SOURCE_DIR}/mjpro/bin/libmujoco131.so" ${OSG_LIBRARIES} boost_numpy)
