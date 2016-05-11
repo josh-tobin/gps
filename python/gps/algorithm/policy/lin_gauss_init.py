@@ -15,7 +15,6 @@ def init_lqr(hyperparams):
     """
     config = copy.deepcopy(INIT_LG_LQR)
     config.update(hyperparams)
-
     x0, dX, dU = config['x0'], config['dX'], config['dU']
     dt, T = config['dt'], config['T']
 
@@ -114,7 +113,7 @@ def init_pd(hyperparams):
     """
     config = copy.deepcopy(INIT_LG_PD)
     config.update(hyperparams)
-
+    
     dU, dQ, dX = config['dU'], config['dQ'], config['dX']
     x0, T = config['x0'], config['T']
 

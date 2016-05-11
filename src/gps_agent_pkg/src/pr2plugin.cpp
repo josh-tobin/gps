@@ -45,7 +45,7 @@ bool GPSPR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle&
         ROS_ERROR("Property passive_tip_name not found in namespace: '%s'", n.getNamespace().c_str());
         return false;
     }
-
+   
     // Create active arm chain.
     if(!active_arm_chain_.init(robot_, root_name, active_tip_name)) {
         ROS_ERROR("Controller could not use the chain from '%s' to '%s'", root_name.c_str(), active_tip_name.c_str());

@@ -18,6 +18,13 @@ class Policy(object):
             A dU dimensional action vector.
         """
         raise NotImplementedError("Must be implemented in subclass.")
+    
+    def reset(self):
+        """
+        Reset policy. Used for recurrent policies, where the hidden state(s)
+        need to be reset at each rollout.
+        """
+        return
 
     def set_meta_data(self, meta):
         """

@@ -89,6 +89,7 @@ class AgentROS(Agent):
         request.stamp = rospy.get_rostime()
         result_msg = self._data_service.publish_and_wait(request)
         # TODO - Make IDs match, assert that they match elsewhere here.
+        #print result_msg
         sample = msg_to_sample(result_msg, self)
         return sample
 
@@ -176,6 +177,8 @@ class AgentROS(Agent):
             sample = msg_to_sample(sample_msg, self)
             if save:
                 self._samples[condition].append(sample)
+            print sample.get_X(t=0)
+            print sample.get_X(t=-1)
             return sample
         else:
             self._trial_service.publish(trial_command)
@@ -183,6 +186,7 @@ class AgentROS(Agent):
             sample = msg_to_sample(sample_msg, self)
             if save:
                 self._samples[condition].append(sample)
+            print sample.get_obs().shape
             return sample
 
     def run_trial_tf(self, policy, time_to_run=5):

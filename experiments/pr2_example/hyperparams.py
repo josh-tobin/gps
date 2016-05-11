@@ -97,7 +97,6 @@ for i in xrange(common['conditions']):
     ee_tgts.append(ee_tgt)
     reset_conditions.append(reset_condition)
 
-
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
 

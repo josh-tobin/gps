@@ -35,9 +35,10 @@ class AgentMuJoCo(Agent):
         """
         conds = self._hyperparams['conditions']
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset',
-                      'noisy_body_idx', 'noisy_body_var', 'filename'):
+                      'noisy_body_idx', 'noisy_body_var', 'filename',
+                      'mass_body_idx', 'mass_body_mult', 'body_color_offset'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
-
+    
     def _setup_world(self, filename):
         """
         Helper method for handling setup of the MuJoCo world.
@@ -72,15 +73,36 @@ class AgentMuJoCo(Agent):
             data = {'qpos': x0[:idx], 'qvel': x0[idx:]}
             self._world[i].set_data(data)
             self._world[i].kinematics()
-
+        
+        # Adjust the mass (and color) of the object
+        for i in range(self._hyperparams['conditions']):
+            for j in range(len(self._hyperparams['mass_body_idx'][i])):
+                idx = self._hyperparams['mass_body_idx'][i][j] 
+                self._model[i]['body_mass'][idx,:] *= \
+                        self._hyperparams['mass_body_mult'][i]
+                self._model[i]['geom_rgba'][idx,:] += \
+                        self._hyperparams['body_color_offset'][i]
+            self._world[i].set_model(self._model[i])
+            x0 = self._hyperparams['x0'][i]
+            idx = len(x0) // 2
+            data = {'qpos': x0[:idx], 'qvel': x0[idx:]}
+            self._world[i].set_data(data)
+            self._world[i].kinematics()
         self._joint_idx = list(range(self._model[0]['nq']))
         self._vel_idx = [i + self._model[0]['nq'] for i in self._joint_idx]
 
         # Initialize x0.
         self.x0 = []
         for i in range(self._hyperparams['conditions']):
+
             if END_EFFECTOR_POINTS in self.x_data_types:
-                eepts = self._world[i].get_data()['site_xpos'].flatten()
+                # To be consistent with gazebo, ee points are defined 
+                # relative to the shoulder joint
+                SHOULDER_IDX = 3
+                shoulder_pos = self._world[i].get_data()['xpos']\
+                        [SHOULDER_IDX,:].flatten()
+                eepts = self._world[i].get_data()['site_xpos'].flatten() \
+                            - np.concatenate([shoulder_pos]*3)
                 self.x0.append(
                     np.concatenate([self._hyperparams['x0'][i], eepts, np.zeros_like(eepts)])
                 )
@@ -105,6 +127,7 @@ class AgentMuJoCo(Agent):
             save: Whether or not to store the trial into the samples.
         """
         # Create new sample, populate first time step.
+        mb_idx = self._hyperparams['mass_body_idx'][condition]
         new_sample = self._init_sample(condition)
         mj_X = self._hyperparams['x0'][condition]
         U = np.zeros([self.T, self.dU])
@@ -134,6 +157,8 @@ class AgentMuJoCo(Agent):
                 #TODO: Some hidden state stuff will go here.
                 self._data = self._world[condition].get_data()
                 self._set_sample(new_sample, mj_X, t, condition)
+                if ACTION in self.obs_data_types:
+                    new_sample.set(ACTION, mj_U, t=t+1)
         new_sample.set(ACTION, U)
         if save:
             self._samples[condition].append(new_sample)
@@ -151,19 +176,31 @@ class AgentMuJoCo(Agent):
         sample.set(JOINT_VELOCITIES,
                    self._hyperparams['x0'][condition][self._vel_idx], t=0)
         self._data = self._world[condition].get_data()
-        eepts = self._data['site_xpos'].flatten()
-        sample.set(END_EFFECTOR_POINTS, eepts, t=0)
-        sample.set(END_EFFECTOR_POINT_VELOCITIES, np.zeros_like(eepts), t=0)
-        jac = np.zeros([eepts.shape[0], self._model[condition]['nq']])
-        for site in range(eepts.shape[0] // 3):
-            idx = site * 3
-            jac[idx:(idx+3), :] = self._world[condition].get_jac_site(site)
-        sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=0)
+        
+
+        if END_EFFECTOR_POINTS in self.x_data_types:
+            # To be consistent with gazebo, ee points are defined 
+            # relative to the shoulder joint
+            SHOULDER_IDX = 3
+            shoulder_pos = self._world[condition].get_data()['xpos']\
+                            [SHOULDER_IDX,:].flatten()
+            eepts = self._world[condition].get_data()['site_xpos'].flatten() \
+                    - np.concatenate([shoulder_pos]*3)
+            sample.set(END_EFFECTOR_POINTS, eepts, t=0)
+            sample.set(END_EFFECTOR_POINT_VELOCITIES, 
+                        np.zeros_like(eepts), t=0)
+            jac = np.zeros([eepts.shape[0], self._model[condition]['nq']])
+            for site in range(eepts.shape[0] // 3):
+                idx = site * 3
+                jac[idx:(idx+3), :] = self._world[condition].get_jac_site(site)
+            sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=0)
 
         # save initial image to meta data
         self._world[condition].plot(self._hyperparams['x0'][condition])
         img = self._world[condition].get_image_scaled(self._hyperparams['image_width'],
                                                       self._hyperparams['image_height'])
+        if ACTION in self.obs_data_types:
+            sample.set(ACTION, np.zeros(7), t=0)
         # mjcpy image shape is [height, width, channels],
         # dim-shuffle it for later conv-net processing,
         # and flatten for storage
@@ -193,18 +230,32 @@ class AgentMuJoCo(Agent):
             t: Time step to set for sample.
             condition: Which condition to set.
         """
+        
         sample.set(JOINT_ANGLES, np.array(mj_X[self._joint_idx]), t=t+1)
         sample.set(JOINT_VELOCITIES, np.array(mj_X[self._vel_idx]), t=t+1)
-        curr_eepts = self._data['site_xpos'].flatten()
-        sample.set(END_EFFECTOR_POINTS, curr_eepts, t=t+1)
-        prev_eepts = sample.get(END_EFFECTOR_POINTS, t=t)
-        eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
-        sample.set(END_EFFECTOR_POINT_VELOCITIES, eept_vels, t=t+1)
-        jac = np.zeros([curr_eepts.shape[0], self._model[condition]['nq']])
-        for site in range(curr_eepts.shape[0] // 3):
-            idx = site * 3
-            jac[idx:(idx+3), :] = self._world[condition].get_jac_site(site)
-        sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=t+1)
+        
+        
+        if END_EFFECTOR_POINTS in self.x_data_types:
+            # To be consistent with gazebo, ee points are defined 
+            # relative to the shoulder joint
+            SHOULDER_IDX = 3
+            shoulder_pos = self._world[condition].get_data()['xpos']\
+                            [SHOULDER_IDX,:].flatten()
+            #curr_eepts = self._world[condition].get_data()['site_xpos']\
+            #                .flatten() - np.concatenate([shoulder_pos]*3)
+            curr_eepts = self._data['site_xpos'].flatten()\
+                                - np.concatenate([shoulder_pos]*3)
+            sample.set(END_EFFECTOR_POINTS, curr_eepts, t=t+1)
+            prev_eepts = sample.get(END_EFFECTOR_POINTS, t=t)
+            eept_vels = (curr_eepts - prev_eepts) / self._hyperparams['dt']
+            sample.set(END_EFFECTOR_POINT_VELOCITIES, eept_vels, t=t+1)
+            jac = np.zeros([curr_eepts.shape[0], self._model[condition]['nq']])
+            #print eepts  ## THIS IS A HACK TO FREEZE SIMULATION AT START
+            for site in range(curr_eepts.shape[0] // 3):
+                idx = site * 3
+                jac[idx:(idx+3), :] = self._world[condition].get_jac_site(site)
+            sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=t+1)
+        
         if RGB_IMAGE in self.obs_data_types:
             img = self._world[condition].get_image_scaled(self._hyperparams['image_width'],
                                                           self._hyperparams['image_height'])

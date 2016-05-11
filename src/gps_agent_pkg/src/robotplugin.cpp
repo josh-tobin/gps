@@ -453,7 +453,6 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         }
     }
     sensor_params["ee_sites"] = ee_points;
-
     // update end effector points target
     Eigen::MatrixXd ee_points_tgt;
     if( msg->ee_points_tgt.size() != ee_points.size()){
@@ -467,7 +466,8 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         }
     }
     sensor_params["ee_points_tgt"] = ee_points_tgt;
-
+   
+    printf("\n");
     configure_sensors(sensor_params);
 
     controller_initialized_ = true;

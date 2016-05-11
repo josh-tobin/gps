@@ -1,4 +1,7 @@
 """ Default configuration for policy optimization. """
+#
+# This seems to cause issues when working with tensorflow - commenting out for now
+#
 #try:
 #    from gps.algorithm.policy_opt.policy_opt_utils import construct_fc_network
 #except ImportError:

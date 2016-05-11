@@ -1,6 +1,4 @@
 import pickle
-import os
-import uuid
 
 import numpy as np
 import tensorflow as tf
@@ -20,7 +18,8 @@ class TfPolicy(Policy):
         sess: tf session.
         device_string: tf device string for running on either gpu or cpu.
     """
-    def __init__(self, dU, obs_tensor, act_op, var, sess, device_string):
+    def __init__(self, dU, obs_tensor, act_op, var, sess, device_string,
+                 hidden_state_tensor=None, initial_hidden_state_tensor=None):
         Policy.__init__(self)
         self.dU = dU
         self.obs_tensor = obs_tensor
@@ -30,8 +29,16 @@ class TfPolicy(Policy):
         self.chol_pol_covar = np.diag(np.sqrt(var))
         self.scale = None  # must be set from elsewhere based on observations
         self.bias = None
-        self.x_idx = None
-
+        self.hidden_state_tensor = hidden_state_tensor
+        self.initial_hidden_state_tensor = initial_hidden_state_tensor
+        self.recurrent = False
+        if self.hidden_state_tensor is not None:
+            self.recurrent = True
+            self.hidden_dim = self.initial_hidden_state_tensor.get_shape().\
+                                                               as_list()[-1]
+            self.hidden_state = np.zeros([1, self.hidden_dim])
+    
+    
     def act(self, x, obs, t, noise):
         """
         Return an action for a state.
@@ -41,32 +48,46 @@ class TfPolicy(Policy):
             t: Time step.
             noise: Action noise. This will be scaled by the variance.
         """
-
         # Normalize obs.
-        if len(obs.shape) == 1:
-            obs = np.expand_dims(obs, axis=0)
-        obs[:, self.x_idx] = obs[:, self.x_idx].dot(self.scale) + self.bias
-        with tf.device(self.device_string):
-            action_mean = self.sess.run(self.act_op, feed_dict={self.obs_tensor: obs})
+        obs = obs.dot(self.scale) + self.bias
+
+        if self.recurrent:
+            fd = {self.obs_tensor: np.expand_dims(np.expand_dims(obs, 0), 0),
+                         self.initial_hidden_state_tensor: self.hidden_state}
+            with tf.device(self.device_string):
+                action_mean = self.sess.run(self.act_op, feed_dict=fd)
+                self.hidden_state = self.sess.run(self.hidden_state_tensor, 
+                                           feed_dict=fd)
+        else:
+            feed_dict = {self.obs_tensor: np.expand_dims(obs, 0)}
+            with tf.device(self.device_string):
+                action_mean = self.sess.run(self.act_op, feed_dict=feed_dict)
         if noise is None:
             u = action_mean
         else:
             u = action_mean + self.chol_pol_covar.T.dot(noise)
-        return u[0]  # the DAG computations are batched by default, but we use batch size 1.
+        if self.recurrent:
+            u_out = u[0,0,:]
+        else:
+            u_out = u[0]
+        return u_out  # this algorithm is batched by default. But here, we run with a batch size of one.
 
-    def pickle_policy(self, deg_obs, deg_action, checkpoint_path, goal_state=None, should_hash=False):
+    def reset(self):
+        if self.recurrent:
+            print "RESETTING"
+            self.hidden_state = np.zeros([1, self.hidden_dim])
+
+    def pickle_policy(self, deg_obs, deg_action, checkpoint_path):
         """
         We can save just the policy if we are only interested in running forward at a later point
         without needing a policy optimization class. Useful for debugging and deploying.
         """
-        if should_hash is True:
-            hash_str = str(uuid.uuid4())
-            checkpoint_path += hash_str
-        os.mkdir(checkpoint_path + '/')
-        checkpoint_path += '/_pol'
-        pickled_pol = {'deg_obs': deg_obs, 'deg_action': deg_action, 'chol_pol_covar': self.chol_pol_covar,
-                       'checkpoint_path_tf': checkpoint_path + '_tf_data', 'scale': self.scale, 'bias': self.bias,
-                       'device_string': self.device_string, 'goal_state': goal_state, 'x_idx': self.x_idx}
+        pickled_pol = {'deg_obs': deg_obs, 'deg_action': deg_action, 
+                       'chol_pol_covar': self.chol_pol_covar,
+                       'checkpoint_path_tf': checkpoint_path + '_tf_data', 
+                       'scale': self.scale, 'bias': self.bias,
+                       'device_string': self.device_string,
+                       'goal_state': goal_state, 'x_idx': self.x_idx}
         pickle.dump(pickled_pol, open(checkpoint_path, "wb"))
         saver = tf.train.Saver()
         saver.save(self.sess, checkpoint_path + '_tf_data')
@@ -80,8 +101,9 @@ class TfPolicy(Policy):
         from tensorflow.python.framework import ops
         ops.reset_default_graph()  # we need to destroy the default graph before re_init or checkpoint won't restore.
         pol_dict = pickle.load(open(policy_dict_path, "rb"))
-        tf_map = tf_generator(dim_input=pol_dict['deg_obs'], dim_output=pol_dict['deg_action'],
-                              batch_size=1, network_config=network_config)
+        tf_map = tf_generator(dim_input=pol_dict['deg_obs'], 
+                              dim_output=pol_dict['deg_action'], batch_size=1,
+                              network_config=network_config)
 
         sess = tf.Session()
         init_op = tf.initialize_all_variables()
