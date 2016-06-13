@@ -1,11 +1,13 @@
 #include "gps_agent_pkg/pr2plugin.h"
 #include "gps_agent_pkg/positioncontroller.h"
 #include "gps_agent_pkg/trialcontroller.h"
+#include "gps_agent_pkg/encodersensor.h"
+#include "gps_agent_pkg/util.h"
 
-using namespace gps_control;
+namespace gps_control {
 
 // Plugin constructor.
-PR2Plugin::PR2Plugin()
+GPSPR2Plugin::GPSPR2Plugin()
 {
     // Some basic variable initialization.
     controller_counter_ = 0;
@@ -13,13 +15,13 @@ PR2Plugin::PR2Plugin()
 }
 
 // Destructor.
-PR2Plugin::~PR2Plugin()
+GPSPR2Plugin::~GPSPR2Plugin()
 {
     // Nothing to do here, since all instance variables are destructed automatically.
 }
 
 // Initialize the object and store the robot state.
-bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
+bool GPSPR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 {
     // Variables.
     std::string root_name, active_tip_name, passive_tip_name;
@@ -78,11 +80,16 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this active joint exists.
         std::string joint_name;
-        if(!n.getParam(std::string("active_arm_joint_name_" + std::to_string(joint_index)).c_str(), joint_name))
+        std::string param_name = std::string("/active_arm_joint_name_" + to_string(joint_index));
+        if(!n.getParam(param_name.c_str(), joint_name))
             break;
 
         // Push back the joint state and name.
-        active_arm_joint_state_.push_back(robot_->getJointState(joint_name));
+        pr2_mechanism_model::JointState* jointState = robot_->getJointState(joint_name);
+        active_arm_joint_state_.push_back(jointState);
+        if (jointState == NULL)
+            ROS_INFO_STREAM("jointState: " + joint_name + " is null");
+
         active_arm_joint_names_.push_back(joint_name);
 
         // Increment joint index.
@@ -91,6 +98,8 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Validate that the number of joints in the chain equals the length of the active arm joint state.
     if (active_arm_fk_chain_.getNrOfJoints() != active_arm_joint_state_.size())
     {
+        ROS_INFO_STREAM("num_fk_chain: " + to_string(active_arm_fk_chain_.getNrOfJoints()));
+        ROS_INFO_STREAM("num_joint_state: " + to_string(active_arm_joint_state_.size()));
         ROS_ERROR("Number of joints in the active arm FK chain does not match the number of joints in the active arm joint state!");
         return false;
     }
@@ -101,11 +110,15 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     {
         // Check if the parameter for this passive joint exists.
         std::string joint_name;
-        if(!n.getParam(std::string("passive_arm_joint_name_" + std::to_string(joint_index)).c_str(), joint_name))
+        std::string param_name = std::string("/passive_arm_joint_name_" + to_string(joint_index));
+        if(!n.getParam(param_name, joint_name))
             break;
 
         // Push back the joint state and name.
-        passive_arm_joint_state_.push_back(robot_->getJointState(joint_name));
+        pr2_mechanism_model::JointState* jointState = robot_->getJointState(joint_name);
+        passive_arm_joint_state_.push_back(jointState);
+        if (jointState == NULL)
+            ROS_INFO_STREAM("jointState: " + joint_name + " is null");
         passive_arm_joint_names_.push_back(joint_name);
 
         // Increment joint index.
@@ -114,13 +127,15 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
     // Validate that the number of joints in the chain equals the length of the active arm joint state.
     if (passive_arm_fk_chain_.getNrOfJoints() != passive_arm_joint_state_.size())
     {
+        ROS_INFO_STREAM("num_fk_chain: " + to_string(passive_arm_fk_chain_.getNrOfJoints()));
+        ROS_INFO_STREAM("num_joint_state: " + to_string(passive_arm_joint_state_.size()));
         ROS_ERROR("Number of joints in the passive arm FK chain does not match the number of joints in the passive arm joint state!");
         return false;
     }
 
     // Allocate torques array.
-    active_arm_torques_.resize(active_arm_fk_chain_.getNrOfJoints(),0.0);
-    passive_arm_torques_.resize(passive_arm_fk_chain_.getNrOfJoints(),0.0);
+    active_arm_torques_.resize(active_arm_fk_chain_.getNrOfJoints());
+    passive_arm_torques_.resize(passive_arm_fk_chain_.getNrOfJoints());
 
     // Initialize ROS subscribers/publishers, sensors, and position controllers.
     // Note that this must be done after the FK solvers are created, because the sensors
@@ -132,7 +147,7 @@ bool PR2Plugin::init(pr2_mechanism_model::RobotState* robot, ros::NodeHandle& n)
 }
 
 // This is called by the controller manager before starting the controller.
-void PR2Plugin::starting()
+void GPSPR2Plugin::starting()
 {
     // Get current time.
     last_update_time_ = robot_->getTime();
@@ -140,9 +155,10 @@ void PR2Plugin::starting()
 
     // Reset all the sensors. This is important for sensors that try to keep
     // track of the previous state somehow.
-    for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
+    //for (int sensor = 0; sensor < TotalSensorTypes; sensor++)
+    for (int sensor = 0; sensor < 1; sensor++)
     {
-        sensors_[sensor].reset(this,last_update_time_);
+        sensors_[sensor]->reset(this,last_update_time_);
     }
 
     // Reset position controllers.
@@ -154,13 +170,13 @@ void PR2Plugin::starting()
 }
 
 // This is called by the controller manager before stopping the controller.
-void PR2Plugin::stopping()
+void GPSPR2Plugin::stopping()
 {
     // Nothing to do here.
 }
 
 // This is the main update function called by the realtime thread when the controller is running.
-void PR2Plugin::update()
+void GPSPR2Plugin::update()
 {
     // Get current time.
     last_update_time_ = robot_->getTime();
@@ -173,35 +189,34 @@ void PR2Plugin::update()
     // Update the sensors and fill in the current step sample.
     update_sensors(last_update_time_,is_controller_step);
 
-    /* TODO: zero out torques */
-
     // Update the controllers.
     update_controllers(last_update_time_,is_controller_step);
 
     // Store the torques.
     for (unsigned i = 0; i < active_arm_joint_state_.size(); i++)
         active_arm_joint_state_[i]->commanded_effort_ = active_arm_torques_[i];
+
     for (unsigned i = 0; i < passive_arm_joint_state_.size(); i++)
         passive_arm_joint_state_[i]->commanded_effort_ = passive_arm_torques_[i];
 }
 
 // Get current time.
-ros::Time PR2Plugin::get_current_time() const
+ros::Time GPSPR2Plugin::get_current_time() const
 {
     return last_update_time_;
 }
 
 // Get current encoder readings (robot-dependent).
-void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const
+void GPSPR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const
 {
-    if (arm == AuxiliaryArm)
+    if (arm == gps::AUXILIARY_ARM)
     {
         if (angles.rows() != passive_arm_joint_state_.size())
             angles.resize(passive_arm_joint_state_.size());
         for (unsigned i = 0; i < angles.size(); i++)
             angles(i) = passive_arm_joint_state_[i]->position_;
     }
-    else if (arm == TrialArm)
+    else if (arm == gps::TRIAL_ARM)
     {
         if (angles.rows() != active_arm_joint_state_.size())
             angles.resize(active_arm_joint_state_.size());
@@ -213,3 +228,11 @@ void PR2Plugin::get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm)
         ROS_ERROR("Unknown ArmType %i requested for joint encoder readings!",arm);
     }
 }
+
+}
+
+// Register controller to pluginlib
+PLUGINLIB_DECLARE_CLASS(gps_agent_pkg, GPSPR2Plugin,
+						gps_control::GPSPR2Plugin,
+						pr2_controller_interface::Controller)
+

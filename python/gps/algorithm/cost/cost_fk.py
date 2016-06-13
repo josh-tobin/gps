@@ -1,48 +1,46 @@
-from copy import deepcopy
+""" This file defines the forward kinematics cost function. """
+import copy
+
 import numpy as np
 
-from config import cost_fk
-from cost import Cost
-from cost_utils import get_ramp_multiplier
-from proto.gps_pb2 import END_EFFECTOR_POINTS, END_EFFECTOR_HESSIANS, END_EFFECTOR_JACOBIANS
+from gps.algorithm.cost.config import COST_FK
+from gps.algorithm.cost.cost import Cost
+from gps.algorithm.cost.cost_utils import get_ramp_multiplier
+from gps.proto.gps_pb2 import JOINT_ANGLES, END_EFFECTOR_POINTS, \
+        END_EFFECTOR_POINT_JACOBIANS
 
 
 class CostFK(Cost):
     """
-    Forward kinematics cost function. Used for costs involving the
-    end effector position.
+    Forward kinematics cost function. Used for costs involving the end
+    effector position.
     """
-
-    def __init__(self, hyperparams, sample_data):
-        config = deepcopy(cost_fk)
+    def __init__(self, hyperparams):
+        config = copy.deepcopy(COST_FK)
         config.update(hyperparams)
-        Cost.__init__(self, config, sample_data)
+        Cost.__init__(self, config)
 
-    def eval_sample(self, sample):
+    def eval(self, sample):
         """
         Evaluate forward kinematics (end-effector penalties) cost.
-
-        Temporary note: This implements the 'joint' penalty type from the matlab code,
-            with the velocity/velocity diff/etc. penalties remove (use CostState instead)
-
+        Temporary note: This implements the 'joint' penalty type from
+            the matlab code, with the velocity/velocity diff/etc.
+            penalties removed. (use CostState instead)
         Args:
-            sample_idx: A single index into sample_data
-
-        Return:
-            l, lx, lu, lxx, luu, lux:
-                Loss (len T float) and derivatives with respect to states (x) and/or actions (u).
+            sample: A single sample.
         """
-        T = self.sample_data.T
-        dX = self.sample_data.dX
-        dU = self.sample_data.dU
-        #sample = self.sample_data.get_samples(idx=[sample_idx])[0]
+        T = sample.T
+        dX = sample.dX
+        dU = sample.dU
 
-        wpm = get_ramp_multiplier(self._hyperparams['ramp_option'], T,
-                                  wp_final_multiplier=self._hyperparams['wp_final_multiplier'])
+        wpm = get_ramp_multiplier(
+            self._hyperparams['ramp_option'], T,
+            wp_final_multiplier=self._hyperparams['wp_final_multiplier']
+        )
         wp = self._hyperparams['wp'] * np.expand_dims(wpm, axis=-1)
 
         # Initialize terms.
-        l = np.zeros((T,))
+        l = np.zeros(T)
         lu = np.zeros((T, dU))
         lx = np.zeros((T, dX))
         luu = np.zeros((T, dU, dU))
@@ -50,28 +48,24 @@ class CostFK(Cost):
         lux = np.zeros((T, dU, dX))
 
         # Choose target.
-        tgt = self._hyperparams['end_effector_target']
+        tgt = self._hyperparams['target_end_effector']
         pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
-        jx = sample.get(END_EFFECTOR_JACOBIANS)
+        # TODO - These should be partially zeros so we're not double
+        #        counting.
+        #        (see pts_jacobian_only in matlab costinfos code)
+        jx = sample.get(END_EFFECTOR_POINT_JACOBIANS)
 
-        # Evaluate penalty term.
-        if self._hyperparams['analytic_jacobian']:
-            jxx = sample.get(END_EFFECTOR_HESSIANS)
-            il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx,
-                                                          self._hyperparams['l1'],
-                                                          self._hyperparams['l2'],
-                                                          self._hyperparams['alpha'])
-        else:
-            # Use estimated Jacobians and no higher order terms
-            jxx_zeros = np.zeros((T, dist.shape[1], dX, dX))
-            il, ilx, ilxx = self._hyperparams['evalnorm'](wp, dist, jx, jxx_zeros,
-                                                          self._hyperparams['l1'],
-                                                          self._hyperparams['l2'],
-                                                          self._hyperparams['alpha'])
+        # Evaluate penalty term. Use estimated Jacobians and no higher
+        # order terms.
+        jxx_zeros = np.zeros((T, dist.shape[1], jx.shape[2], jx.shape[2]))
+        l, ls, lss = self._hyperparams['evalnorm'](
+            wp, dist, jx, jxx_zeros, self._hyperparams['l1'],
+            self._hyperparams['l2'], self._hyperparams['alpha']
+        )
         # Add to current terms.
-        l = l + il
-        lx = lx + ilx
-        lxx = lxx + ilxx
+        sample.agent.pack_data_x(lx, ls, data_types=[JOINT_ANGLES])
+        sample.agent.pack_data_x(lxx, lss,
+                                 data_types=[JOINT_ANGLES, JOINT_ANGLES])
 
         return l, lx, lu, lxx, luu, lux

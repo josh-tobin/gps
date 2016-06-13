@@ -9,7 +9,6 @@ a subclass.
 #include <Eigen/Dense>
 #include <boost/scoped_ptr.hpp>
 
-#include "gps_agent_pkg/ArmType.h"
 #include "gps/proto/gps.pb.h"
 
 // Superclass.
@@ -26,6 +25,8 @@ private:
     ros::Time last_update_time_;
     // Counter for time step increment.
     int step_counter_;
+    // Holds the last step of a trial
+    int trial_end_step_;
     // Current time step.
     boost::scoped_ptr<Sample> current_step_;
     // Trajectory sample.
@@ -33,6 +34,12 @@ private:
     // State and obs datatypes
     std::vector<gps::SampleType> state_datatypes_;
     std::vector<gps::SampleType> obs_datatypes_;
+    // end effector target (subtracted before control is computed)
+    Eigen::VectorXd ee_tgt_;
+
+protected:
+    bool is_configured_;
+
 public:
     // Constructor.
     TrialController();
@@ -46,10 +53,17 @@ public:
     virtual void configure_controller(OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
-    // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample>* get_sample() const;
+    // Return trial step index
+    virtual int get_step_counter();
+    // Return length of trial.
+    virtual int get_trial_length();
     // Called when controller is turned on
     virtual void reset(ros::Time update_time);
+
+    const bool is_configured(){
+        return is_configured_;
+    }
+
 };
 
 }

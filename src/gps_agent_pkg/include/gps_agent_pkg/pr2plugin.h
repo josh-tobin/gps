@@ -9,14 +9,19 @@ This is the PR2-specific version of the robot plugin.
 #include <pr2_mechanism_model/chain.h>
 #include <pr2_mechanism_model/robot.h>
 #include <Eigen/Dense>
+#include <pluginlib/class_list_macros.h>
 
 // Superclass.
 #include "gps_agent_pkg/robotplugin.h"
+#include "gps_agent_pkg/controller.h"
+#include "gps_agent_pkg/positioncontroller.h"
+#include "gps_agent_pkg/encodersensor.h"
+#include "gps/proto/gps.pb.h"
 
 namespace gps_control
 {
 
-class PR2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
+class GPSPR2Plugin: public RobotPlugin, public pr2_controller_interface::Controller
 {
 private:
     // PR2-specific chain object necessary to construct the KDL chain.
@@ -39,9 +44,9 @@ private:
     int controller_step_length_;
 public:
     // Constructor (this should do nothing).
-    PR2Plugin();
+    GPSPR2Plugin();
     // Destructor.
-    virtual ~PR2Plugin();
+    virtual ~GPSPR2Plugin();
     // Functions inherited from superclass.
     // This called by the superclass to allow us to initialize all the PR2-specific stuff.
     /* IMPORTANT: note that some sensors require a KDL chain to do FK, which we need the RobotState to get... */
@@ -66,7 +71,7 @@ public:
     // Get current time.
     virtual ros::Time get_current_time() const;
     // Get current encoder readings (robot-dependent).
-    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, ArmType arm) const;
+    virtual void get_joint_encoder_readings(Eigen::VectorXd &angles, gps::ActuatorType arm) const;
 };
 
 }

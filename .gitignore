@@ -88,3 +88,15 @@ MUJOCO_LOG.TXT
 
 # Vim
 *.swp
+*.swo
+
+# Caffe
+*.caffemodel
+*.solverstate
+
+# Data files
+*.pkl
+
+# Experiment files
+experiments/*/data_files/
+experiments/*/log.txt

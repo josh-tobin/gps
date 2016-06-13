@@ -9,17 +9,10 @@ space.
 
 // Superclass.
 #include "gps_agent_pkg/controller.h"
+#include "gps/proto/gps.pb.h"
 
 namespace gps_control
 {
-
-// Current motion type.
-enum PositionControlMode
-{
-    NoControl,
-    JointSpaceControl,
-    TaskSpaceControl
-};
 
 class PositionController : public Controller
 {
@@ -32,6 +25,7 @@ private:
     Eigen::VectorXd pd_gains_i_;
     // Integral terms.
     Eigen::VectorXd pd_integral_;
+    Eigen::VectorXd i_clamp_;
     // Maximum joint velocities.
     Eigen::VectorXd max_velocities_;
     // Temporary storage for Jacobian.
@@ -49,19 +43,19 @@ private:
     // Latest pose.
     Eigen::VectorXd current_pose_;
 
-    Eigen::VectorXd torques_;
+    //Eigen::VectorXd torques_;
 
     // Current mode.
-    PositionControlMode mode_;
+    gps::PositionControlMode mode_;
     // Current arm.
-    ArmType arm_;
+    gps::ActuatorType arm_;
     // Time since motion start.
     ros::Time start_time_;
     // Time of last update.
     ros::Time last_update_time_;
 public:
     // Constructor.
-    PositionController(ros::NodeHandle& n, ArmType arm);
+    PositionController(ros::NodeHandle& n, gps::ActuatorType arm, int size);
     // Destructor.
     virtual ~PositionController();
     // Update the controller (take an action).
@@ -70,10 +64,10 @@ public:
     virtual void configure_controller(OptionsMap &options);
     // Check if controller is finished with its current task.
     virtual bool is_finished() const;
-    // Ask the controller to return the sample collected from its latest execution.
-    virtual boost::scoped_ptr<Sample>* get_sample() const;
     // Reset the controller -- this is typically called when the controller is turned on.
     virtual void reset(ros::Time update_time);
+    // Should this report when position achieved?
+    bool report_waiting;
 };
 
 }

@@ -1,8 +1,8 @@
+#include "assert.h"
 #include "mujoco_osg_viewer.hpp"
 #include <string>
-#include "engine/engine.h"
-#include "user/user.h"
-#include "xml/xml.h"
+#include <cstring>
+#include "mujoco.h"
 #include "unistd.h"
 #include <iostream>
 #include <osg/io_utils>
@@ -21,6 +21,32 @@
 #include "macros.h"
 
 #define PLOT_JOINTS 0
+
+class PhotoCallback : public osg::Camera::DrawCallback
+{
+public:
+    PhotoCallback( osg::Image* img )
+    : _image(img), _fileIndex(0) {}
+
+    virtual void operator()( osg::RenderInfo& renderInfo ) const
+    {
+        if ( _image.valid() )
+        {
+            osg::GraphicsContext* gc = renderInfo.getState()->getGraphicsContext();
+            if ( gc->getTraits() )
+            {
+                int width = gc->getTraits()->width;
+                int height = gc->getTraits()->height;
+                GLenum pixelFormat = (gc->getTraits()->alpha ? GL_RGBA : GL_RGB);
+                _image->readPixels( 0, 0, width, height, pixelFormat, GL_UNSIGNED_BYTE );
+            }
+        }
+    }
+
+protected:
+    osg::ref_ptr<osg::Image> _image;
+    mutable int _fileIndex;
+};
 
 struct EventHandler : public osgGA::GUIEventHandler
 {
@@ -274,36 +300,63 @@ osg::Node* createOSGNode(const mjModel* model, int i_geom) {
 
 
 MujocoOSGViewer::MujocoOSGViewer() 
-: m_option(NULL), m_data(NULL), m_model(NULL)
+: m_data(NULL), m_model(NULL)
 {
     m_root = new osg::Group;
     m_robot = new osg::Group;
     m_root->addChild(m_robot);
+
+    m_image = new osg::Image;
+    osg::ref_ptr<PhotoCallback> pcb = new PhotoCallback( m_image.get() );
+    m_viewer.getCamera()->setPostDrawCallback( pcb.get() );
+
     m_viewer.setSceneData(m_root.get());
     m_viewer.setUpViewInWindow(0, 0, 640, 480);
     m_viewer.realize();
-    // m_viewer.setCameraManipulator(new osgGA::TrackballManipulator());
 
-
-
-    osg::ref_ptr<osgGA::NodeTrackerManipulator> nodeTracker = new osgGA::NodeTrackerManipulator;
-    nodeTracker->setHomePosition( osg::Vec3(0, -5.0, 0), osg::Vec3(), osg::Z_AXIS );
-    nodeTracker->setTrackerMode( osgGA::NodeTrackerManipulator::NODE_CENTER_AND_ROTATION );
-    nodeTracker->setRotationMode(osgGA::NodeTrackerManipulator::TRACKBALL );
-    nodeTracker->setTrackNode( m_robot );
-    osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keySwitch = new osgGA::KeySwitchMatrixManipulator;
-    keySwitch->addMatrixManipulator( '1', "Trackball", new osgGA::TrackballManipulator );
-    keySwitch->addMatrixManipulator( '2', "NodeTracker", nodeTracker.get() );
-    m_viewer.setCameraManipulator( keySwitch.get() );       
+    osg::ref_ptr<osgGA::TrackballManipulator> man = new osgGA::TrackballManipulator;
+    man->setHomePosition(osg::Vec3(2, 3, 2), osg::Vec3(0, 0, 0), osg::Vec3(-1, -1.5, 2));
+    m_viewer.setCameraManipulator(man);
 
     m_handler = new EventHandler(this);
     m_viewer.addEventHandler(m_handler.get());
 }
 
+MujocoOSGViewer::MujocoOSGViewer(osg::Vec3 cam_pos, osg::Vec3 cam_target)
+: m_data(NULL), m_model(NULL)
+{
+    m_root = new osg::Group;
+    m_robot = new osg::Group;
+    m_root->addChild(m_robot);
+
+    m_image = new osg::Image;
+    osg::ref_ptr<PhotoCallback> pcb = new PhotoCallback( m_image.get() );
+    m_viewer.getCamera()->setPostDrawCallback( pcb.get() );
+
+    m_viewer.setSceneData(m_root.get());
+    m_viewer.setUpViewInWindow(0, 0, 640, 480);
+    m_viewer.realize();
+
+    osg::ref_ptr<osgGA::TrackballManipulator> man = new osgGA::TrackballManipulator;
+    man->setHomePosition(cam_pos, cam_target, osg::Vec3(-1, -1.5, 2));
+    m_viewer.setCameraManipulator(man);
+
+    m_handler = new EventHandler(this);
+    m_viewer.addEventHandler(m_handler.get());
+}
+
+void MujocoOSGViewer::SetCamera(float x, float y, float z, float px, float py, float pz){
+    // place camera at (x,y,z) pointing to (px,py,pz)
+    m_viewer.getCameraManipulator()->setHomePosition(osg::Vec3(x, y, z), osg::Vec3(px, py, pz), osg::Vec3(-1, -1.5, 2),false);
+    //osg::ref_ptr<osgGA::CameraManipulator> man = m_viewer.getCameraManipulator();
+    //man->setHomePosition(osg::Vec3(0.5, -1.5, 5), osg::Vec3(0.5, -1.5, 0), osg::Vec3(-1, -1.5, 2));
+    //m_viewer.setCameraManipulator(man);
+}
+
 void MujocoOSGViewer::Idle() {    
     EventHandler* handler = dynamic_cast<EventHandler*>(m_handler.get());
     handler->m_idling = true;
-    mj_kinematics(m_model, m_data);    
+    mj_kinematics(m_model, m_data);
     _UpdateTransforms();
     while (handler->m_idling && !m_viewer.done()) {
         m_viewer.frame();
@@ -312,7 +365,7 @@ void MujocoOSGViewer::Idle() {
 }
 
 void MujocoOSGViewer::RenderOnce() {
-    mj_kinematics(m_model,m_data);    
+    mj_kinematics(m_model,m_data);
     _UpdateTransforms();
     m_viewer.frame();
 }
@@ -355,13 +408,10 @@ void MujocoOSGViewer::StopAsyncRendering() {
 
 void MujocoOSGViewer::SetModel(const mjModel* m) {
     m_model = m;
-    if (m_option!=NULL) mj_deleteOption(m_option);
-    m_option = mj_makeOption();
     if (m_data!=NULL) mj_deleteData(m_data);
     m_data = mj_makeData(m_model);
 
     m_geomTFs.clear();
-    printf("%i geoms\n",m->ngeom);
     for (int i=0; i < m->ngeom; ++i) {
         osg::MatrixTransform* geom_tf = new osg::MatrixTransform;
         m_geomTFs.push_back(geom_tf);
@@ -402,21 +452,11 @@ void MujocoOSGViewer::SetData(const mjData* d) {
 }
 
 
-void NewModelFromXML(const char* filename,mjModel*& model, mjOption*& option) {
+void NewModelFromXML(const char* filename,mjModel*& model) {
     char errmsg[100];
-    mjCModel* usermodel = mjParseXML(filename, errmsg);
-    if( !usermodel ) {
+    model = mj_loadXML(filename, errmsg);
+    if( !model ) {
         printf("%s\n",errmsg);
     }
-    else {
-        model = usermodel->Compile();
-        if( !model ) {
-            strcpy(errmsg, usermodel->GetError().message);
-            printf("%s\n",errmsg);
-        }
-        option = mj_makeOption();
-        *option = usermodel->option;
-        delete usermodel;
-    }   
 }
 

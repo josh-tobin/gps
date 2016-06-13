@@ -1,5 +1,4 @@
 # Time-varying Linear Gaussian controller
-uint32 T
 uint32 dX
 uint32 dU
 float64[] K_t  # Should be T x Du x Dx
