@@ -33,9 +33,13 @@ def lqr(cost, lgpolicy, dynamics,
         jacobian=None,
         max_time_varying_horizon=20):
     """
-    Plain LQR
-
     TODO: Clean up args...
+
+    Plain LQR. 
+    Returns:
+        LinearGaussianPolicy: A new time-varying policy valid for <horizon> timesteps
+        reg_mu: Value function regularization (from Tassa synthesis paper, currently unused)
+        reg_del: 
     """
     dX = prevx.shape[0]
     dU = prevu.shape[0]
@@ -66,8 +70,7 @@ def lqr(cost, lgpolicy, dynamics,
             Qtt = Cm[t]
             Qt = cv[t]
 
-            Vxx = Vxx  # + reg_mu*np.eye(dX)
-            # Qtt = Qtt + F.T.dot(Vxx.dot(F))
+            Vxx = Vxx  # + reg_mu*np.eye(dX)  #Note: reg_mu is currently unused
             Qtt = Qtt + F.T.dot(Vxx.dot(F))
             Qt = Qt + F.T.dot(Vx) + F.T.dot(Vxx).dot(f)
 
@@ -118,7 +121,7 @@ def lqr(cost, lgpolicy, dynamics,
 def estimate_cost(cur_timestep, cost, lgpolicy, dynamics, horizon, x0, prevx, prevu, max_time_varying_horizon,
                   jacobian=None, time_varying_dynamics=True):
     """
-    Returns cost matrices and dynamics via a forward pass
+    Returns cost derivatives and computed dynamics via a forward pass
     """
     # Cost + dynamics estimation
 

@@ -42,7 +42,7 @@ class OnlineController(Policy):
         return u
 
     def initial_policy(self):
-        """Return policy for timestep 0"""
+        """Return LinearGaussianPolicy for timestep 0"""
         H = self.H
         K = np.zeros((H, dU, dX))
         k = np.zeros((H, dU))
@@ -55,15 +55,25 @@ class OnlineController(Policy):
                                     invPSig):
 
 
-    def compute_action(self, lgpolicy, x):
-        """ Compute action and add noise """
+    def compute_action(self, lgpolicy, x, add_noise=True):
+        """ 
+        Compute dU-dimensional action from a 
+        time-varying LG policy's first timestep (and add noise)
+        """
+        # Only the first timestep of the policy is used
         u = lgpolicy.K[0].dot(x) + lgpolicy.k[0]
-        u += lgpolicy.chol_pol_covar[0].dot(self.u_noise * np.random.randn(7))
+        if add_noise:
+            u += lgpolicy.chol_pol_covar[0].dot(self.u_noise * np.random.randn(7))
         np.clip(u, -CLIP_U, CLIP_U)
         return u
 
     def run_lqr(self, t, x, prev_policy):
-        """Compute a new policy given new state """
+        """
+        Compute a new policy given new state 
+
+        Returns:
+            LinearGaussianPolicy: An updated policy 
+        """
         horizon = min(self.H, self.maxT - t)
         reg_mu = self.min_mu
         reg_del = self.del0
