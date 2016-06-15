@@ -538,7 +538,7 @@ class PrevSADynamicsNetwork(Network):
             net_fwd = self.ff_out(data_pnt_exp, pxu_exp)[0][0]
             f = -F.dot(data_pnt) + net_fwd
             return F, f
-        self.getF = taylor_expand
+        self.linearize = taylor_expand
 
     def fwd_single(self, xu, prevxu):
         pxu_exp = np.expand_dims(prevxu, axis=0).astype(np.float32)

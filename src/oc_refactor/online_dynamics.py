@@ -84,7 +84,7 @@ class NNPrior(OnlineDynamicsPrior):
         self.mix_prior_strength = mix_strength
 
     def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
-        F, f = self.dyn_net.getF(xu)
+        F, f = self.dyn_net.linearize(xu, pxu)
         nn_Phi, nnf = mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
         sigma = (N * empsig + nn_Phi) / (N + 1)
         mun = (N * mun + np.r_[xu, F.dot(xu) + f]) / (N + 1)
