@@ -2,17 +2,20 @@ import numpy as np
 from helper import *
 
 class OnlineDynamics(object):
-    def __init__(self, gamma, prior):
+    def __init__(self, gamma, prior, init_mu, init_sigma, sigreg=1e-5):
         self.gamma = gamma
         self.prior = prior
-        self.xxt = None  # TODO: Init these
-        self.mu = None
-        self.sigma = None
-        self.sigreg = 1e-5  # Covariance regularization (adds sigreg*eye(N))
+        self.sigreg = sigreg # Covariance regularization (adds sigreg*eye(N))
+
+        # Initial values
+        self.mu = init_mu
+        self.sigma = init_sigma
+        self.xxt = init_sigma + np.outer(self.mu, self.mu)
 
     def update(self, prevx, prevu, curx):
-        dX = self.dX
-        dU = self.dU
+        """ Perform a moving average update on the current dynamics """
+        dX = prevx.shape[0]
+        dU = prevu.shape[0]
         ix = slice(dX)
         iu = slice(dX, dX + dU)
         it = slice(dX + dU)
@@ -28,6 +31,9 @@ class OnlineDynamics(object):
         self.sigma = self.xxt - np.outer(self.mu, self.mu)
 
     def get_dynamics(self, t, prevx, prevu, curx, curu):
+        """ 
+        Compute F, f - the linear dynamics where next_x = F*[curx, curu] + f 
+        """
         dX = self.dX
         dU = self.dU
 
@@ -43,15 +49,18 @@ class OnlineDynamics(object):
         xu = np.r_[curx, curu].astype(np.float32)
         pxu = np.r_[prevx, prevu]
         xux = np.r_[prevx, prevu, curx]
-        sigma, mun = self.prior.eval(dX, dU, xu, pxu, xux, self.sigma, self.mu, N)
 
+        # Mix and add regularization
+        sigma, mun = self.prior.mix(dX, dU, xu, pxu, xux, self.sigma, self.mu, N)
         sigma[it, it] = sigma[it, it] + self.sigreg * np.eye(dX + dU)
         sigma_inv = invert_psd(sigma[it,it])
 
+        # Solve normal equations to get dynamics.
         Fm = sigma_inv.dot(sigma[it, ip]).T
         fv = mun[ip] - Fm.dot(mun[it])
         dyn_covar = sigma[ip, ip] - Fm.dot(sigma[it, it]).dot(Fm.T)
-        dyn_covar = 0.5 * (dyn_covar + dyn_covar.T)  # Make symmetric
+        dyn_covar = 0.5 * (dyn_covar + dyn_covar.T)  # Guarantee symmetric
+
         return Fm, fv, dyn_covar
 
 
@@ -59,7 +68,12 @@ class OnlineDynamicsPrior(object):
     def __init__(self):
         pass
 
-    def eval(self, dX, dU, xu, pxu, xux, empsig, mun, N):
+    def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
+        raise NotImplementedError()
+
+
+class NoPrior(OnlineDynamicsPrior):
+    def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
         """Default: Prior that does nothing"""
         return empsig, mun
 
@@ -68,9 +82,8 @@ class NNPrior(OnlineDynamicsPrior):
     def __init__(self, dyn_network, mix_strength):
         self.dyn_net = dyn_network
         self.mix_prior_strength = mix_strength
-        self.sigreg = 1e-5  # Covariance regularization (adds sigreg*eye(N))
 
-    def eval(self, dX, dU, xu, pxu, xux, empsig, mun, N):
+    def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
         F, f = self.dyn_net.getF(xu)
         nn_Phi, nnf = mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
         sigma = (N * empsig + nn_Phi) / (N + 1)
@@ -82,7 +95,7 @@ class GMMPrior(OnlineDynamicsPrior):
     def __init__(self, dynprior):
         self.dynprior = dynprior
 
-    def eval(self, dX, dU, xu, pxu, xux, empsig, mun, N):
+    def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
         mu0, Phi, m, n0 = self.dynprior.eval(dX, dU, xux.reshape(1, dX + dU + dX))
         m = m[0][0]
         mun = (N * mun + mu0 * m) / (N + m)  # Use bias
@@ -96,7 +109,7 @@ class LSQPrior(OnlineDynamicsPrior):
         self.dyn_init_mu = init_mu
         self.mix_prior_strength = mix_strength
 
-    def eval(self, dX, dU, xu, pxu, xux, empsig, mun, N):
+    def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
         mu0, Phi = (self.dyn_init_mu, self.dyn_init_sig)
         mun = (N * mun + mu0 * self.mix_prior_strength) / (N + self.mix_prior_strength)
         sigma = (N * empsig + self.mix_prior_strength * Phi) / (

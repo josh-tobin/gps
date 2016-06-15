@@ -1,3 +1,5 @@
+import os
+from os import errno
 import numpy as np
 import scipy as sp
 from numpy.linalg import LinAlgError
@@ -26,7 +28,7 @@ def invert_psd(A, reg=0):
 
 
 def lqr(cost, lgpolicy, dynamics,
-        horizon, dX, dU, T, x, prevx, prevu,
+        horizon, T, x, prevx, prevu,
         reg_mu, reg_del, del0, min_mu, discount,
         jacobian=None,
         max_time_varying_horizon=20):
@@ -35,6 +37,8 @@ def lqr(cost, lgpolicy, dynamics,
 
     TODO: Clean up args...
     """
+    dX = prevx.shape[0]
+    dU = prevu.shape[0]
     ix = slice(dX)
     iu = slice(dX, dX + dU)
     it = slice(dX + dU)
@@ -101,7 +105,7 @@ def lqr(cost, lgpolicy, dynamics,
                 reg_mu = delmu;
             else:
                 reg_mu = min_mu;
-                # LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
+                LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
 
     policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
 
@@ -238,3 +242,18 @@ def mix_nn_prior(dX, dU, dyn_init_sig, nnF, nnf, xu, sigma_x=None, strength=1.0,
         nn_mu = None  # Unused
 
     return nn_Phi, nn_mu
+
+
+def mkdir_p(dirname):
+    try:
+        os.makedirs(dirname)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
+
+
+
+    

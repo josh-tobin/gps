@@ -6,37 +6,44 @@ import scipy.io
 import logging
 import argparse
 import cPickle
-
+from online_controller import OnlineController
+from helper import *
+import gps.hyperparam_defaults.defaults as defaults
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def get_controller(controllerfile, condition=0, maxT=100):
+def get_controller(controllerfile, maxT=100):
     """
     Load an online controller from controllerfile
     maxT specifies the
     """
-    raise NotImplementedError()
+    with open(controllerfile) as f:
+        controller_dict = cPickle.load(f)
+        controller_dict['maxT'] = maxT
+
+    return OnlineController(controller_dict)
 
 
 def setup_agent(T=100):
     """Returns a MuJoCo Agent"""
-    raise NotImplementedError()
+    hyperparams = {}  # TODO
+    raise AgentMuJoCo(hyperparams)
 
 
-def run_offline(controllerfile, verbose):
+def run_offline(out_filename, verbose, conditions=1, alg_iters=10, sample_iters=20):
     """
     Run offline controller, and save results to controllerfile
     """
-    sample_data, agent = setup_agent()
-    algorithm = defaults['algorithm']['type'](defaults['algorithm'], sample_data)
-    conditions = 10
+    agent = setup_agent()
+    algorithm = defaults['algorithm']['type'](defaults['algorithm'])
+    conditions = conditions
     idxs = [[] for _ in range(conditions)]
-    for itr in range(10):  # Iterations
+    for itr in range(alg_iters):  # Iterations
         for m in range(conditions):
-            for i in range(20):  # Trials per iteration
+            for i in range(sample_iters):  # Trials per iteration
                 n = sample_data.num_samples()
                 pol = algorithm.cur[m].traj_distr
                 sample = agent.sample(pol, sample_data.T, m, verbose=verbose)
@@ -69,28 +76,8 @@ def run_offline(controllerfile, verbose):
     dyn_init_mu = np.mean(xux_data, axis=0)
     dyn_init_sig = np.cov(xux_data.T)
 
-    # Randomly shuffle data
-    # N = nn_train_data.shape[0]
-    # perm = np.random.permutation(N)
-    # nn_train_data = nn_train_data[perm]
-    # nn_train_lbl = nn_train_lbl[perm]
-
-    # Split train/test
-    # ntrain = int(N*0.8)
-    # nn_test_data = nn_train_data[ntrain:]
-    # nn_test_lbl = nn_train_lbl[ntrain:]
-    # nn_train_data = nn_train_data[:ntrain]
-    # nn_train_lbl = nn_train_lbl[:ntrain]
-
-    # Print shapes
-    print 'Data shape:'
-    print 'Train data:', nn_train_data.shape
-    print 'Train lbl:', nn_train_lbl.shape
-    # print 'Test data:', nn_test_data.shape
-    # print 'Test lbl:', nn_test_lbl.shape
-
-    scipy.io.savemat('data/dyndata_mjc.mat', {'data': nn_train_data, 'label': nn_train_lbl})
-    # scipy.io.savemat('data/dyndata_mjc_test.mat', {'data': nn_test_data, 'label': nn_test_lbl})
+    mkdir_p()
+    scipy.io.savemat('data/offline_dynamics_data.mat', {'data': nn_train_data, 'label': nn_train_lbl})
 
     controllers = []
     for condition in range(conditions):
@@ -110,38 +97,19 @@ def run_offline(controllerfile, verbose):
             'offline_K': K,
             'offline_k': k
         }
+        with open(out_filename+'_'+str(condition), 'w') as f:
+            cPickle.dump(controller_dict, f)
         controllers.append(controller_dict)
 
-    with open(controllerfile, 'w') as f:
-        mat = cPickle.dump(controllers, f)
 
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
-    parser.add_argument('-t', '--train', action='store_true', default=False, help='Train an offline controller')
-    parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
-    parser.add_argument('-v', '--noverbose', action='store_true', default=False, help='Disable plotting')
-    parser.add_argument('-s', '--savedata', action='store_true', default=False, help='Save dynamics data after running')
-    parser.add_argument('--condition', type=int, default=0, help='Condition')
-
-    mkdirp(os.path.join(THIS_FILE_DIR, 'controller'))
-    default_file = os.path.join(THIS_FILE_DIR, 'controller', 'mjc_online.pkl')
-    parser.add_argument('-c', '--controllerfile', type=str, default=default_file,
-                        help='Online controller filename. Controller will be saved/loaded from here')
-    args = parser.parse_args()
-    return args
-
-
-def run_online(T, controllerfile, condition=0, verbose=True, savedata=False):
+def run_online(T, controllerfile, condition=0, verbose=True, savedata=None):
     """
     Run online controller and save sample data to train dynamics
     """
-    sample_data, agent = setup_agent(T=T)
-    controller = get_controller(controllerfile, condition=condition, maxT=T)
-    # sample = agent.sample(controller, controller.maxT, 0, screenshot_prefix='ss/mjc_relu_noupdate/img')
+    agent = setup_agent(T=T)
+    controller = get_controller(controllerfile, maxT=T)
     sample = agent.sample(controller, controller.maxT, condition, verbose=verbose)
-    # l = controller.cost.eval(sample.get_X(), sample.get_U(),0)[0]
-    if not savedata:
+    if savedata is None:
         return
 
     X = sample.get_X()
@@ -151,26 +119,18 @@ def run_online(T, controllerfile, condition=0, verbose=True, savedata=False):
     clip = np.ones((T - 1, 1))
     clip[0] = 0.0
 
-    mkdirp(os.path.join(THIS_FILE_DIR, 'data'))
-    dynmat_file = os.path.join(THIS_FILE_DIR, 'data', 'dyndata_mjc_expr3.mat')
+    mkdir_p(os.path.join(THIS_FILE_DIR, 'data'))
+    dynmat_file = os.path.join(THIS_FILE_DIR, 'data', savedata)
     try:
         dynmat = scipy.io.loadmat(dynmat_file)
         dynmat['data'] = np.concatenate([dynmat['data'], xu])
         dynmat['label'] = np.concatenate([dynmat['label'], xnext])
         dynmat['clip'] = np.concatenate([dynmat['clip'], clip])
-        print 'New dynamics data size: ', dynmat['data'].shape
+        print 'Appending to existing data. New dynamics data size: ', dynmat['data'].shape
         scipy.io.savemat(dynmat_file, {'data': dynmat['data'], 'label': dynmat['label'], 'clip': dynmat['clip']})
     except IOError:
         print 'Creating new dynamics data at:', dynmat_file
         scipy.io.savemat(dynmat_file, {'data': xu, 'label': xnext, 'clip': clip})
-
-
-def mkdirp(dirname):
-    """ mkdir -p """
-    try:
-        os.mkdir(dirname)
-    except OSError:
-        pass
 
 
 def main():
@@ -180,6 +140,22 @@ def main():
     else:
         run_online(args.timesteps, args.controllerfile, condition=args.condition, verbose=not args.noverbose,
                    savedata=args.savedata)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
+    parser.add_argument('-o', '--offline', action='store_true', default=False, help='Train an offline controller')
+    parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
+    parser.add_argument('-n', '--noverbose', action='store_true', default=False, help='Disable plotting')
+    parser.add_argument('-s', '--savedata', default=None, help='Save dynamics data after running. (Filename)')
+    parser.add_argument('--condition', type=int, default=0, help='Condition')
+
+    mkdir_p(os.path.join(THIS_FILE_DIR, 'controller'))
+    default_file = os.path.join(THIS_FILE_DIR, 'controller', 'mjc_controller.pkl')
+    parser.add_argument('-c', '--controllerfile', type=str, default=default_file,
+                        help='Online controller filename. Controller will be saved/loaded from here')
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
     main()
