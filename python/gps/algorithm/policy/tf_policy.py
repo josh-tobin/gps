@@ -19,7 +19,8 @@ class TfPolicy(Policy):
         device_string: tf device string for running on either gpu or cpu.
     """
     def __init__(self, dU, obs_tensor, act_op, var, sess, device_string,
-                 hidden_state_tensor=None, initial_hidden_state_tensor=None):
+                 hidden_state_tensor=None, 
+                 initial_hidden_state_tensor=None, tf_vars=None):
         Policy.__init__(self)
         self.dU = dU
         self.obs_tensor = obs_tensor
@@ -32,6 +33,7 @@ class TfPolicy(Policy):
         self.hidden_state_tensor = hidden_state_tensor
         self.initial_hidden_state_tensor = initial_hidden_state_tensor
         self.recurrent = False
+        self.tf_vars = tf_vars
         if self.hidden_state_tensor is not None:
             self.recurrent = True
             self.hidden_dim = self.initial_hidden_state_tensor.get_shape().\
@@ -58,6 +60,8 @@ class TfPolicy(Policy):
                 action_mean = self.sess.run(self.act_op, feed_dict=fd)
                 self.hidden_state = self.sess.run(self.hidden_state_tensor, 
                                            feed_dict=fd)
+                #print "Found action mean %s"%str(action_mean)
+                #print "New hidden state sum: %f"%np.sum(self.hidden_state)
         else:
             feed_dict = {self.obs_tensor: np.expand_dims(obs, 0)}
             with tf.device(self.device_string):
@@ -74,7 +78,7 @@ class TfPolicy(Policy):
 
     def reset(self):
         if self.recurrent:
-            print "RESETTING"
+            #print "RESETTING"
             self.hidden_state = np.zeros([1, self.hidden_dim])
 
     def pickle_policy(self, deg_obs, deg_action, checkpoint_path):

@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+from tensorflow.python.ops import variables
 
 def check_list_and_convert(the_object):
     if isinstance(the_object, list):
@@ -11,7 +11,8 @@ class TfMap:
     """ a container for inputs, outputs, and loss in a tf graph. This object exists only
     to make well-defined the tf inputs, outputs, and losses used in the policy_opt_tf class."""
 
-    def __init__(self, input_tensor, target_output_tensor, precision_tensor, output_op, loss_op, recurrent=False, rnn_states=None, rnn_initial_state=None):
+    def __init__(self, input_tensor, target_output_tensor, precision_tensor, output_op, loss_op, recurrent=False, rnn_states=None, rnn_initial_state=None,
+            weights=None, biases=None):
         self.input_tensor = input_tensor
         self.target_output_tensor = target_output_tensor
         self.precision_tensor = precision_tensor
@@ -20,9 +21,10 @@ class TfMap:
         self.recurrent = recurrent
         self.rnn_states = rnn_states
         self.rnn_initial_state = rnn_initial_state
-
+        self.weights = weights
+        self.biases = biases
     @classmethod
-    def init_from_lists(cls, inputs, outputs, loss, recurrent=False,
+    def init_from_lists(cls, inputs, outputs, loss, weights, recurrent=False,
                         recurrent_reset_states=None):
         inputs = check_list_and_convert(inputs)
         outputs = check_list_and_convert(outputs)
@@ -33,8 +35,11 @@ class TfMap:
             outputs += [None]*(3 - len(outputs))
         return cls(inputs[0], inputs[1], inputs[2], outputs[0], loss[0],
                    recurrent=recurrent, rnn_states=outputs[1],
-                   rnn_initial_state=outputs[2])
+                   rnn_initial_state=outputs[2], weights=weights[0],
+                   biases=weights[1])
 
+    def get_vars(self):
+        return self.weights + self.biases
     def get_input_tensor(self):
         return self.input_tensor
 
@@ -83,6 +88,7 @@ class TfSolver:
         self.momentum = momentum
         self.solver_name = solver_name
         self.loss_scalar = loss_scalar
+        self.tf_vars = []
         if self.lr_policy != 'fixed':
             raise NotImplementedError('learning rate policies other than fixed are not implemented')
 
@@ -99,8 +105,21 @@ class TfSolver:
     def get_solver_op(self):
         solver_string = self.solver_name.lower()
         if solver_string == 'adam':
-            return tf.train.AdamOptimizer(learning_rate=self.base_lr,
-                                          beta1=self.momentum).minimize(self.loss_scalar)
+            opt = tf.train.AdamOptimizer(learning_rate=self.base_lr,
+                                         beta1=self.momentum)
+            
+            minimizer = opt.minimize(self.loss_scalar)
+            #print opt.get_slot_names()
+            #print opt._slots
+            #print opt.get_slot(self.loss
+            #self.tf_vars += [opt.get_slot(self.loss_scalar, slot) for slot in
+            #                    opt.get_slot_names()]
+            for value in opt._slots.values():
+                self.tf_vars += value.values()
+            self.tf_vars += opt._get_beta_accumulators()
+            return minimizer
+            #return tf.train.AdamOptimizer(learning_rate=self.base_lr,
+            #                              beta1=self.momentum).minimize(self.loss_scalar)
         elif solver_string == 'rmsprop':
             return tf.train.RMSPropOptimizer(learning_rate=self.base_lr,
                                              decay=self.momentum).minimize(self.loss_scalar)
@@ -114,6 +133,7 @@ class TfSolver:
             return tf.train.GradientDescentOptimizer(learning_rate=self.base_lr).minimize(self.loss_scalar)
         else:
             raise NotImplementedError("Please select a valid optimizer.")
+
 
     def __call__(self, feed_dict, sess, device_string="/cpu:0"):
         with tf.device(device_string):

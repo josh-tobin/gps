@@ -34,6 +34,10 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin, gps::Actua
     end_effector_points_.fill(0.0);
     end_effector_points_target_.resize(3,1);
     end_effector_points_target_.fill(0.0);
+    // Added to try to fix blowup at step 0
+    previous_end_effector_points_.fill(0.0);
+    previous_end_effector_point_velocities_.fill(0.0);
+   
 
     // Resize point jacobians
     point_jacobians_.resize(3, previous_angles_.size());
@@ -126,6 +130,20 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         // Compute velocities.
         // Note that we can't assume the last angles are actually from one step ago, so we check first.
         // If they are roughly from one step ago, assume the step is correct, otherwise use actual time.
+
+        // Need a method to clear eepts in the first timestep
+        // so initial velocities don't blow up
+        /* 
+        if (std::all_of(previous_end_effector_points_.data().begin(),
+                    previous_end_effector_points_.data().end(), 
+                    [](int i) {return i==0; }))
+        {
+            std::cout << "\n" << "resetting prev end eff pts\n";
+            previous_end_effector_points_ = temp_end_effector_points_;
+        }*/
+        if(previous_end_effector_points_.sum() == 0.0) {
+            previous_end_effector_points_ = temp_end_effector_points_;
+        }
 
         double update_time = current_time.toSec() - previous_angles_time_.toSec();
         if (!previous_angles_time_.isZero())

@@ -33,6 +33,6 @@ def main():
     request.stamp = rospy.get_rostime()
     result_msg = agent._data_service.publish_and_wait(request)
     #print type(result_msg)
-    print result_msg.sensor_data[7].data
+    #print result_msg.sensor_data[7].data
 if __name__ == '__main__':
     main()

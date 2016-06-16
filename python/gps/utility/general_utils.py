@@ -1,6 +1,6 @@
-""" This file defines general utility functions and classes. """
-import numpy as np
 
+import numpy as np
+import xml.etree.ElementTree as ElementTree
 
 class BundleType(object):
     """
@@ -92,3 +92,43 @@ def get_ee_points(offsets, ee_pos, ee_rot):
         3 x N array of end effector points.
     """
     return ee_rot.dot(offsets.T) + ee_pos.T
+
+def find_objects_in_model(model_path):
+    """
+    Helper function to find all of the non-robot objects in the scene
+    so that we can apply gravity to them individually (as MJC does not
+    seem to have a way to selectively apply gravity to only some bodies).
+    
+    Args:
+        model_path: the path to the xml model file
+    Returns:
+        objects: dictionary mapping object names to their position in the
+                 object array, which can be used by the agent to access
+                 them.
+    """
+    root = ElementTree.parse(model_path).getroot()
+    objects = {}
+    # keep track of the position of the objects
+    object_pos = 0 
+    for body in root.iter('body'):
+        # First, we increment object pos, to account for the fact
+        # that tree.iter('body') misses one body in the model: namely,
+        # worldbody
+
+        object_pos += 1
+        if 'name' in body.attrib:
+            # We use the convention that objects will be identified in the
+            # xml file by appending OBJ to their names.
+            if body.attrib['name'][:3] == 'OBJ':
+                objects[body.attrib['name']] = object_pos
+    return objects
+
+def find_sites_in_model(model_path):
+    root = ElementTree.parse(model_path).getroot()
+    sites = {}
+    site_pos = 0
+    for site in root.iter('site'):
+        if 'name' in site.attrib:
+            sites[site.attrib['name']] = site_pos
+        site_pos += 1
+    return sites

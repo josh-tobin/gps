@@ -39,22 +39,22 @@ def time_distributed_multi_input_dense_layer(x1, x2, x1_dim, x2_dim,
     b = tf.Variable(init_b)
 
     with ops.op_scope([x1, x2, W1, W2, b], name, 'td_mi_layer') as name:
-        x1 = ops.convert_to_tensor(x1, name='x1')
-        x2 = ops.convert_to_tensor(x2, name='x2')
-        W1 = ops.convert_to_tensor(W1, name='W1')
-        W2 = ops.convert_to_tensor(W2, name='W2')
-        b = ops.convert_to_tensor(b, name='b')
+        x1t = ops.convert_to_tensor(x1, name='x1')
+        x2t = ops.convert_to_tensor(x2, name='x2')
+        W1t = ops.convert_to_tensor(W1, name='W1')
+        W2t = ops.convert_to_tensor(W2, name='W2')
+        bt = ops.convert_to_tensor(b, name='b')
 
-        x1W1 = tf.matmul(tf.reshape(x1, [-1, x1_dim]), W1)
-        x2W2 = tf.matmul(tf.reshape(x2, [-1, x2_dim]), W2)
+        x1W1 = tf.matmul(tf.reshape(x1t, [-1, x1_dim]), W1t)
+        x2W2 = tf.matmul(tf.reshape(x2t, [-1, x2_dim]), W2t)
         xW = x1W1 + x2W2
-        xW_plus_b = tf.nn.bias_add(xW, b)
+        xW_plus_b = tf.nn.bias_add(xW, bt)
         xW_plus_b = tf.reshape(xW_plus_b, target_shape)
         if activation == None or activation == 'linear':
             out = xW_plus_b
         else:
             out = activation(xW_plus_b)
-        return out
+        return out, [W1, W2], [b]
 
 def time_distributed_dense_layer(x, input_dim, output_dim, 
                                  activation=tf.nn.relu, 
@@ -69,19 +69,19 @@ def time_distributed_dense_layer(x, input_dim, output_dim,
     b = tf.Variable(initial_bias)
     
     with ops.op_scope([x, W, b], name, 'td_layer') as name:
-        x = ops.convert_to_tensor(x, name='x')
-        W = ops.convert_to_tensor(W, name='W')
-        b = ops.convert_to_tensor(b, name='b')
-        original_shape = tf.shape(x[:,:,0])
+        xt = ops.convert_to_tensor(x, name='x')
+        Wt = ops.convert_to_tensor(W, name='W')
+        bt = ops.convert_to_tensor(b, name='b')
+        original_shape = tf.shape(xt[:,:,0])
         new_shape = tf.concat(0, [original_shape, (output_dim,)])
-        xw_plus_b = tf.nn.bias_add(tf.matmul(tf.reshape(x,[-1,input_dim]), 
-                                             W), b)
+        xw_plus_b = tf.nn.bias_add(tf.matmul(tf.reshape(xt,[-1,input_dim]), 
+                                             Wt), bt)
         xw_plus_b = tf.reshape(xw_plus_b, new_shape)
         if activation == None or activation == 'linear':
             out = xw_plus_b
         else:
             out = activation(xw_plus_b)
-        return out
+        return out, [W], [b]
 
 def build_rnn_inputs(dim_input, dim_output):
     nn_input = tf.placeholder(tf.float32, shape=(None, None, dim_input),
@@ -95,25 +95,39 @@ def build_rnn_inputs(dim_input, dim_output):
 
 def build_rnn(input_tensor, dim_input, dim_output):
     initial_state = tf.placeholder(tf.float32, shape=(None, 2*dim_output))
+
+
     lstm_cell = tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input)
     y, states = tf.nn.dynamic_rnn(lstm_cell, input_tensor, 
                                   initial_state=initial_state, 
                                   dtype='float32')
-    return y, states, initial_state
+    weights, biases = tf.all_variables()
+    return y, states, initial_state, [weights], [biases]
 
 def build_crl_ff_layers(rnn_output, nn_input, rnn_output_dim, nn_input_dim,
-                        nn_output_dim, hidden_dim=64, n_layers=3):
-    first_out = time_distributed_multi_input_dense_layer(
+                        nn_output_dim, hidden_dim=128, n_layers=3):
+    weights = []
+    biases = []
+    first_out, first_W, first_b = time_distributed_multi_input_dense_layer(
                     rnn_output, nn_input, rnn_output_dim, nn_input_dim, 
                     hidden_dim)
+    weights += first_W
+    biases += first_b
+
     prev_out = first_out
     for _ in range(n_layers - 2):
-        prev_out = time_distributed_dense_layer(prev_out, hidden_dim, 
-                                                hidden_dim)
+        prev_out, prev_W, prev_b  = time_distributed_dense_layer(
+                prev_out, hidden_dim, hidden_dim)
+        weights += prev_W
+        biases += prev_b
 
-    final_out = time_distributed_dense_layer(prev_out, hidden_dim, 
-                                             nn_output_dim, activation=None)
-    return final_out
+    final_out, final_W, final_b = time_distributed_dense_layer(
+            prev_out, hidden_dim, nn_output_dim, activation=None)
+    weights += final_W
+    weights += final_b
+
+    return final_out, weights, biases
+
 def build_loss(rnn_out, action, precision, output_dim):
     return time_distributed_euclidean_loss_layer(action, rnn_out, precision)
 
@@ -131,8 +145,8 @@ def example_rnn_network(dim_input=32, dim_output=7, batch_size=10):
                                  [loss_out], recurrent=True)
 
 def crl_rnn_network(dim_input=32, dim_output=7, batch_size=5,
-                    n_steps=100, rnn_output_dim=16, hidden_dim=64,
-                    n_feedforward=3):
+                    n_steps=100, rnn_output_dim=128, hidden_dim=256,
+                    n_feedforward=4):
     ''' Implements the RNN architecture we plan to use for CRL
         :first layer: RNN. Estimates system parameters.
         :remaining layers: Feed forward. Map state + params -> action '''
@@ -140,12 +154,18 @@ def crl_rnn_network(dim_input=32, dim_output=7, batch_size=5,
     print("... dim_input = %d, dim_output=%d, rnn_output_dim=%d, hidden_dim=%d"
           %(dim_input, dim_output, rnn_output_dim, hidden_dim))
     nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
-    rnn_out, rnn_states, rnn_initial_state = build_rnn(nn_input, dim_input,
-                                                       rnn_output_dim)
-    nn_out = build_crl_ff_layers(rnn_out, nn_input, rnn_output_dim, dim_input,
-                                dim_output, 
-                                hidden_dim=hidden_dim, n_layers=n_feedforward)
+    rnn_out, rnn_states, rnn_initial_state, \
+       rnn_weights, rnn_biases = build_rnn(nn_input, dim_input, rnn_output_dim)
+    nn_out, nn_weights, nn_biases = build_crl_ff_layers(rnn_out, nn_input, 
+                                                  rnn_output_dim, dim_input,
+                                                  dim_output, 
+                                                  hidden_dim=hidden_dim, 
+                                                  n_layers=n_feedforward)
+    weights = rnn_weights + nn_weights
+    biases = rnn_biases + nn_biases
+
     loss_out = build_loss(nn_out, action, precision, dim_output)
     return TfMap.init_from_lists([nn_input, action, precision],
                                  [nn_out, rnn_states, rnn_initial_state],
-                                 [loss_out], recurrent=True)
+                                 [loss_out], [weights, biases], 
+                                 recurrent=True)

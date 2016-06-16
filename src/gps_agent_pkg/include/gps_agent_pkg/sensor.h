@@ -23,8 +23,9 @@ namespace gps_control
 enum SensorType
 {
     EncoderSensorType = 0,
+    ActionSensorType = 1,
     CameraSensorType,
-    TotalSensorTypes
+    TotalSensorTypes = 2
 };
 
 // Forward declarations.

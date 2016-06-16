@@ -45,6 +45,7 @@ void TfController::get_action(int t, const Eigen::VectorXd &X, const Eigen::Vect
 // Configure the controller.
 void TfController::configure_controller(OptionsMap &options)
 {
+
     last_command_id_received = 0;
     last_command_id_acted_upon = 0;
     failed_attempts = 0;

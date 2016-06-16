@@ -25,6 +25,7 @@ ALG = {
     },
     # Costs.
     'cost': None,  # A list of Cost objects for each condition.
+    'save_samples': True,
 }
 
 
@@ -43,4 +44,5 @@ ALG_BADMM = {
     'exp_step_decrease': 0.5,
     'exp_step_upper': 0.0,
     'exp_step_lower': 2.0,
+    'save_samples': True,
 }

@@ -49,9 +49,11 @@ set(DDP_FILES src/robotplugin.cpp
               src/tfcontroller.cpp
               src/controller.cpp
               src/lingausscontroller.cpp
+              src/openloopcontroller.cpp
               src/camerasensor.cpp
               src/positioncontroller.cpp
               src/trialcontroller.cpp
+              src/actionsensor.cpp
               src/encodersensor.cpp
               src/encoderfilter.cpp
               src/util.cpp)
@@ -96,6 +98,7 @@ rosbuild_add_library(gps_agent_lib ${DDP_FILES})
 
 #rosbuild_add_executable(point_head src/point_head.cpp)
 #rosbuild_add_executable(torso src/torso.cpp)
+rosbuild_add_executable(simple_gripper src/simple_gripper.cpp)
 
 # Include Caffe in controller
 if (USE_CAFFE)

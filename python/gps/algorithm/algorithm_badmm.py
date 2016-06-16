@@ -151,7 +151,8 @@ class AlgorithmBADMM(Algorithm):
             obs_data = np.concatenate((obs_data, samples.get_obs()))
         self.policy_opt.update(obs_data, tgt_mu, tgt_prc, tgt_wt,
                                itr, inner_itr)
-
+        # This should save the policy to be reloaded later!
+        self.policy_opt.auto_save_state()
     def _update_policy_fit(self, m, init=False):
         """
         Re-estimate the local policy values in the neighborhood of the

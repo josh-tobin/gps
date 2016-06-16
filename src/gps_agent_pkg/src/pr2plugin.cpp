@@ -12,6 +12,10 @@ GPSPR2Plugin::GPSPR2Plugin()
     // Some basic variable initialization.
     controller_counter_ = 0;
     controller_step_length_ = 50;
+    latest_action_command_.resize(7,1);
+    latest_action_command_.fill(0.0);
+    active_arm_torques_.resize(7,1);
+    active_arm_torques_.fill(0.0);
 }
 
 // Destructor.

@@ -5,6 +5,7 @@ import logging
 import numpy as np
 
 import tensorflow as tf
+from tensorflow.python.ops import variables
 
 from gps.algorithm.policy.tf_policy import TfPolicy
 from gps.algorithm.policy_opt.policy_opt import PolicyOpt
@@ -40,6 +41,7 @@ class PolicyOptTf(PolicyOpt):
         self.solver = None
         self.rnn_states = None
         self.rnn_initial_state = None
+        self.tf_vars = []
         self.init_network()
         self.init_solver()
         self.var = self._hyperparams['init_var'] * np.ones(dU)
@@ -47,7 +49,8 @@ class PolicyOptTf(PolicyOpt):
         self.policy = TfPolicy(dU, self.obs_tensor, self.act_op, np.zeros(dU), 
                                self.sess, self.device_string, 
                                hidden_state_tensor=self.rnn_states,
-                               initial_hidden_state_tensor=self.rnn_initial_state)
+                               initial_hidden_state_tensor=self.rnn_initial_state,
+                               tf_vars=self.tf_vars)
         self.x_idx, self.img_idx, i = [], [], 0
         if 'obs_image_data' not in self._hyperparams['network_params']:
             self._hyperparams['network_params'].update({'obs_image_data': []})
@@ -71,10 +74,12 @@ class PolicyOptTf(PolicyOpt):
         self.loss_scalar = tf_map.get_loss_op()
         self.rnn_states = tf_map.get_rnn_states()
         self.rnn_initial_state = tf_map.get_rnn_initial_state()
+        self.tf_vars += tf_map.get_vars()
         if self.recurrent:
             self.hidden_dim = self.rnn_initial_state.get_shape().as_list()[-1]
         else:
             self.hidden_dim = None
+    
     def init_solver(self):
         """ Helper method to initialize the solver. """
         self.solver = TfSolver(loss_scalar=self.loss_scalar,
@@ -100,7 +105,6 @@ class PolicyOptTf(PolicyOpt):
         """
         N, T = obs.shape[:2]
         dU, dO = self._dU, self._dO
-        print("Updating, N=%d, T=%d, dU=%d, dO=%d"%(N, T, dU, dO))
         # TODO - Make sure all weights are nonzero?
 
         # Save original tgt_prc.
@@ -163,6 +167,7 @@ class PolicyOptTf(PolicyOpt):
                 initial_hidden = np.zeros((self.batch_size, self.hidden_dim))
                 feed_dict[self.rnn_initial_state] =  initial_hidden
             self.solver(feed_dict, self.sess)
+
             with tf.device(self.device_string):
                 train_loss = self.sess.run(self.loss_scalar, feed_dict)
             
@@ -233,8 +238,10 @@ class PolicyOptTf(PolicyOpt):
 
     def auto_save_state(self, pickle_hyperparams_path=None):
         """ auto-pickle including hyper params. Useful for debugging. """
-        print "AUTO SAVE STATE CALLED"
-        saver = tf.train.Saver()
+        # Note - this doesn't seem to work
+
+        saver = tf.train.Saver(self.policy.tf_vars + self.solver.tf_vars)
+        #saver = tf.train.Saver()
         saver.save(self.sess, self.checkpoint_file)
         return_dict = {
             'hyperparams': self._hyperparams,
@@ -244,7 +251,6 @@ class PolicyOptTf(PolicyOpt):
             'bias': self.policy.bias,
             'tf_iter': self.tf_iter,
         }
-
         import pickle
         if pickle_hyperparams_path is None:
             pickle_hyperparams_path = self.checkpoint_file + '_hyperparams'

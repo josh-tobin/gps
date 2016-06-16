@@ -18,6 +18,7 @@ AGENT = {
     'mass_body_idx': np.array([]),
     'mass_body_mult': np.array([]),
     'body_color_offset': np.array([]),
+    'gain_scale': 1.0,
     'smooth_noise': True,
     'smooth_noise_var': 2.0,
     'smooth_noise_renormalize': True,
@@ -72,7 +73,12 @@ AGENT_MUJOCO = {
     'image_width': 640,
     'image_height': 480,
     'image_channels': 3,
-    'meta_include': []
+    'meta_include': [],
+    'ee_points_tgt': None,
+    'object_ids': {},
+    'ee_point_mode': 'stationary_target',
+    'ee_points_indices': None,
+    'ee_points_tgt_site': None,
 }
 
 AGENT_BOX2D = {

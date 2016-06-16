@@ -55,7 +55,6 @@ class CostFK(Cost):
         #        counting.
         #        (see pts_jacobian_only in matlab costinfos code)
         jx = sample.get(END_EFFECTOR_POINT_JACOBIANS)
-
         # Evaluate penalty term. Use estimated Jacobians and no higher
         # order terms.
         jxx_zeros = np.zeros((T, dist.shape[1], jx.shape[2], jx.shape[2]))
@@ -64,6 +63,8 @@ class CostFK(Cost):
             self._hyperparams['l2'], self._hyperparams['alpha']
         )
         # Add to current terms.
+        #print sample
+        #print sample.agent
         sample.agent.pack_data_x(lx, ls, data_types=[JOINT_ANGLES])
         sample.agent.pack_data_x(lxx, lss,
                                  data_types=[JOINT_ANGLES, JOINT_ANGLES])

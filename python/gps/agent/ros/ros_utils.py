@@ -86,6 +86,21 @@ class TimeoutException(Exception):
     def __init__(self, sec_waited):
         Exception.__init__(self, "Timed out after %f seconds", sec_waited)
 
+class StatefulSubscriber(object):
+    ''' 
+    Simple subscriber class that saves the last message 
+    '''
+    def __init__(self, sub_topic, sub_type, T=None):
+        self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
+        self._msg = None
+        self._T = T
+    def _callback(self, msg):
+        # Little hack to get tf to work
+        if self._T is None or msg.sensor_data[0].shape[0] == self._T:
+            self._msg = msg
+
+    def get_msg(self):
+        return self._msg
 
 class ServiceEmulator(object):
     """
@@ -100,7 +115,7 @@ class ServiceEmulator(object):
     def __init__(self, pub_topic, pub_type, sub_topic, sub_type):
         self._pub = rospy.Publisher(pub_topic, pub_type)
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
-
+        self.sub_topic = sub_topic ### TEMP ###
         self._waiting = False
         self._subscriber_msg = None
 
@@ -139,4 +154,7 @@ class ServiceEmulator(object):
             time_waited += 0.01
             if time_waited > timeout:
                 raise TimeoutException(time_waited)
+        return self._subscriber_msg
+
+    def get_msg(self):
         return self._subscriber_msg

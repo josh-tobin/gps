@@ -1,0 +1,17 @@
+<launch>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find gps_agent_pkg)/worlds/pr2_grip_world.world" />  
+  </include>
+  <include file="$(find gps_agent_pkg)/launch/pr2_gazebo_no_controller_altpose.launch">
+    <!--arg name="x" value="-0.3" /-->
+  </include>
+  <include file="$(find gps_agent_pkg)/launch/pr2_only_controller.launch"/>
+
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen" args="-file $(find gps_agent_pkg)/urdf/simple_object.urdf -urdf -x 0.925 -z 0.805 -y .20 -model simple_object" />
+
+  <node name="scene_plugin" pkg="gps_agent_pkg" type="scene_plugin" output="screen" respawn="true" />
+
+ 
+</launch>
+

@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/jt/gps/python/gps/algorithm/policy_opt/tf_checkpoint/policy_checkpoint.ckpt"
+all_model_checkpoint_paths: "/home/jt/gps/python/gps/algorithm/policy_opt/tf_checkpoint/policy_checkpoint.ckpt"

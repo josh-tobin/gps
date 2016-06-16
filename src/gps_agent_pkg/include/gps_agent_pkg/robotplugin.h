@@ -65,6 +65,8 @@ protected:
     boost::scoped_ptr<PositionController> active_arm_controller_;
     // Current trial controller (if any).
     boost::scoped_ptr<TrialController> trial_controller_;
+    // Latest action observed by the plugin
+    Eigen::VectorXd latest_action_command_;
     // Sensor data for the current time step.
     boost::scoped_ptr<Sample> current_time_step_sample_;
     // Auxiliary Sensor data for the current time step.
@@ -158,7 +160,8 @@ public:
     //tf controller commands.
     //tf publish observation command.
     virtual void tf_publish_obs(Eigen::VectorXd obs);
-
+    Eigen::VectorXd latest_action_command();
+    Eigen::VectorXd active_arm_torques();
 };
 
 }

@@ -58,7 +58,8 @@ common = {
     'conditions': 1,
 }
 
-for i in xrange(common['conditions']):
+#for i in xrange(common['conditions']):
+for i in range(1):
     ja_x0, ee_pos_x0, ee_rot_x0 = load_pose_from_npz(
             common['target_filename'], 'trial_arm', str(i), 'initial'
     )
@@ -97,7 +98,7 @@ agent = {
     'x0': [x[:14] for x in x0s],
     #'x0': np.concatenate([np.array([0.5, 0.5, 1.5, 1.5, -1.5, 0.2, 0]), np.zeros(7)]),
     'dt': 0.05,
-    'substeps': 5,
+    'substeps': 50,
     'conditions': common['conditions'],
     'pos_body_idx': np.array([1]),
     #'pos_body_offset': [np.array([0.0, 0.12, 0]), np.array([0.0, -0.08, 0]),

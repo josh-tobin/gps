@@ -22,11 +22,13 @@ class DataLogger(object):
 
     def pickle(self, filename, data):
         """ Pickle data into file specified by filename. """
+        LOGGER.info("DataLogger writing to file " + filename)
         pickle.dump(data, open(filename, 'wb'))
 
     def unpickle(self, filename):
         """ Unpickle data from file specified by filename. """
         try:
+            LOGGER.info("DataLogger loading from file " + filename)
             return pickle.load(open(filename, 'rb'))
         except IOError:
             LOGGER.debug('Unpickle error. Cannot find file: %s', filename)

@@ -44,7 +44,8 @@ class GPSMain(object):
 
         config['algorithm']['agent'] = self.agent
         self.algorithm = config['algorithm']['type'](config['algorithm'])
-
+        self._save_samples = config['algorithm']['save_samples']
+    
     def run(self, itr_load=None):
         """
         Run training by iteratively sampling and taking an iteration.
@@ -87,7 +88,7 @@ class GPSMain(object):
             os._exit(1) # called instead of sys.exit(), since t
         traj_sample_lists = self.data_logger.unpickle(self._data_files_dir +
             ('traj_sample_itr_%02d.pkl' % itr))
-
+        
         pol_sample_lists = self._take_policy_samples(N)
         self.data_logger.pickle(
             self._data_files_dir + ('pol_sample_itr_%02d.pkl' % itr),
@@ -167,7 +168,8 @@ class GPSMain(object):
                 )
                 self.agent.sample(
                     pol, cond,
-                    verbose=(i < self._hyperparams['verbose_trials'])
+                    verbose=(i < self._hyperparams['verbose_trials']),
+                    #save=self._save_samples
                 )
 
                 if self.gui.mode == 'request' and self.gui.request == 'fail':
@@ -179,7 +181,8 @@ class GPSMain(object):
         else:
             self.agent.sample(
                 pol, cond,
-                verbose=(i < self._hyperparams['verbose_trials'])
+                verbose=(i < self._hyperparams['verbose_trials']),
+                #save=self._save_samples
             )
 
     def _take_iteration(self, itr, sample_lists):
@@ -236,14 +239,17 @@ class GPSMain(object):
             )
         if 'no_sample_logging' in self._hyperparams['common']:
             return
-        self.data_logger.pickle(
+       
+        print("In _log_data, about to do our thing")
+        self.data_logger.pickle(    
             self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr),
             copy.copy(self.algorithm)
         )
-        self.data_logger.pickle(
-            self._data_files_dir + ('traj_sample_itr_%02d.pkl' % itr),
-            copy.copy(traj_sample_lists)
-        )
+        if self._save_samples:
+            self.data_logger.pickle(
+                self._data_files_dir + ('traj_sample_itr_%02d.pkl' % itr),
+                copy.copy(traj_sample_lists)
+            )
         if pol_sample_lists:
             self.data_logger.pickle(
                 self._data_files_dir + ('pol_sample_itr_%02d.pkl' % itr),
@@ -340,7 +346,7 @@ def main():
         algorithm_filenames = [f for f in data_filenames if f.startswith(algorithm_prefix)]
         current_algorithm = sorted(algorithm_filenames, reverse=True)[0]
         current_itr = int(current_algorithm[len(algorithm_prefix):len(algorithm_prefix)+2])
-
+        
         gps = GPSMain(hyperparams.config)
         if hyperparams.config['gui_on']:
             test_policy = threading.Thread(

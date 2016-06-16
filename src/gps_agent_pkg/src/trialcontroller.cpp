@@ -25,13 +25,14 @@ void TrialController::update(RobotPlugin *plugin, ros::Time current_time, boost:
     Eigen::VectorXd X, obs;
     sample->get_data(step_counter_, X, state_datatypes_);
     sample->get_data(step_counter_, obs, obs_datatypes_);
-
+    //std::cout << "Trial controller sees obs: " << obs << "\n";
     //publish the observation for consumption. Can be implemented in subclass if you want
     //the observations published to a ros node. Used for async controllers like the tf_controller.
     publish_obs(obs, plugin);
     // Ask subclass to fill in torques
     get_action(step_counter_, X, obs, torques);
-
+    
+    // std::cout << "\n" << "Torques: " << "\n" << torques << "\n";
     // Set the torques for the sample
     sample->set_data(step_counter_,gps::ACTION,torques,torques.size(),SampleDataFormatDouble);
 

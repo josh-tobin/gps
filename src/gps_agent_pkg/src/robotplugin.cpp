@@ -82,9 +82,8 @@ void RobotPlugin::initialize_sensors(ros::NodeHandle& n)
     sensors_.clear();
 
     // Create all sensors.
-    for (int i = 0; i < 1; i++)
-    // TODO: ZDM: read this when more sensors work
-    //for (int i = 0; i < TotalSensorTypes; i++)
+    // for (int i = 0; i < 1; i++)
+    for (int i = 0; i < TotalSensorTypes; i++)
     {
         ROS_INFO_STREAM("creating sensor: " + to_string(i));
         boost::shared_ptr<Sensor> sensor(Sensor::create_sensor((SensorType)i,n,this, gps::TRIAL_ARM));
@@ -198,6 +197,8 @@ void RobotPlugin::update_sensors(ros::Time current_time, bool is_controller_step
 
     // If a data request is waiting, publish the sample.
     if (trial_data_request_waiting_) {
+        //std::cout << "Trial data request is waiting. Publishing sample report\n";
+        ROS_INFO_STREAM("Trial data request is waiting. Publishing sample report");
         publish_sample_report(current_time_step_sample_);
         trial_data_request_waiting_ = false;
     }
@@ -226,8 +227,7 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
 
     // Check if the trial controller finished and delete it.
     if (trial_init && trial_controller_->is_finished()) {
-
-        // Publish sample after trial completion
+       // Publish sample after trial completion
         publish_sample_report(current_time_step_sample_, trial_controller_->get_trial_length());
         //Clear the trial controller.
         trial_controller_->reset(current_time);
@@ -467,7 +467,6 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
     }
     sensor_params["ee_points_tgt"] = ee_points_tgt;
    
-    printf("\n");
     configure_sensors(sensor_params);
 
     controller_initialized_ = true;
@@ -557,18 +556,29 @@ void RobotPlugin::tf_robot_action_command_callback(const gps_agent_pkg::TfAction
         // Unpack the action vector
         int idx = 0;
         int dU = (int)msg->dU;
-        Eigen::VectorXd latest_action_command;
-        latest_action_command.resize(dU);
+        //Eigen::VectorXd latest_action_command;
+        //latest_action_command.resize(dU);
+        latest_action_command_.resize(dU);
         for (int i = 0; i < dU; ++i)
         {
-            latest_action_command[i] = msg->action[i];
+            //latest_action_command[i] = msg->action[i];
+            latest_action_command_[i] = msg->action[i];
             idx++;
         }
         int last_command_id_received = msg ->id;
-        trial_controller_->update_action_command(last_command_id_received, latest_action_command);
-
+        //trial_controller_->update_action_command(last_command_id_received, latest_action_command);
+        trial_controller_->update_action_command(last_command_id_received,
+                                                 latest_action_command_);
     }
 
+}
+
+Eigen::VectorXd RobotPlugin::latest_action_command(){
+    return latest_action_command_;
+}
+
+Eigen::VectorXd RobotPlugin::active_arm_torques(){
+    return active_arm_torques_;
 }
 
 void RobotPlugin::tf_publish_obs(Eigen::VectorXd obs){
