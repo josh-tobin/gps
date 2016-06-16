@@ -92,5 +92,6 @@ MUJOCO_LOG.TXT
 
 # Experiment files
 experiments/*/data_files/
+!experiments/crl_*/data_files/algorithm_itr*.pkl
 experiments/*/log.txt
 .previous_experiment
