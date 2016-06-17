@@ -52,8 +52,7 @@ class OnlineController(Policy):
         PSig = np.tile(init_noise*np.eye(dU), [H, 1, 1])
         invPSig = np.tile(1/init_noise*np.eye(dU), [H, 1, 1])
         return LinearGaussianPolicy(K, k, PSig, cholPSig, 
-                                    invPSig):
-
+                                    invPSig)
 
     def compute_action(self, lgpolicy, x, add_noise=True):
         """ 

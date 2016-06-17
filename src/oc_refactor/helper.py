@@ -251,7 +251,7 @@ def mkdir_p(dirname):
     try:
         os.makedirs(dirname)
     except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
+        if exc.errno == errno.EEXIST and os.path.isdir(dirname):
             pass
         else:
             raise

@@ -4,11 +4,17 @@ import numpy as np
 import scipy
 import scipy.io
 import logging
+import copy
 import argparse
 import cPickle
 from online_controller import OnlineController
 from helper import *
-import gps.hyperparam_defaults.defaults as defaults
+from gps.hyperparam_defaults import defaults, ACTION, JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, \
+    END_EFFECTOR_POINT_VELOCITIES
+from gps.agent.mjc.agent_mjc import AgentMuJoCo
+from gps.sample.sample_list import SampleList
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
+from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
@@ -29,34 +35,56 @@ def get_controller(controllerfile, maxT=100):
 
 def setup_agent(T=100):
     """Returns a MuJoCo Agent"""
-    hyperparams = {}  # TODO
-    raise AgentMuJoCo(hyperparams)
+    hyperparams = copy.deepcopy(defaults['agent'])
+    hyperparams['T'] = T
+    hyperparams['sensor_dims'] = {ACTION: 7, JOINT_ANGLES:7, JOINT_VELOCITIES:7,
+                                  END_EFFECTOR_POINTS: 6, END_EFFECTOR_POINT_VELOCITIES: 6}
+    hyperparams['state_include'] = [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES]
+    dX = sum([hyperparams['sensor_dims'][k] for k in hyperparams['state_include']])
+    print 'dX:', dX
 
+    hyperparams['obs_include'] = hyperparams['state_include']
+    hyperparams['x0'] = np.zeros(dX-12)
+    return AgentMuJoCo(hyperparams)
 
-def run_offline(out_filename, verbose, conditions=1, alg_iters=10, sample_iters=20):
+def setup_algorithm(agent, conditions):
+    hyperparams = copy.deepcopy(defaults['algorithm'])
+    hyperparams['agent'] = agent
+    hyperparams['dynamics'] = {
+        'type': DynamicsLRPrior,
+        'prior':{
+            'type': DynamicsPriorGMM
+        },
+        'regularization': 1e-5
+    }
+    hyperparams['init_traj_distr']['T'] = agent.T
+    hyperparams['init_traj_distr']['dt'] = 0.05
+    algorithm = defaults['algorithm']['type'](hyperparams)
+    return algorithm
+
+def run_offline(out_filename, verbose, conditions=10, alg_iters=1, sample_iters=2):
     """
     Run offline controller, and save results to controllerfile
     """
     agent = setup_agent()
-    algorithm = defaults['algorithm']['type'](defaults['algorithm'])
-    conditions = conditions
-    idxs = [[] for _ in range(conditions)]
+    algorithm = setup_algorithm(agent, conditions)
+    samples = [[] for _ in range(conditions)]
     for itr in range(alg_iters):  # Iterations
         for m in range(conditions):
             for i in range(sample_iters):  # Trials per iteration
-                n = sample_data.num_samples()
                 pol = algorithm.cur[m].traj_distr
-                sample = agent.sample(pol, sample_data.T, m, verbose=verbose)
-                sample_data.add_samples(sample)
-                idxs[m].append(n)
-        algorithm.iteration([idx[-20:] for idx in idxs])
+                sample = agent.sample(pol, m, verbose=verbose)
+                samples[m].append(sample)
+        algorithm.iteration([SampleList(sample_list[-20:]) for sample_list in samples])
         print 'Finished itr ', itr
 
-    dX = sample_data.dX
-    dU = sample_data.dU
+    dX = sample.dX
+    dU = sample.dU
 
-    all_X = sample_data.get_X()  # N x T x dX
-    all_U = sample_data.get_U()  # N x T x dX
+    all_X = [sample.get_X() for sample_list in samples for sample in sample_list]
+    all_X = np.r_[all_X]  # N x T x dX
+    all_U = [sample.get_U() for sample_list in samples for sample in sample_list]
+    all_U = np.r_[all_U]  # N x T x dX
     N, T, dX = all_X.shape
     xux_data = []
     nn_train_data = []
@@ -76,20 +104,20 @@ def run_offline(out_filename, verbose, conditions=1, alg_iters=10, sample_iters=
     dyn_init_mu = np.mean(xux_data, axis=0)
     dyn_init_sig = np.cov(xux_data.T)
 
-    mkdir_p()
+    mkdir_p('data')
     scipy.io.savemat('data/offline_dynamics_data.mat', {'data': nn_train_data, 'label': nn_train_lbl})
 
     controllers = []
     for condition in range(conditions):
         gmm = algorithm.prev[condition].traj_info.dynamics.prior.gmm
-        tgtmu = sample_data.get_samples(idx=[-1])[0].get_X()
+        #tgtmu = sample_data.get_samples(idx=[-1])[0].get_X()
         # tgtmu = algorithm.cur[condition].
         K = algorithm.cur[condition].traj_distr.K
         k = algorithm.cur[condition].traj_distr.k
         controller_dict = {
             'dyn_init_mu': dyn_init_mu,
             'dyn_init_sig': dyn_init_sig,
-            'cost_tgt_mu': tgtmu,
+            #'cost_tgt_mu': tgtmu,
             'eetgt': np.array([0.0, 0.3, -0.5, 0.0, 0.3, -0.2]),
             'Dx': dX,
             'Du': dU,
@@ -134,8 +162,9 @@ def run_online(T, controllerfile, condition=0, verbose=True, savedata=None):
 
 
 def main():
+    print 'TEMP:main'
     args = parse_args()
-    if args.train:
+    if args.offline:
         run_offline(args.controllerfile, verbose=not args.noverbose)
     else:
         run_online(args.timesteps, args.controllerfile, condition=args.condition, verbose=not args.noverbose,
@@ -144,7 +173,7 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
-    parser.add_argument('-o', '--offline', action='store_true', default=False, help='Train an offline controller')
+    parser.add_argument('-o', '--offline', action='store_true', default=False, help='Run & train an offline controller')
     parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
     parser.add_argument('-n', '--noverbose', action='store_true', default=False, help='Disable plotting')
     parser.add_argument('-s', '--savedata', default=None, help='Save dynamics data after running. (Filename)')
