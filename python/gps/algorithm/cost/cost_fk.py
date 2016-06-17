@@ -48,7 +48,7 @@ class CostFK(Cost):
         lux = np.zeros((T, dU, dX))
 
         # Choose target.
-        tgt = self._hyperparams['target_end_effector']
+        tgt = self._hyperparams['end_effector_target']
         pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
         # TODO - These should be partially zeros so we're not double

@@ -1,7 +1,7 @@
 from copy import deepcopy
 import numpy as np
 
-from config import cost_torque
+from config import COST_ACTION
 from cost import Cost
 
 
@@ -10,12 +10,12 @@ class CostTorque(Cost):
     Computes torque penalties
     """
 
-    def __init__(self, hyperparams, sample_data):
-        config = deepcopy(cost_torque)
+    def __init__(self, hyperparams):
+        config = deepcopy(COST_ACTION)
         config.update(hyperparams)
-        Cost.__init__(self, config, sample_data)
+        Cost.__init__(self, config)
 
-    def eval_sample(self, sample):
+    def eval(self, sample):
         """
         Evaluate cost function and derivatives on a sample
 

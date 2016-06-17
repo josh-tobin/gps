@@ -3,6 +3,7 @@
 *.mat
 *.mp4
 *.jpg
+mjkey.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
