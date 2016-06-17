@@ -256,7 +256,19 @@ def mkdir_p(dirname):
         else:
             raise
 
+class ClassRegistry(type):
+    """
+    A metaclass that registers instantiated classes in a 'registry'
+    which enables lookup via string using ClassRegistry.getClass
+    """
+    CLASS_REGISTRY = {}
+    @staticmethod
+    def getClass(classname):
+        return CLASS_REGISTRY[classname]
 
-
+    def __new__(cls, name, bases, attrs):
+        new_cls = super(ClassRegistry, cls).__new__(cls, name, bases, newattrs)
+        CLASS_REGISTRY[name] = new_cls
+        return new_cls
 
     

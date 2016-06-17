@@ -19,6 +19,13 @@ class OnlineController(Policy):
             for key in config_dict:
                 setattr(self, key, config_dict[key])
 
+        # Init objects
+        self.cost = CostFKOnline(self.eetgt, \
+            wu=self.wu, ee_idx=self.ee_idx, jnt_idx=self.jnt_idx, maxT=self.maxT, use_jacobian=True)
+        self.prior = ClassRegistry.getClass(self.prior_class)(*self.prior_class_args)
+        self.dynamics = OnlineDynamics(gamma, prior, dyn_init_mu, dyn_init_sig)
+
+
     def act(self, x, obs, t, noise=None, sample=None):
         """
         Args:

@@ -1,8 +1,7 @@
 """
-This file contains default options for the MuJoCo configuration
+This file contains default options for the MuJoCo configuration.
+It should contain little executable code - just names and values.
 """
-from online_dynamics import *
-from cost_fk_online import CostFKOnline
 
 # General options
 dX = 26
@@ -29,13 +28,12 @@ wu = 3e-3/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Torque penalty
 tgt = np.zeros(26)
 eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt
-cost = CostFKOnline(eetgt, wu=wu, ee_idx=ee_idx, jnt_idx=jnt_idx, maxT=maxT, use_jacobian=True)
 
 # Dynamics Options
 dyn_init_mu = np.zeros(dT+dX)
 dyn_init_sig = np.eye(dT+dX)
-prior = NoPrior()
+prior_class = 'NoPrior'
+prior_class_args = []
 init_gamma = gamma = 0.1  # Higher means update faster. Lower means keep more history.
-dynamics = OnlineDynamics(gamma, prior, dyn_init_mu, dyn_init_sig)
 mix_prior_strength = 1.0
 

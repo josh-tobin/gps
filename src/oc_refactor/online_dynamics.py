@@ -65,6 +65,7 @@ class OnlineDynamics(object):
 
 
 class OnlineDynamicsPrior(object):
+    __metaclass__ = ClassRegistry
     def __init__(self):
         pass
 
