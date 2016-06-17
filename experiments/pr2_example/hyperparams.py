@@ -119,6 +119,7 @@ algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
     'iterations': 10,
+    'save_samples': True,
 }
 
 algorithm['init_traj_distr'] = {
