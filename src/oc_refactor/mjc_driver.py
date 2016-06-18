@@ -15,6 +15,7 @@ from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.sample.sample_list import SampleList
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
+import common
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
@@ -89,6 +90,7 @@ def run_offline(out_filename, verbose, conditions=10, alg_iters=1, sample_iters=
     xux_data = []
     nn_train_data = []
     nn_train_lbl = []
+    nn_train_clip = []
     for n in range(N):
         for t in range(1, T - 1):
             xux_data.append(np.concatenate([all_X[n, t, :], all_U[n, t, :], all_X[n, t + 1, :]]))
@@ -105,7 +107,7 @@ def run_offline(out_filename, verbose, conditions=10, alg_iters=1, sample_iters=
     dyn_init_sig = np.cov(xux_data.T)
 
     mkdir_p('data')
-    scipy.io.savemat('data/offline_dynamics_data.mat', {'data': nn_train_data, 'label': nn_train_lbl})
+    scipy.io.savemat(os.path.join('data', common.OFFLINE_DYNAMICS_DATA), {'data': nn_train_data, 'label': nn_train_lbl, 'clip':clip})
 
     controllers = []
     for condition in range(conditions):

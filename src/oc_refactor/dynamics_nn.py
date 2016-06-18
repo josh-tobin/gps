@@ -135,6 +135,7 @@ class TanhLayer(ActivationLayer):
         return T.tanh(prev_layer)
 
 
+"""
 class GRULayer(RecurrentLayer):
     def __init__(self, input_blob, output_blob, clip_blob, din, dout, activation=None):
         super(GRULayer, self).__init__(input_blob, output_blob, clip_blob)    
@@ -190,7 +191,7 @@ class GRULayer(RecurrentLayer):
 
         new_layer.b.set_value(self.b.get_value())
         return new_layer
-
+"""
 
 class FFIPLayer(FeedforwardLayer):
     def __init__(self, input_blob, output_blob, din, dout):

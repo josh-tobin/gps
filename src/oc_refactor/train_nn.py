@@ -1,10 +1,13 @@
-from dynamics_nn import *
 import theano.tensor as T
 import h5py
 import logging
 import sys
 import scipy.io
 import argparse
+import os
+
+import common
+from dynamics_nn import *
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
@@ -12,7 +15,7 @@ np.random.seed(123)
 
 LOGGER = logging.getLogger(__name__)
 
-def get_data_hdf5(fnames):
+def load_hdf5(fnames):
     if type(fnames) == str:
         fnames = [fnames]
 
@@ -32,6 +35,27 @@ def get_data_hdf5(fnames):
            np.concatenate(total_lbl).astype(np.float32), \
            np.concatenate(total_clip).astype(np.float32)[:,0]
 
+def load_mat(fname):
+    if type(fnames) == str:
+        fnames = [fnames]
+
+    total_data = []
+    total_lbl = []
+    total_clip = []
+    for fname in fnames:
+        f = scipy.io.loadmat(fname)
+        total_data.append(f['data'])
+        total_lbl.append(f['label'])
+        total_clip.append(f['clip'])
+    LOGGER.info('Datasets loaded:')
+    LOGGER.info('>',total_data)
+    LOGGER.info('>',total_lbl)
+    LOGGER.info('>',total_clip)
+    return np.concatenate(total_data).astype(np.float32), \
+           np.concatenate(total_lbl).astype(np.float32), \
+           np.concatenate(total_clip).astype(np.float32)[:,0]
+    
+
 def randomize_data(N, *matrices):
     randomized = []
     perm = np.random.permutation(N)
@@ -40,20 +64,9 @@ def randomize_data(N, *matrices):
     return randomized
 
 
-def prep_data_prevsa():
-    #data, label, clip = get_data_hdf5(['data/dyndata_workbench_expr.hdf5', 'data/dyndata_workbench.hdf5', 'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'])
-    #"""
-    data, label, clip = get_data_hdf5([
-        'data/dyndata_plane_expr_nopu.hdf5', 'data/dyndata_plane_expr_nopu2.hdf5', 'data/dyndata_plane_nopu.hdf5',
-        'data/dyndata_workbench_expr.hdf5', 
-        'data/dyndata_workbench.hdf5',
-        'data/dyndata_reverse_ring.hdf5', 'data/dyndata_plane_table.hdf5', 'data/dyndata_plane_table_expr.hdf5', 'data/dyndata_car.hdf5', 
-        'data/dyndata_gear.hdf5', 
-        'data/dyndata_gear_peg1.hdf5','data/dyndata_gear_peg2.hdf5','data/dyndata_gear_peg3.hdf5','data/dyndata_gear_peg4.hdf5', 
-        'data/dyndata_armwave_lqrtask.hdf5', 'data/dyndata_armwave_all.hdf5.train', 'data/dyndata_armwave_still.hdf5'
-        ])
-    #"""
-    #data, label, clip = get_data_hdf5(['data/dyndata_mjc_expr.hdf5', 'data/dyndata_mjc_expr2.hdf5', 'data/dyndata_mjc_expr3.hdf5'])
+def prep_data_prevsa(data_files = None):
+    data, label, clip = load_mat(data_files)
+
     N = data.shape[0]
     prevsa = np.zeros_like(data)
     for n in range(N):
@@ -64,10 +77,26 @@ def prep_data_prevsa():
     data, label, prevsa = randomize_data(N, data, label, prevsa)
     return data, label, prevsa
 
-def train_nn(fname, new=True, update_every=2000, save_every=10000):
+def linearize_debug(net, xu, prevxu):
+    """Printout linearization of network around a datapoint
+    Linearization should roughly follow the block structure:
+    [I tI t^2I]
+    [0 I  tI]
+    Which denotes the physics equations
+        x = x + t*v + t^2*a
+        v = v + t*a
+    """
+    perturbed_input = xu
+    F, f = net.linearize(perturbed_input, prevxu)
+    predict_taylor = (F.dot(xu)+f)
+    print 'Linearization:'
+    print '\tF:', F
+    print '\tf:', f
+
+def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=10000):
     logging.basicConfig(level=logging.DEBUG)
 
-    data, label, prevsa = prep_data_prevsa()
+    data, label, prevsa = prep_data_prevsa(data_files)
     bsize = 50
     N = data.shape[0]
 
@@ -103,15 +132,6 @@ def train_nn(fname, new=True, update_every=2000, save_every=10000):
 
 
     net.init_functions(output_blob='acc', weight_decay=1e-4, train_algo='rmsprop')
-    """
-    # Check jacobian of network around a data point
-    for idx in [5]:
-        perturbed_input = data[idx] 
-        F, f = net.linearize(perturbed_input, prevsa[idx])
-        predict_taylor = (F.dot(data[idx])+f)
-        target_label = label[idx]
-        import pdb; pdb.set_trace()
-    """
 
     lr = 5e-3/bsize
     lr_schedule = {
@@ -124,14 +144,15 @@ def train_nn(fname, new=True, update_every=2000, save_every=10000):
 
     # TRAINING LOOP
     for i in range(3*1000*1000):
-
         # Compute batch
         bstart = i*bsize % N
         bend = (i+1)*bsize % N
         if bend < bstart:
             epochs += 1
+            # Shuffle data after iterating through epoch
             data, label, prevsa = randomize_data(N, data, label, prevsa)
             continue
+
         # Select a minibatch
         _data = data[bstart:bend]
         _label = label[bstart:bend]
@@ -152,14 +173,18 @@ def train_nn(fname, new=True, update_every=2000, save_every=10000):
                 net.pickle(fname)
             total_err = net.total_obj(data, prevsa, label)
             print 'Saving network. Total train error:', total_err
+            linearize_debug(net, data[0], prevsa[0])
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
     parser.add_argument('-f', '--filename', type=str, help='Network filename')
     parser.add_argument('-n', '--new', action='store_true', default=False, help='Create a new network')
+
+    default_data = [os.path.join('data', common.OFFLINE_DYNAMICS_DATA)]
+    parser.add_argument('-d', '--data', type=str, metavar='N', nargs='+', default=default_data, help='Data files')
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = parse_args()
-    train_nn(args.filename, new=args.new)
+    train_nn(args.filename, new=args.new, data_files=args.data)
