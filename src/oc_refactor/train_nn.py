@@ -7,13 +7,15 @@ import argparse
 import os
 
 import common
+from helper import mkdir_p
 from dynamics_nn import *
+
+LOGGER = logging.getLogger(__name__)
 
 logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
 np.random.seed(123)
 
-LOGGER = logging.getLogger(__name__)
 
 def load_hdf5(fnames):
     if type(fnames) == str:
@@ -35,7 +37,7 @@ def load_hdf5(fnames):
            np.concatenate(total_lbl).astype(np.float32), \
            np.concatenate(total_clip).astype(np.float32)[:,0]
 
-def load_mat(fname):
+def load_mat(fnames):
     if type(fnames) == str:
         fnames = [fnames]
 
@@ -47,14 +49,15 @@ def load_mat(fname):
         total_data.append(f['data'])
         total_lbl.append(f['label'])
         total_clip.append(f['clip'])
-    LOGGER.info('Datasets loaded:')
-    LOGGER.info('>',total_data)
-    LOGGER.info('>',total_lbl)
-    LOGGER.info('>',total_clip)
-    return np.concatenate(total_data).astype(np.float32), \
+    total_data, total_lbl, total_clip = np.concatenate(total_data).astype(np.float32), \
            np.concatenate(total_lbl).astype(np.float32), \
-           np.concatenate(total_clip).astype(np.float32)[:,0]
-    
+           np.concatenate(total_clip).astype(np.float32)[0,:]
+    LOGGER.info('Datasets loaded:')
+    LOGGER.info('>Data %s',total_data.shape)
+    LOGGER.info('>Label %s',total_lbl.shape)
+    LOGGER.info('>Clip %s',total_clip.shape)
+    return total_data, total_lbl, total_clip
+
 
 def randomize_data(N, *matrices):
     randomized = []
@@ -93,8 +96,9 @@ def linearize_debug(net, xu, prevxu):
     print '\tF:', F
     print '\tf:', f
 
-def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=10000):
+def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=20000):
     logging.basicConfig(level=logging.DEBUG)
+    mkdir_p('network')
 
     data, label, prevsa = prep_data_prevsa(data_files)
     bsize = 50
@@ -105,14 +109,14 @@ def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=100
     dx = 2*dee+2*djnt+0
     du = djnt
 
-    try:
-        net = unpickle_net(fname)
-    except IOError as e:
-        if new:
-            print "Making new network!"
-        else:
+    if not new:
+        try:
+            net = unpickle_net(fname)
+        except IOError as e:
             raise e
 
+    if new:
+        LOGGER.info("Making new network!")
         #sub1 = SubtractAction('data', 'prevxu', 'data_sub')
         norm1 = NormalizeLayer('data', 'data_norm')
         norm1.generate_weights(data)
@@ -123,9 +127,9 @@ def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=100
         ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 100, dx+du)
         #ip1 = PrevSALayer2('data', 'prevxu', 'ip1', dx, du, 80)
         act1 = ReLULayer('ip1', 'act1')
-        ip2 = FFIPLayer('act1', 'ip2', 100, 30) 
+        ip2 = FFIPLayer('act1', 'ip2', 100, 30)
         act2 = ReLULayer('ip2', 'act2')
-        ip3 = FFIPLayer('act2', 'ip3', 30, djnt+dee) 
+        ip3 = FFIPLayer('act2', 'ip3', 30, djnt+dee)
         acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
         loss = SquaredLoss('acc', 'lbl')
         net = PrevSADynamicsNetwork([norm1, norm2, ip1, act1, ip2, act2, ip3, acc], loss)
@@ -142,6 +146,7 @@ def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=100
     }
     epochs = 0
 
+    LOGGER.info("Beginning training")
     # TRAINING LOOP
     for i in range(3*1000*1000):
         # Compute batch
@@ -160,24 +165,24 @@ def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=100
 
         # Compute a GD step
         net.update(stage=STAGE_TRAIN)
-        objval = net.train_gd(_data, _prevxu, _label, lr, 0.9, 0)
+        objval = net.train_gd(_data, _prevxu, _label, lr, 0.9, 0)[0]
 
         # LR decay/messages
         if i in lr_schedule:
             lr *= lr_schedule[i]
         if i % update_every == 0:
-            print 'Epoch=%d, Iter=%d, LR=%f, Objective=%f' % (epoch, i, lr, objval)
+            LOGGER.info('Epoch=%d\tItr=%d\tLR=%f\tObj=%f',epochs, i, lr, objval)
             sys.stdout.flush()
         if i % save_every == 0:
             if i>0:
                 net.pickle(fname)
-            total_err = net.total_obj(data, prevsa, label)
-            print 'Saving network. Total train error:', total_err
-            linearize_debug(net, data[0], prevsa[0])
+            total_err = net.total_obj(data, prevsa, label)[0]
+            LOGGER.info('Saving network. Total train error: %f', total_err)
+            #linearize_debug(net, data[0], prevsa[0])
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
-    parser.add_argument('-f', '--filename', type=str, help='Network filename')
+    parser.add_argument('-f', '--filename', type=str, default=os.path.join('network', common.DYNAMICS_NETWORK), help='Network filename')
     parser.add_argument('-n', '--new', action='store_true', default=False, help='Create a new network')
 
     default_data = [os.path.join('data', common.OFFLINE_DYNAMICS_DATA)]

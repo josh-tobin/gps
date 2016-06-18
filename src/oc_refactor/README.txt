@@ -18,9 +18,32 @@
 
     This function will create a file under data/offline_dynamics_data.mat
 
-[TODO: Test] 2. Train a dynamics neural network
+[DONE] 2. Train a dynamics neural network
     
     $ python train_nn.py
+
+    You can adjust the architecture inside the function train_nn.py:train_nn
+    Layers are defined in dynamics_nn.py
+
+    Dataflow between layers is defined using names 
+        Ex. the ReLULayer has the signature
+        ReLULayer(<input_layer_name>, <output_layer_name>)
+        So you would do this to chain a relu with an inner product layer:
+
+        ff1 = FFIPLayer('data', 'ip1')
+        relu1 = ReLULayer('ip1', 'relu1')
+        ff2 = FFIPLayer('relu1', 'lbl')
+
+        'data' is always defined as the input.
+
+    For training, you can adjust the line
+        net.init_functions(output_blob='acc', weight_decay=1e-4,
+            train_algo='rmsprop')
+
+        train_algo can either be 'rmsprop' or 'sgd'
+
+        The lr and lr_schedule are defined below that line.
+    
     
 [TODO: Test] 3. Run online controller
     

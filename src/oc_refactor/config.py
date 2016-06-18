@@ -1,3 +1,4 @@
+import numpy as np
 """
 This file contains default options for the MuJoCo configuration.
 It should contain little executable code - just names and values.

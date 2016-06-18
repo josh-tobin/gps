@@ -35,11 +35,11 @@ def lqr(cost, lgpolicy, dynamics,
     """
     TODO: Clean up args...
 
-    Plain LQR. 
+    Plain LQR.
     Returns:
         LinearGaussianPolicy: A new time-varying policy valid for <horizon> timesteps
         reg_mu: Value function regularization (from Tassa synthesis paper, currently unused)
-        reg_del: 
+        reg_del:
     """
     dX = prevx.shape[0]
     dU = prevu.shape[0]
@@ -264,11 +264,10 @@ class ClassRegistry(type):
     CLASS_REGISTRY = {}
     @staticmethod
     def getClass(classname):
-        return CLASS_REGISTRY[classname]
+        return ClassRegistry.CLASS_REGISTRY[classname]
 
     def __new__(cls, name, bases, attrs):
-        new_cls = super(ClassRegistry, cls).__new__(cls, name, bases, newattrs)
-        CLASS_REGISTRY[name] = new_cls
+        new_cls = super(ClassRegistry, cls).__new__(cls, name, bases, attrs)
+        ClassRegistry.CLASS_REGISTRY[name] = new_cls
         return new_cls
 
-    
