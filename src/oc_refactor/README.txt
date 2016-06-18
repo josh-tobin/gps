@@ -6,7 +6,7 @@
     3rdparty/mjcpy2/mjcpy2.cpp line 92, so you can change this
     behavior if you want
 
-[DONE] 1. Collect data for training dynamics
+[Optional] 1. Collect data for training dynamics
 
     $ python mjc_driver.py --offline [--noverbose]
 
@@ -20,7 +20,7 @@
 
     This function will create a file under data/offline_dynamics_data.mat
 
-[DONE] 2. Train a dynamics neural network
+[Optional] 2. Train a dynamics neural network
 
     $ python train_nn.py
 
@@ -47,9 +47,15 @@
         The lr and lr_schedule are defined below that line.
 
 
-[TODO: Test] 3. Run online controller
+3. Run online controller
 
-    $ python mjc_driver.py -T <time_steps>
+    $ python mjc_driver.py -T <time_steps> --condition <condition>
 
     Configuration:
-        TODO
+        Default configs are loaded from config.py
+
+    Prior options are defined in online_dynamics.py - there is NoPrior, Least
+    squares prior, neural net prior (with previous state,action), and GMM
+    prior.
+
+

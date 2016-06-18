@@ -266,6 +266,7 @@ def iter_module(module):
         if not key.startswith('__'):
             yield key, getattr(module, key)
 
+
 class ClassRegistry(type):
     """
     A metaclass that registers instantiated classes in a 'registry'
