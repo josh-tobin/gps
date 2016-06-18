@@ -22,12 +22,12 @@ np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def get_controller(controllerfile, maxT=100):
+def get_controller(controllerfile, condition, maxT=100):
     """
     Load an online controller from controllerfile
     maxT specifies the
     """
-    with open(controllerfile) as f:
+    with open(controllerfile+'_'+str(condition)) as f:
         controller_dict = cPickle.load(f)
         controller_dict['maxT'] = maxT
 
@@ -137,8 +137,8 @@ def run_online(T, controllerfile, condition=0, verbose=True, savedata=None):
     Run online controller and save sample data to train dynamics
     """
     agent = setup_agent(T=T)
-    controller = get_controller(controllerfile, maxT=T)
-    sample = agent.sample(controller, controller.maxT, condition, verbose=verbose)
+    controller = get_controller(controllerfile, condition, maxT=T)
+    sample = agent.sample(controller, condition, verbose=verbose)
     if savedata is None:
         return
 

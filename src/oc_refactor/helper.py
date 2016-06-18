@@ -57,6 +57,8 @@ def lqr(cost, lgpolicy, dynamics,
     fail = True
     decrease_mu = True
     K = np.zeros((horizon, dU, dX))
+    pSig = np.zeros((horizon, dU, dU))
+    invPSig = np.zeros((horizon, dU, dU))
     cholPSig = np.zeros((horizon, dU, dU))
     k = np.zeros((horizon, dU))
     while fail:
@@ -70,7 +72,7 @@ def lqr(cost, lgpolicy, dynamics,
             Qtt = Cm[t]
             Qt = cv[t]
 
-            Vxx = Vxx  # + reg_mu*np.eye(dX)  #Note: reg_mu is currently unused
+            Vxx = Vxx  #+ reg_mu*np.eye(dX)  #Note: reg_mu is currently unused
             Qtt = Qtt + F.T.dot(Vxx.dot(F))
             Qt = Qt + F.T.dot(Vx) + F.T.dot(Vxx).dot(f)
 
@@ -85,8 +87,9 @@ def lqr(cost, lgpolicy, dynamics,
                 break
             K[t] = -lu_solve(L, U, Qtt[iu, ix])
             k[t] = -lu_solve(L, U, Qt[iu])
-            pol_covar = lu_solve(np.eye(dU))
-            cholPSig[t] = sp.linalg.cholesky(pol_covar, check_finite=False)
+            pSig[t] = lu_solve(L, U, np.eye(dU))
+            invPSig[t] = invert_psd(pSig[t])
+            cholPSig[t] = sp.linalg.cholesky(pSig[t], check_finite=False)
 
             # Compute value function.
             Vxx = discount * (Qtt[ix, ix] + Qtt[ix, iu].dot(K[t]))
@@ -110,7 +113,7 @@ def lqr(cost, lgpolicy, dynamics,
                 reg_mu = min_mu;
                 LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
 
-    policy = LinearGaussianPolicy(K, k, None, cholPSig, None)
+    policy = LinearGaussianPolicy(K, k, pSig, cholPSig, invPSig)
 
     # plot new
     # self.forward(horizon, x, lgpolicy, T, hist_key='new')
@@ -178,11 +181,12 @@ def estimate_cost(cur_timestep, cost, lgpolicy, dynamics, horizon, x0, prevx, pr
             f[t] = f[0]
             dynsig[t] = dynsig[0]
 
-        if t < H - 1:
+        if t < H:
             # Estimate new dynamics here based on mu
             if time_varying_dynamics and t < max_time_varying_horizon:
                 F[t], f[t], dynsig[t] = dynamics.get_dynamics(cur_timestep + t, mu[t - 1, ix], mu[t - 1, iu],
-                                                              mu[t, ix], cur_action);
+                                                              mu[t, ix], cur_action)
+        if t < H - 1:
             trajsig[t + 1, ix, ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
             mu[t + 1, ix] = F[t].dot(mu[t]) + f[t]
 
@@ -255,6 +259,12 @@ def mkdir_p(dirname):
             pass
         else:
             raise
+
+
+def iter_module(module):
+    for key in dir(module):
+        if not key.startswith('__'):
+            yield key, getattr(module, key)
 
 class ClassRegistry(type):
     """

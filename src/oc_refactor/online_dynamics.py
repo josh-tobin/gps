@@ -2,10 +2,13 @@ import numpy as np
 from helper import *
 
 class OnlineDynamics(object):
-    def __init__(self, gamma, prior, init_mu, init_sigma, sigreg=1e-5):
+    def __init__(self, gamma, prior, init_mu, init_sigma, dX, dU, N=1, sigreg=1e-5):
         self.gamma = gamma
         self.prior = prior
         self.sigreg = sigreg # Covariance regularization (adds sigreg*eye(N))
+        self.dX = dX
+        self.dU = dU
+        self.empsig_N = N
 
         # Initial values
         self.mu = init_mu
@@ -14,6 +17,7 @@ class OnlineDynamics(object):
 
     def update(self, prevx, prevu, curx):
         """ Perform a moving average update on the current dynamics """
+        dX, dU = self.dX, self.dU
         dX = prevx.shape[0]
         dU = prevu.shape[0]
         ix = slice(dX)
@@ -53,7 +57,8 @@ class OnlineDynamics(object):
         # Mix and add regularization
         sigma, mun = self.prior.mix(dX, dU, xu, pxu, xux, self.sigma, self.mu, N)
         sigma[it, it] = sigma[it, it] + self.sigreg * np.eye(dX + dU)
-        sigma_inv = invert_psd(sigma[it,it])
+        #print 'EIG:', np.linalg.eig(sigma[it, it])[0]
+        sigma_inv = invert_psd(sigma[it, it])
 
         # Solve normal equations to get dynamics.
         Fm = sigma_inv.dot(sigma[it, ip]).T
