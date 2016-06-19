@@ -44,7 +44,7 @@ class GPSMain(object):
 
         config['algorithm']['agent'] = self.agent
         self.algorithm = config['algorithm']['type'](config['algorithm'])
-        self._save_samples = config['algorithm']['save_samples']
+	self._save_samples = config['algorithm']['save_samples']
     
     def run(self, itr_load=None):
         """
