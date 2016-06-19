@@ -93,5 +93,7 @@ MUJOCO_LOG.TXT
 # Experiment files
 experiments/*/data_files/*
 !experiments/crl_holdarm_ff/data_files/algorithm_itr*.pkl
+!experiments/crl_ff/data_files/algorithm_itr*09.pkl
+!experiments/crl_ff/data_files/policy_checkpoint.ckpt
 experiments/*/log.txt
 .previous_experiment

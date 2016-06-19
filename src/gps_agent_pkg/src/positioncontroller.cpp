@@ -55,6 +55,36 @@ PositionController::~PositionController()
 {
 }
 
+////
+void PositionController::get_action(int t, const Eigen::VectorXd &X, 
+                                    const Eigen::VectorXd &obs,
+                                    Eigen::VectorXd &U)
+{
+    temp_angles_ = X - target_angles_;
+
+    // Compute error.
+    temp_angles_ = current_angles_ - target_angles_;
+
+    // Add to integral term.
+    pd_integral_ += temp_angles_ * update_time_;
+
+    // Clamp integral term
+    for (int i = 0; i < temp_angles_.rows(); i++){
+        if (pd_integral_(i) * pd_gains_i_(i) > i_clamp_(i)) {
+            pd_integral_(i) = i_clamp_(i) / pd_gains_i_(i);
+        }
+        else if (pd_integral_(i) * pd_gains_i_(i) < -i_clamp_(i)) {
+            pd_integral_(i) = -i_clamp_(i) / pd_gains_i_(i);
+        }
+    }
+
+        // Compute torques.
+    U = -((pd_gains_p_.array() * temp_angles_.array()) +
+                    (pd_gains_d_.array() * current_angle_velocities_.array()) +
+                    (pd_gains_i_.array() * pd_integral_.array())).matrix();
+}
+
+
 // Update the controller (take an action).
 void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques)
 {
@@ -66,10 +96,10 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     assert(temp_angles_.rows() == current_angles_.rows());
 
     // Estimate joint angle velocities.
-    double update_time = current_time.toSec() - last_update_time_.toSec();
+    update_time_ = current_time.toSec() - last_update_time_.toSec();
     if (!last_update_time_.isZero())
     { // Only compute velocities if we have a previous sample.
-        current_angle_velocities_ = (temp_angles_ - current_angles_)/update_time;
+        current_angle_velocities_ = (temp_angles_ - current_angles_)/update_time_;
     }
 
     // Store new angles.
@@ -96,6 +126,8 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
     // If we're doing any kind of control at all, compute torques now.
     if (mode_ != gps::NO_CONTROL)
     {
+        get_action(0, temp_angles_, temp_angles_, torques);
+        /*
         // Compute error.
         temp_angles_ = current_angles_ - target_angles_;
 
@@ -116,6 +148,7 @@ void PositionController::update(RobotPlugin *plugin, ros::Time current_time, boo
         torques = -((pd_gains_p_.array() * temp_angles_.array()) +
                     (pd_gains_d_.array() * current_angle_velocities_.array()) +
                     (pd_gains_i_.array() * pd_integral_.array())).matrix();
+        */
     }
     else
     {

@@ -6,6 +6,7 @@
 #include "gps_agent_pkg/trialcontroller.h"
 #include "gps_agent_pkg/LinGaussParams.h"
 #include "gps_agent_pkg/tfcontroller.h"
+#include "gps_agent_pkg/lowdofcontroller.h"
 #include "gps_agent_pkg/TfParams.h"
 #include "gps_agent_pkg/ControllerParams.h"
 #include "gps_agent_pkg/util.h"
@@ -39,7 +40,7 @@ void RobotPlugin::initialize(ros::NodeHandle& n)
     aux_data_request_waiting_ = false;
     sensors_initialized_ = false;
     controller_initialized_ = false;
-
+    
     // Initialize all ROS communication infrastructure.
     initialize_ros(n);
 
@@ -54,6 +55,8 @@ void RobotPlugin::initialize(ros::NodeHandle& n)
     // After this, we still need to create the kinematics solvers. How these are
     // created depends on the particular robot, and should be implemented in a
     // subclass.
+
+    n_ = n;
 }
 
 // Initialize ROS communication infrastructure.
@@ -432,6 +435,16 @@ void RobotPlugin::trial_subscriber_callback(const gps_agent_pkg::TrialCommand::C
         int dU = (int) tfparams.dU;
         controller_params["dU"] = dU;
         trial_controller_-> configure_controller(controller_params);
+    }
+    else if (msg->controller.controller_to_execute == gps::LOW_DOF_CONTROLLER) 
+    {
+        trial_controller_.reset(new LowDofController(n_, gps::TRIAL_ARM, 
+                                                     7));
+        controller_params["T"] = (int)msg->T;
+        gps_agent_pkg::LowDofParams lowdofparams = msg->controller.lowdof;
+        int dU = (int) lowdofparams.dU;
+        controller_params["dU"] = dU;
+        trial_controller_->configure_controller(controller_params);
     }
     else{
         ROS_ERROR("Unknown trial controller arm type and/or USE_CAFFE=0");

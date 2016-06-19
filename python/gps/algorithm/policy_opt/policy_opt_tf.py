@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.python.ops import variables
 
 from gps.algorithm.policy.tf_policy import TfPolicy
+from gps.algorithm.policy.lowdof_policy import LowDofPolicy
 from gps.algorithm.policy_opt.policy_opt import PolicyOpt
 from gps.algorithm.policy_opt.config import POLICY_OPT_TF
 from gps.algorithm.policy_opt.tf_utils import TfSolver
@@ -46,7 +47,16 @@ class PolicyOptTf(PolicyOpt):
         self.init_solver()
         self.var = self._hyperparams['init_var'] * np.ones(dU)
         self.sess = tf.Session()
-        self.policy = TfPolicy(dU, self.obs_tensor, self.act_op, np.zeros(dU), 
+        if 'low_dof' in config and config['low_dof']:
+            self.policy = LowDofPolicy(dU, self.obs_tensor, self.act_op,
+                                       np.zeros(dU), self.sess, self.device_string,
+                                       config['dofs'], 
+                                       hidden_state_tensor=self.rnn_states,
+                                       initial_hidden_state_tensor=self.rnn_initial_state,
+                                       tf_vars=self.tf_vars)
+        else:
+
+            self.policy = TfPolicy(dU, self.obs_tensor, self.act_op, np.zeros(dU), 
                                self.sess, self.device_string, 
                                hidden_state_tensor=self.rnn_states,
                                initial_hidden_state_tensor=self.rnn_initial_state,

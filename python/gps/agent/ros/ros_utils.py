@@ -4,9 +4,9 @@ import numpy as np
 import rospy
 
 from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
-from gps_agent_pkg.msg import ControllerParams, LinGaussParams, TfParams, CaffeParams, TfActionCommand
+from gps_agent_pkg.msg import ControllerParams, LinGaussParams, TfParams, CaffeParams, TfActionCommand, LowDofParams
 from gps.sample.sample import Sample
-from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER, CAFFE_CONTROLLER, TF_CONTROLLER
+from gps.proto.gps_pb2 import LIN_GAUSS_CONTROLLER, CAFFE_CONTROLLER, TF_CONTROLLER, LOW_DOF_CONTROLLER
 import logging
 LOGGER = logging.getLogger(__name__)
 try:
@@ -60,6 +60,12 @@ def policy_to_msg(policy, noise):
         msg.controller_to_execute = TF_CONTROLLER
         msg.tf = TfParams()
         msg.tf.dU = policy.dU
+    elif isinstance(policy, LowDofPolicy):
+        msg.controller_to_execute = LOW_DOF_CONTROLLER
+        msg.lowdof = LowDofParams()
+        msg.lowdof.dU = policy.dU
+        msg.lowdof.n_dofs = len(policy.dofs)
+        msg.lowdof.dofs = policy.dofs
     else:
         raise NotImplementedError("Caffe not imported or Unknown policy object: %s" % policy)
     return msg

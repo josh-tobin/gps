@@ -53,11 +53,14 @@ private:
     ros::Time start_time_;
     // Time of last update.
     ros::Time last_update_time_;
+    // Used to estimate joint angle velocities
+    double update_time_;
 public:
     // Constructor.
     PositionController(ros::NodeHandle& n, gps::ActuatorType arm, int size);
     // Destructor.
     virtual ~PositionController();
+    virtual void get_action(int t, const Eigen::VectorXd &X, const Eigen::VectorXd &obs, Eigen::VectorXd &U);
     // Update the controller (take an action).
     virtual void update(RobotPlugin *plugin, ros::Time current_time, boost::scoped_ptr<Sample>& sample, Eigen::VectorXd &torques);
     // Configure the controller.

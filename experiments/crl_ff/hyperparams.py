@@ -80,8 +80,8 @@ for i in range(1):
     x0s.append(x0)
     ee_tgts.append(ee_tgt)
 
-#print 'ee tgt is'
-#print ee_tgt
+print 'ee tgt is'
+print ee_tgt
 
 if not os.path.exists(common['data_files_dir']):
     os.makedirs(common['data_files_dir'])
@@ -209,6 +209,7 @@ algorithm['policy_opt'] = {
     'network_model': example_tf_network,
     'iterations': 1000,
     'weights_file_prefix': EXP_DIR + 'policy',
+    'checkpoint_prefix': EXP_DIR + 'data_files/policy_checkpoint.ckpt'
 }
 
 algorithm['policy_prior'] = {

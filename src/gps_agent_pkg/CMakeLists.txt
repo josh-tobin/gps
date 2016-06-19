@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.6)
+cmake_minimum_required(VERSION 2.4)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # Set the build type.  Options are:
@@ -50,6 +50,7 @@ set(DDP_FILES src/robotplugin.cpp
               src/controller.cpp
               src/lingausscontroller.cpp
               src/openloopcontroller.cpp
+              src/lowdofcontroller.cpp
               src/camerasensor.cpp
               src/positioncontroller.cpp
               src/trialcontroller.cpp

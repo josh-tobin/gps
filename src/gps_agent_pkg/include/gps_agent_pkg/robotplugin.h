@@ -106,6 +106,8 @@ protected:
     ros_publisher_ptr(gps_agent_pkg::TfObsData) tf_publisher_;
     //tf action subscriber
     ros::Subscriber action_subscriber_tf_;
+    //node handle
+    ros::NodeHandle n_;
 public:
     // Constructor (this should do nothing).
     RobotPlugin();

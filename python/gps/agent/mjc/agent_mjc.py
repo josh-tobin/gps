@@ -27,7 +27,13 @@ class AgentMuJoCo(Agent):
         Agent.__init__(self, config)
         self._setup_conditions()
         self._setup_world(hyperparams['filename'])
-
+    '''
+    def _setup_dofs(self, hyperparams):
+        if 'dofs_include' in hyperparams:
+            self._dofs = hyperparams['dofs_include']
+        else:
+            self._dofs = None
+    '''
     def _setup_conditions(self):
         """
         Helper method for setting some hyperparameters that may vary by
@@ -87,7 +93,10 @@ class AgentMuJoCo(Agent):
             self._reset_world(i)
         self._joint_idx = list(range(self._model[0]['nq']))
         self._vel_idx = [i + self._model[0]['nq'] for i in self._joint_idx]
-        self._included_joint_idx = list(range(self._hyperparams['sensor_dims'][0]))
+        if 'dofs_include' in self._hyperparams:
+            self._included_joint_idx = self._hyperparams['dofs_include']
+        else:
+            self._included_joint_idx = list(range(self._hyperparams['sensor_dims'][0]))
         self._included_vel_idx = [i + self._model[0]['nq'] 
                                   for i in self._included_joint_idx]
 
@@ -197,10 +206,12 @@ class AgentMuJoCo(Agent):
                 self._set_sample(new_sample, mj_X, t, condition)
                 if ACTION in self.obs_data_types:
                     new_sample.set(ACTION, mj_U, t=t+1)
+        print 'final angle: %.3f.'%(mj_X[3])
         new_sample.set(ACTION, U)
         if save:
             self._samples[condition].append(new_sample)
         return new_sample
+    
     def _get_eepts(self, condition):
         SHOULDER_IDX = 3
         shoulder_pos = self._world[condition].get_data()['xpos']\

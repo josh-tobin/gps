@@ -39,7 +39,10 @@ class Algorithm(object):
         self.dO = self._hyperparams['dO'] = agent.dO
 
         init_traj_distr = config['init_traj_distr']
-        init_traj_distr['x0'] = agent.x0
+        if 'x0' in self._hyperparams:
+            init_traj_distr['x0'] = self._hyperparams['x0']
+        else:
+            init_traj_distr['x0'] = agent.x0
         init_traj_distr['dX'] = agent.dX
         init_traj_distr['dU'] = agent.dU
         del self._hyperparams['agent']  # Don't want to pickle this.
@@ -60,6 +63,8 @@ class Algorithm(object):
             print agent.dX
             print agent.dU
             print agent.dO
+            print "init_traj_distr"
+            print init_traj_distr
             self.cur[m].traj_distr = init_traj_distr['type'](init_traj_distr)
 
         self.traj_opt = hyperparams['traj_opt']['type'](
