@@ -132,3 +132,19 @@ def find_sites_in_model(model_path):
             sites[site.attrib['name']] = site_pos
         site_pos += 1
     return sites
+
+def find_bodies_in_model(model_path, list_of_bodies):
+    """
+    Helper function to find all of the links with given names in the 
+    scene so we can adjust their masses, etc.
+    """
+    root = ElementTree.parse(model_path).getroot()
+    objects = {}
+    # keep track of position of the objects
+    object_pos = 0
+    for body in root.iter('body'):
+        object_pos += 1
+        if 'name' in body.attrib:
+            if body.attrib['name'] in list_of_bodies:
+                objects[body.attrib['name']] = object_pos
+    return objects
