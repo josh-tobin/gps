@@ -46,11 +46,12 @@ class CostFKOnline(object):
         lux = np.zeros((T, dU, dX))
 
         dist = X[:,self.ee_idx] - self.eetgt
-        if len(jac.shape) == 3: # If jac has a time dimension
-            Jd = jac[:,:,self.jnt_idx]
-        else: # Rep single jacobian across time if not
-            jac = jac[:, self.jnt_idx]
-            Jd = np.tile(jac, [T, 1, 1])
+        if self.use_jacobian:
+            if len(jac.shape) == 3: # If jac has a time dimension
+                Jd = jac[:,:,self.jnt_idx]
+            else: # Rep single jacobian across time if not
+                jac = jac[:, self.jnt_idx]
+                Jd = np.tile(jac, [T, 1, 1])
 
 
         # Derivatives w.r.t. EE dimensions

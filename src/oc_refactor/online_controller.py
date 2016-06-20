@@ -43,7 +43,6 @@ class OnlineController(Policy):
         LOGGER.debug("Timestep=%d", t)
         if t==0:
             lgpolicy = self.initial_policy()
-            self.prev_policy = lgpolicy
         else:
             self.dynamics.update(self.prevx, self.prevu, x)
             jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)  #TODO: Jacobian available for only 1 timestep
@@ -51,7 +50,7 @@ class OnlineController(Policy):
 
         u = self.compute_action(lgpolicy, x)
         LOGGER.debug("U=%s", u)
-        #self.prev_policy = lgpolicy
+        self.prev_policy = lgpolicy
         self.prevx = x
         self.prevu = u
         return u

@@ -57,7 +57,6 @@ class OnlineDynamics(object):
         # Mix and add regularization
         sigma, mun = self.prior.mix(dX, dU, xu, pxu, xux, self.sigma, self.mu, N)
         sigma[it, it] = sigma[it, it] + self.sigreg * np.eye(dX + dU)
-        #print 'EIG:', np.linalg.eig(sigma[it, it])[0]
         sigma_inv = invert_psd(sigma[it, it])
 
         # Solve normal equations to get dynamics.

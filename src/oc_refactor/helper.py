@@ -10,16 +10,19 @@ from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 LOGGER = logging.getLogger(__name__)
 
 
+CHECK_FINITE = True #False is faster
+
+
 def lu_solve(L, U, A):
     """Solves LUX=A for X"""
     return sp.linalg.solve_triangular(U, sp.linalg.solve_triangular(L, A, lower=True,
-            check_finite=False), check_finite=False)
+            check_finite=CHECK_FINITE), check_finite=CHECK_FINITE)
 
 
 def solve_psd(A, B, reg=0):
     """Solve AX=B via cholesky decomposition (A must be positive semidefinite)"""
     chol = sp.linalg.cholesky(A + reg * np.eye(A.shape[0]))
-    return lu_solve(chol, chol.T, B)
+    return lu_solve(chol.T, chol, B)
 
 
 def invert_psd(A, reg=0):
