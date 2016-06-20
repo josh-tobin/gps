@@ -9,8 +9,11 @@ from gps_agent_pkg.msg import TrialCommand
 from gps.agent.agent_utils import generate_noise
 from saved_examples.util import PolicyTester
 import argparse
+import os
 
-EXP_FILE = '/home/jt/gps/experiments/'
+#EXP_FILE = '/home/jt/gps/experiments/'
+EXP_FILE = os.path.dirname(os.path.realpath(__file__))
+EXP_FILE += 'experiments/'
 HYPERPARAMS_FILE = '/hyperparams.py'
 POLICY_FILE = '/data_files/'
 

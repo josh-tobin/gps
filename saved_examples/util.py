@@ -17,10 +17,13 @@ import matplotlib.gridspec as gridspec
 
 import cPickle as pkl
 from gps.utility.data_logger import DataLogger
+import os
 
-BASE_DIR = '/home/jt/gps/experiments/'
+BASE_DIR = '/home/jtobin/gps/experiments/'
+#BASE_DIR = '/home/jt/gps/experiments/'
 DATA_DIR = '/data_files/'
-RESULTS_DIR = '/home/jt/gps/saved_examples/'
+#RESULTS_DIR = '/home/jt/gps/saved_examples/'
+RESULTS_DIR = '/home/jtobin/gps/saved_examples/'
 
 class ResultLoader(object):
     def __init__(self, base_dir=BASE_DIR, data_dir=DATA_DIR,
