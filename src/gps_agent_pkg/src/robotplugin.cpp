@@ -247,6 +247,9 @@ void RobotPlugin::update_controllers(ros::Time current_time, bool is_controller_
     if (active_arm_controller_->report_waiting){
         if (active_arm_controller_->is_finished()){
             publish_sample_report(current_time_step_sample_);
+            // Wait to make sure the arm is settled!
+            ROS_INFO_STREAM("Waiting...");
+            ros::Duration(1.0).sleep();
             active_arm_controller_->report_waiting = false;
         }
     }
