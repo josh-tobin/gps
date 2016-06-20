@@ -8,9 +8,12 @@ import tensorflow as tf
 from tensorflow.python.ops import variables
 
 from gps.algorithm.policy.tf_policy import TfPolicy
+from gps.algorithm.policy.lowdof_policy import LowDofPolicy
 from gps.algorithm.policy_opt.policy_opt import PolicyOpt
 from gps.algorithm.policy_opt.config import POLICY_OPT_TF
 from gps.algorithm.policy_opt.tf_utils import TfSolver
+
+import gps.algorithm.policy_opt.config as default_cfg
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +49,16 @@ class PolicyOptTf(PolicyOpt):
         self.init_solver()
         self.var = self._hyperparams['init_var'] * np.ones(dU)
         self.sess = tf.Session()
-        self.policy = TfPolicy(dU, self.obs_tensor, self.act_op, np.zeros(dU), 
+        if 'low_dof' in config and config['low_dof']:
+            self.policy = LowDofPolicy(dU, self.obs_tensor, self.act_op,
+                                       np.zeros(dU), self.sess, self.device_string,
+                                       config['dofs'], 
+                                       hidden_state_tensor=self.rnn_states,
+                                       initial_hidden_state_tensor=self.rnn_initial_state,
+                                       tf_vars=self.tf_vars)
+        else:
+
+            self.policy = TfPolicy(dU, self.obs_tensor, self.act_op, np.zeros(dU), 
                                self.sess, self.device_string, 
                                hidden_state_tensor=self.rnn_states,
                                initial_hidden_state_tensor=self.rnn_initial_state,
@@ -278,4 +290,14 @@ class PolicyOptTf(PolicyOpt):
 
         saver = tf.train.Saver()
         check_file = self.checkpoint_file
-        saver.restore(self.sess, check_file)
+        try:
+	    saver.restore(self.sess, check_file)
+        except tf.python.framework.errors.NotFoundError:
+	    check_file = default_cfg.checkpoint_path
+            split = check_file.split('/')
+	    check_file = '/'.join(split.index('gps'))
+	    prefix = os.path.dirname(os.path.realpath(__file__))
+	    prefix = '/'.join(prefix.split('/')[:-1])
+	    check_file = prefix + check_file
+	    print prefix
+            saver.restore(self.sess, check_file) 

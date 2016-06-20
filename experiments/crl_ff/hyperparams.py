@@ -209,6 +209,7 @@ algorithm['policy_opt'] = {
     'network_model': example_tf_network,
     'iterations': 1000,
     'weights_file_prefix': EXP_DIR + 'policy',
+    'checkpoint_prefix': EXP_DIR + 'data_files/policy_checkpoint.ckpt',
 }
 
 algorithm['policy_prior'] = {
