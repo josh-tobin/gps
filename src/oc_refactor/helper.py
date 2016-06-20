@@ -9,8 +9,7 @@ from gps.algorithm.policy.lin_gauss_policy import LinearGaussianPolicy
 
 LOGGER = logging.getLogger(__name__)
 
-
-CHECK_FINITE = True #False is faster
+CHECK_FINITE = False # False is faster
 
 
 def lu_solve(L, U, A):
@@ -159,9 +158,6 @@ def estimate_cost(cur_timestep, cost, lgpolicy, dynamics, horizon, x0, prevx, pr
     f = np.zeros((H, dX))
     dynsig = np.zeros((H, dX, dX))
 
-    K = lgpolicy.K
-    k = lgpolicy.k
-
     # HACK
     mu[-1, ix] = prevx
     mu[-1, iu] = prevu
@@ -199,42 +195,33 @@ def estimate_cost(cur_timestep, cost, lgpolicy, dynamics, horizon, x0, prevx, pr
 
     for n in range(N):
         # Get costs.
-        # l,lx,lu,lxx,luu,lux = self.cost.eval(Xs[n],Us[n], cur_timestep);
-        # newmu = np.zeros_like(mu[:,iu])
         newmu = mu[:, iu]
-        l, lx, lu, lxx, luu, lux = cost.eval(mu[:, ix], newmu, cur_timestep, jac=jacobian);
-        # [cc(:,:,i),lx,lu,lxx,luu,lux] = controller.cost.eval(Xs(:,:,i),Us(:,:,i),[],cost_infos(:,:,i));
+        l, lx, lu, lxx, luu, lux = cost.eval(mu[:, ix], newmu, cur_timestep, jac=jacobian)
 
-        prev_cv = np.c_[lx, lu]  # TEMP
-        prev_cc = l  # TEMP
         cv[n] = np.c_[lx, lu]
         Cm[n] = np.concatenate((np.c_[lxx, np.transpose(lux, [0, 2, 1])], np.c_[lux, luu]), axis=1)
 
         # Adjust for expanding cost around a sample.
         yhat = mu  # np.c_[mu[:,ix], newmu_u]
         rdiff = -yhat  # T x (X+U)
-        # if self.ref is not None:
-        #    rdiff = self.ref[cur_timestep:cur_timestep+H]-yhat
         rdiff_expand = np.expand_dims(rdiff, axis=2)  # T x (X+U) x 1
         cv_update = np.sum(Cm[n] * rdiff_expand, axis=1)  # T x (X+U)
-        # cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
-        # self.cc = cc  # TEMP
         cv[n] += cv_update
 
-        # cc = mean(cc,3);
     cv = np.mean(cv, axis=0)
     Cm = np.mean(Cm, axis=0)
     return cv, Cm, F, f, mu, trajsig
 
 
-def mix_nn_prior(dX, dU, dyn_init_sig, nnF, nnf, xu, sigma_x=None, strength=1.0, use_least_squares=False, full_calculation=False):
+def mix_prior(dX, dU, nnF, nnf, xu, sigma_x=None, strength=1.0, dyn_init_sig=None,
+              use_least_squares=False, full_calculation=False):
     """
     Provide a covariance/bias term for mixing NN with least squares model.
     """
-    ix = slice(dX)
-    iu = slice(dX, dX + dU)
+    #ix = slice(dX)
+    #iu = slice(dX, dX + dU)
     it = slice(dX + dU)
-    ip = slice(dX + dU, dX + dU + dX)
+    #ip = slice(dX + dU, dX + dU + dX)
 
     if use_least_squares:
         sigX = dyn_init_sig[it, it]
@@ -268,6 +255,19 @@ def iter_module(module):
     for key in dir(module):
         if not key.startswith('__'):
             yield key, getattr(module, key)
+
+
+def apply_config(configfiles):
+    LOGGER.debug('Loading config: %s', configfiles)
+    config_dict = {}
+    for module_name in configfiles:
+        try:
+            module = __import__(module_name)
+            for key, value in iter_module(module):
+                config_dict[key] = value
+        except ImportError as e:
+            raise e
+    return config_dict
 
 
 class ClassRegistry(type):

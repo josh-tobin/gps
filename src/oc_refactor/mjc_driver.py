@@ -22,7 +22,7 @@ np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def get_controller(controllerfile, condition, maxT=100):
+def get_controller(controllerfile, condition, cfgfiles, maxT=100):
     """
     Load an online controller from controllerfile
     maxT specifies the
@@ -30,8 +30,9 @@ def get_controller(controllerfile, condition, maxT=100):
     with open(controllerfile+'_'+str(condition)) as f:
         controller_dict = cPickle.load(f)
         controller_dict['maxT'] = maxT
+        controller_dict['condition'] = condition
 
-    return OnlineController(controller_dict)
+    return OnlineController(cfgfiles, config_dict=controller_dict)
 
 
 def setup_agent(T=100):
@@ -132,12 +133,12 @@ def run_offline(out_filename, verbose, conditions=10, alg_iters=1, sample_iters=
         controllers.append(controller_dict)
 
 
-def run_online(T, controllerfile, condition=0, verbose=True, savedata=None):
+def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=None):
     """
     Run online controller and save sample data to train dynamics
     """
     agent = setup_agent(T=T)
-    controller = get_controller(controllerfile, condition, maxT=T)
+    controller = get_controller(controllerfile, condition, cfgfiles, maxT=T)
     sample = agent.sample(controller, condition, verbose=verbose)
     if savedata is None:
         return
@@ -169,7 +170,8 @@ def main():
     if args.offline:
         run_offline(args.controllerfile, verbose=not args.noverbose)
     else:
-        run_online(args.timesteps, args.controllerfile, condition=args.condition, verbose=not args.noverbose,
+        run_online(args.timesteps, args.controllerfile, args.config,
+                   condition=args.condition, verbose=not args.noverbose,
                    savedata=args.savedata)
 
 
@@ -185,7 +187,12 @@ def parse_args():
     default_file = os.path.join(THIS_FILE_DIR, 'controller', 'mjc_controller.pkl')
     parser.add_argument('-c', '--controllerfile', type=str, default=default_file,
                         help='Online controller filename. Controller will be saved/loaded from here')
+
+    default_cfg = ['config_basic']
+    parser.add_argument('--config', type=str, nargs='+', default=default_cfg,
+                        help='Online controller config files')
     args = parser.parse_args()
+
     return args
 
 if __name__ == "__main__":

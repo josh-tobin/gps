@@ -1,5 +1,10 @@
 import numpy as np
+import cPickle
+
+from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from helper import *
+import dynamics_nn
+
 
 class OnlineDynamics(object):
     def __init__(self, gamma, prior, init_mu, init_sigma, dX, dU, N=1, sigreg=1e-5):
@@ -78,25 +83,46 @@ class OnlineDynamicsPrior(object):
 
 
 class NoPrior(OnlineDynamicsPrior):
+    @staticmethod
+    def from_config(config=None):
+        return NoPrior()
+
     def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
         """Default: Prior that does nothing"""
         return empsig, mun
 
 
 class NNPrior(OnlineDynamicsPrior):
-    def __init__(self, dyn_network, mix_strength):
-        self.dyn_net = dyn_network
+    @staticmethod
+    def from_config(netname, config=None):
+        dyn_net = dynamics_nn.unpickle_net(netname)
+        dyn_net.update(stage='test')
+        dyn_net.init_functions(output_blob='acc')
+        return NNPrior(dyn_net, config['mix_prior_strength'])
+
+    def __init__(self, dyn_net, mix_strength=1.0):
+        self.dyn_net = dyn_net
         self.mix_prior_strength = mix_strength
 
     def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
         F, f = self.dyn_net.linearize(xu, pxu)
-        nn_Phi, nnf = mix_nn_prior(F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
+        nn_Phi, nnf = mix_prior(dX, dU, F, f, xu, strength=self.mix_prior_strength, use_least_squares=False)
         sigma = (N * empsig + nn_Phi) / (N + 1)
         mun = (N * mun + np.r_[xu, F.dot(xu) + f]) / (N + 1)
         return sigma, mun
 
 
 class GMMPrior(OnlineDynamicsPrior):
+    @staticmethod
+    def from_config(controllerfile, config=None):
+        cond = config['condition']
+        with open(controllerfile + '_' + str(cond)) as f:
+            controller_dict = cPickle.load(f)
+            gmm = controller_dict['gmm']
+            dynprior = DynamicsPriorGMM({})
+            dynprior.gmm = gmm
+        return GMMPrior(dynprior)
+
     def __init__(self, dynprior):
         self.dynprior = dynprior
 
@@ -109,7 +135,11 @@ class GMMPrior(OnlineDynamicsPrior):
 
 
 class LSQPrior(OnlineDynamicsPrior):
-    def __init__(self, init_sigma, init_mu, mix_strength):
+    @staticmethod
+    def from_config(config=None):
+        return LSQPrior(config['dyn_init_sigma'], config['dyn_init_mu'], config['mix_prior_strength'])
+
+    def __init__(self, init_sigma, init_mu, mix_strength=1.0):
         self.dyn_init_sig = init_sigma
         self.dyn_init_mu = init_mu
         self.mix_prior_strength = mix_strength

@@ -11,12 +11,13 @@ LOGGER = logging.getLogger(__name__)
 CLIP_U = 5  # Min and max torques for each joint
 
 class OnlineController(Policy):
-    def __init__(self, config_dict=None):
+    def __init__(self, configfiles, config_dict=None):
         super(OnlineController, self).__init__()
 
         # Take defaults from config
-        for key, value in iter_module(default_config):
-            setattr(self, key, value)
+        defaults = apply_config(configfiles)
+        for key in defaults:
+            setattr(self, key, defaults[key])
 
         # Override defaults with provided args
         if config_dict is not None:
@@ -26,7 +27,7 @@ class OnlineController(Policy):
         # Init objects
         self.cost = CostFKOnline(self.eetgt, \
             wu=self.wu, ee_idx=self.ee_idx, jnt_idx=self.jnt_idx, maxT=self.maxT, use_jacobian=True)
-        self.prior = ClassRegistry.getClass(self.prior_class)(*self.prior_class_args)
+        self.prior = ClassRegistry.getClass(self.prior_class).from_config(*self.prior_class_args, config=self.__dict__)
         self.dynamics = OnlineDynamics(self.gamma, self.prior, self.dyn_init_mu, self.dyn_init_sig, self.dX, self.dU)
 
 

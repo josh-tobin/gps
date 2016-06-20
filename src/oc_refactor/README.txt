@@ -49,13 +49,18 @@
 
 3. Run online controller
 
-    $ python mjc_driver.py -T <time_steps> --condition <condition>
+    $ python mjc_driver.py -T <time_steps> --condition <condition> --config
+    <config list>
 
-    Configuration:
-        Default configs are loaded from config.py
+    The --config option requests a list of config files.
+        Ex. To use the nn priot
+        --config config_basic config_nn
+        or to use the GMM prior
+        --config config_basic config_gmm 
 
-    Prior options are defined in online_dynamics.py - there is NoPrior, Least
-    squares prior, neural net prior (with previous state,action), and GMM
-    prior.
+        The config files are applied in order - the most recent one overrides
+        the previous ones. These config files are defined as python scripts
+        (ex. config_basic.py, config_nn.py)
+
 
 
