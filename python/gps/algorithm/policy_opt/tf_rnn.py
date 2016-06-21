@@ -93,14 +93,16 @@ def build_rnn_inputs(dim_input, dim_output):
                                name='precision')
     return nn_input, action, precision
 
-def build_rnn(input_tensor, dim_input, dim_output):
+def build_rnn(input_tensor, dim_input, dim_output, scope='LSTM'):
     initial_state = tf.placeholder(tf.float32, shape=(None, 2*dim_output))
 
 
-    lstm_cell = tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input)
+    lstm_cell = tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input, )
     y, states = tf.nn.dynamic_rnn(lstm_cell, input_tensor, 
                                   initial_state=initial_state, 
-                                  dtype='float32')
+                                  dtype='float32',
+                                  
+                                  scope=scope)
     weights, biases = tf.all_variables()
     return y, states, initial_state, [weights], [biases]
 
@@ -144,8 +146,10 @@ def example_rnn_network(dim_input=32, dim_output=7, batch_size=10):
                                  [rnn_out, rnn_states, rnn_initial_state],
                                  [loss_out], recurrent=True)
 
-def crl_rnn_network(dim_input=32, dim_output=7, batch_size=5,
-                    n_steps=100, rnn_output_dim=128, hidden_dim=256,
+
+
+def crl_rnn_large(dim_input=32, dim_output=7, batch_size=10,
+                    n_steps=100, rnn_output_dim=256, hidden_dim=256,
                     n_feedforward=4):
     ''' Implements the RNN architecture we plan to use for CRL
         :first layer: RNN. Estimates system parameters.
@@ -153,6 +157,33 @@ def crl_rnn_network(dim_input=32, dim_output=7, batch_size=5,
     print "Constructing CRL RNN Network"
     print("... dim_input = %d, dim_output=%d, rnn_output_dim=%d, hidden_dim=%d"
           %(dim_input, dim_output, rnn_output_dim, hidden_dim))
+
+    nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
+    rnn_out, rnn_states, rnn_initial_state, \
+       rnn_weights, rnn_biases = build_rnn(nn_input, dim_input, rnn_output_dim)
+    nn_out, nn_weights, nn_biases = build_crl_ff_layers(rnn_out, nn_input, 
+                                                  rnn_output_dim, dim_input,
+                                                  dim_output, 
+                                                  hidden_dim=hidden_dim, 
+                                                  n_layers=n_feedforward)
+    weights = rnn_weights + nn_weights
+    biases = rnn_biases + nn_biases
+
+    loss_out = build_loss(nn_out, action, precision, dim_output)
+    return TfMap.init_from_lists([nn_input, action, precision],
+                                 [nn_out, rnn_states, rnn_initial_state],
+                                 [loss_out], [weights, biases], 
+                                 recurrent=True)
+def crl_rnn_network(dim_input=32, dim_output=7, batch_size=10,
+                    n_steps=100, rnn_output_dim=64, hidden_dim=32,
+                    n_feedforward=3):
+    ''' Implements the RNN architecture we plan to use for CRL
+        :first layer: RNN. Estimates system parameters.
+        :remaining layers: Feed forward. Map state + params -> action '''
+    print "Constructing CRL RNN Network"
+    print("... dim_input = %d, dim_output=%d, rnn_output_dim=%d, hidden_dim=%d"
+          %(dim_input, dim_output, rnn_output_dim, hidden_dim))
+
     nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
     rnn_out, rnn_states, rnn_initial_state, \
        rnn_weights, rnn_biases = build_rnn(nn_input, dim_input, rnn_output_dim)
