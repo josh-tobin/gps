@@ -30,6 +30,10 @@ class OnlineController(Policy):
         self.prior = ClassRegistry.getClass(self.prior_class).from_config(*self.prior_class_args, config=self.__dict__)
         self.dynamics = OnlineDynamics(self.gamma, self.prior, self.dyn_init_mu, self.dyn_init_sig, self.dX, self.dU)
 
+        self.prevx = None
+        self.prevu = None
+        self.prev_policy = None
+        self.u_history = []
 
     def act(self, x, obs, t, noise=None, sample=None):
         """
@@ -50,10 +54,14 @@ class OnlineController(Policy):
             lgpolicy = self.run_lqr(t, x, self.prev_policy, jacobian=jacobian)
 
         u = self.compute_action(lgpolicy, x)
+        #if self.prevu is not None:  # smooth
+        #    u = 0.5*u+0.5*self.prevu
         LOGGER.debug("U=%s", u)
         self.prev_policy = lgpolicy
         self.prevx = x
         self.prevu = u
+        self.u_history.append(u)
+
         return u
 
     def initial_policy(self):

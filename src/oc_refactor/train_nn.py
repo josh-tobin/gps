@@ -37,6 +37,12 @@ def load_hdf5(fnames):
            np.concatenate(total_lbl).astype(np.float32), \
            np.concatenate(total_clip).astype(np.float32)[:,0]
 
+def squeeze_1d(arr):
+    if arr.shape[0] == 1:
+        return arr[0]
+    if arr.shape[1] == 1:
+        return arr[:,0]
+
 def load_mat(fnames):
     if type(fnames) == str:
         fnames = [fnames]
@@ -45,13 +51,15 @@ def load_mat(fnames):
     total_lbl = []
     total_clip = []
     for fname in fnames:
+        LOGGER.info("Loading %s", fname)
         f = scipy.io.loadmat(fname)
         total_data.append(f['data'])
         total_lbl.append(f['label'])
-        total_clip.append(f['clip'])
+        total_clip.append(f['clip'].squeeze())
+
     total_data, total_lbl, total_clip = np.concatenate(total_data).astype(np.float32), \
            np.concatenate(total_lbl).astype(np.float32), \
-           np.concatenate(total_clip).astype(np.float32)[0,:]
+           np.concatenate(total_clip).astype(np.float32)
     LOGGER.info('Datasets loaded:')
     LOGGER.info('>Data %s',total_data.shape)
     LOGGER.info('>Label %s',total_lbl.shape)
@@ -96,7 +104,35 @@ def linearize_debug(net, xu, prevxu):
     print '\tF:', F
     print '\tf:', f
 
-def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=20000):
+
+def build_network(data, prevsa, name, djnt, dx, du, dee):
+    if name == 'contextual':
+        norm1 = NormalizeLayer('data', 'data_norm')
+        norm1.generate_weights(data)
+        norm2 = NormalizeLayer('prevxu', 'prevxu_norm')
+        norm2.generate_weights(prevsa)
+        ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx + du, 100, dx + du)
+        # ip1 = PrevSALayer2('data', 'prevxu', 'ip1', dx, du, 80)
+        act1 = ReLULayer('ip1', 'act1')
+        ip2 = FFIPLayer('act1', 'ip2', 100, 30)
+        act2 = ReLULayer('ip2', 'act2')
+        ip3 = FFIPLayer('act2', 'ip3', 30, djnt + dee)
+        acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+        loss = SquaredLoss('acc', 'lbl')
+        net = PrevSADynamicsNetwork([norm1, norm2, ip1, act1, ip2, act2, ip3, acc], loss)
+    elif name == 'feedforward':
+        ip1 = NoPrevSALayer('data', 'prevxu', 'ip1', dx + du, 120, dx + du)
+        act1 = ReLULayer('ip1', 'act1')
+        ip2 = FFIPLayer('act1', 'ip2', 120, 60)
+        act2 = ReLULayer('ip2', 'act2')
+        ip3 = FFIPLayer('act2', 'ip3', 60, djnt + dee)
+        acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
+        loss = SquaredLoss('acc', 'lbl')
+        net = PrevSADynamicsNetwork([ip1, act1, ip2, act2, ip3, acc], loss)
+    return net
+
+
+def train_nn(fname, netid, new=True, data_files=None, update_every=2000, save_every=20000):
     logging.basicConfig(level=logging.DEBUG)
     mkdir_p('network')
 
@@ -116,31 +152,17 @@ def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=200
             raise e
 
     if new:
-        LOGGER.info("Making new network!")
+        LOGGER.info("Making new network (%s)!", netid)
         #sub1 = SubtractAction('data', 'prevxu', 'data_sub')
-        norm1 = NormalizeLayer('data', 'data_norm')
-        norm1.generate_weights(data)
-
-        norm2 = NormalizeLayer('prevxu', 'prevxu_norm')
-        norm2.generate_weights(prevsa)
-
-        ip1 = PrevSALayer('data_norm', 'prevxu_norm', 'ip1', dx+du, 100, dx+du)
-        #ip1 = PrevSALayer2('data', 'prevxu', 'ip1', dx, du, 80)
-        act1 = ReLULayer('ip1', 'act1')
-        ip2 = FFIPLayer('act1', 'ip2', 100, 30)
-        act2 = ReLULayer('ip2', 'act2')
-        ip3 = FFIPLayer('act2', 'ip3', 30, djnt+dee)
-        acc = AccelLayer('data', 'ip3', 'acc', djnt, dee, du)
-        loss = SquaredLoss('acc', 'lbl')
-        net = PrevSADynamicsNetwork([norm1, norm2, ip1, act1, ip2, act2, ip3, acc], loss)
+        net = build_network(data, prevsa, netid, djnt, dx, du, dee)
 
 
-    net.init_functions(output_blob='acc', weight_decay=1e-4, train_algo='rmsprop')
+    net.init_functions(output_blob='acc', weight_decay=1e-3, train_algo='rmsprop')
 
-    lr = 5e-3/bsize
+    lr = 5e-2/bsize
     lr_schedule = {
-        80000: 0.2,
-        200000: 0.2,
+        200000: 0.5,
+        500000: 0.5,
         1000000: 0.2,
         2000000: 0.2,
     }
@@ -182,8 +204,8 @@ def train_nn(fname, new=True, data_files=None, update_every=2000, save_every=200
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
-    parser.add_argument('-f', '--filename', type=str, default=os.path.join('network', common.DYNAMICS_NETWORK), help='Network filename')
     parser.add_argument('-n', '--new', action='store_true', default=False, help='Create a new network')
+    parser.add_argument('-i', '--netid', type=str, default='contextual', help='Which network to build')
 
     default_data = [os.path.join('data', common.OFFLINE_DYNAMICS_DATA)]
     parser.add_argument('-d', '--data', type=str, metavar='N', nargs='+', default=default_data, help='Data files')
@@ -192,4 +214,5 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    train_nn(args.filename, new=args.new, data_files=args.data)
+    filename = os.path.join('network', args.netid+'_'+common.DYNAMICS_NETWORK)
+    train_nn(filename, args.netid, new=args.new, data_files=args.data)

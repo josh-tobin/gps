@@ -12,7 +12,7 @@ jnt_idx = slice(0,7)
 ee_idx = slice(14,20)
 it = slice(0,33)
 ip = slice(33,59)
-H = 20 # Horizon
+H = 15 # Horizon
 maxT = 100 # Total timesteps
 
 # LQR Options
@@ -22,10 +22,10 @@ del0 = 2  # LQR regularization
 lqr_discount = 0.9  # Discount factor.
 
 # Noise
-u_noise = 0.03
+u_noise = 0.05
 
 # Cost options
-wu = 3e-3/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Torque penalty
+wu = 1e-2/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Torque penalty
 tgt = np.zeros(26)
 eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt

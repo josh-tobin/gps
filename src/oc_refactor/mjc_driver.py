@@ -1,6 +1,7 @@
 import time
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 import scipy
 import scipy.io
 import logging
@@ -17,7 +18,6 @@ from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 import common
 
-logging.basicConfig(level=logging.DEBUG)
 np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -64,7 +64,7 @@ def setup_algorithm(agent, conditions):
     algorithm = defaults['algorithm']['type'](hyperparams)
     return algorithm
 
-def run_offline(out_filename, verbose, conditions=10, alg_iters=1, sample_iters=2):
+def run_offline(out_filename, verbose, conditions=10, alg_iters=10, sample_iters=20):
     """
     Run offline controller, and save results to controllerfile
     """
@@ -141,6 +141,12 @@ def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=
     controller = get_controller(controllerfile, condition, cfgfiles, maxT=T)
     sample = agent.sample(controller, condition, verbose=verbose)
     if savedata is None:
+        u_hist = np.r_[controller.u_history].T
+        du, dT = u_hist.shape
+        x_axis = np.arange(dT)
+        for d in range(du):
+            plt.plot(x_axis, u_hist[d])
+        plt.show()
         return
 
     X = sample.get_X()
@@ -165,8 +171,12 @@ def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=
 
 
 def main():
-    print 'TEMP:main'
     args = parse_args()
+    if args.silence_logger:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.DEBUG)
+
     if args.offline:
         run_offline(args.controllerfile, verbose=not args.noverbose)
     else:
@@ -181,6 +191,7 @@ def parse_args():
     parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
     parser.add_argument('-n', '--noverbose', action='store_true', default=False, help='Disable plotting')
     parser.add_argument('-s', '--savedata', default=None, help='Save dynamics data after running. (Filename)')
+    parser.add_argument('--silence_logger', type=bool, default=False, help='Dont use logger')
     parser.add_argument('--condition', type=int, default=0, help='Condition')
 
     mkdir_p(os.path.join(THIS_FILE_DIR, 'controller'))

@@ -20,12 +20,19 @@
 
     This function will create a file under data/offline_dynamics_data.mat
 
+
+    You can also modify/run collect_data.sh to run the online controller to
+    collect more data.
+
 [Optional] 2. Train a dynamics neural network
 
-    $ python train_nn.py
+    $ python train_nn.py --netid <network_name>
 
     You can adjust the architecture inside the function train_nn.py:train_nn
     Layers are defined in dynamics_nn.py
+
+    network_name defaults to 'contextual' (see the build_network function for
+    its definition)
 
     Dataflow between layers is defined using names
         Ex. the ReLULayer has the signature
