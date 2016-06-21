@@ -1,4 +1,6 @@
 
+==== HOW TO RUN ====
+
 0. If you are using the MuJoCo compiled on this branch,
     place mjkey.txt into your working directory (there should be a message).
 
@@ -69,5 +71,16 @@
         the previous ones. These config files are defined as python scripts
         (ex. config_basic.py, config_nn.py)
 
+
+==== MODIFYING THE CODE ====
+
+The main online controller class is online_controller.py. This class defines the act() method which
+is repeatedly called in a loop by the agent.
+
+LQR and various utility functions are defined in helper.py
+
+Dynamics code is located in online_dynamics.py. This is split into an OnlineDynamics class which manages
+the moving average least squares, and an OnlineDynamicsPrior class which computes the prior and mixes
+with the moving average.
 
 
