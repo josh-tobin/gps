@@ -39,19 +39,19 @@ def setup_agent(T=100):
     """Returns a MuJoCo Agent"""
     hyperparams = copy.deepcopy(defaults['agent'])
     hyperparams['T'] = T
-    hyperparams['sensor_dims'] = {ACTION: 7, JOINT_ANGLES:7, JOINT_VELOCITIES:7,
-                                  END_EFFECTOR_POINTS: 6, END_EFFECTOR_POINT_VELOCITIES: 6}
-    hyperparams['state_include'] = [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES]
+    #hyperparams['sensor_dims'] = {ACTION: 7, JOINT_ANGLES:7, JOINT_VELOCITIES:7,
+    #                              END_EFFECTOR_POINTS: 6, END_EFFECTOR_POINT_VELOCITIES: 6}
+    #hyperparams['state_include'] = [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES]
     dX = sum([hyperparams['sensor_dims'][k] for k in hyperparams['state_include']])
     print 'dX:', dX
-
     hyperparams['obs_include'] = hyperparams['state_include']
-    hyperparams['x0'] = np.zeros(dX-12)
+    #hyperparams['x0'] = np.zeros(dX-12)
     return AgentMuJoCo(hyperparams)
 
 def setup_algorithm(agent, conditions):
     hyperparams = copy.deepcopy(defaults['algorithm'])
     hyperparams['agent'] = agent
+    """
     hyperparams['dynamics'] = {
         'type': DynamicsLRPrior,
         'prior':{
@@ -59,12 +59,13 @@ def setup_algorithm(agent, conditions):
         },
         'regularization': 1e-5
     }
+    """
     hyperparams['init_traj_distr']['T'] = agent.T
     hyperparams['init_traj_distr']['dt'] = 0.05
     algorithm = defaults['algorithm']['type'](hyperparams)
     return algorithm
 
-def run_offline(out_filename, verbose, conditions=10, alg_iters=10, sample_iters=20):
+def run_offline(out_filename, verbose, conditions=defaults['common']['conditions'], alg_iters=10, sample_iters=20):
     """
     Run offline controller, and save results to controllerfile
     """
@@ -191,7 +192,7 @@ def parse_args():
     parser.add_argument('-T', '--timesteps', type=int, default=100, help='Timesteps to run online controller')
     parser.add_argument('-n', '--noverbose', action='store_true', default=False, help='Disable plotting')
     parser.add_argument('-s', '--savedata', default=None, help='Save dynamics data after running. (Filename)')
-    parser.add_argument('--silence_logger', type=bool, default=False, help='Dont use logger')
+    parser.add_argument('--silence_logger', action='store_true', default=False, help='Dont use logger')
     parser.add_argument('--condition', type=int, default=0, help='Condition')
 
     mkdir_p(os.path.join(THIS_FILE_DIR, 'controller'))
