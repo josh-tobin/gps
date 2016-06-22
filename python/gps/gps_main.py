@@ -14,6 +14,7 @@ import threading
 import time
 
 # Add gps/python to path so that imports work.
+
 sys.path.append('/'.join(str.split(__file__, '/')[:-2]))
 from gps.gui.gps_training_gui import GPSTrainingGUI
 from gps.utility.data_logger import DataLogger
@@ -45,7 +46,20 @@ class GPSMain(object):
         config['algorithm']['agent'] = self.agent
         self.algorithm = config['algorithm']['type'](config['algorithm'])
 	self._save_samples = config['algorithm']['save_samples']
-    
+        if 'save_algorithm' in config['algorithm']:
+            self._save_algorithm = config['algorithm']['save_algorithm']
+        else:
+            self._save_algorithm = True
+        if 'overwrite_algorithm' in config['algorithm']:
+            self._overwrite_algorithm = config['algorithm']['overwrite_algorithm'] 
+        else:
+            self._overwrite_algorithm = False
+
+        if 'save_policy' in config['algorithm']:
+            self._save_policy = config['algorithm']['save_policy']
+        else:
+            self._save_policy = False
+
     def run(self, itr_load=None):
         """
         Run training by iteratively sampling and taking an iteration.
@@ -240,22 +254,34 @@ class GPSMain(object):
         if 'no_sample_logging' in self._hyperparams['common']:
             return
        
-        print("In _log_data, about to do our thing")
-        self.data_logger.pickle(    
-            self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr),
-            copy.copy(self.algorithm)
-        )
+        if self._save_algorithm:
+            if self._overwrite_algorithm:
+                self.data_logger.pickle(
+                    self._data_files_dir + ('algorithm.pkl'), 
+                    copy.copy(self.algorithm)
+                )
+            else:
+                self.data_logger.pickle(    
+                    self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr),
+                    copy.copy(self.algorithm)
+                )
+
         if self._save_samples:
             self.data_logger.pickle(
                 self._data_files_dir + ('traj_sample_itr_%02d.pkl' % itr),
                 copy.copy(traj_sample_lists)
             )
-        if pol_sample_lists:
+        if self._save_samples and pol_sample_lists:
             self.data_logger.pickle(
                 self._data_files_dir + ('pol_sample_itr_%02d.pkl' % itr),
                 copy.copy(pol_sample_lists)
             )
 
+        if self._save_policy:
+            self.algorithm.policy_opt.policy.pickle_policy(
+                    self.algorithm.policy_opt._dO,
+                    self.algorithm.policy_opt._dU, 
+                    self._data_files_dir + 'policy')
     def _end(self):
         """ Finish running and exit. """
         if self.gui:

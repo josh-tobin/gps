@@ -150,7 +150,7 @@ def example_rnn_network(dim_input=32, dim_output=7, batch_size=10):
 
 def crl_rnn_large(dim_input=32, dim_output=7, batch_size=10,
                     n_steps=100, rnn_output_dim=256, hidden_dim=256,
-                    n_feedforward=4):
+                    n_feedforward=4, network_config=None):
     ''' Implements the RNN architecture we plan to use for CRL
         :first layer: RNN. Estimates system parameters.
         :remaining layers: Feed forward. Map state + params -> action '''
@@ -176,7 +176,7 @@ def crl_rnn_large(dim_input=32, dim_output=7, batch_size=10,
                                  recurrent=True)
 def crl_rnn_network(dim_input=32, dim_output=7, batch_size=10,
                     n_steps=100, rnn_output_dim=64, hidden_dim=32,
-                    n_feedforward=3):
+                    n_feedforward=3, network_config=None):
     ''' Implements the RNN architecture we plan to use for CRL
         :first layer: RNN. Estimates system parameters.
         :remaining layers: Feed forward. Map state + params -> action '''

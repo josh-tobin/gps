@@ -17,13 +17,14 @@ import matplotlib.gridspec as gridspec
 
 import cPickle as pkl
 from gps.utility.data_logger import DataLogger
+from gps.algorithm.policy.tf_policy import TfPolicy
 import os
-
-BASE_DIR = '/home/jtobin/gps/experiments/'
-#BASE_DIR = '/home/jt/gps/experiments/'
+import tensorflow as tf
+#BASE_DIR = '/home/jtobin/gps/experiments/'
+BASE_DIR = '/home/jt/gps/experiments/'
 DATA_DIR = '/data_files/'
-#RESULTS_DIR = '/home/jt/gps/saved_examples/'
-RESULTS_DIR = '/home/jtobin/gps/saved_examples/'
+RESULTS_DIR = '/home/jt/gps/saved_examples/'
+#RESULTS_DIR = '/home/jtobin/gps/saved_examples/'
 
 class ResultLoader(object):
     def __init__(self, base_dir=BASE_DIR, data_dir=DATA_DIR,
@@ -147,19 +148,38 @@ class PolicyTester(object):
     @property
     def C(self): return self._C
 
+    def _load_policy(self, policy_name):
+        hyperparams_file = self._base_dir + self._exp_name + '/hyperparams.py'
+        hyperparams = imp.load_source('hyperparams', hyperparams_file)
+        policy_gen = hyperparams.config['algorithm']['policy_opt']['network_model']
+        print self._base_dir + policy_name + self._data_dir
+        checkpoint_path = self._base_dir + policy_name + self._data_dir + \
+                          'policy'
+        policy = TfPolicy.load_policy(checkpoint_path, policy_gen)
+        return policy
+    '''
     def _load_policy(self, policy_name, policy_iter=9):
+        data_logger = DataLogger()
+            
         algo_file = self._base_dir + policy_name + self._data_dir + \
                     'algorithm_itr_%02d.pkl'%policy_iter
-        print 'loading file ' + algo_file
-        data_logger = DataLogger()
         algorithm = data_logger.unpickle(algo_file)
+        
+        if algorithm is None:
+            algo_file = self._base_dir + policy_name + self._data_dir + \
+                        'algorithm.pkl'
+            print algo_file
+            algorithm = data_logger.unpickle(algo_file)
         pol = algorithm.policy_opt.policy
         return pol
-
-    def test(self, policy_name, policy_iter, verbose=False):
-        policy = self._load_policy(policy_name, policy_iter=policy_iter)
+    '''
+    def test(self, policy_name, policy_iter, verbose=False, n_samples=1):
+        #policy = self._load_policy(policy_name, policy_iter=policy_iter)
+        policy = self._load_policy(policy_name) 
         costs = []
-        for c in range(self._C):
+        #for c in range(self._C):
+        for s in range(n_samples):
+            c = s % self._C
             sample = self._agent.sample(policy, c, verbose=verbose, save=False)
             l, _, _, _, _, _ = self._cost.eval(sample)
             if verbose:
@@ -170,6 +190,7 @@ class PolicyTester(object):
                 with open(link, 'wb') as f:
                     pkl.dump(sample.get_obs(), f)
                     pkl.dump(sample.get_U(), f)
+                    pkl.dump(sample.get_X(), f)
             costs.append(np.sum(l))
         if verbose:
             print 'Total cost is %f.'%np.mean(costs)

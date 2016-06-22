@@ -12,7 +12,7 @@ from gps.algorithm.policy.lowdof_policy import LowDofPolicy
 from gps.algorithm.policy_opt.policy_opt import PolicyOpt
 from gps.algorithm.policy_opt.config import POLICY_OPT_TF
 from gps.algorithm.policy_opt.tf_utils import TfSolver
-
+import os
 import gps.algorithm.policy_opt.config as default_cfg
 
 LOGGER = logging.getLogger(__name__)
@@ -48,7 +48,14 @@ class PolicyOptTf(PolicyOpt):
         self.init_network()
         self.init_solver()
         self.var = self._hyperparams['init_var'] * np.ones(dU)
-        self.sess = tf.Session()
+        if 'n_processes' in self._hyperparams:
+            n_proc = self._hyperparams['n_processes']
+            gpu_options = tf.GPUOptions(
+                    per_process_gpu_memory_fraction=1./n_proc)
+            self.sess = tf.Session(
+                    config=tf.ConfigProto(gpu_options=gpu_options))
+        else:
+            self.sess = tf.Session()
         if 'low_dof' in config and config['low_dof']:
             self.policy = LowDofPolicy(dU, self.obs_tensor, self.act_op,
                                        np.zeros(dU), self.sess, self.device_string,
@@ -185,8 +192,8 @@ class PolicyOptTf(PolicyOpt):
             
             average_loss += train_loss
             if i % 50 == 0 and i != 0:
-                print('tensorflow iteration %d, average loss %f'
-                       %(i, average_loss/50))
+                #print('tensorflow iteration %d, average loss %f'
+                #       %(i, average_loss/50))
                 LOGGER.debug('tensorflow iteration %d, average loss %f',
                              i, average_loss / 50)
                 average_loss = 0
@@ -295,9 +302,8 @@ class PolicyOptTf(PolicyOpt):
         except tf.python.framework.errors.NotFoundError:
 	    check_file = default_cfg.checkpoint_path
             split = check_file.split('/')
-	    check_file = '/'.join(split.index('gps'))
+            check_file = '/'.join(split[split.index('gps'):])
 	    prefix = os.path.dirname(os.path.realpath(__file__))
-	    prefix = '/'.join(prefix.split('/')[:-1])
-	    check_file = prefix + check_file
-	    print prefix
+	    prefix = '/'.join(prefix.split('/')[:-5])
+	    check_file = prefix + '/' + check_file
             saver.restore(self.sess, check_file) 

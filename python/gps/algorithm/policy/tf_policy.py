@@ -60,8 +60,6 @@ class TfPolicy(Policy):
                 action_mean = self.sess.run(self.act_op, feed_dict=fd)
                 self.hidden_state = self.sess.run(self.hidden_state_tensor, 
                                            feed_dict=fd)
-                #print "Found action mean %s"%str(action_mean)
-                #print "New hidden state sum: %f"%np.sum(self.hidden_state)
         else:
             feed_dict = {self.obs_tensor: np.expand_dims(obs, 0)}
             with tf.device(self.device_string):
@@ -78,7 +76,6 @@ class TfPolicy(Policy):
 
     def reset(self):
         if self.recurrent:
-            #print "RESETTING"
             self.hidden_state = np.zeros([1, self.hidden_dim])
 
     def pickle_policy(self, deg_obs, deg_action, checkpoint_path):
@@ -86,12 +83,21 @@ class TfPolicy(Policy):
         We can save just the policy if we are only interested in running forward at a later point
         without needing a policy optimization class. Useful for debugging and deploying.
         """
+        print 'hidden state tensor'
+        print self.hidden_state_tensor
+        print 'initial'
+        print self.initial_hidden_state_tensor
+        print 'tf_vars'
+        print self.tf_vars
         pickled_pol = {'deg_obs': deg_obs, 'deg_action': deg_action, 
                        'chol_pol_covar': self.chol_pol_covar,
                        'checkpoint_path_tf': checkpoint_path + '_tf_data', 
                        'scale': self.scale, 'bias': self.bias,
-                       'device_string': self.device_string,
-                       'goal_state': goal_state, 'x_idx': self.x_idx}
+                       'device_string': self.device_string,}
+                       #'hidden_state_tensor': self.hidden_state_tensor,
+                       #'initial_hidden_state_tensor': self.initial_hidden_state_tensor,
+                       #'tf_vars': self.tf_vars}
+                       #'x_idx': self.x_idx}
         pickle.dump(pickled_pol, open(checkpoint_path, "wb"))
         saver = tf.train.Saver()
         saver.save(self.sess, checkpoint_path + '_tf_data')
@@ -118,11 +124,15 @@ class TfPolicy(Policy):
 
         device_string = pol_dict['device_string']
 
-        cls_init = cls(pol_dict['deg_action'], tf_map.get_input_tensor(), tf_map.get_output_op(), np.zeros((1,)),
-                       sess, device_string)
+        cls_init = cls(pol_dict['deg_action'], tf_map.get_input_tensor(), 
+                       tf_map.get_output_op(), np.zeros((1,)),
+                       sess, device_string, 
+                       hidden_state_tensor=tf_map.get_rnn_states(),
+                       initial_hidden_state_tensor=tf_map.get_rnn_initial_state(),
+                       tf_vars=tf_map.get_vars())
         cls_init.chol_pol_covar = pol_dict['chol_pol_covar']
         cls_init.scale = pol_dict['scale']
         cls_init.bias = pol_dict['bias']
-        cls_init.x_idx = pol_dict['x_idx']
+        #cls_init.x_idx = pol_dict['x_idx']
         return cls_init
 

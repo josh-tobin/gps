@@ -36,7 +36,8 @@ class AgentMuJoCo(Agent):
         conds = self._hyperparams['conditions']
         for field in ('x0', 'x0var', 'pos_body_idx', 'pos_body_offset',
                       'noisy_body_idx', 'noisy_body_var', 'filename',
-                      'mass_body_idx', 'mass_body_mult', 'body_color_offset',
+                      'mass_body_idx', 'mass_body_mult', 
+                      'body_color_offset', 
                       'gain_scale', 'ee_points_tgt'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
     
@@ -125,8 +126,9 @@ class AgentMuJoCo(Agent):
             # For now, assume it's the same for all conditions
             self._object_ids.append(self._hyperparams['object_ids'])
         cam_pos = self._hyperparams['camera_pos']
-        for i in range(self._hyperparams['conditions']):
-            self._world[i].init_viewer(AGENT_MUJOCO['image_width'],
+        if 'plot' not in self._hyperparams or self._hyperparams['plot']:
+            for i in range(self._hyperparams['conditions']):
+                self._world[i].init_viewer(AGENT_MUJOCO['image_width'],
                                        AGENT_MUJOCO['image_height'],
                                        cam_pos[0], cam_pos[1], cam_pos[2],
                                        cam_pos[3], cam_pos[4], cam_pos[5])

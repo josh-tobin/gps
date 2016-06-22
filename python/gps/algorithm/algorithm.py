@@ -55,11 +55,6 @@ class Algorithm(object):
             init_traj_distr = extract_condition(
                 self._hyperparams['init_traj_distr'], self._cond_idx[m]
             )
-            print "Here"
-            print agent.x0
-            print agent.dX
-            print agent.dU
-            print agent.dO
             self.cur[m].traj_distr = init_traj_distr['type'](init_traj_distr)
 
         self.traj_opt = hyperparams['traj_opt']['type'](
