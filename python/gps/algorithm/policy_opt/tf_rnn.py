@@ -93,18 +93,27 @@ def build_rnn_inputs(dim_input, dim_output):
                                name='precision')
     return nn_input, action, precision
 
-def build_rnn(input_tensor, dim_input, dim_output, scope='LSTM'):
-    initial_state = tf.placeholder(tf.float32, shape=(None, 2*dim_output))
+def build_rnn(input_tensor, dim_input, dim_output, n_layers=1, scope='LSTM'):
+    initial_state = tf.placeholder(tf.float32, shape=(None, 2*n_layers*dim_output))
 
-
-    lstm_cell = tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input, )
+    if n_layers == 1:
+        lstm_cell = tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input)
+    else:
+        #layers = [tf.nn.rnn_cell.LSTMCell(dim_output, input_size=dim_input)]
+        #layers += [tf.nn.rnn_cell.LSTMCell(dim_output)
+        #            for _ in range(n_layers - 1)]
+        #lstm_cell = tf.nn.rnn_cell.MultiRNNCell(layers)
+        lstm = tf.nn.rnn_cell.LSTMCell(dim_output)
+        lstm_cell = tf.nn.rnn_cell.MultiRNNCell([lstm]*n_layers)
     y, states = tf.nn.dynamic_rnn(lstm_cell, input_tensor, 
                                   initial_state=initial_state, 
-                                  dtype='float32',
-                                  
+                                  dtype='float32',                              
                                   scope=scope)
-    weights, biases = tf.all_variables()
-    return y, states, initial_state, [weights], [biases]
+    #weights, biases = tf.all_variables()
+    variables = tf.all_variables()
+    weights = variables[::2]
+    biases = variables[1::2]
+    return y, states, initial_state, weights, biases
 
 def build_crl_ff_layers(rnn_output, nn_input, rnn_output_dim, nn_input_dim,
                         nn_output_dim, hidden_dim=128, n_layers=3):
@@ -146,7 +155,36 @@ def example_rnn_network(dim_input=32, dim_output=7, batch_size=10):
                                  [rnn_out, rnn_states, rnn_initial_state],
                                  [loss_out], recurrent=True)
 
+class CRLRNN(object):
+    def __init__(self, batch_size=10, n_steps=100,
+                 rnn_output_dim=64, hidden_dim=32, n_feedforward=3, n_recurrent=3):
+        self._batch_size = batch_size
+        self._n_steps = n_steps
+        self._rnn_output_dim = rnn_output_dim
+        self._hidden_dim = hidden_dim
+        self._n_feedforward = n_feedforward
+        self._n_recurrent = n_recurrent
 
+    def __call__(self, dim_input, dim_output, batch_size=10,
+                 network_config=None):
+        nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
+        rnn_out, rnn_states, rnn_initial_state, \
+        rnn_weights, rnn_biases = build_rnn(nn_input, dim_input, 
+                                            self._rnn_output_dim, 
+                                            n_layers=self._n_recurrent)
+        nn_out, nn_weights, nn_biases = build_crl_ff_layers(rnn_out, nn_input, 
+                                                  self._rnn_output_dim, dim_input,
+                                                  dim_output, 
+                                                  hidden_dim=self._hidden_dim, 
+                                                  n_layers=self._n_feedforward)
+        weights = rnn_weights + nn_weights
+        biases = rnn_biases + nn_biases
+
+        loss_out = build_loss(nn_out, action, precision, dim_output)
+        return TfMap.init_from_lists([nn_input, action, precision],
+                                     [nn_out, rnn_states, rnn_initial_state],
+                                     [loss_out], [weights, biases], 
+                                     recurrent=True)
 
 def crl_rnn_large(dim_input=32, dim_output=7, batch_size=10,
                     n_steps=100, rnn_output_dim=256, hidden_dim=256,
@@ -157,6 +195,7 @@ def crl_rnn_large(dim_input=32, dim_output=7, batch_size=10,
     print "Constructing CRL RNN Network"
     print("... dim_input = %d, dim_output=%d, rnn_output_dim=%d, hidden_dim=%d"
           %(dim_input, dim_output, rnn_output_dim, hidden_dim))
+
 
     nn_input, action, precision = build_rnn_inputs(dim_input, dim_output)
     rnn_out, rnn_states, rnn_initial_state, \
