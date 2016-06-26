@@ -174,24 +174,26 @@ class PolicyTester(object):
         return pol
     '''
     def test(self, policy_name, policy_iter, verbose=False, n_samples=1):
-        #policy = self._load_policy(policy_name, policy_iter=policy_iter)
         policy = self._load_policy(policy_name) 
         costs = []
-        #for c in range(self._C):
+        obs_samples = []
+        action_samples = []
         for s in range(n_samples):
             c = s % self._C
             sample = self._agent.sample(policy, c, verbose=verbose, save=False)
+            obs_samples.append(sample.get_obs().copy())
+            action_samples.append(sample.get_U().copy())
             l, _, _, _, _, _ = self._cost.eval(sample)
+            
+            costs.append(np.sum(l))
             if verbose:
                 print 'Condition %d: cost sum is %f'%(c, np.sum(l))
-                #link = 'saved_examples/' + 'traj_' + policy_name + '.pkl'
-                link = RESULTS_DIR + 'traj_' + self._exp_name + '.pkl'
-                print link
-                with open(link, 'wb') as f:
-                    pkl.dump(sample.get_obs(), f)
-                    pkl.dump(sample.get_U(), f)
-                    pkl.dump(sample.get_X(), f)
-            costs.append(np.sum(l))
+        
+        link = RESULTS_DIR + 'traj_' + self._exp_name + '_' + policy_name + '.pkl'
+        with open(link, 'wb') as f:
+            pkl.dump(obs_samples, f)
+            pkl.dump(action_samples, f)
         if verbose:
             print 'Total cost is %f.'%np.mean(costs)
+        
         return costs
