@@ -3,7 +3,7 @@ import numpy as np
 
 from gps.algorithm.policy.policy import Policy
 from gps.utility.general_utils import check_shape
-
+import cPickle as pkl
 
 class LinearGaussianPolicy(Policy):
     """
@@ -72,4 +72,21 @@ class LinearGaussianPolicy(Policy):
         policy.pol_covar.fill(np.nan)
         policy.chol_pol_covar.fill(np.nan)
         policy.inv_pol_covar.fill(np.nan)
+        return policy
+
+    def pickle_policy(self, deg_obs, deg_action, checkpoint_path): 
+        output_spec = {'deg_obs': deg_obs, 'deg_action': deg_action, 
+                       'K': self.K, 'k': self.k, 'pol_covar': self.pol_covar,
+                       'chol_pol_covar': self.chol_pol_covar, 
+                       'inv_pol_covar': self.inv_pol_covar}
+        with open(checkpoint_path, 'wb') as f:
+            pkl.dump(output_spec, f)
+
+    @classmethod
+    def load_policy(cls, policy_dict_path, network_spec=None, 
+                    network_config=None):
+        with open(policy_dict_path, 'r') as f:
+            policy_dict = pkl.load(f)
+        policy = cls(policy_dict['K'], policy_dict['k'], policy_dict['pol_covar'],
+                     policy_dict['chol_pol_covar'], policy_dict['inv_pol_covar'])
         return policy

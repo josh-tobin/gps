@@ -11,7 +11,7 @@ from gps.agent.config import AGENT_MUJOCO
 from gps.proto.gps_pb2 import JOINT_ANGLES, JOINT_VELOCITIES, \
         END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES, \
         END_EFFECTOR_POINT_JACOBIANS, ACTION, RGB_IMAGE, RGB_IMAGE_SIZE, \
-        CONTEXT_IMAGE, CONTEXT_IMAGE_SIZE
+        CONTEXT_IMAGE, CONTEXT_IMAGE_SIZE, JOINT_ACCELERATIONS
 
 from gps.sample.sample import Sample
 
@@ -38,7 +38,8 @@ class AgentMuJoCo(Agent):
                       'noisy_body_idx', 'noisy_body_var', 'filename',
                       'mass_body_idx', 'mass_body_mult', 
                       'body_color_offset', 
-                      'gain_scale', 'ee_points_tgt'):
+                      'gain_scale', 'ee_points_tgt',
+                      'damping_mult', 'friction'):
             self._hyperparams[field] = setup(self._hyperparams[field], conds)
     
     def _setup_world(self, filename):
@@ -67,10 +68,13 @@ class AgentMuJoCo(Agent):
         for i in range(self._hyperparams['conditions']):
             for j in range(len(self._hyperparams['pos_body_idx'][i])):
                 idx = self._hyperparams['pos_body_idx'][i][j]
+                # Set body position
                 self._model[i]['body_pos'][idx, :] += \
                         self._hyperparams['pos_body_offset'][i]
+                
             self._world[i].set_model(self._model[i])
             x0 = self._hyperparams['x0'][i]
+            self.dX_model = len(x0)
             idx = len(x0) // 2
             data = {'qpos': x0[:idx], 'qvel': x0[idx:]}
             self._world[i].set_data(data)
@@ -86,6 +90,11 @@ class AgentMuJoCo(Agent):
                         self._hyperparams['body_color_offset'][i]
             self._world[i].set_model(self._model[i])
             self._reset_world(i)
+        for i in range(self._hyperparams['conditions']):
+            self._model[i]['dof_damping'] *= \
+                    self._hyperparams['damping_mult'][i]
+            self._model[i]['dof_frictional'] = np.ones_like(self._model[i]['dof_frictional'])
+            self._model[i]['dof_friction'] = self._hyperparams['friction']
         self._joint_idx = list(range(self._model[0]['nq']))
         self._vel_idx = [i + self._model[0]['nq'] for i in self._joint_idx]
         self._included_joint_idx = list(range(self._hyperparams['sensor_dims'][0]))
@@ -153,6 +162,7 @@ class AgentMuJoCo(Agent):
         data = {'qpos': x0[:idx], 'qvel': x0[idx:]}
         self._world[condition].set_data(data)
         self._world[condition].kinematics()
+    
     def sample(self, policy, condition, verbose=True, save=True):
         """
         Runs a trial and constructs a new sample containing information
@@ -203,6 +213,16 @@ class AgentMuJoCo(Agent):
         if save:
             self._samples[condition].append(new_sample)
         return new_sample
+    
+    def step(self, condition, mj_X, mj_U):
+        for _ in range(self._hyperparams['substeps']):
+            mj_X, _ = self._world[condition].step(mj_X, mj_U)
+        return mj_X
+    
+    @property
+    def worlds(self):
+        return self._world
+
     def _get_eepts(self, condition):
         SHOULDER_IDX = 3
         shoulder_pos = self._world[condition].get_data()['xpos']\
@@ -248,7 +268,11 @@ class AgentMuJoCo(Agent):
         sample.set(JOINT_VELOCITIES,
                    self._hyperparams['x0'][condition][self._included_vel_idx], t=0)
         self._data = self._world[condition].get_data()
- 
+        
+        if JOINT_ACCELERATIONS in self.x_data_types:
+            sample.set(JOINT_ACCELERATIONS,
+                       np.zeros_like(self._hyperparams['x0'][condition]\
+                                     [self._included_vel_idx]), t=0)
         if END_EFFECTOR_POINTS in self.x_data_types:
             # To be consistent with gazebo, ee points are defined 
             # relative to the shoulder joint
@@ -289,7 +313,13 @@ class AgentMuJoCo(Agent):
                                         self._hyperparams['image_width'],
                                         self._hyperparams['image_height']], t=None)
         return sample
+    def get_ee_obs(self, prev_eepts, condition):
+        curr_eepts = self._get_eepts(condition)
+        curr_adj_eepts = self._adjust_eepts(condition, curr_eepts)
 
+        eept_vels = (curr_adj_eepts - prev_eepts) / self._hyperparams['dt']
+        jac = self._get_ee_point_jacobians(condition, curr_adj_eepts)
+        return curr_adj_eepts, eept_vels, jac
     def _set_sample(self, sample, mj_X, t, condition):
         """
         Set the data for a sample for one time step.
@@ -304,19 +334,27 @@ class AgentMuJoCo(Agent):
         sample.set(JOINT_VELOCITIES, np.array(mj_X[self._included_vel_idx]), t=t+1)
         
         
+        if JOINT_ACCELERATIONS in self.x_data_types:
+            curr_velocities = sample.get(JOINT_VELOCITIES, t=t+1)
+            prev_velocities = sample.get(JOINT_VELOCITIES, t=t)
+            joint_accelerations = (curr_velocities - prev_velocities) \
+                                  / self._hyperparams['dt']
+            sample.set(JOINT_ACCELERATIONS, joint_accelerations, t=t+1)
         if END_EFFECTOR_POINTS in self.x_data_types:
-            curr_eepts = self._get_eepts(condition)
-            curr_adj_eepts = self._adjust_eepts(condition, curr_eepts)
-            sample.set(END_EFFECTOR_POINTS, curr_adj_eepts, t=t+1)
+            #curr_eepts = self._get_eepts(condition)
+            #curr_adj_eepts = self._adjust_eepts(condition, curr_eepts)
             prev_eepts = sample.get(END_EFFECTOR_POINTS, t=t)
-            eept_vels = (curr_adj_eepts - prev_eepts) / self._hyperparams['dt']
+            curr_adj_eepts, eept_vels, jac = \
+                    self.get_ee_obs(prev_eepts, condition)
+            sample.set(END_EFFECTOR_POINTS, curr_adj_eepts, t=t+1)
+            #eept_vels = (curr_adj_eepts - prev_eepts) / self._hyperparams['dt']
             sample.set(END_EFFECTOR_POINT_VELOCITIES, eept_vels, t=t+1)
             #jac = np.zeros([curr_adj_eepts.shape[0], 
             #                self._model[condition]['nv']])
             #for site in range(curr_adj_eepts.shape[0] // 3):
             #    idx = site * 3
             #    jac[idx:(idx+3), :] = self._world[condition].get_jac_site(site)
-            jac = self._get_ee_point_jacobians(condition, curr_adj_eepts)
+            #jac = self._get_ee_point_jacobians(condition, curr_adj_eepts)
             sample.set(END_EFFECTOR_POINT_JACOBIANS, jac, t=t+1)
         
         if RGB_IMAGE in self.obs_data_types:

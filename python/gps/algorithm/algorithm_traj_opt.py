@@ -5,6 +5,7 @@ import numpy as np
 
 from gps.algorithm.algorithm import Algorithm
 
+import cPickle as pickle #
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class AlgorithmTrajOpt(Algorithm):
             self._update_trajectories()
 
         self._advance_iteration_variables()
-
+    
     def _update_step_size(self):
         """ Evaluate costs on samples, and adjust the step size. """
         # Evaluate cost function for all conditions and samples.

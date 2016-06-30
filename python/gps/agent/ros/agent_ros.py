@@ -199,16 +199,10 @@ class AgentROS(Agent):
             if self.observations_stale is False:
                 consecutive_failures = 0
                 last_obs = tf_obs_msg_to_numpy(self._tf_subscriber_msg)
-                #print "sum of last obs is %f"%np.sum(last_obs)
-                #print last_obs
                 u = self._get_new_action(policy, last_obs)
-                #print "In run_trial_tf, u is: "
-                #print u
                 action_msg = tf_policy_to_action_msg(self.dU,
                                                      u,
                                                      self.current_action_id)
-                #print "Action msg is: "
-                #print action_msg
                 self._tf_publish(action_msg)
                 self.observations_stale = True
                 self.current_action_id += 1
@@ -219,8 +213,6 @@ class AgentROS(Agent):
                     # we only stop when we have run for the trial time and are no longer receiving obs.
                     should_stop = True
         rospy.sleep(0.25)  # wait for finished trial to come in.
-        #result = self._trial_service._subscriber_msg
-        #result = self._trial_service.get_msg()
         result = trial_sub.get_msg() 
         return result  # the trial has completed. Here is its message.
 

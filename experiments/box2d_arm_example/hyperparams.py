@@ -14,6 +14,7 @@ from gps.algorithm.cost.cost_action import CostAction
 from gps.algorithm.cost.cost_sum import CostSum
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
+from gps.algorithm.dynamics.dynamics_true import DynamicsTrue
 from gps.algorithm.traj_opt.traj_opt_lqr_python import TrajOptLQRPython
 from gps.algorithm.policy.lin_gauss_init import init_lqr
 from gps.gui.config import generate_experiment_info
@@ -63,6 +64,7 @@ agent = {
 algorithm = {
     'type': AlgorithmTrajOpt,
     'conditions': common['conditions'],
+    'save_samples': False,
 }
 
 algorithm['init_traj_distr'] = {
@@ -97,7 +99,7 @@ algorithm['cost'] = {
 }
 
 algorithm['dynamics'] = {
-    'type': DynamicsLRPrior,
+    'type': DynamicsTrue,
     'regularization': 1e-6,
     'prior': {
         'type': DynamicsPriorGMM,
@@ -116,7 +118,7 @@ algorithm['policy_opt'] = {}
 config = {
     'iterations': 10,
     'num_samples': 5,
-    'verbose_trials': 5,
+    'verbose_trials': 1,
     'common': common,
     'agent': agent,
     'gui_on': True,

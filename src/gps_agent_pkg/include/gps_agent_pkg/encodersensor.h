@@ -22,6 +22,7 @@ Joint encoder sensor: returns joint angles and, optionally, their velocities.
 // This sensor writes to the following data types:
 // JointAngle
 // JointVelocity
+// JointAcceleration
 // EndEffectorPoint
 // EndEffectorPointVelocity
 // EndEffectorPosition
@@ -38,8 +39,12 @@ private:
     Eigen::VectorXd previous_angles_;
     // Previous joint velocities.
     Eigen::VectorXd previous_velocities_;
+    // Previous joint accelerations.
+    Eigen::VectorXd previous_accelerations_; //
     // Temporary storage for joint angles.
     Eigen::VectorXd temp_joint_angles_;
+    // Temporary storage for joint velocities
+    Eigen::VectorXd temp_velocities_; //
     // Temporary storage for KDL joint angle array.
     KDL::JntArray temp_joint_array_;
     // Temporary storage for KDL tip pose.

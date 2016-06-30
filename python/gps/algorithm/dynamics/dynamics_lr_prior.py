@@ -61,6 +61,5 @@ class DynamicsLRPrior(Dynamics):
 
             self.Fm[t, :, :] = Fm
             self.fv[t, :] = fv
-
             dyn_covar = sigma[ip, ip] - Fm.dot(sigma[it, it]).dot(Fm.T)
             self.dyn_covar[t, :, :] = 0.5 * (dyn_covar + dyn_covar.T)

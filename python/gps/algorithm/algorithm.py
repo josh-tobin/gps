@@ -10,6 +10,8 @@ from gps.algorithm.config import ALG
 from gps.algorithm.algorithm_utils import IterationData, TrajectoryInfo
 from gps.utility.general_utils import extract_condition
 
+# Hack for ilqr
+from gps.algorithm.dynamics.dynamics_true import DynamicsTrue
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +24,6 @@ class Algorithm(object):
         config = copy.deepcopy(ALG)
         config.update(hyperparams)
         self._hyperparams = config
-
         if 'train_conditions' in hyperparams:
             self._cond_idx = hyperparams['train_conditions']
             self.M = len(self._cond_idx)
@@ -51,6 +52,12 @@ class Algorithm(object):
         for m in range(self.M):
             self.cur[m].traj_info = TrajectoryInfo()
             dynamics = self._hyperparams['dynamics']
+            if dynamics['type'] == DynamicsTrue:
+                dynamics.update({'agent': agent, 'condition': m})
+                #dynamics.update({'world': agent.worlds[m], 
+                #                 'substeps': agent._hyperparams['substeps'],
+                #                 'dX_include': agent._model[m]['nq'] + \
+                #                               agent._model[m]['nv']})
             self.cur[m].traj_info.dynamics = dynamics['type'](dynamics)
             init_traj_distr = extract_condition(
                 self._hyperparams['init_traj_distr'], self._cond_idx[m]

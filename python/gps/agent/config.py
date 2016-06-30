@@ -18,6 +18,9 @@ AGENT = {
     'mass_body_idx': np.array([]),
     'mass_body_mult': np.array([]),
     'body_color_offset': np.array([]),
+    'damping_mult': 1.0,
+    
+    'friction': 0.0,
     'gain_scale': 1.0,
     'smooth_noise': True,
     'smooth_noise_var': 2.0,

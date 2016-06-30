@@ -10,18 +10,22 @@ def print_exp(exp_name, exp_data):
     print
     
     if exp_data['train_error']:
+        max_iter = max(exp_data['train_error'].keys())
         print 'Train error:'
-        print '\t mean: %.2f \t std: %.2f'%(
+        print '\t iter %d, mean: %.2f \t std: %.2f'%(
+            max_iter,
             np.mean(exp_data['train_error'][max_iter]),
             np.std(exp_data['train_error'][max_iter]))
         print
-    for key, value in exp_data['test_error'].iteritems():
-        print '\t Evaluated on %s:'%key
-        print '\t ',
-        for member in value:
-            print "%.2f "%member,
-        print
-        print
+    if exp_data['test_error']:
+        print 'Test error:'
+        for key, value in exp_data['test_error'].iteritems():
+            print '\t Evaluated on %s:'%key
+            print '\t ',
+            for member in value:
+                print "%.2f "%member,
+            print
+            print
 
 def main():
     parser = argparse.ArgumentParser()

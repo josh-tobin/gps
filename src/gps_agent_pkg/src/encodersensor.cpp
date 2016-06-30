@@ -14,6 +14,10 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin, gps::Actua
 
     // Initialize velocities.
     previous_velocities_.resize(previous_angles_.size());
+    temp_velocities_.resize(previous_angles_.size());
+
+    // Initialize accelerations
+    previous_accelerations_.resize(previous_angles_.size());
 
     // Initialize temporary angles.
     temp_joint_angles_.resize(previous_angles_.size());
@@ -37,7 +41,9 @@ EncoderSensor::EncoderSensor(ros::NodeHandle& n, RobotPlugin *plugin, gps::Actua
     // Added to try to fix blowup at step 0
     previous_end_effector_points_.fill(0.0);
     previous_end_effector_point_velocities_.fill(0.0);
-   
+    // Do we want these?
+    temp_velocities_.fill(0.0);
+    previous_accelerations_.fill(0.0);
 
     // Resize point jacobians
     point_jacobians_.resize(3, previous_angles_.size());
@@ -153,15 +159,25 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/sensor_step_length_;
                 for (unsigned i = 0; i < previous_velocities_.size(); i++){
-                    previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
+                    temp_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
+                    //previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/sensor_step_length_;
                 }
+                for (unsigned i = 0; i < previous_accelerations_.size(); i++){
+                    previous_accelerations_[i] = (temp_velocities_[i] - previous_velocities_[i])/sensors_step_length_;
+                }
+
             }
             else
             {
                 previous_end_effector_point_velocities_ = (temp_end_effector_points_ - previous_end_effector_points_)/update_time;
                 for (unsigned i = 0; i < previous_velocities_.size(); i++){
-                    previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
+                    temp_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
+                    //previous_velocities_[i] = (temp_joint_angles_[i] - previous_angles_[i])/update_time;
                 }
+                for (unsigned i = 0; i < previous_accelerations_.size(); i++){
+                    previous_accelerations_[i] = (temp_velocities_[i] - previous_velocities_[i])/update_time;
+                }
+                
             }
         }
 
@@ -169,6 +185,9 @@ void EncoderSensor::update(RobotPlugin *plugin, ros::Time current_time, bool is_
         previous_end_effector_points_ = temp_end_effector_points_;
         for (unsigned i = 0; i < previous_angles_.size(); i++){
             previous_angles_[i] = temp_joint_angles_[i];
+        }
+        for (unsigned i = 0; i < previous_velocities_.size(); i++) {
+            previous_velocities_[i] = temp_velocities_[i];
         }
 
         // Update stored time.
@@ -222,8 +241,10 @@ void EncoderSensor::set_sample_data_format(boost::scoped_ptr<Sample>& sample)
 
     // Set joint velocities size and format.
     OptionsMap velocities_metadata;
-    sample->set_meta_data(gps::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormatEigenVector,joints_metadata);
-
+    sample->set_meta_data(gps::JOINT_VELOCITIES,previous_velocities_.size(),SampleDataFormatEigenVector, velocities_metadata);
+    // Set joint accelerations size and format.
+    OptionsMap accelerations_metadata;
+    sample->set_meta_data(gps::JOINT_ACCELERATIONS, previous_accelerations_.size(), SampleDataFormatEigenVector, accelerations_metadata);
     // Set end effector point size and format.
     OptionsMap eep_metadata;
     sample->set_meta_data(gps::END_EFFECTOR_POINTS,previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector,eep_metadata);
@@ -261,6 +282,9 @@ void EncoderSensor::set_sample_data(boost::scoped_ptr<Sample>& sample, int t)
 
     // Set joint velocities.
     sample->set_data_vector(t,gps::JOINT_VELOCITIES,previous_velocities_.data(),previous_velocities_.size(),SampleDataFormatEigenVector);
+    
+    // Set joint accelerations.
+    sample->set_data_vector(t, gps::JOINT_ACCELERATIONS, previous_accelerations_.data(), previous_accelerations_.size(), SampleDataFormatEigenvector);
 
     // Set end effector point.
     sample->set_data_vector(t,gps::END_EFFECTOR_POINTS,previous_end_effector_points_.data(),previous_end_effector_points_.cols()*previous_end_effector_points_.rows(),SampleDataFormatEigenVector);

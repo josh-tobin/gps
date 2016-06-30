@@ -129,6 +129,7 @@ algorithm = {
     'save_samples': True,
 }
 
+
 algorithm['init_traj_distr'] = {
     'type': init_lqr,
     'init_gains':  1.0 / PR2_GAINS,
@@ -140,6 +141,7 @@ algorithm['init_traj_distr'] = {
     'dt': agent['dt'],
     'T': agent['T'],
 }
+
 
 torque_cost = {
     'type': CostAction,

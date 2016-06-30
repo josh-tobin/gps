@@ -42,7 +42,6 @@ class AgentBox2D(Agent):
         self._worlds = [world(self.x0[i], target, render)
                         for i in range(self._hyperparams['conditions'])]
 
-
     def sample(self, policy, condition, verbose=False, save=True):
         """
         Runs a trial and constructs a new sample containing information

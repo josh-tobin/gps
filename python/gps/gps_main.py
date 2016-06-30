@@ -12,6 +12,7 @@ import copy
 import argparse
 import threading
 import time
+import numpy as np
 
 # Add gps/python to path so that imports work.
 
@@ -59,7 +60,8 @@ class GPSMain(object):
             self._save_policy = config['algorithm']['save_policy']
         else:
             self._save_policy = False
-
+        
+       
     def run(self, itr_load=None):
         """
         Run training by iteratively sampling and taking an iteration.
@@ -157,6 +159,7 @@ class GPSMain(object):
             i: Sample number.
         Returns: None
         """
+
         pol = self.algorithm.cur[cond].traj_distr
         if self.gui:
             self.gui.set_image_overlays(cond)   # Must call for each new cond.
@@ -261,10 +264,20 @@ class GPSMain(object):
                     copy.copy(self.algorithm)
                 )
             else:
+                agents = []
+                for cond in range(self.algorithm.M):
+                    agents.append(self.algorithm.cur[cond].traj_info.dynamics.agent)
+                    self.algorithm.cur[cond].traj_info.dynamics.agent = None
+                    self.algorithm.prev[cond].traj_info.dynamics.agent = None
+                    self.algorithm.cur[cond].traj_info.dynamics._hyperparams['agent'] = None
+                    self.algorithm.prev[cond].traj_info.dynamics._hyperparams['agent'] = None
+                #print vars(self.algorithm.cur[0].traj_info.dynamics)
                 self.data_logger.pickle(    
                     self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr),
                     copy.copy(self.algorithm)
                 )
+                for agent in agents:
+                    self.algorithm.cur[cond].traj_info.dynamics.agent = agent
 
         if self._save_samples:
             self.data_logger.pickle(
@@ -278,10 +291,27 @@ class GPSMain(object):
             )
 
         if self._save_policy:
-            self.algorithm.policy_opt.policy.pickle_policy(
-                    self.algorithm.policy_opt._dO,
-                    self.algorithm.policy_opt._dU, 
-                    self._data_files_dir + 'policy')
+            try:
+                self.algorithm.policy_opt.policy.pickle_policy(
+                        self.algorithm.policy_opt._dO,
+                        self.algorithm.policy_opt._dU, 
+                        self._data_files_dir + 'policy')
+            except:
+                for cond in range(self.algorithm.M):
+                    pol = self.algorithm.cur[cond].traj_distr
+                    pol.pickle_policy(
+                                    None,
+                                    None,
+                                    self._data_files_dir + 'policy_cond_%d'%cond)
+        # Save simple version of training error
+        error_data = self.data_logger.unpickle(
+                self._data_files_dir + 'error_data.pkl')
+        if error_data is None:
+            error_data = {'train_error': {}, 'test_error': {}}
+        error_data['train_error'][itr] = [np.sum(self.algorithm.prev[m].cs, axis=1) for m in range(self.algorithm.M)]
+        self.data_logger.pickle(self._data_files_dir + 'error_data.pkl', 
+                                error_data)
+
     def _end(self):
         """ Finish running and exit. """
         if self.gui:

@@ -23,6 +23,70 @@ class TrajOptLQRPython(TrajOpt):
 
         TrajOpt.__init__(self, config)
 
+
+
+    def iteration(self, prev_traj_distr, traj_info, prev_eta, step_mult, 
+                  algorithm, m, T):
+        #T = algorithm.T
+        kl_step = algorithm.base_kl_step * step_mult
+        
+        line_search = LineSearch(self._hyperparams['min_eta'])
+        min_eta = -np.Inf
+
+        for itr in range(DGD_MAX_ITER):
+            traj_distr, new_eta = self.backward(prev_traj_distr, traj_info,
+                                                prev_eta, algorithm, m)
+            new_mu, new_sigma = self.forward(traj_distr, traj_info)
+
+            # Update min eta if we had a correction after running bwd.
+            if new_eta > prev_eta:
+                min_eta = new_eta
+
+            # Compute KL divergence between prev and new distribution.
+            kl_div = traj_distr_kl(new_mu, new_sigma,
+                                   traj_distr, prev_traj_distr)
+
+            traj_info.last_kl_step = kl_div
+
+            # Main convergence check - constraint satisfaction.
+            if (abs(kl_div - kl_step*T) < 0.1*kl_step*T or
+                    (itr >= 20 and kl_div < kl_step*T)):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged",
+                             itr, kl_div, kl_step * T)
+                eta = prev_eta  # TODO - Should this be here?
+                break
+
+            # Adjust eta using bracketing line search.
+            eta = line_search.bracketing_line_search(kl_div - kl_step*T,
+                                                     new_eta, min_eta)
+
+            # Convergence check - dual variable change when min_eta hit.
+            if (abs(prev_eta - eta) < THRESHA and
+                    eta == max(min_eta, self._hyperparams['min_eta'])):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (eta limit)",
+                             itr, kl_div, kl_step * T)
+                break
+
+            # Convergence check - constraint satisfaction, KL not
+            # changing much.
+            if (itr > 2 and abs(kl_div - prev_kl_div) < THRESHB and
+                    kl_div < kl_step*T):
+                LOGGER.debug("Iteration %i, KL: %f / %f converged (no change)",
+                             itr, kl_div, kl_step * T)
+                break
+
+            prev_kl_div = kl_div
+            LOGGER.debug('Iteration %i, KL: %f / %f eta: %f -> %f',
+                         itr, kl_div, kl_step * T, prev_eta, eta)
+            prev_eta = eta
+
+        if kl_div > kl_step*T and abs(kl_div - kl_step*T) > 0.1*kl_step*T:
+            LOGGER.warning(
+                "Final KL divergence after DGD convergence is too high."
+            )
+        
+        return traj_distr, eta
+                    
     # TODO - Add arg and return spec on this function.
     def update(self, m, algorithm):
         """ Run dual gradient decent to optimize trajectories. """
@@ -34,6 +98,7 @@ class TrajOptLQRPython(TrajOpt):
 
         # Set KL-divergence step size (epsilon).
         kl_step = algorithm.base_kl_step * step_mult
+
 
         line_search = LineSearch(self._hyperparams['min_eta'])
         min_eta = -np.Inf
@@ -89,6 +154,7 @@ class TrajOptLQRPython(TrajOpt):
             LOGGER.warning(
                 "Final KL divergence after DGD convergence is too high."
             )
+
 
         return traj_distr, eta
 

@@ -95,6 +95,7 @@ experiments/*/data_files/*
 !experiments/crl_*/data_files/policy_checkpoint.ckpt
 !experiments/crl_*/data_files/policy
 !experiments/crl_*/data_files/policy_tf_data
+!experiments/crl_*/data_files/error_data.pkl
 #!experiments/crl_holdarm_ff/data_files/algorithm_itr*.pkl
 #!experiments/crl_ff/data_files/algorithm_itr_09.pkl
 #!experiments/crl_ff/data_files/policy_checkpoint.ckpt
