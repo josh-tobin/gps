@@ -5,33 +5,30 @@ from gps.proto.gps_pb2 import END_EFFECTOR_POINT_JACOBIANS
 from online_dynamics import *
 from cost_fk_online import CostFKOnline
 from helper import iter_module
+#import config as default_config
 
 LOGGER = logging.getLogger(__name__)
-CLIP_U = 5
+CLIP_U = 5  # Min and max torques for each joint
 
 class OnlineController(Policy):
     def __init__(self, configfiles, config_dict=None):
         super(OnlineController, self).__init__()
 
+        # Take defaults from config
         defaults = apply_config(configfiles)
         for key in defaults:
             setattr(self, key, defaults[key])
 
+        # Override defaults with provided args
         if config_dict is not None:
             for key in config_dict:
                 setattr(self, key, config_dict[key])
 
         # Init objects
-        self.cost = CostFKOnline(
-                self.eetgt,
-                wu=self.wu,
-                ee_idx=self.ee_idx,
-                jnt_idx=self.jnt_idx,
-                maxT=self.maxT,
-                use_jacobian=True
-        )
+        self.cost = CostFKOnline(self.eetgt, \
+            wu=self.wu, ee_idx=self.ee_idx, jnt_idx=self.jnt_idx, maxT=self.maxT, use_jacobian=True)
         self.prior = ClassRegistry.getClass(self.prior_class).from_config(*self.prior_class_args, config=self.__dict__)
-        self.dynamics = ClassRegistry.getClass(self.dynamics_class).from_config(self.prior, config=self.__dict__)
+        self.dynamics = OnlineDynamics(self.gamma, self.prior, self.dyn_init_mu, self.dyn_init_sig, self.dX, self.dU)
 
         self.prevx = None
         self.prevu = None
@@ -49,13 +46,16 @@ class OnlineController(Policy):
             A dU dimensional action vector.
         """
         LOGGER.debug("Timestep=%d", t)
-        if t == 0:
+        if t==0:
             lgpolicy = self.initial_policy()
         else:
             self.dynamics.update(self.prevx, self.prevu, x)
-            jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
+            jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)  #TODO: Jacobian available for only 1 timestep
             lgpolicy = self.run_lqr(t, x, self.prev_policy, jacobian=jacobian)
+
         u = self.compute_action(lgpolicy, x)
+        #if self.prevu is not None:  # smooth
+        #    u = 0.5*u+0.5*self.prevu
         LOGGER.debug("U=%s", u)
         self.prev_policy = lgpolicy
         self.prevx = x
@@ -65,16 +65,19 @@ class OnlineController(Policy):
         return u
 
     def initial_policy(self):
+        """Return LinearGaussianPolicy for timestep 0"""
         dU, dX = self.dU, self.dX
         H = self.H
-        K = self.offline_K[:H]
-        k = self.offline_k[:H]
-        init_noise=self.init_noise
+        K = self.offline_K[:H] #np.zeros((H, dU, dX))
+        k = self.offline_k[:H] #np.zeros((H, dU))
+        init_noise = 1
         self.gamma = self.init_gamma
-        cholPSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H,1,1])
-        PSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H,1,1])
-        invPSig = np.tile(1/init_noise*np.eye(dU), [H,1,1])
-        return LinearGaussianPolicy(K, k, PSig, cholPSig, invPSig)
+        cholPSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H, 1, 1])
+        PSig = np.tile(init_noise*np.eye(dU), [H, 1, 1])
+        invPSig = np.tile(1/init_noise*np.eye(dU), [H, 1, 1])
+        return LinearGaussianPolicy(K, k, PSig, cholPSig,
+                                    invPSig)
+
 
 
     def compute_action(self, lgpolicy, x, add_noise=True):
@@ -88,6 +91,8 @@ class OnlineController(Policy):
             u += lgpolicy.chol_pol_covar[0].dot(self.u_noise * np.random.randn(7))
         u = np.clip(u, -CLIP_U, CLIP_U)
         return u
+
+
 
     def run_lqr(self, t, x, prev_policy, jacobian=None):
         """
@@ -108,3 +113,4 @@ class OnlineController(Policy):
                     max_time_varying_horizon=horizon)
             prev_policy = lgpolicy
         return lgpolicy
+

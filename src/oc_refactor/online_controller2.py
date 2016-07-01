@@ -38,7 +38,7 @@ class OnlineController(Policy):
         self.prev_policy = None
         self.u_history = []
 
-    def act(self, x, obs, t, noise=None, sample=None):
+    def act(self, x, obs, t, noise=Noise, sample=None):
         """
         Args:
             x: State vector.
@@ -52,7 +52,7 @@ class OnlineController(Policy):
         if t == 0:
             lgpolicy = self.initial_policy()
         else:
-            self.dynamics.update(self.prevx, self.prevu, x)
+            self.dynamics.update(self,prevx, self.prevu, x)
             jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
             lgpolicy = self.run_lqr(t, x, self.prev_policy, jacobian=jacobian)
         u = self.compute_action(lgpolicy, x)
@@ -89,6 +89,7 @@ class OnlineController(Policy):
         u = np.clip(u, -CLIP_U, CLIP_U)
         return u
 
+    
     def run_lqr(self, t, x, prev_policy, jacobian=None):
         """
         Compute a new policy given new state
@@ -108,3 +109,4 @@ class OnlineController(Policy):
                     max_time_varying_horizon=horizon)
             prev_policy = lgpolicy
         return lgpolicy
+
