@@ -71,14 +71,6 @@ class AgentMuJoCo(Agent):
                 # Set body position
                 self._model[i]['body_pos'][idx, :] += \
                         self._hyperparams['pos_body_offset'][i]
-                
-            self._world[i].set_model(self._model[i])
-            x0 = self._hyperparams['x0'][i]
-            self.dX_model = len(x0)
-            idx = len(x0) // 2
-            data = {'qpos': x0[:idx], 'qvel': x0[idx:]}
-            self._world[i].set_data(data)
-            self._world[i].kinematics()
         # Adjust the mass (and color) of the object
         for i in range(self._hyperparams['conditions']):
             for j in range(len(self._hyperparams['mass_body_idx'][i])):
@@ -163,7 +155,8 @@ class AgentMuJoCo(Agent):
         self._world[condition].set_data(data)
         self._world[condition].kinematics()
     
-    def sample(self, policy, condition, verbose=True, save=True):
+
+    def sample(self, policy, condition, verbose=True, save=True, screenshot_prefix=None):
         """
         Runs a trial and constructs a new sample containing information
         about the trial.
@@ -197,10 +190,18 @@ class AgentMuJoCo(Agent):
         for t in range(self.T):
             X_t = new_sample.get_X(t=t)
             obs_t = new_sample.get_obs(t=t)
-            mj_U = policy.act(X_t, obs_t, t, noise[t, :])
+            mj_U = policy.act(X_t, obs_t, t, noise[t, :], sample=new_sample)
             U[t, :] = mj_U
             if verbose:
                 self._world[condition].plot(mj_X)
+                # obs = self._world[condition].get_image()
+                if screenshot_prefix:
+                    imgname = screenshot_prefix + '_' + str(t) + '.png'
+                    import pyscreenshot as ImageGrab
+                    x = 65
+                    y = 50
+                    im = ImageGrab.grab(bbox=(x, y, x + 640, y + 480))
+                    im.save(imgname)
             if (t + 1) < self.T:
                 for _ in range(self._hyperparams['substeps']):
                     mj_X, _ = self._world[condition].step(mj_X, mj_U)

@@ -20,7 +20,6 @@ try:
 except ImportError:
     TfPolicy = None
 
-
 def msg_to_sample(ros_msg, agent):
     """
     Convert a SampleResult ROS message into a Sample Python object.
@@ -112,12 +111,14 @@ class ServiceEmulator(object):
         sub_topic: Subscriber topic.
         sub_type: Subscriber message type.
     """
-    def __init__(self, pub_topic, pub_type, sub_topic, sub_type):
+    def __init__(self, pub_topic, pub_type, sub_topic, sub_type, ):
         self._pub = rospy.Publisher(pub_topic, pub_type)
         self._sub = rospy.Subscriber(sub_topic, sub_type, self._callback)
         self.sub_topic = sub_topic ### TEMP ###
         self._waiting = False
         self._subscriber_msg = None
+
+        rospy.sleep(1.0) # Wait a little
 
     def _callback(self, message):
         if self._waiting:

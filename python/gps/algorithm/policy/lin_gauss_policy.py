@@ -1,5 +1,6 @@
 """ This file defines the linear Gaussian policy class. """
 import numpy as np
+import scipy as sp
 
 from gps.algorithm.policy.policy import Policy
 from gps.utility.general_utils import check_shape
@@ -10,7 +11,7 @@ class LinearGaussianPolicy(Policy):
     Time-varying linear Gaussian policy.
     U = K*x + k + noise, where noise ~ N(0, chol_pol_covar)
     """
-    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar):
+    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar, cache_kldiv_info=False):
         Policy.__init__(self)
 
         # Assume K has the correct shape, and make sure others match.
@@ -29,7 +30,16 @@ class LinearGaussianPolicy(Policy):
         self.chol_pol_covar = chol_pol_covar
         self.inv_pol_covar = inv_pol_covar
 
-    def act(self, x, obs, t, noise=None):
+        # KL Div stuff
+        if cache_kldiv_info:
+            self.logdet_psig = np.zeros(self.T)
+            self.precision = np.zeros((self.T, self.dU, self.dU))
+            for t in range(self.T):
+                self.logdet_psig[t] = 2*sum(np.log(np.diag(chol_pol_covar[t])))
+                self.precision[t] = sp.linalg.solve_triangular(chol_pol_covar[t],sp.linalg.solve_triangular(chol_pol_covar[t].T, np.eye(self.dU), lower=True, check_finite=False), check_finite=False)
+
+
+    def act(self, x, obs, t, noise=None, sample=None):
         """
         Return an action for a state.
         Args:
@@ -38,6 +48,7 @@ class LinearGaussianPolicy(Policy):
             t: Time step.
             noise: Action noise. This will be scaled by the variance.
         """
+        #import pdb; pdb.set_trace()
         u = self.K[t].dot(x) + self.k[t]
         u += self.chol_pol_covar[t].T.dot(noise)
         return u

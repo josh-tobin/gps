@@ -56,6 +56,7 @@ public:
     bp::object Step(const bn::ndarray& x, const bn::ndarray& u);
     bp::object StepMulti(const bn::ndarray& x, const bn::ndarray& u);
     void Plot(const bn::ndarray& x);    
+    void Screenshot(const std::string& fname);    
     void Idle(const bn::ndarray& x);
     bn::ndarray GetCOMMulti(const bn::ndarray& x);
     bn::ndarray GetJacSite(int site);
@@ -406,6 +407,11 @@ void PyMJCWorld2::Plot(const bn::ndarray& x) {
 	m_viewer->RenderOnce();
 }
 
+
+void PyMJCWorld2::Screenshot(const std::string& fname) {
+    m_viewer->screenshot(fname);
+}
+
 void PyMJCWorld2::Idle(const bn::ndarray& x) {
     FAIL_IF_FALSE(x.get_dtype() == MJTNUM_DTYPE && x.get_nd() == 1 && x.get_flags() & bn::ndarray::C_CONTIGUOUS);
     _PlotInit();
@@ -531,6 +537,7 @@ BOOST_PYTHON_MODULE(mjcpy) {
         .def("get_data",&PyMJCWorld2::GetData)
         .def("set_data",&PyMJCWorld2::SetData)
         .def("plot",&PyMJCWorld2::Plot)
+        .def("screenshot",&PyMJCWorld2::Screenshot)
         .def("idle",&PyMJCWorld2::Idle)
         .def("get_feat_desc",&PyMJCWorld2::GetFeatDesc)
         .def("get_COM_multi",&PyMJCWorld2::GetCOMMulti)

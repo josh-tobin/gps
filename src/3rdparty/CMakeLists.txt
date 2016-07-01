@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 
 if (GCC)
-    set(CMAKE_C_COMPILER "gcc")
-    set(CMAKE_CXX_COMPILER "g++")
+    set(CMAKE_C_COMPILER "gcc-4.7")
+    set(CMAKE_CXX_COMPILER "g++-4.7")
 endif()
+set(CMAKE_C_COMPILER "gcc-4.7")
+set(CMAKE_CXX_COMPILER "g++-4.7")
 
 set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
 
@@ -22,6 +24,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Output di
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Output directory for executables and DLL's.")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+# Fix assembler errors
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mno-avx")
 
 find_package(Boost COMPONENTS python REQUIRED)
 find_package(PythonLibs 2.7 REQUIRED)

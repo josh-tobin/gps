@@ -392,6 +392,47 @@ void MujocoOSGViewer::SetData(const mjData* d) {
     mju_copy(m_data->qpos, d->qpos, m_model->nq);
 }
 
+#include <osgDB/WriteFile>
+//#include <osgViewer/ScreenCaptureHandler>
+void MujocoOSGViewer::screenshot(const std::string filename) {
+    std::cout << "[mjcpy] Saving screenshot to " << filename << '\n';
+
+    /*
+    osgViewer::ScreenCaptureHandler* scm = new osgViewer::ScreenCaptureHandler();
+    osgViewer::ScreenCaptureHandler::WriteToFile* captureOper = new osgViewer::ScreenCaptureHandler::WriteToFile(tmpStr.m_szBuffer, "png");
+    scm->setCaptureOperation(captureOper);
+    scm->captureNextFrame(m_viewer);
+    m_viewer->frame();
+    */
+    glReadBuffer(GL_BACK);
+
+    int x,y,width,height;
+    osg::ref_ptr<osg::Camera> camera = m_viewer.getCamera();
+    x = camera->getViewport()->x();
+    y = camera->getViewport()->y();
+    width = camera->getViewport()->width();
+    height = camera->getViewport()->height();
+    std::cout << "X:" << x << '\n';
+    std::cout << "Y:" << y << '\n';
+    std::cout << "w:" << width << '\n';
+    std::cout << "h:" << height << '\n';
+
+    osg::ref_ptr<osg::Image> shot = new osg::Image();
+    m_viewer.frame()
+    shot->readPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE);    
+
+    /*
+    osg::ref_ptr<osg::Image> shot = new osg::Image();
+    osg::ref_ptr<osg::Camera> camera = m_viewer.getCamera();
+    shot->allocateImage(640, 480, 24, GL_RGB, GL_UNSIGNED_BYTE);
+    //m_viewer.frame();
+    camera->attach(osg::Camera::COLOR_BUFFER, shot.get());
+    m_viewer.frame();
+    */
+
+    osgDB::writeImageFile(*shot, filename);
+}
+
 
 void NewModelFromXML(const char* filename,mjModel*& model, mjOption*& option) {
     char errmsg[100];
