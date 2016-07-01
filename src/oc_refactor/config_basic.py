@@ -12,7 +12,7 @@ jnt_idx = slice(0,7)
 ee_idx = slice(14,20)
 it = slice(0,33)
 ip = slice(33,59)
-H = 20 # Horizon
+H = 15 # Horizon
 maxT = 100 # Total timesteps
 
 # LQR Options
@@ -22,7 +22,6 @@ del0 = 2  # LQR regularization
 lqr_discount = 0.9  # Discount factor.
 
 # Noise
-init_noise = 1.0
 u_noise = 0.05
 
 # Cost options
@@ -32,7 +31,6 @@ eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt
 
 # Dynamics Options
-dynamics_class = 'OnlineGaussianDynamics'
 dyn_init_mu = np.zeros(dT+dX)
 dyn_init_sig = np.eye(dT+dX)
 prior_class = 'NoPrior'

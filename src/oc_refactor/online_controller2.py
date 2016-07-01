@@ -38,7 +38,7 @@ class OnlineController(Policy):
         self.prev_policy = None
         self.u_history = []
 
-    def act(self, x, obs, t, noise=Noise, sample=None):
+    def act(self, x, obs, t, noise=None, sample=None):
         """
         Args:
             x: State vector.
@@ -52,7 +52,7 @@ class OnlineController(Policy):
         if t == 0:
             lgpolicy = self.initial_policy()
         else:
-            self.dynamics.update(self,prevx, self.prevu, x)
+            self.dynamics.update(self.prevx, self.prevu, x)
             jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
             lgpolicy = self.run_lqr(t, x, self.prev_policy, jacobian=jacobian)
         u = self.compute_action(lgpolicy, x)
@@ -69,7 +69,8 @@ class OnlineController(Policy):
         H = self.H
         K = self.offline_K[:H]
         k = self.offline_k[:H]
-        init_noise=self.init_noise
+        #init_noise=self.init_noise
+        init_noise =  1
         self.gamma = self.init_gamma
         cholPSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H,1,1])
         PSig = np.tile(np.sqrt(init_noise)*np.eye(dU), [H,1,1])
