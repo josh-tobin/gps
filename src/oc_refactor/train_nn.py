@@ -141,7 +141,8 @@ def train_nn(fname, netid, new=True, data_files=None, update_every=2000, save_ev
     N = data.shape[0]
 
     djnt = 7
-    dee = 6
+    #dee = 6
+    dee = 9
     dx = 2*dee+2*djnt+0
     du = djnt
 

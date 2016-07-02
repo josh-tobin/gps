@@ -183,8 +183,12 @@ def estimate_cost(cur_timestep, cost, lgpolicy, dynamics, horizon, x0, prevx, pr
         if t < H:
             # Estimate new dynamics here based on mu
             if time_varying_dynamics and t < max_time_varying_horizon:
-                F[t], f[t], dynsig[t] = dynamics.get_dynamics(cur_timestep + t, mu[t - 1, ix], mu[t - 1, iu],
-                                                              mu[t, ix], cur_action)
+                F[t], f[t], dynsig[t] = dynamics.get_dynamics(
+                        cur_timestep + t, 
+                        mu[t - 1, ix], 
+                        mu[t - 1, iu],
+                        mu[t, ix], 
+                        cur_action)
         if t < H - 1:
             trajsig[t + 1, ix, ix] = F[t].dot(trajsig[t]).dot(F[t].T) + dynsig[t]
             mu[t + 1, ix] = F[t].dot(mu[t]) + f[t]

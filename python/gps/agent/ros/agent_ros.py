@@ -134,6 +134,7 @@ class AgentROS(Agent):
         condition_data = self._hyperparams['reset_conditions'][condition]
         self.reset_arm(TRIAL_ARM, condition_data[TRIAL_ARM]['mode'],
                        condition_data[TRIAL_ARM]['data'])
+        print 'Successfully reset TRIAL_ARM'
         self.reset_arm(AUXILIARY_ARM, condition_data[AUXILIARY_ARM]['mode'],
                        condition_data[AUXILIARY_ARM]['data'])
 
@@ -150,6 +151,7 @@ class AgentROS(Agent):
         """
         if TfPolicy is not None:  # user has tf installed.
             if isinstance(policy, TfPolicy):
+                print 'INITIALIZING TF'
                 self._init_tf(policy.dU)
 
         self.reset(condition)
@@ -178,6 +180,7 @@ class AgentROS(Agent):
                 self._samples[condition].append(sample)
             return sample
         else:
+            print 'Publishing trial command'
             self._trial_service.publish(trial_command)
             sample_msg = self.run_trial_tf(policy, 
                     time_to_run=self._hyperparams['trial_timeout'])

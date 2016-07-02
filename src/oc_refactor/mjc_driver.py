@@ -8,6 +8,7 @@ import logging
 import copy
 import argparse
 import cPickle
+import imp
 from online_controller import OnlineController
 from helper import *
 from gps.hyperparam_defaults import defaults, ACTION, JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, \
@@ -20,7 +21,8 @@ import common
 
 np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-
+EXPERIMENT_FILE_DIR = os.path.join(
+        THIS_FILE_DIR, '../..', 'experiments/')
 
 def get_controller(controllerfile, condition, cfgfiles, maxT=100):
     """
@@ -31,22 +33,26 @@ def get_controller(controllerfile, condition, cfgfiles, maxT=100):
         controller_dict = cPickle.load(f)
         controller_dict['maxT'] = maxT
         controller_dict['condition'] = condition
-
+        del controller_dict['eetgt']
     return OnlineController(cfgfiles, config_dict=controller_dict)
 
 
-def setup_agent(T=100):
+def setup_agent(T=100, hyperparam_file=None):
     """Returns a MuJoCo Agent"""
-    hyperparams = copy.deepcopy(defaults['agent'])
+    if hyperparam_file is None:
+        hyperparams = copy.deepcopy(defaults['agent'])
+    else:
+        hyperparam_source = imp.load_source("hyperparams", hyperparam_file)
+        hyperparams = hyperparam_source.config['agent']
     hyperparams['T'] = T
     #hyperparams['sensor_dims'] = {ACTION: 7, JOINT_ANGLES:7, JOINT_VELOCITIES:7,
     #                              END_EFFECTOR_POINTS: 6, END_EFFECTOR_POINT_VELOCITIES: 6}
     #hyperparams['state_include'] = [JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, END_EFFECTOR_POINT_VELOCITIES]
     dX = sum([hyperparams['sensor_dims'][k] for k in hyperparams['state_include']])
-    print 'dX:', dX
+    #print 'dX:', dX
     hyperparams['obs_include'] = hyperparams['state_include']
     #hyperparams['x0'] = np.zeros(dX-12)
-    return AgentMuJoCo(hyperparams)
+    return hyperparams['type'](hyperparams)
 
 def setup_algorithm(agent, conditions):
     hyperparams = copy.deepcopy(defaults['algorithm'])
@@ -62,14 +68,18 @@ def setup_algorithm(agent, conditions):
     """
     hyperparams['init_traj_distr']['T'] = agent.T
     hyperparams['init_traj_distr']['dt'] = 0.05
+    hyperparams['conditions'] = agent._hyperparams['conditions']
     algorithm = defaults['algorithm']['type'](hyperparams)
     return algorithm
 
-def run_offline(out_filename, verbose, conditions=defaults['common']['conditions'], alg_iters=10, sample_iters=20):
+#def run_offline(out_filename, verbose, conditions=defaults['common']['conditions'], alg_iters=10, sample_iters=20,
+#        hyperparam_file=None):
+def run_offline(out_filename, verbose, conditions=1,
+        alg_iters=10, sample_iters=20, hyperparam_file=None):
     """
     Run offline controller, and save results to controllerfile
     """
-    agent = setup_agent()
+    agent = setup_agent(hyperparam_file=hyperparam_file)
     algorithm = setup_algorithm(agent, conditions)
     samples = [[] for _ in range(conditions)]
     for itr in range(alg_iters):  # Iterations
@@ -134,11 +144,11 @@ def run_offline(out_filename, verbose, conditions=defaults['common']['conditions
         controllers.append(controller_dict)
 
 
-def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=None):
+def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=None, hyperparam_file=None):
     """
     Run online controller and save sample data to train dynamics
     """
-    agent = setup_agent(T=T)
+    agent = setup_agent(T=T, hyperparam_file=hyperparam_file)
     controller = get_controller(controllerfile, condition, cfgfiles, maxT=T)
     sample = agent.sample(controller, condition, verbose=verbose)
     if savedata is None:
@@ -173,15 +183,23 @@ def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=
 
 def main():
     args = parse_args()
+    if args.experiment_name:
+        experiment_file = EXPERIMENT_FILE_DIR + args.experiment_name + \
+                '/hyperparams.py'
+    else:
+        experiment_file = None
     if args.silence_logger:
         logging.basicConfig(level=logging.INFO)
     else:
         logging.basicConfig(level=logging.DEBUG)
 
     if args.offline:
-        run_offline(args.controllerfile, verbose=not args.noverbose)
+        run_offline(args.controllerfile, 
+                    hyperparam_file=experiment_file,
+                    verbose=not args.noverbose)
     else:
         run_online(args.timesteps, args.controllerfile, args.config,
+                   hyperparam_file=experiment_file,
                    condition=args.condition, verbose=not args.noverbose,
                    savedata=args.savedata)
 
@@ -194,7 +212,7 @@ def parse_args():
     parser.add_argument('-s', '--savedata', default=None, help='Save dynamics data after running. (Filename)')
     parser.add_argument('--silence_logger', action='store_true', default=False, help='Dont use logger')
     parser.add_argument('--condition', type=int, default=0, help='Condition')
-
+    parser.add_argument('--experiment_name', type=str, default='', help='Name of the experiment from which to load the task')
     mkdir_p(os.path.join(THIS_FILE_DIR, 'controller'))
     default_file = os.path.join(THIS_FILE_DIR, 'controller', 'mjc_controller.pkl')
     parser.add_argument('-c', '--controllerfile', type=str, default=default_file,

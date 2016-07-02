@@ -28,6 +28,9 @@ from gps.algorithm.policy_opt.tf_model_example import example_tf_network
 from gps.utility.general_utils import get_ee_points
 from gps.gui.target_setup_gui import load_pose_from_npz
 
+
+model_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../mjc_models/')
+
 EE_POINTS = np.array([[0.02, -0.025, 0.05], [0.02, -0.025, 0.05],
                   [0.02, 0.05, 0.0]])
 
@@ -89,7 +92,8 @@ if not os.path.exists(common['data_files_dir']):
 
 agent = {
     'type': AgentMuJoCo,
-    'filename': './mjc_models/PR2/pr2_1arm.xml',
+    #'filename': './mjc_models/PR2/pr2_1arm.xml',
+    'filename': model_file + 'PR2/pr2_1arm.xml',
     #'filename': './mjc_models/pr2_arm3d.xml',
     #'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]),
     #                      np.zeros(7)]),

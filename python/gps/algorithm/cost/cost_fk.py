@@ -38,7 +38,6 @@ class CostFK(Cost):
             wp_final_multiplier=self._hyperparams['wp_final_multiplier']
         )
         wp = self._hyperparams['wp'] * np.expand_dims(wpm, axis=-1)
-
         # Initialize terms.
         l = np.zeros(T)
         lu = np.zeros((T, dU))
@@ -51,7 +50,7 @@ class CostFK(Cost):
         tgt = self._hyperparams['end_effector_target']
         pt = sample.get(END_EFFECTOR_POINTS)
         dist = pt - tgt
-        # TODO - These should be partially zeros so we're not double
+       # TODO - These should be partially zeros so we're not double
         #        counting.
         #        (see pts_jacobian_only in matlab costinfos code)
         jx = sample.get(END_EFFECTOR_POINT_JACOBIANS)

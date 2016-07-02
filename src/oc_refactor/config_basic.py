@@ -31,6 +31,7 @@ eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt
 
 # Dynamics Options
+dynamics_class = 'OnlineGaussianDynamics'
 dyn_init_mu = np.zeros(dT+dX)
 dyn_init_sig = np.eye(dT+dX)
 prior_class = 'NoPrior'

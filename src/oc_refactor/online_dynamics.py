@@ -7,6 +7,66 @@ import dynamics_nn
 
 
 class OnlineDynamics(object):
+    __metaclass__ = ClassRegistry
+
+    def __init__(self):
+        pass
+
+    def update(self, prevx, prevu, curx):
+        raise NotImplementedError("Abstract method")
+
+    def get_dynamics(self, t, prevx, prevu, curx, curu):
+        raise NotImplementedError("Abstract method")
+
+class OnlineOutputErrorDynamics(OnlineDynamics):
+    def __init__(self, gamma, prior, dX, dU, 
+            covariance_scale=1e-4, N=1, sigreg=1e-5):
+        self.gamma = gamma
+        self.prior = prior
+        self.sigreg = sigreg
+        self.covariance_scale=covariance_scale
+        self.dX = dX
+        self.dU = dU
+        self.empsig_N = N #(necessary?)
+        self.x_tm2 = None # Save prev x and prev u
+        self.u_tm2 = None # for dynamics model
+        self.preverr = None
+        self.err = None
+    
+    @staticmethod
+    def from_config(prior, config=None):
+        return OnlineOutputErrorDynamics(config['gamma'], prior, 
+                config['dX'], config['dU'], 
+                covariance_scale=config['covariance_scale'])
+
+    def _calc_err(self, curx, predx):
+        gamma = self.gamma
+        if self.preverr is None:
+            err = curx - predx
+        else:
+            err = (1 - gamma) * self.preverr + \
+                    gamma * (curx - predx)
+        return err
+
+    def update(self, prevx, prevu, curx):
+        try:
+            predx = self.prior.estimate_next(
+                    prevx, prevu, self.x_tm2, self.u_tm2)
+        except ValueError:
+            predx = curx
+
+        tmperr = self.err
+        self.err = self._calc_err(curx, predx)
+        self.preverr = tmperr
+
+    def get_dynamics(self, t, prevx, prevu, curx, curu):
+        F, f = self.prior.linearize(curx, curu, prevx, prevu)
+        Fm = F
+        fv = f + self.err 
+        dyn_covar = self.covariance_scale * np.eye(self.dX)
+        return Fm, fv, dyn_covar
+
+class OnlineGaussianDynamics(OnlineDynamics):
     def __init__(self, gamma, prior, init_mu, init_sigma, dX, dU, N=1, sigreg=1e-5):
         self.gamma = gamma
         self.prior = prior
@@ -19,6 +79,10 @@ class OnlineDynamics(object):
         self.mu = init_mu
         self.sigma = init_sigma
         self.xxt = init_sigma + np.outer(self.mu, self.mu)
+        
+    @staticmethod
+    def from_config(prior, config=None):
+        return OnlineGaussianDynamics(config['gamma'], prior, config['dyn_init_mu'], config['dyn_init_sig'], config['dX'], config['dU'])
 
     def update(self, prevx, prevu, curx):
         """ Perform a moving average update on the current dynamics """
@@ -45,7 +109,6 @@ class OnlineDynamics(object):
         """
         dX = self.dX
         dU = self.dU
-
         ix = slice(dX)
         iu = slice(dX, dX + dU)
         it = slice(dX + dU)
@@ -69,7 +132,6 @@ class OnlineDynamics(object):
         fv = mun[ip] - Fm.dot(mun[it])
         dyn_covar = sigma[ip, ip] - Fm.dot(sigma[it, it]).dot(Fm.T)
         dyn_covar = 0.5 * (dyn_covar + dyn_covar.T)  # Guarantee symmetric
-
         return Fm, fv, dyn_covar
 
 
@@ -110,6 +172,16 @@ class NNPrior(OnlineDynamicsPrior):
         sigma = (N * empsig + nn_Phi) / (N + 1)
         mun = (N * mun + np.r_[xu, F.dot(xu) + f]) / (N + 1)
         return sigma, mun
+
+    def linearize(self, x, u, x_prev, u_prev):
+        xu = np.r_[x, u]
+        xu_prev = np.r_[x_prev, u_prev]
+        return self.dyn_net.linearize(xu, xu_prev)
+
+    def estimate_next(self, x, u, x_prev, u_prev):
+        xu = np.r_[x, u]
+        xu_prev = np.r_[x_prev, u_prev]
+        return self.dyn_net.fwd_single(xu, xu_prev)
 
 
 class GMMPrior(OnlineDynamicsPrior):

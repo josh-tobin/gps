@@ -34,6 +34,7 @@ from gps.algorithm.policy_opt.tf_rnn import crl_rnn_network, crl_rnn_large, CRLR
 
 
 BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
+model_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../mjc_models/')
 
 #############
 # TO CHANGE #
@@ -41,7 +42,7 @@ BASE_DIR = '/'.join(str.split(gps_filepath, '/')[:-2])
 
 body_names = ['OBJ_box']
 
-MODEL_PATH = './mjc_models/PR2/pr2_box.xml' 
+MODEL_PATH = model_file + 'PR2/pr2_box.xml' 
 
 SAMPLE_STRATEGY = 'uniform'
 MASS_STD = 0.25

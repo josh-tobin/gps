@@ -120,11 +120,12 @@ state_cost = {
 
 fk_cost = {
     'type': CostFK,
-    'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    #'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
+    'end_effector_target': np.zeros(9),
     'l1': 0.1,
     'l2': 10.0,
     'alpha': 1e-5,
-    'wp': np.array([1,1,1,1,1,1]),
+    'wp': np.ones(9),
 }
 
 algorithm['cost'] = {
