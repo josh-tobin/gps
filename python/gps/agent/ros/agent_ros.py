@@ -203,12 +203,13 @@ class AgentROS(Agent):
                 consecutive_failures = 0
                 last_obs = tf_obs_msg_to_numpy(self._tf_subscriber_msg)
                 u = self._get_new_action(policy, last_obs)
+                self.current_action_id += 1
                 action_msg = tf_policy_to_action_msg(self.dU,
                                                      u,
                                                      self.current_action_id)
                 self._tf_publish(action_msg)
                 self.observations_stale = True
-                self.current_action_id += 1
+                #self.current_action_id += 1
             else:
                 rospy.sleep(0.01)
                 consecutive_failures += 1
@@ -220,8 +221,8 @@ class AgentROS(Agent):
         return result  # the trial has completed. Here is its message.
 
     def _get_new_action(self, policy, obs):
-        return policy.act(None, obs, None, None)
-
+        #return policy.act(None, obs, None, None)
+        return policy.act(None, obs, self.current_action_id, None)
     def _tf_callback(self, message):
         #print "Received a new tf message"
         self._tf_subscriber_msg = message
@@ -235,7 +236,7 @@ class AgentROS(Agent):
     def _init_tf(self, dU):
         self._tf_subscriber_msg = None
         self.observations_stale = True
-        self.current_action_id = 1
+        self.current_action_id = 0
         self.dU = dU
         if self.use_tf is False:  # init pub and sub if this init has not been called before.
             self._pub = rospy.Publisher('/gps_controller_sent_robot_action_tf', TfActionCommand)

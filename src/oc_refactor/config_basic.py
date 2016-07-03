@@ -29,6 +29,7 @@ wu = 1e-2/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Torque penalty
 tgt = np.zeros(26)
 eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt
+use_jacobian = True
 
 # Dynamics Options
 dynamics_class = 'OnlineGaussianDynamics'
@@ -37,5 +38,6 @@ dyn_init_sig = np.eye(dT+dX)
 prior_class = 'NoPrior'
 prior_class_args = []
 init_gamma = gamma = 0.1  # Higher means update faster. Lower means keep more history.
+#init_gamma = gamma = 0.5
 mix_prior_strength = 1.0
 

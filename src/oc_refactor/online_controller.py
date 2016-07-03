@@ -15,7 +15,6 @@ class OnlineController(TfPolicy):
         super(TfPolicy, self).__init__()
 
         defaults = apply_config(configfiles)
-        print defaults
         for key in defaults:
             setattr(self, key, defaults[key])
         if config_dict is not None:
@@ -23,14 +22,13 @@ class OnlineController(TfPolicy):
                 setattr(self, key, config_dict[key])
 
         # Init objects
-
         self.cost = CostFKOnline(
                 self.eetgt,
                 wu=self.wu,
                 ee_idx=self.ee_idx,
                 jnt_idx=self.jnt_idx,
                 maxT=self.maxT,
-                use_jacobian=True
+                use_jacobian=self.use_jacobian
         )
         self.prior = ClassRegistry.getClass(self.prior_class).from_config(*self.prior_class_args, config=self.__dict__)
         self.dynamics = ClassRegistry.getClass(self.dynamics_class).from_config(self.prior, config=self.__dict__)
@@ -51,16 +49,23 @@ class OnlineController(TfPolicy):
             A dU dimensional action vector.
         """
         LOGGER.debug("Timestep=%d", t)
-        if t == 0:
+        if x is None:
+            fb = obs
+        else:
+            fb = x
+        if t == 0 or self.prevx is None:
             lgpolicy = self.initial_policy()
         else:
-            self.dynamics.update(self.prevx, self.prevu, x)
-            jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
-            lgpolicy = self.run_lqr(t, x, self.prev_policy, jacobian=jacobian)
-        u = self.compute_action(lgpolicy, x)
+            self.dynamics.update(self.prevx, self.prevu, fb)
+            if sample is not None:
+                jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
+            else:
+                jacobian = None
+            lgpolicy = self.run_lqr(t, fb, self.prev_policy, jacobian=jacobian)
+        u = self.compute_action(lgpolicy, fb, add_noise=True)
         LOGGER.debug("U=%s", u)
         self.prev_policy = lgpolicy
-        self.prevx = x
+        self.prevx = fb
         self.prevu = u
         self.u_history.append(u)
 
@@ -101,6 +106,7 @@ class OnlineController(TfPolicy):
             LinearGaussianPolicy: An updated policy
         """
         horizon = min(self.H, self.maxT - t)
+        #horizon = self.H
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):

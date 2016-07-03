@@ -17,7 +17,6 @@ class CostFKOnline(object):
         self.jnt_tgt = jnt_tgt
         self.jnt_wp = jnt_wp
         self.use_jacobian = use_jacobian
-
         self.final_penalty = 1.0  # weight = sum of remaining weight * final penalty
         self.ramp_option = RAMP_CONSTANT
         self.l1 = 0.01

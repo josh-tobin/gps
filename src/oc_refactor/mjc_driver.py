@@ -54,6 +54,15 @@ def setup_agent(T=100, hyperparam_file=None):
     #hyperparams['x0'] = np.zeros(dX-12)
     return hyperparams['type'](hyperparams)
 
+def setup_cost(hyperparam_file):
+    if hyperparam_file is None:
+        return None
+    else:
+        hyperparam_source = imp.load_source("hyperparams", hyperparam_file)
+        hyperparams = hyperparam_source.config['algorithm']['cost']
+        cost = hyperparams['type'](hyperparams)
+        return cost
+
 def setup_algorithm(agent, conditions):
     hyperparams = copy.deepcopy(defaults['algorithm'])
     hyperparams['agent'] = agent
@@ -151,6 +160,11 @@ def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=
     agent = setup_agent(T=T, hyperparam_file=hyperparam_file)
     controller = get_controller(controllerfile, condition, cfgfiles, maxT=T)
     sample = agent.sample(controller, condition, verbose=verbose)
+    cost = setup_cost(hyperparam_file) 
+    #total_cost = np.sum(cost.eval(sample))
+    
+    total_cost = np.sum(cost.eval(sample)[0])
+    print 'Total cost: %.2f'%total_cost
     if savedata is None:
         u_hist = np.r_[controller.u_history].T
         du, dT = u_hist.shape
