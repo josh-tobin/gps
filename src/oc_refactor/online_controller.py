@@ -8,7 +8,7 @@ from cost_fk_online import CostFKOnline
 from helper import iter_module
 
 LOGGER = logging.getLogger(__name__)
-CLIP_U = 5
+CLIP_U = 1.5
 
 class OnlineController(TfPolicy):
     def __init__(self, configfiles, config_dict=None):
@@ -49,8 +49,10 @@ class OnlineController(TfPolicy):
             A dU dimensional action vector.
         """
         LOGGER.debug("Timestep=%d", t)
-        if x is None:
-            fb = obs
+        print 'Timestep=%d, err=%f'%(t, 
+	    np.sum(np.abs(self.eetgt-obs[14:23])))
+	if x is None:
+            fb = obs[:self.dX]
         else:
             fb = x
         if t == 0 or self.prevx is None:
@@ -60,7 +62,7 @@ class OnlineController(TfPolicy):
             if sample is not None:
                 jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
             else:
-                jacobian = None
+                jacobian = obs[self.dX:].reshape([-1,self.dU])
             lgpolicy = self.run_lqr(t, fb, self.prev_policy, jacobian=jacobian)
         u = self.compute_action(lgpolicy, fb, add_noise=True)
         LOGGER.debug("U=%s", u)
@@ -91,7 +93,7 @@ class OnlineController(TfPolicy):
         time-varying LG policy's first timestep (and add noise)
         """
         # Only the first timestep of the policy is used
-        u = lgpolicy.K[0].dot(x) + lgpolicy.k[0]
+	u = lgpolicy.K[0].dot(x) + lgpolicy.k[0]
         if add_noise:
             u += lgpolicy.chol_pol_covar[0].dot(self.u_noise * np.random.randn(7))
         u = np.clip(u, -CLIP_U, CLIP_U)
@@ -111,11 +113,12 @@ class OnlineController(TfPolicy):
         reg_del = self.del0
         for _ in range(self.LQR_iter):
             # This is plain LQR
-            lgpolicy, reg_mu, reg_del = lqr(self.cost, prev_policy, self.dynamics,
-                    horizon, t, x, self.prevx, self.prevu,
-                    reg_mu, reg_del, self.del0, self.min_mu, self.lqr_discount,
-                    jacobian=jacobian,
-                    max_time_varying_horizon=horizon)
+            lgpolicy, reg_mu, reg_del = lqr(
+		self.cost, prev_policy, self.dynamics,
+                horizon, t, x, self.prevx, self.prevu,
+                reg_mu, reg_del, self.del0, self.min_mu,
+		self.lqr_discount, jacobian=jacobian,
+                max_time_varying_horizon=horizon)
             prev_policy = lgpolicy
         return lgpolicy
 

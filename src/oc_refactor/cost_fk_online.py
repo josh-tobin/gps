@@ -45,7 +45,7 @@ class CostFKOnline(object):
         lux = np.zeros((T, dU, dX))
 
         dist = X[:,self.ee_idx] - self.eetgt
-        if self.use_jacobian:
+	if self.use_jacobian:
             if len(jac.shape) == 3: # If jac has a time dimension
                 Jd = jac[:,:,self.jnt_idx]
             else: # Rep single jacobian across time if not
@@ -70,7 +70,7 @@ class CostFKOnline(object):
         #dist = dist[:,0:3]
         #Jd = Jd[:,0:3,:]
         #wp = wp[:,0:3]
-        if self.use_jacobian:
+	if self.use_jacobian:
             Jdd = np.zeros((T, self.dim_ee, self.dim_jnt, self.dim_jnt))
             l_fk, lx_fk, lxx_fk = evallogl2term( wp, dist, Jd, Jdd, self.l1, self.l2, self.alpha)
             l += l_fk
@@ -79,4 +79,5 @@ class CostFKOnline(object):
 
         #TODO: Add derivatives for the actual end-effector dimensions of state
         #Right now only derivatives w.r.t. joints are considered
-        return l, lx, lu, lxx, luu, lux
+        print 'loss: %.2f'%np.sum(l)
+	return l, lx, lu, lxx, luu, lux
