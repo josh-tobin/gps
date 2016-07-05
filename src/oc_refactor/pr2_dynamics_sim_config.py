@@ -17,7 +17,7 @@ agent = {
     'x0': np.zeros(14),
     'dt': 0.05,
     'substeps': 1,
-    'ee_points_tgt': np.zeros(14),
+    'ee_points_tgt': np.zeros(9),
     'conditions': 1,
     'pos_body_id': np.array([1]),
     'pos_body_offset': np.array([0.0, 0.0, 0.0]),

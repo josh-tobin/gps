@@ -5,7 +5,7 @@ from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.utility.general_utils import finite_differences
 from helper import *
 import dynamics_nn
-
+import imp
 
 class OnlineDynamics(object):
     __metaclass__ = ClassRegistry
@@ -190,16 +190,16 @@ class ModeledPrior(OnlineDynamicsPrior):
     @staticmethod
     def from_config(modelfile, config=None):
         dynamics_params = imp.load_source('hyperparams', modelfile)
-        model_agent = dynamics_params.config['agent']['type'](
-                dynamics_params.config['agent'])
+        model_agent = dynamics_params.agent['type'](
+                dynamics_params.agent)
         return ModeledPrior(
                 model_agent,
-                mix_strength=config.mix_strength,
-                fd_eps=config.fd_eps,
-                dX_include=config.dX_include,
-                dX=config.dX,
-                dU=config.dU,
-                condition=config.condition
+                mix_strength=config['mix_strength'],
+                fd_eps=config['fd_eps'],
+                dX_include=config['dX_include'],
+                dX=config['dX'],
+                dU=config['dU'],
+                condition=config['condition']
         )
 
     def __init__(self, model_agent, mix_strength=1.0, fd_eps=1e-5,
@@ -210,6 +210,7 @@ class ModeledPrior(OnlineDynamicsPrior):
         self.dX_include = dX_include
         self.dX = dX
         self.dU = dU
+        self.condition = condition
     
     def _dynamics_function(self, xu):
         x = xu[:self.dX_include]
@@ -218,8 +219,8 @@ class ModeledPrior(OnlineDynamicsPrior):
         if self.dX_include < self.dX:
             prev_eepts = xu[self.dX_include:self.dX]
             idx = len(prev_eepts) // 2 # only want pos, not vel
-            eepts, eepts_vel, eepts_jac = self.agent.get_ee_obs(
-                    prev_eepts, self.condition)
+            eepts, eepts_vel, eepts_jac = self.model_agent.get_ee_obs(
+                    prev_eepts[:idx], self.condition)
             new_x = np.concatenate([new_x, eepts, eepts_vel])
         return new_x
 
@@ -236,7 +237,7 @@ class ModeledPrior(OnlineDynamicsPrior):
         return Fm, fv
     
     def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
-        F, f = self.linearize(xu, pxu)
+        F, f = self.linearize(xu[:self.dX], xu[self.dX:], pxu[:self.dX], pxu[self.dX:])
         nn_Phi, nnf = mix_prior(dX, dU, F, f, xu, strength=self.mix_prior_strength, 
                 use_least_squares=False)
         sigma = (N * empsig + nn_Phi) / (N + 1)

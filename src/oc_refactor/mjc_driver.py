@@ -240,4 +240,6 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
-    main()
+    #main()
+    import cProfile
+    cProfile.run('main()', sort='cumtime')

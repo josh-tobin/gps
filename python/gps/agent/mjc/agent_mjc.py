@@ -217,7 +217,8 @@ class AgentMuJoCo(Agent):
     
     def step(self, condition, mj_X, mj_U):
         for _ in range(self._hyperparams['substeps']):
-            mj_X, _ = self._world[condition].step(mj_X, mj_U)
+            mj_X, _ = self._world[condition].step(mj_X.astype(np.float64), 
+                    mj_U.astype(np.float64))
         return mj_X
     
     @property
@@ -226,12 +227,22 @@ class AgentMuJoCo(Agent):
 
     def _get_eepts(self, condition):
         SHOULDER_IDX = 3
-        shoulder_pos = self._world[condition].get_data()['xpos']\
-                        [SHOULDER_IDX,:].flatten()
-        abs_eepts = self._world[condition].get_data()['site_xpos']
+        data = self._get_data(condition)
+        shoulder_pos = data['xpos'][SHOULDER_IDX,:].flatten()
+        abs_eepts  = data['site_xpos']
         n_eepts = abs_eepts.shape[0]
         return abs_eepts.flatten() - np.concatenate([shoulder_pos]*n_eepts)
     
+    def _combine_eepts(self, data):
+        shoulder_pos = data['xpos'][SHOULDER_IDX,:].flatten()
+        abs_eepts = data['site_xpos']
+        n_eepts = abs_eepts.shape[0]
+        return abs_eepts.flatten() - np.concatenate([shoulder_pos]*n_eepts)
+
+    def _get_data(self, condition):
+        data = self._world[condition].get_data()
+        return data
+
     def _adjust_eepts(self, condition, eepts):
         if self._hyperparams['ee_point_mode'] == 'stationary_target':        
             adjusted_eepts = eepts - \
@@ -314,6 +325,7 @@ class AgentMuJoCo(Agent):
                                         self._hyperparams['image_width'],
                                         self._hyperparams['image_height']], t=None)
         return sample
+    
     def get_ee_obs(self, prev_eepts, condition):
         curr_eepts = self._get_eepts(condition)
         curr_adj_eepts = self._adjust_eepts(condition, curr_eepts)
@@ -321,6 +333,7 @@ class AgentMuJoCo(Agent):
         eept_vels = (curr_adj_eepts - prev_eepts) / self._hyperparams['dt']
         jac = self._get_ee_point_jacobians(condition, curr_adj_eepts)
         return curr_adj_eepts, eept_vels, jac
+    
     def _set_sample(self, sample, mj_X, t, condition):
         """
         Set the data for a sample for one time step.
