@@ -41,7 +41,7 @@ class TfPolicy(Policy):
             self.hidden_state = np.zeros([1, self.hidden_dim])
     
     
-    def act(self, x, obs, t, noise):
+    def act(self, x, obs, t, noise, sample=None):
         """
         Return an action for a state.
         Args:

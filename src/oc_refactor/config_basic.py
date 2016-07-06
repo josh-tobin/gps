@@ -20,6 +20,7 @@ LQR_iter = 1  # Number of LQR iterations to take
 min_mu = 1e-6  # LQR regularization
 del0 = 2  # LQR regularization
 lqr_discount = 0.9  # Discount factor.
+use_offline_value = False
 
 # Noise
 u_noise = 0.05

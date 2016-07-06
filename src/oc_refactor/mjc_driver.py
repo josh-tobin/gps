@@ -83,11 +83,17 @@ def setup_algorithm(agent, conditions):
 
 #def run_offline(out_filename, verbose, conditions=defaults['common']['conditions'], alg_iters=10, sample_iters=20,
 #        hyperparam_file=None):
-def run_offline(out_filename, verbose, conditions=1,
+def run_offline(out_filename, verbose, conditions=1, 
+        savedata=None,
         alg_iters=10, sample_iters=20, hyperparam_file=None):
     """
     Run offline controller, and save results to controllerfile
     """
+    if savedata is None:
+        data_filename = common.OFFLINE_DYNAMICS_DATA
+    else:
+        data_filename = savedata
+    print data_filename
     agent = setup_agent(hyperparam_file=hyperparam_file)
     algorithm = setup_algorithm(agent, conditions)
     samples = [[] for _ in range(conditions)]
@@ -128,7 +134,7 @@ def run_offline(out_filename, verbose, conditions=1,
     dyn_init_sig = np.cov(xux_data.T)
 
     mkdir_p('data')
-    scipy.io.savemat(os.path.join('data', common.OFFLINE_DYNAMICS_DATA), {'data': nn_train_data, 'label': nn_train_lbl, 'clip':clip})
+    scipy.io.savemat(os.path.join('data', data_filename), {'data': nn_train_data, 'label': nn_train_lbl, 'clip':clip})
 
     controllers = []
     for condition in range(conditions):
@@ -137,6 +143,8 @@ def run_offline(out_filename, verbose, conditions=1,
         # tgtmu = algorithm.cur[condition].
         K = algorithm.cur[condition].traj_distr.K
         k = algorithm.cur[condition].traj_distr.k
+        Vxx = algorithm.cur[condition].traj_distr.Vxx
+        Vx = algorithm.cur[condition].traj_distr.Vx
         controller_dict = {
             'dyn_init_mu': dyn_init_mu,
             'dyn_init_sig': dyn_init_sig,
@@ -146,7 +154,9 @@ def run_offline(out_filename, verbose, conditions=1,
             'Du': dU,
             'gmm': gmm,
             'offline_K': K,
-            'offline_k': k
+            'offline_k': k,
+            'offline_Vxx': Vxx,
+            'offline_Vx': Vx,
         }
         with open(out_filename+'_'+str(condition), 'w') as f:
             cPickle.dump(controller_dict, f)
@@ -210,7 +220,9 @@ def main():
     if args.offline:
         run_offline(args.controllerfile, 
                     hyperparam_file=experiment_file,
-                    verbose=not args.noverbose)
+                    verbose=not args.noverbose,
+                    savedata=args.savedata
+                    )
     else:
         run_online(args.timesteps, args.controllerfile, args.config,
                    hyperparam_file=experiment_file,
@@ -240,6 +252,6 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
-    #main()
-    import cProfile
-    cProfile.run('main()', sort='cumtime')
+    main()
+    #import cProfile
+    #cProfile.run('main()', sort='cumtime')

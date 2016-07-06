@@ -11,7 +11,8 @@ class LinearGaussianPolicy(Policy):
     Time-varying linear Gaussian policy.
     U = K*x + k + noise, where noise ~ N(0, chol_pol_covar)
     """
-    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar, cache_kldiv_info=False):
+    def __init__(self, K, k, pol_covar, chol_pol_covar, inv_pol_covar, 
+            cache_kldiv_info=False, Vxx=None, Vx=None):
         Policy.__init__(self)
 
         # Assume K has the correct shape, and make sure others match.
@@ -29,7 +30,14 @@ class LinearGaussianPolicy(Policy):
         self.pol_covar = pol_covar
         self.chol_pol_covar = chol_pol_covar
         self.inv_pol_covar = inv_pol_covar
-
+        if Vxx is not None:
+            self.Vxx = Vxx
+        else:
+            self.Vxx = np.zeros([self.T, self.dX, self.dX])
+        if Vx is not None:
+            self.Vx = Vx
+        else:
+            self.Vx = np.zeros([self.T, self.dX])
         # KL Div stuff
         if cache_kldiv_info:
             self.logdet_psig = np.zeros(self.T)
@@ -83,13 +91,17 @@ class LinearGaussianPolicy(Policy):
         policy.pol_covar.fill(np.nan)
         policy.chol_pol_covar.fill(np.nan)
         policy.inv_pol_covar.fill(np.nan)
+        policy.Vxx.fill(np.nan)
+        policy.Vx.fill(np.nan)
         return policy
 
     def pickle_policy(self, deg_obs, deg_action, checkpoint_path): 
         output_spec = {'deg_obs': deg_obs, 'deg_action': deg_action, 
                        'K': self.K, 'k': self.k, 'pol_covar': self.pol_covar,
                        'chol_pol_covar': self.chol_pol_covar, 
-                       'inv_pol_covar': self.inv_pol_covar}
+                       'inv_pol_covar': self.inv_pol_covar,
+                       'Vxx': self.Vxx,
+                       'Vx': self.Vx}
         with open(checkpoint_path, 'wb') as f:
             pkl.dump(output_spec, f)
 
@@ -99,5 +111,6 @@ class LinearGaussianPolicy(Policy):
         with open(policy_dict_path, 'r') as f:
             policy_dict = pkl.load(f)
         policy = cls(policy_dict['K'], policy_dict['k'], policy_dict['pol_covar'],
-                     policy_dict['chol_pol_covar'], policy_dict['inv_pol_covar'])
+                     policy_dict['chol_pol_covar'], policy_dict['inv_pol_covar'],
+                     Vxx=policy_dict['Vxx'], Vx=policy_dict['Vx'])
         return policy

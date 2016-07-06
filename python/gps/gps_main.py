@@ -266,11 +266,12 @@ class GPSMain(object):
             else:
                 agents = []
                 for cond in range(self.algorithm.M):
-                    agents.append(self.algorithm.cur[cond].traj_info.dynamics.agent)
-                    self.algorithm.cur[cond].traj_info.dynamics.agent = None
-                    self.algorithm.prev[cond].traj_info.dynamics.agent = None
-                    self.algorithm.cur[cond].traj_info.dynamics._hyperparams['agent'] = None
-                    self.algorithm.prev[cond].traj_info.dynamics._hyperparams['agent'] = None
+                    if hasattr(self.algorithm.cur[cond].traj_info.dynamics, 'agent'):
+                        agents.append(self.algorithm.cur[cond].traj_info.dynamics.agent)
+                        self.algorithm.cur[cond].traj_info.dynamics.agent = None
+                        self.algorithm.prev[cond].traj_info.dynamics.agent = None
+                        self.algorithm.cur[cond].traj_info.dynamics._hyperparams['agent'] = None
+                        self.algorithm.prev[cond].traj_info.dynamics._hyperparams['agent'] = None
                 #print vars(self.algorithm.cur[0].traj_info.dynamics)
                 self.data_logger.pickle(    
                     self._data_files_dir + ('algorithm_itr_%02d.pkl' % itr),

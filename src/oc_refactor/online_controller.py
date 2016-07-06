@@ -32,6 +32,7 @@ class OnlineController(TfPolicy):
         )
         self.prior = ClassRegistry.getClass(self.prior_class).from_config(*self.prior_class_args, config=self.__dict__)
         self.dynamics = ClassRegistry.getClass(self.dynamics_class).from_config(self.prior, config=self.__dict__)
+        #self.offline_controller 
 
         self.prevx = None
         self.prevu = None
@@ -63,7 +64,8 @@ class OnlineController(TfPolicy):
                 jacobian = sample.get(END_EFFECTOR_POINT_JACOBIANS, t=t)
             else:
                 jacobian = obs[self.dX:].reshape([-1,self.dU])
-            lgpolicy = self.run_lqr(t, fb, self.prev_policy, jacobian=jacobian)
+            lgpolicy = self.run_lqr(t, fb, self.prev_policy, 
+                    jacobian=jacobian)
         u = self.compute_action(lgpolicy, fb, add_noise=True)
         LOGGER.debug("U=%s", u)
         self.prev_policy = lgpolicy
@@ -108,17 +110,23 @@ class OnlineController(TfPolicy):
             LinearGaussianPolicy: An updated policy
         """
         horizon = min(self.H, self.maxT - t)
-        #horizon = self.H
         reg_mu = self.min_mu
         reg_del = self.del0
         for _ in range(self.LQR_iter):
             # This is plain LQR
+            if self.use_offline_value:
+                Vxx = self.offline_Vxx
+                Vx = self.offline_Vx
+            else:
+                Vxx = None
+                Vx = None
             lgpolicy, reg_mu, reg_del = lqr(
 		self.cost, prev_policy, self.dynamics,
                 horizon, t, x, self.prevx, self.prevu,
                 reg_mu, reg_del, self.del0, self.min_mu,
 		self.lqr_discount, jacobian=jacobian,
-                max_time_varying_horizon=horizon)
+                max_time_varying_horizon=horizon,
+                offline_Vxx=Vxx, offline_Vx=Vx)
             prev_policy = lgpolicy
         return lgpolicy
 
