@@ -25,8 +25,10 @@ lqr_discount = 0.9  # Discount factor.
 u_noise = 0.05
 
 # Cost options
-wu = 1e-2/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Torque penalty
 tgt = np.zeros(26)
+
+
+wu = 1e-2/np.array([3.09,1.08,0.593,0.674,0.111,0.152,0.098])  # Torque penalty
 eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt
 use_jacobian = True

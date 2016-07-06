@@ -1,18 +1,18 @@
 import numpy as np
 import logging
 from gps.algorithm.policy.policy import Policy
-from gps.algorithm.policy.tf_policy import TfPolicy
+#from gps.algorithm.policy.tf_policy import TfPolicy
 from gps.proto.gps_pb2 import END_EFFECTOR_POINT_JACOBIANS
 from online_dynamics import *
 from cost_fk_online import CostFKOnline
 from helper import iter_module
 
 LOGGER = logging.getLogger(__name__)
-CLIP_U = 1.5
+CLIP_U = 2.5
 
-class OnlineController(TfPolicy):
+class OnlineController(Policy):
     def __init__(self, configfiles, config_dict=None):
-        super(TfPolicy, self).__init__()
+        super(OnlineController, self).__init__()
 
         defaults = apply_config(configfiles)
         for key in defaults:

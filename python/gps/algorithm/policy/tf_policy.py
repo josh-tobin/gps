@@ -5,7 +5,6 @@ import tensorflow as tf
 
 from gps.algorithm.policy.policy import Policy
 
-
 class TfPolicy(Policy):
     """
     A neural network policy implemented in tensor flow. The network output is

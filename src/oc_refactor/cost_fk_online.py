@@ -17,11 +17,15 @@ class CostFKOnline(object):
         self.jnt_tgt = jnt_tgt
         self.jnt_wp = jnt_wp
         self.use_jacobian = use_jacobian
-        self.final_penalty = 1.0  # weight = sum of remaining weight * final penalty
-        self.ramp_option = RAMP_CONSTANT
-        self.l1 = 0.01
-        self.l2 = 1.0
-        self.alpha = 1e-5
+        #self.final_penalty = 1.0  # weight = sum of remaining weight * final penalty
+        self.final_penalty = 2.0
+	self.ramp_option = RAMP_CONSTANT
+        #self.l1 = 0.01
+        self.l1 = 0.1
+	self.l2 = 1.0
+	#self.l2 = 1.0
+        #self.l2 = 10.0
+	self.alpha = 1e-5
         self.wu = wu
 
         ramp_len = self.ref_len if maxT is None else maxT
@@ -29,7 +33,7 @@ class CostFKOnline(object):
 
     def eval(self, X, U, t, jac=None):
         # Constants.
-        dX = X.shape[1]
+	dX = X.shape[1]
         dU = U.shape[1]
         T = X.shape[0]
 

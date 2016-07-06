@@ -13,11 +13,12 @@ from online_controller import OnlineController
 from helper import *
 from gps.hyperparam_defaults import defaults, ACTION, JOINT_ANGLES, JOINT_VELOCITIES, END_EFFECTOR_POINTS, \
     END_EFFECTOR_POINT_VELOCITIES
-from gps.agent.mjc.agent_mjc import AgentMuJoCo
+#from gps.agent.mjc.agent_mjc import AgentMuJoCo
 from gps.sample.sample_list import SampleList
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
 from gps.algorithm.dynamics.dynamics_lr_prior import DynamicsLRPrior
 import common
+import time
 
 np.set_printoptions(suppress=True)
 THIS_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -159,6 +160,11 @@ def run_online(T, controllerfile, cfgfiles, condition=0, verbose=True, savedata=
     """
     agent = setup_agent(T=T, hyperparam_file=hyperparam_file)
     controller = get_controller(controllerfile, condition, cfgfiles, maxT=T)
+    print 'resetting'
+    agent.reset(condition)
+    print 'waiting'
+    time.sleep(5.0)
+    print 'running'    
     sample = agent.sample(controller, condition, verbose=verbose)
     cost = setup_cost(hyperparam_file) 
     #total_cost = np.sum(cost.eval(sample))

@@ -126,7 +126,7 @@ class OnlineGaussianDynamics(OnlineDynamics):
         # Mix and add regularization
         sigma, mun = self.prior.mix(dX, dU, xu, pxu, xux, self.sigma, self.mu, N)
         sigma[it, it] = sigma[it, it] + self.sigreg * np.eye(dX + dU)
-        sigma_inv = invert_psd(sigma[it, it])
+	sigma_inv = invert_psd(sigma[it, it])
 
         # Solve normal equations to get dynamics.
         Fm = sigma_inv.dot(sigma[it, ip]).T

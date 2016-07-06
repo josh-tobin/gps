@@ -4,7 +4,7 @@ import datetime
 import os
 import numpy as np
 
-from agent.mjc.agent_mjc import AgentMuJoCo
+#from agent.mjc.agent_mjc import AgentMuJoCo
 from algorithm.algorithm_traj_opt import AlgorithmTrajOpt
 from algorithm.cost.cost_fk import CostFK
 from algorithm.cost.cost_state import CostState
@@ -62,7 +62,7 @@ SENSOR_DIMS = {
     ACTION: 7,
 }
 agent = {
-    'type': AgentMuJoCo,
+    #'type': AgentMuJoCo,
     'filename': os.path.join(GPS_ROOT_DIR, 'mjc_models/pr2_arm3d.xml'),
     'x0': np.concatenate([np.array([0.1, 0.1, -1.54, -1.7, 1.54, -0.2, 0]),
                           np.zeros(7)]),
