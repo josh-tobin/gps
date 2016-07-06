@@ -102,7 +102,7 @@ algorithm['init_traj_distr'] = {
 
 torque_cost = {
     'type': CostTorque,
-    'wu': 5e-5/PR2_GAINS
+    'wu': 5e-2/PR2_GAINS
 }
 state_cost = {
     'type': CostState,
@@ -121,9 +121,9 @@ state_cost = {
 fk_cost = {
     'type': CostFK,
     #'end_effector_target': np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]),
-    'end_effector_target': np.zeros(9),
+    'target_end_effector': np.zeros(9),
     'l1': 0.1,
-    'l2': 10.0,
+    'l2': 1.0,
     'alpha': 1e-5,
     'wp': np.ones(9),
 }

@@ -19,7 +19,7 @@ class CostFK(Cost):
         config = copy.deepcopy(COST_FK)
         config.update(hyperparams)
         Cost.__init__(self, config)
-
+        print config
     def eval(self, sample):
         """
         Evaluate forward kinematics (end-effector penalties) cost.

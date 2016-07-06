@@ -274,8 +274,8 @@ class TrajOptLQRPython(TrajOpt):
             fail = False  # Flip to true on non-symmetric PD.
 
             # Allocate.
-            Vxx = np.zeros((T, dX, dX))
-            Vx = np.zeros((T, dX))
+            traj_distr.Vxx = np.zeros((T, dX, dX))
+            traj_distr.Vx = np.zeros((T, dX))
 
             fCm, fcv = algorithm.compute_costs(m, eta)
 
@@ -290,10 +290,10 @@ class TrajOptLQRPython(TrajOpt):
                     #TODO: Should multiply by
                     #      (pol_wt[t+1] + eta)/(pol_wt[t] + eta) here.
                     Qtt = Qtt + \
-                            Fm[t, :, :].T.dot(Vxx[t+1, :, :]).dot(Fm[t, :, :])
+                            Fm[t, :, :].T.dot(traj_distr.Vxx[t+1, :, :]).dot(Fm[t, :, :])
                     Qt = Qt + \
-                            Fm[t, :, :].T.dot(Vx[t+1, :] +
-                                              Vxx[t+1, :, :].dot(fv[t, :]))
+                            Fm[t, :, :].T.dot(traj_distr.Vx[t+1, :] +
+                                              traj_distr.Vxx[t+1, :, :].dot(fv[t, :]))
 
                 # Symmetrize quadratic component.
                 Qtt = 0.5 * (Qtt + Qtt.T)
@@ -329,10 +329,11 @@ class TrajOptLQRPython(TrajOpt):
                 )
 
                 # Compute value function.
-                Vxx[t, :, :] = Qtt[idx_x, idx_x] + \
+                traj_distr.Vxx[t, :, :] = Qtt[idx_x, idx_x] + \
                         Qtt[idx_x, idx_u].dot(traj_distr.K[t, :, :])
-                Vx[t, :] = Qt[idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.k[t, :])
-                Vxx[t, :, :] = 0.5 * (Vxx[t, :, :] + Vxx[t, :, :].T)
+                traj_distr.Vx[t, :] = Qt[idx_x] + Qtt[idx_x, idx_u].dot(traj_distr.k[t, :])
+                traj_distr.Vxx[t, :, :] = 0.5 * (traj_distr.Vxx[t, :, :] 
+                        + traj_distr.Vxx[t, :, :].T)
 
             # Increment eta on non-SPD Q-function.
             if fail:

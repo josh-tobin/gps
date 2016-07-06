@@ -207,7 +207,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train/run online controller in MuJoCo')
     parser.add_argument('-n', '--new', action='store_true', default=False, help='Create a new network')
     parser.add_argument('-i', '--netid', type=str, default='contextual', help='Which network to build')
-
+    default_file = common.DYNAMICS_NETWORK
+    parser.add_argument('-f', '--file', type=str, default=default_file)
     default_data = [os.path.join('data', common.OFFLINE_DYNAMICS_DATA)]
     parser.add_argument('-d', '--data', type=str, metavar='N', nargs='+', default=default_data, help='Data files')
     args = parser.parse_args()
@@ -215,5 +216,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    filename = os.path.join('network', args.netid+'_'+common.DYNAMICS_NETWORK)
+    filename = os.path.join('network', args.netid+'_'+
+            args.file)
     train_nn(filename, args.netid, new=args.new, data_files=args.data)

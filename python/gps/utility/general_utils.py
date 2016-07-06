@@ -1,6 +1,9 @@
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
+import multiprocessing as mp
+#import pathos.multiprocessing as mp
+from functools import partial
 
 class BundleType(object):
     """
@@ -60,6 +63,47 @@ def finite_differences(func, inputs, func_output_shape=(), epsilon=1e-5):
         gradient[idx] += diff
     return gradient
 
+"""
+class ParallelFiniteDifferences(object):
+    ''' Class that stores parallel workers to compute finite differences on several
+        threads '''
+    def __init__(self, func, func_output_shape=(), epsilon=1e-5, n_workers=6):
+        self.func = func
+        self.func_output_shape = func_output_shape
+        self.epsilon=epsilon
+        
+        self.map_func = partial(finite_differences, self.func, 
+                func_output_shape=self.func_output_shape, epsilon=self.epsilon)
+        self.pool = mp.Pool(n_workers)
+
+    #def map_func(self, inputs):
+    #    return finite_differences(self.func, inputs, 
+    #            func_output_shape=self.func_output_shape, epsilon=self.epsilon)
+
+    def __call__(self, inputs):
+        def map_func(inputs):
+            return finite_differences(self.func, inputs, 
+                func_output_shape=self.func_output_shape, epsilon=self.epsilon)
+        result = self.pool.map(map_func, inputs)
+        result = np.stack(result)
+        return result
+"""
+
+class ParallelFiniteDifferences(object):
+    def __init__(self, n_workers=6):
+        self.n_workers=n_workers
+        self.pool = mp.Pool(n_workers)
+
+    def __call__(self, func, inputs, func_output_shape=(), epsilon=1e-5):
+        def map_func(x):
+            return finite_differences(func, x, func_output_shape, epsilon)
+        result = self.pool.map(map_func, inputs)
+        return np.stack(result)
+
+    def __getstate__(self):
+        return {'n_workers': self.n_workers}
+    def __setstate__(self, state):
+        self.__init__(state['n_workers'])
 
 def approx_equal(a, b, threshold=1e-5):
     """

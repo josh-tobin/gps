@@ -33,7 +33,9 @@ def lqr(cost, lgpolicy, dynamics,
         horizon, T, x, prevx, prevu,
         reg_mu, reg_del, del0, min_mu, discount,
         jacobian=None,
-        max_time_varying_horizon=20):
+        max_time_varying_horizon=20, 
+        offline_Vxx=None,
+        offline_Vx=None):
     """
     TODO: Clean up args...
 
@@ -64,8 +66,15 @@ def lqr(cost, lgpolicy, dynamics,
     cholPSig = np.zeros((horizon, dU, dU))
     k = np.zeros((horizon, dU))
     while fail:
-        Vxx = np.zeros((dX, dX))
-        Vx = np.zeros(dX)
+        if offline_Vxx is None or (T+horizon) >= offline_Vxx.shape[0]:
+            Vxx = np.zeros((dX, dX))
+        else:
+            Vxx = offline_Vxx[T+horizon, :, :]
+        if offline_Vx is None or (T+horizon) >= offline_Vxx.shape[0]:
+            Vx = np.zeros(dX)
+        else:
+            Vx = offline_Vx[T + horizon,:]
+        
         fail = False
         for t in range(horizon - 1, -1, -1):
             F = Fd[t]

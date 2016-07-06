@@ -47,6 +47,7 @@ class AgentMuJoCo(Agent):
         Helper method for handling setup of the MuJoCo world.
         Args:
             filename: Path to XML file containing the world information.
+        Todo: refactor this routine
         """
         self._world = []
         self._model = []
@@ -90,9 +91,12 @@ class AgentMuJoCo(Agent):
         self._joint_idx = list(range(self._model[0]['nq']))
         self._vel_idx = [i + self._model[0]['nq'] for i in self._joint_idx]
         self._included_joint_idx = list(range(self._hyperparams['sensor_dims'][0]))
+        print 'included joint index'
+        print self._included_joint_idx
         self._included_vel_idx = [i + self._model[0]['nq'] 
                                   for i in self._included_joint_idx]
-
+        print 'included velocity index'
+        print self._included_vel_idx
         # Scale the gain of the model
         for i in range(self._hyperparams['conditions']):
             self._model[i]['actuator_gainprm'][:,0] *= self._hyperparams['gain_scale'][i]
@@ -120,6 +124,16 @@ class AgentMuJoCo(Agent):
                 )
             else:
                 self.x0.append(self._hyperparams['x0'][i])
+        
+        # Setup shoulder position for speed in fwd kinematics: assume it
+        # won't change during the trial
+        self._shoulder_pos = []
+        N_EEPTS = 3
+        for i in range(self._hyperparams['conditions']):
+            SHOULDER_IDX = 3
+            data = self._get_data(i)
+            self._shoulder_pos.append(
+                    np.concatenate([data['xpos'][SHOULDER_IDX,:].flatten()]*N_EEPTS))
         
         # Setup object ids
         self._object_ids = []
@@ -215,23 +229,65 @@ class AgentMuJoCo(Agent):
             self._samples[condition].append(new_sample)
         return new_sample
     
-    def step(self, condition, mj_X, mj_U):
+    def step(self, condition, mj_X, mj_U, prev_eepts):
+        #mj_X64, mj_U64 = self._change_types(mj_X, mj_U)
+
         for _ in range(self._hyperparams['substeps']):
-            mj_X, _ = self._world[condition].step(mj_X, mj_U)
-        return mj_X
+            #mj_X, raw_eepts = self._world[condition].step(mj_X.astype(np.float64), 
+            #        mj_U.astype(np.float64))
+            #mj_X, raw_eepts = self._just_step(condition, mj_X64, mj_U64)
+            mj_X, raw_eepts = self._just_step(condition, mj_X, mj_U)
+        eepts = self._modify_eepts(condition, raw_eepts)
+        eept_vels = (eepts - prev_eepts) / self._hyperparams['dt']
+        return np.concatenate([mj_X, eepts, eept_vels])
     
+    def _change_types(self, mj_X, mj_U):
+        return mj_X.astype(np.float64), mj_U.astype(np.float64)
+    # For debugging
+    def _just_step(self, condition, mj_X, mj_U):
+        return self._world[condition].step(mj_X, 
+                                           mj_U)
+
+    def _calc_relative_to_shoulder(self, condition, eepts):
+        n_eepts = eepts.shape[0]
+        #eepts_relative_to_shoulder = (eepts.flatten() - 
+        #        np.concatenate([self._shoulder_pos[condition]]*n_eepts))
+        eepts_relative_to_shoulder = eepts.flatten() - self._shoulder_pos[condition]
+        return eepts_relative_to_shoulder
+    def _calc_relative_to_target(self, condition, relative_to_shoulder):
+        eepts_relative_to_target = (relative_to_shoulder -
+                self._hyperparams['ee_points_tgt'][condition].flatten())
+        return eepts_relative_to_target
+    def _modify_eepts(self, condition, eepts):
+        ''' To-do: we have a lot of fns like this: need to combine '''
+        n_eepts = eepts.shape[0]
+        eepts_relative_to_shoulder = self._calc_relative_to_shoulder(condition, eepts)
+        eepts_relative_to_target = self._calc_relative_to_target(condition, eepts_relative_to_shoulder)
+        return eepts_relative_to_target
+
     @property
     def worlds(self):
         return self._world
 
     def _get_eepts(self, condition):
+
         SHOULDER_IDX = 3
-        shoulder_pos = self._world[condition].get_data()['xpos']\
-                        [SHOULDER_IDX,:].flatten()
-        abs_eepts = self._world[condition].get_data()['site_xpos']
+        data = self._get_data(condition)
+        shoulder_pos = data['xpos'][SHOULDER_IDX,:].flatten()
+        abs_eepts  = data['site_xpos']
         n_eepts = abs_eepts.shape[0]
         return abs_eepts.flatten() - np.concatenate([shoulder_pos]*n_eepts)
     
+    def _combine_eepts(self, data):
+        shoulder_pos = data['xpos'][SHOULDER_IDX,:].flatten()
+        abs_eepts = data['site_xpos']
+        n_eepts = abs_eepts.shape[0]
+        return abs_eepts.flatten() - np.concatenate([shoulder_pos]*n_eepts)
+
+    def _get_data(self, condition):
+        data = self._world[condition].get_data()
+        return data
+
     def _adjust_eepts(self, condition, eepts):
         if self._hyperparams['ee_point_mode'] == 'stationary_target':        
             adjusted_eepts = eepts - \
@@ -314,6 +370,7 @@ class AgentMuJoCo(Agent):
                                         self._hyperparams['image_width'],
                                         self._hyperparams['image_height']], t=None)
         return sample
+    
     def get_ee_obs(self, prev_eepts, condition):
         curr_eepts = self._get_eepts(condition)
         curr_adj_eepts = self._adjust_eepts(condition, curr_eepts)
@@ -321,6 +378,7 @@ class AgentMuJoCo(Agent):
         eept_vels = (curr_adj_eepts - prev_eepts) / self._hyperparams['dt']
         jac = self._get_ee_point_jacobians(condition, curr_adj_eepts)
         return curr_adj_eepts, eept_vels, jac
+    
     def _set_sample(self, sample, mj_X, t, condition):
         """
         Set the data for a sample for one time step.

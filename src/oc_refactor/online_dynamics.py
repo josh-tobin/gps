@@ -2,10 +2,11 @@ import numpy as np
 import cPickle
 
 from gps.algorithm.dynamics.dynamics_prior_gmm import DynamicsPriorGMM
-from gps.utility.general_utils import finite_differences
+from gps.utility.general_utils import finite_differences, ParallelFiniteDifferences
 from helper import *
 import dynamics_nn
-
+import imp
+import multiprocessing as mp
 
 class OnlineDynamics(object):
     __metaclass__ = ClassRegistry
@@ -186,57 +187,73 @@ class NNPrior(OnlineDynamicsPrior):
         return self.dyn_net.fwd_single(xu, xu_prev)
 
 
+#class ParallelSampler(object):
+#    def __init__(self, n_workers=6):
+#        self.pool = mp.Pool(n_workers)
+
+#    def initialize_models(self, modelfile):
+#        pool.apply_async(
+
 class ModeledPrior(OnlineDynamicsPrior):
     @staticmethod
     def from_config(modelfile, config=None):
         dynamics_params = imp.load_source('hyperparams', modelfile)
-        model_agent = dynamics_params.config['agent']['type'](
-                dynamics_params.config['agent'])
+        model_agent = dynamics_params.agent['type'](
+                dynamics_params.agent)
         return ModeledPrior(
                 model_agent,
-                mix_strength=config.mix_strength,
-                fd_eps=config.fd_eps,
-                dX_include=config.dX_include,
-                dX=config.dX,
-                dU=config.dU,
-                condition=config.condition
+                mix_strength=config['mix_strength'],
+                fd_eps=config['fd_eps'],
+                dX_include=config['dX_include'],
+                dX=config['dX'],
+                dU=config['dU'],
+                condition=config['condition']
         )
 
     def __init__(self, model_agent, mix_strength=1.0, fd_eps=1e-5,
-                 dX_include=14, dX=32, dU=7, condition=0):
+                 dX_include=14, dX=32, dU=7, condition=0,
+                 n_workers=6):
         self.model_agent = model_agent
         self.mix_prior_strength = mix_strength
         self.fd_eps = fd_eps
         self.dX_include = dX_include
         self.dX = dX
         self.dU = dU
-    
+        self.condition = condition
+        #self.finite_differences = ParallelFiniteDifferences(
+            #self._dynamics_function,
+            #func_output_shape=(self.dX,),
+            #epsilon=self.fd_eps,
+        #    n_workers=n_workers
+        #)
+
     def _dynamics_function(self, xu):
         x = xu[:self.dX_include]
+        prev_eepts = xu[self.dX_include:self.dX]
+        idx = len(prev_eepts) // 2
+        prev_eepts = prev_eepts[:idx]
         u = xu[self.dX:self.dX+self.dU]
-        new_x = self.model_agent.step(self.condition, x, u)
-        if self.dX_include < self.dX:
-            prev_eepts = xu[self.dX_include:self.dX]
-            idx = len(prev_eepts) // 2 # only want pos, not vel
-            eepts, eepts_vel, eepts_jac = self.agent.get_ee_obs(
-                    prev_eepts, self.condition)
-            new_x = np.concatenate([new_x, eepts, eepts_vel])
-        return new_x
+        #new_x = self.model_agent.step(self.condition, x, u)
+        return self.model_agent.step(self.condition, x, u, prev_eepts)
+
 
     def estimate_next(self, x, u, x_prev, u_prev):
         xu = np.r_[x, u]
         return self._dynamics_function(xu)
    
     def linearize(self, x, u, x_prev, u_prev):
-        xu = np.r_[x,u]
+        xu = np.r_[x,u].astype(np.float64)
         df_dxu = finite_differences(self._dynamics_function,
                 xu, (self.dX,), epsilon=self.fd_eps).T
+        #df_dxu = self.finite_differences(xu)
+        #df_dxu = self.finite_differences(self._dynamics_function,
+        #        xu, (self.dX,), epsilon=self.fd_eps).T
         Fm = df_dxu
-        fv = self._dynamics_function(xu) - Fm.dot(xu)
+        fv = self._dynamics_function(xu).astype(np.float64) - Fm.dot(xu)
         return Fm, fv
     
     def mix(self, dX, dU, xu, pxu, xux, empsig, mun, N):
-        F, f = self.linearize(xu, pxu)
+        F, f = self.linearize(xu[:self.dX], xu[self.dX:], pxu[:self.dX], pxu[self.dX:])
         nn_Phi, nnf = mix_prior(dX, dU, F, f, xu, strength=self.mix_prior_strength, 
                 use_least_squares=False)
         sigma = (N * empsig + nn_Phi) / (N + 1)
