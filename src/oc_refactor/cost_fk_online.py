@@ -6,10 +6,16 @@ class CostFKOnline(object):
     """
     :param eetgt:
     """
-    def __init__(self, eetgt, wu=None, jnt_tgt=None, jnt_wp=None, ee_idx=None, jnt_idx=None, use_jacobian=True, maxT=None):
+    def __init__(self, eetgt, wu=None, jnt_tgt=None, jnt_wp=None, 
+            ee_idx=None, jnt_idx=None, use_jacobian=True, maxT=None,
+            l1=0.1, l2=1.0, wp=None, ramp_option=None,
+            final_penalty=1.0):
         self.dim_ee = ee_idx.stop-ee_idx.start
         self.dim_jnt = jnt_idx.stop - jnt_idx.start
-        self.wp = np.ones(self.dim_ee)
+        if wp is None:
+            self.wp = np.ones(self.dim_ee)
+        else:
+            self.wp = wp
         #self.wp[0:3] = 3.0
         self.eetgt = eetgt
         self.ee_idx = ee_idx
@@ -17,10 +23,13 @@ class CostFKOnline(object):
         self.jnt_tgt = jnt_tgt
         self.jnt_wp = jnt_wp
         self.use_jacobian = use_jacobian
-        self.final_penalty = 2.0  # weight = sum of remaining weight * final penalty
-        self.ramp_option = RAMP_CONSTANT
-        self.l1 = 0.1
-        self.l2 = 1.0
+        self.final_penalty = final_penalty  # weight = sum of remaining weight * final penalty
+        if ramp_option is None:
+            self.ramp_option = RAMP_CONSTANT
+        else:
+            self.ramp_option = ramp_option
+        self.l1 = l1
+        self.l2 = l2
         self.alpha = 1e-5
         self.wu = wu
 
