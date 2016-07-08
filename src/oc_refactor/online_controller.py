@@ -8,7 +8,7 @@ from cost_fk_online import CostFKOnline
 from helper import iter_module
 
 LOGGER = logging.getLogger(__name__)
-CLIP_U = 1.5
+CLIP_U = 2.5
 
 class OnlineController(TfPolicy):
     def __init__(self, configfiles, config_dict=None):
@@ -28,7 +28,13 @@ class OnlineController(TfPolicy):
                 ee_idx=self.ee_idx,
                 jnt_idx=self.jnt_idx,
                 maxT=self.maxT,
-                use_jacobian=self.use_jacobian
+                use_jacobian=self.use_jacobian,
+                l1=self.l1,
+                l2=self.l2,
+                ramp_option=self.ramp_option,
+                wp=self.wp,
+                final_penalty=self.final_penalty,
+
         )
         self.prior = ClassRegistry.getClass(self.prior_class).from_config(*self.prior_class_args, config=self.__dict__)
         self.dynamics = ClassRegistry.getClass(self.dynamics_class).from_config(self.prior, config=self.__dict__)

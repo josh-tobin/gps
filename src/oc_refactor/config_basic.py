@@ -31,6 +31,11 @@ tgt = np.zeros(26)
 eetgt = np.array([0.0, 0.3, -0.5,  0.0, 0.3, -0.2]) # End-effector target
 tgt[ee_idx] = eetgt
 use_jacobian = True
+l1=0.1
+l2=1.0
+ramp_option=None
+wp=None
+final_penalty=1.0
 
 # Dynamics Options
 dynamics_class = 'OnlineGaussianDynamics'
